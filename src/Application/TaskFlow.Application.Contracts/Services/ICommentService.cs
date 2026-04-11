@@ -5,9 +5,9 @@ namespace TaskFlow.Application.Contracts.Services;
 
 public interface ICommentService
 {
-    Task<Result<CommentDto>> CreateAsync(CommentDto dto, CancellationToken ct = default);
-    Task<Result<CommentDto>> UpdateAsync(CommentDto dto, CancellationToken ct = default);
+    Task<PagedResponse<CommentDto>> SearchAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CommentDto>>> GetAsync(Guid id, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CommentDto>>> CreateAsync(DefaultRequest<CommentDto> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CommentDto>>> UpdateAsync(DefaultRequest<CommentDto> request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task<Result<CommentDto>> GetAsync(Guid id, CancellationToken ct = default);
-    Task<Result<PagedResponse<CommentDto>>> SearchAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default);
 }

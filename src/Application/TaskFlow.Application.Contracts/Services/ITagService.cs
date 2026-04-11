@@ -5,9 +5,9 @@ namespace TaskFlow.Application.Contracts.Services;
 
 public interface ITagService
 {
-    Task<Result<TagDto>> CreateAsync(TagDto dto, CancellationToken ct = default);
-    Task<Result<TagDto>> UpdateAsync(TagDto dto, CancellationToken ct = default);
+    Task<PagedResponse<TagDto>> SearchAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<TagDto>>> GetAsync(Guid id, CancellationToken ct = default);
+    Task<Result<DefaultResponse<TagDto>>> CreateAsync(DefaultRequest<TagDto> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<TagDto>>> UpdateAsync(DefaultRequest<TagDto> request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task<Result<TagDto>> GetAsync(Guid id, CancellationToken ct = default);
-    Task<Result<PagedResponse<TagDto>>> SearchAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default);
 }

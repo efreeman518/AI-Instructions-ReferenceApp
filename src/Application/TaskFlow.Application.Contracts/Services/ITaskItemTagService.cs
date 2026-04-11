@@ -5,7 +5,7 @@ namespace TaskFlow.Application.Contracts.Services;
 
 public interface ITaskItemTagService
 {
-    Task<Result<TaskItemTagDto>> CreateAsync(TaskItemTagDto dto, CancellationToken ct = default);
+    Task<Result<DefaultResponse<TaskItemTagDto>>> GetAsync(Guid id, CancellationToken ct = default);
+    Task<Result<DefaultResponse<TaskItemTagDto>>> CreateAsync(DefaultRequest<TaskItemTagDto> request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task<Result<TaskItemTagDto>> GetAsync(Guid id, CancellationToken ct = default);
 }

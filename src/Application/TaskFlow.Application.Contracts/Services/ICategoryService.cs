@@ -5,9 +5,9 @@ namespace TaskFlow.Application.Contracts.Services;
 
 public interface ICategoryService
 {
-    Task<Result<CategoryDto>> CreateAsync(CategoryDto dto, CancellationToken ct = default);
-    Task<Result<CategoryDto>> UpdateAsync(CategoryDto dto, CancellationToken ct = default);
+    Task<PagedResponse<CategoryDto>> SearchAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CategoryDto>>> GetAsync(Guid id, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CategoryDto>>> CreateAsync(DefaultRequest<CategoryDto> request, CancellationToken ct = default);
+    Task<Result<DefaultResponse<CategoryDto>>> UpdateAsync(DefaultRequest<CategoryDto> request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task<Result<CategoryDto>> GetAsync(Guid id, CancellationToken ct = default);
-    Task<Result<PagedResponse<CategoryDto>>> SearchAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default);
 }

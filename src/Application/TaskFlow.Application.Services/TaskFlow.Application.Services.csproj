@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Test.Unit" />
+    <InternalsVisibleTo Include="TaskFlow.Bootstrapper" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EF.Common" />
     <PackageReference Include="EF.Common.Contracts" />
   </ItemGroup>
