@@ -1,0 +1,313 @@
+# ============================================================================
+# TaskFlow — Resource Implementation (Phase 2 Output)
+# ============================================================================
+# Maps domain constructs to Aspire/Azure resources, datatypes, and infra.
+# Schema reference: ai/resource-implementation-schema.md
+# JSON Schema: schemas/resource-implementation.schema.json
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Scaffold Configuration
+# ---------------------------------------------------------------------------
+scaffoldMode: full
+testingProfile: comprehensive
+functionProfile: full
+unoProfile: full
+customNugetFeeds: []
+
+# ---------------------------------------------------------------------------
+# Hosting
+# ---------------------------------------------------------------------------
+includeApi: true
+includeGateway: true
+includeFunctionApp: true
+includeScheduler: true
+includeUnoUI: true
+
+includeIaC: true
+includeGitHubActions: false
+includeAzd: false
+includeAiServices: true
+
+database: SQLServer
+caching: FusionCache+Redis
+includeKeyVault: false
+deployTarget: ContainerApps
+useAspire: true
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+gatewayAuth: EntraExternal
+apiAuth: EntraID
+tokenRelay: true
+tenantIdType: Guid
+
+# ---------------------------------------------------------------------------
+# IaC / Pipeline
+# ---------------------------------------------------------------------------
+azureRegion: eastus2
+iacEnvironments: [dev, staging, prod]
+usePrivateEndpoints: false
+
+# ---------------------------------------------------------------------------
+# Testing
+# ---------------------------------------------------------------------------
+includeArchitectureTests: true
+includeE2ETests: true
+includeLoadTests: true
+includeBenchmarkTests: true
+
+# ---------------------------------------------------------------------------
+# Entity-to-Store Mapping
+# ---------------------------------------------------------------------------
+entities:
+
+  # =========================================================================
+  # Category
+  # =========================================================================
+  - name: Category
+    dataStore: sql
+    properties:
+      - { name: Name, type: "nvarchar", maxLength: 200, required: true }
+      - { name: Description, type: "nvarchar", maxLength: 1000, required: false }
+      - { name: SortOrder, type: "int", required: false }
+      - { name: IsActive, type: "bit", required: false }
+      - { name: ParentCategoryId, type: "Guid?", required: false }
+    children:
+      - { name: SubCategories, entity: Category, relationship: self-referencing }
+      - { name: TaskItems, entity: TaskItem, relationship: one-to-many }
+
+  # =========================================================================
+  # Tag
+  # =========================================================================
+  - name: Tag
+    dataStore: sql
+    properties:
+      - { name: Name, type: "nvarchar", maxLength: 100, required: true }
+      - { name: Color, type: "nvarchar", maxLength: 7, required: false }
+
+  # =========================================================================
+  # TaskItem
+  # =========================================================================
+  - name: TaskItem
+    dataStore: sql
+    properties:
+      - { name: Title, type: "nvarchar", maxLength: 200, required: true }
+      - { name: Description, type: "nvarchar(max)", required: false }
+      - { name: Priority, type: "enum", required: false }
+      - { name: Status, type: "enum", required: true }
+      - { name: Features, type: "flags_enum", required: false }
+      - { name: EstimatedEffort, type: "decimal", precision: 8, scale: 2, required: false }
+      - { name: ActualEffort, type: "decimal", precision: 8, scale: 2, required: false }
+      - { name: CompletedDate, type: "DateTimeOffset?", required: false }
+      - { name: ParentTaskItemId, type: "Guid?", required: false }
+      - { name: CategoryId, type: "Guid?", required: false }
+    children:
+      - { name: SubTasks, entity: TaskItem, relationship: self-referencing }
+      - { name: Comments, entity: Comment, relationship: one-to-many }
+      - { name: ChecklistItems, entity: ChecklistItem, relationship: one-to-many }
+      - { name: Tags, entity: Tag, relationship: many-to-many, joinEntity: TaskItemTag }
+      - { name: Attachments, entity: Attachment, relationship: polymorphic-join }
+    navigation:
+      - { name: Category, entity: Category, required: false, deleteRestrict: true }
+    embedded:
+      - name: DateRange
+        properties:
+          - { name: StartDate, type: "DateTimeOffset?" }
+          - { name: DueDate, type: "DateTimeOffset?" }
+      - name: RecurrencePattern
+        properties:
+          - { name: Interval, type: "int" }
+          - { name: Frequency, type: "nvarchar", maxLength: 20 }
+          - { name: EndDate, type: "DateTimeOffset?" }
+
+  # =========================================================================
+  # Comment
+  # =========================================================================
+  - name: Comment
+    dataStore: sql
+    properties:
+      - { name: Body, type: "nvarchar(max)", required: true }
+      - { name: TaskItemId, type: "Guid", required: true }
+    children:
+      - { name: Attachments, entity: Attachment, relationship: polymorphic-join }
+
+  # =========================================================================
+  # ChecklistItem
+  # =========================================================================
+  - name: ChecklistItem
+    dataStore: sql
+    properties:
+      - { name: Title, type: "nvarchar", maxLength: 500, required: true }
+      - { name: IsCompleted, type: "bit", required: false }
+      - { name: SortOrder, type: "int", required: false }
+      - { name: CompletedDate, type: "DateTimeOffset?", required: false }
+      - { name: TaskItemId, type: "Guid", required: true }
+
+  # =========================================================================
+  # Attachment
+  # =========================================================================
+  - name: Attachment
+    dataStore: sql
+    properties:
+      - { name: FileName, type: "nvarchar", maxLength: 500, required: true }
+      - { name: ContentType, type: "nvarchar", maxLength: 200, required: false }
+      - { name: FileSizeBytes, type: "long", required: false }
+      - { name: StorageUri, type: "nvarchar", maxLength: 2000, required: false }
+      - { name: OwnerType, type: "nvarchar", maxLength: 50, required: true }
+      - { name: OwnerId, type: "Guid", required: true }
+
+  # =========================================================================
+  # TaskItemTag (join entity)
+  # =========================================================================
+  - name: TaskItemTag
+    dataStore: sql
+    properties:
+      - { name: TaskItemId, type: "Guid", required: true }
+      - { name: TagId, type: "Guid", required: true }
+
+# ---------------------------------------------------------------------------
+# Messaging
+# ---------------------------------------------------------------------------
+messagingProviders:
+  - { name: ServiceBus, type: AzureServiceBus }
+
+messagingChannels:
+  - { name: DomainEvents, provider: ServiceBus, pattern: topic }
+  - { name: TaskCommands, provider: ServiceBus, pattern: queue }
+
+messagingSemantics:
+  - { channel: DomainEvents, deliveryMode: at-least-once, outboxEnabled: true, idempotencyKey: MessageId, deduplicationWindow: "PT1H" }
+  - { channel: TaskCommands, deliveryMode: at-least-once, outboxEnabled: false, idempotencyKey: CorrelationId, deduplicationWindow: "PT30M" }
+
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+notifications:
+  - name: TaskOverdueNotification
+    trigger: TaskItemOverdueSuspected
+    channel: in-app
+    template: "task-overdue"
+    recipients: [AssignedUser]
+
+  - name: TaskCompletedNotification
+    trigger: TaskItemCompleted
+    channel: in-app
+    template: "task-completed"
+    recipients: [Creator]
+
+  - name: CommentAddedNotification
+    trigger: CommentAdded
+    channel: in-app
+    template: "comment-added"
+    recipients: [TaskOwner]
+
+# ---------------------------------------------------------------------------
+# Scheduled Jobs
+# ---------------------------------------------------------------------------
+scheduledJobs:
+  - name: OverdueTaskCheck
+    schedule: "0 */6 * * *"
+    description: "Check for overdue tasks and raise TaskItemOverdueSuspected events"
+    targetService: TaskItemService
+    method: CheckOverdueItemsAsync
+
+  - name: RecurringTaskGeneration
+    schedule: "0 0 * * *"
+    description: "Generate next occurrences for tasks with active recurrence patterns"
+    targetService: TaskItemService
+    method: GenerateRecurringTasksAsync
+
+  - name: StaleTaskCleanup
+    schedule: "0 2 * * 0"
+    description: "Archive or remove cancelled tasks older than 90 days"
+    targetService: TaskItemService
+    method: CleanupStaleTasksAsync
+
+# ---------------------------------------------------------------------------
+# Function Definitions
+# ---------------------------------------------------------------------------
+functionDefinitions:
+  - name: ProcessTaskEvent
+    trigger: serviceBusTopic
+    channel: DomainEvents
+    subscription: task-events
+    description: "Process domain events for task lifecycle changes (update Cosmos projection, trigger notifications)"
+
+  - name: StaleTaskCleanup
+    trigger: timerTrigger
+    schedule: "0 0 3 * * 0"
+    description: "Weekly cleanup of cancelled tasks older than 90 days"
+
+  - name: ProcessAttachment
+    trigger: blobTrigger
+    description: "Process newly uploaded attachment blobs (thumbnail generation, virus scanning placeholder)"
+
+  - name: TaskApiProxy
+    trigger: httpTrigger
+    description: "Alternative HTTP API surface for serverless task queries (read-only)"
+
+# ---------------------------------------------------------------------------
+# External Dependency Scaffold Modes
+# ---------------------------------------------------------------------------
+externalDependencyModes:
+  sql: emulator
+  redis: emulator
+  serviceBus: emulator
+  keyVault: lazy-optional
+  blobStorage: emulator
+  cosmosDb: emulator
+  aiServices: deployment-only
+
+# ---------------------------------------------------------------------------
+# AI Services
+# ---------------------------------------------------------------------------
+aiServices:
+  includeAiServices: true
+
+  foundry:
+    projectName: TaskFlowAI
+    models:
+      - name: gpt-4o
+        purpose: agent-reasoning
+        deploymentName: gpt-4o-deploy
+      - name: text-embedding-3-small
+        purpose: embedding
+        deploymentName: embedding-deploy
+    useFoundryAgentService: false
+
+  search:
+    provider: AzureAISearch
+    indexes:
+      - name: taskitems-index
+        sourceEntity: TaskItem
+        fields:
+          - { name: Title, type: searchable, analyzer: standard }
+          - { name: Description, type: searchable, analyzer: standard }
+          - { name: TitleVector, type: vector, dimensions: 1536, algorithm: hnsw }
+          - { name: DescriptionVector, type: vector, dimensions: 1536, algorithm: hnsw }
+          - { name: Status, type: filterable }
+          - { name: Priority, type: filterable }
+          - { name: CategoryName, type: filterable }
+          - { name: Tags, type: filterable }
+          - { name: TenantId, type: filterable }
+          - { name: DueDate, type: sortable }
+        searchMode: hybrid
+        semanticConfig: true
+    embeddingModel: text-embedding-3-small
+    embeddingDimensions: 1536
+    vectorizationStrategy: on-write
+
+  agents:
+    framework: AgentFramework
+    agents:
+      - name: TaskAssistant
+        type: ChatClientAgent
+        model: gpt-4o
+        systemPrompt: "You are TaskAssistant, an AI helper for the TaskFlow application. Help users manage their tasks through natural language. You can create, search, update, and summarize tasks."
+        tools: [SearchTasks, CreateTask, UpdateTask, GetTaskDetails, SummarizeTasks]
+        groundingSource: taskitems-index
+        humanInLoop: false
+    workflow:
+      enabled: false

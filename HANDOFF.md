@@ -2,11 +2,11 @@
 
 ## Session Summary
 
-Phase 1 (Domain Discovery) complete. The `domain-specification.yaml` has been authored and validated against the JSON schema.
+Phase 1 (Domain Discovery) and Phase 2 (Resource Definition) complete. Both YAML specs are authored and validated against their JSON schemas.
 
 ## Current State
 
-- **currentPhase:** 2
+- **currentPhase:** 3
 - **currentSubPhase:** null
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** false
@@ -14,6 +14,10 @@ Phase 1 (Domain Discovery) complete. The `domain-specification.yaml` has been au
 ## Phase 1 Outputs
 
 - `domain-specification.yaml` — in project root, validated against `schemas/domain-specification.schema.json`
+
+## Phase 2 Outputs
+
+- `resource-implementation.yaml` — in project root, validated against `schemas/resource-implementation.schema.json`
 
 ## Domain Model Summary
 
@@ -62,14 +66,67 @@ Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
 - Auth: EntraID (enterprise), scaffold mode for local dev
 - Policy matrix: StatusTransitionPolicy (role-based transition control)
 
-## Next Phase (Phase 2 — Resource Definition)
+## Next Phase (Phase 3 — Implementation Plan)
 
-Load `ai/resource-implementation-schema.md` to author `resource-implementation.yaml` defining:
-- Hosts: API, Scheduler, Gateway (YARP), Function App, Uno UI (WASM)
-- Infrastructure: SQL Server, Redis (FusionCache L2), Service Bus, Azure Storage (Blob+Table), Cosmos DB (projection)
-- All external deps set to emulator mode
-- AI integration with deployment-only / no-op stubs
-- AuthMode: Scaffold
+Load `ai/implementation-plan.md` + both schema references to author `implementation-plan.md` defining:
+- Pre-flight: configure `nuget.config`, verify `dotnet ef` tool
+- Vertical slice order: Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
+- Per-entity implementation checklist
+- Infrastructure wiring order
+- Test strategy per phase
+
+## Resource Implementation Summary
+
+### Scaffold Config
+- scaffoldMode: full
+- testingProfile: comprehensive
+- functionProfile: full
+- unoProfile: full
+
+### Hosts
+- API (primary REST surface)
+- Gateway (YARP reverse proxy, user auth, claim relay)
+- Scheduler (TickerQ background jobs)
+- Function App (Service Bus, Timer, Blob, HTTP triggers)
+- Uno UI (WASM, full CRUD + dashboard)
+
+### Infrastructure (all emulator mode)
+- SQL Server — all entities, split read/write DbContexts
+- Redis — FusionCache L2, backplane for cache sync
+- Service Bus — domain events (topic), task commands (queue)
+- Azure Storage — blob (attachments), emulator mode
+- Cosmos DB — denormalized TaskView projection store, emulator mode
+
+### External Dependency Modes
+| Dependency | Mode |
+|---|---|
+| SQL | emulator |
+| Redis | emulator |
+| Service Bus | emulator |
+| Key Vault | lazy-optional |
+| Blob Storage | emulator |
+| Cosmos DB | emulator |
+| AI Services | deployment-only |
+
+### AI Services (deployment-only, no-op stubs for local)
+- Foundry: gpt-4o (agent reasoning), text-embedding-3-small (embeddings)
+- Search: AzureAISearch, taskitems-index (hybrid: keyword + semantic + vector)
+- Agent: TaskAssistant (ChatClientAgent, function tools, RAG)
+
+### Messaging
+- Service Bus topic: DomainEvents (at-least-once, outbox enabled)
+- Service Bus queue: TaskCommands (at-least-once)
+
+### Scheduled Jobs
+- OverdueTaskCheck (every 6 hours)
+- RecurringTaskGeneration (daily)
+- StaleTaskCleanup (weekly)
+
+### Functions
+- ProcessTaskEvent (Service Bus topic trigger)
+- StaleTaskCleanup (timer trigger)
+- ProcessAttachment (blob trigger)
+- TaskApiProxy (HTTP trigger)
 
 ## Target Framework
 
