@@ -2,11 +2,11 @@
 
 ## Session Summary
 
-Phase 1 (Domain Discovery) and Phase 2 (Resource Definition) complete. Both YAML specs are authored and validated against their JSON schemas.
+Phase 1 (Domain Discovery), Phase 2 (Resource Definition), and Phase 3 (Implementation Plan) complete. All YAML specs validated, implementation plan authored, pre-flight checks passed.
 
 ## Current State
 
-- **currentPhase:** 3
+- **currentPhase:** 4
 - **currentSubPhase:** null
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** false
@@ -18,6 +18,18 @@ Phase 1 (Domain Discovery) and Phase 2 (Resource Definition) complete. Both YAML
 ## Phase 2 Outputs
 
 - `resource-implementation.yaml` — in project root, validated against `schemas/resource-implementation.schema.json`
+
+## Phase 3 Outputs
+
+- `implementation-plan.md` — in project root, vertical slice order defined, all questions resolved
+- `dotnet-tools.json` — dotnet-ef 10.0.5 installed
+- Pre-flight: .NET 10.0.104 SDK verified, dotnet-ef installed
+
+## Next Phase (Phase 4 — Contract Scaffolding)
+
+Load `ai/contract-scaffolding.md`, `skills/solution-structure.md`, `skills/package-dependencies.md`, `ai/placeholder-tokens.md`, `support/ef-packages-reference.md`.
+Generate full solution structure with interfaces, DTOs, entity shells, test infra, no-op DI stubs.
+**Gate:** `dotnet build` succeeds on full solution including test projects.
 
 ## Domain Model Summary
 
@@ -66,14 +78,11 @@ Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
 - Auth: EntraID (enterprise), scaffold mode for local dev
 - Policy matrix: StatusTransitionPolicy (role-based transition control)
 
-## Next Phase (Phase 3 — Implementation Plan)
+## Next Phase Details (Phase 4 — Contract Scaffolding)
 
-Load `ai/implementation-plan.md` + both schema references to author `implementation-plan.md` defining:
-- Pre-flight: configure `nuget.config`, verify `dotnet ef` tool
-- Vertical slice order: Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
-- Per-entity implementation checklist
-- Infrastructure wiring order
-- Test strategy per phase
+Load `ai/contract-scaffolding.md`, `skills/solution-structure.md`, `skills/package-dependencies.md`, `ai/placeholder-tokens.md`, `support/ef-packages-reference.md`.
+Generate full solution structure with interfaces, DTOs, entity shells, test infra, no-op DI stubs.
+**Gate:** `dotnet build` succeeds on full solution including test projects.
 
 ## Resource Implementation Summary
 
