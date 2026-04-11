@@ -2,7 +2,7 @@
 
 ## Session Summary
 
-Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure generated, all 21 projects compile successfully.
+Phases 1–5c complete. 21-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline. 162 unit tests green.
 
 ## Current State
 
@@ -141,21 +141,6 @@ Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
 - Multi-tenant: all entities implement ITenantEntity<Guid>, row-level isolation
 - Auth: EntraID (enterprise), scaffold mode for local dev
 - Policy matrix: StatusTransitionPolicy (role-based transition control)
-
-## Next Phase (Phase 5b — App Core TDD)
-
-Load `ai/SKILL.md`, `ai/placeholder-tokens.md`, `ai/tdd-protocol.md`, `patterns/api-host-wiring.md`.
-Load templates: service-template, endpoint-template, structure-validator-template, data-mapping-template, exception-handler-template.
-Load test templates: test-templates-service, test-templates-endpoint.
-
-TDD cycle per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag):
-1. Write service unit tests (CRUD, search) — RED
-2. Implement services, mappers, validators — GREEN
-3. Write endpoint integration tests — RED
-4. Implement minimal API endpoints — GREEN
-5. Replace no-op DI stubs with real implementations
-
-**Gate:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes
 
 ## Resource Implementation Summary
 
