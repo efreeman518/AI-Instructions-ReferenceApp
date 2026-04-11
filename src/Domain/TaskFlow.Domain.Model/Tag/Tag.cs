@@ -14,9 +14,33 @@ public class Tag : EntityBase, ITenantEntity<Guid>
 
     private Tag() { }
 
+    private Tag(Guid tenantId, string name, string? color)
+    {
+        TenantId = tenantId;
+        Name = name;
+        Color = color;
+    }
+
     public static DomainResult<Tag> Create(Guid tenantId, string name, string? color = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        var entity = new Tag(tenantId, name, color);
+        return entity.Valid();
+    }
 
     public DomainResult<Tag> Update(string? name = null, string? color = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        if (name is not null) Name = name;
+        if (color is not null) Color = color;
+        return Valid();
+    }
+
+    private DomainResult<Tag> Valid()
+    {
+        var errors = new List<DomainError>();
+        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (string.IsNullOrWhiteSpace(Name)) errors.Add(DomainError.Create("Name is required."));
+        return errors.Count > 0
+            ? DomainResult<Tag>.Failure(errors)
+            : DomainResult<Tag>.Success(this);
+    }
 }

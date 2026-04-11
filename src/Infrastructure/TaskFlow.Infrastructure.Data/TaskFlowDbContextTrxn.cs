@@ -4,7 +4,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data;
 
-public class TaskFlowDbContextTrxn : DbContextBase<Guid, Guid>
+public class TaskFlowDbContextTrxn : DbContextBase<string, Guid?>
 {
     public TaskFlowDbContextTrxn(DbContextOptions options) : base(options) { }
 
@@ -19,6 +19,7 @@ public class TaskFlowDbContextTrxn : DbContextBase<Guid, Guid>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        // Phase 5a: EF configurations will be applied here
+        modelBuilder.HasDefaultSchema("taskflow");
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TaskFlowDbContextTrxn).Assembly);
     }
 }

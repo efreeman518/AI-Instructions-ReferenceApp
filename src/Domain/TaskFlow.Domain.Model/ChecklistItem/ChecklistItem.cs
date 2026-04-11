@@ -19,9 +19,41 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
 
     private ChecklistItem() { }
 
+    private ChecklistItem(Guid tenantId, Guid taskItemId, string title, int sortOrder)
+    {
+        TenantId = tenantId;
+        TaskItemId = taskItemId;
+        Title = title;
+        SortOrder = sortOrder;
+        IsCompleted = false;
+    }
+
     public static DomainResult<ChecklistItem> Create(Guid tenantId, Guid taskItemId, string title, int sortOrder = 0)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        var entity = new ChecklistItem(tenantId, taskItemId, title, sortOrder);
+        return entity.Valid();
+    }
 
     public DomainResult<ChecklistItem> Update(string? title = null, bool? isCompleted = null, int? sortOrder = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        if (title is not null) Title = title;
+        if (sortOrder.HasValue) SortOrder = sortOrder.Value;
+        if (isCompleted.HasValue)
+        {
+            IsCompleted = isCompleted.Value;
+            CompletedDate = isCompleted.Value ? DateTimeOffset.UtcNow : null;
+        }
+        return Valid();
+    }
+
+    private DomainResult<ChecklistItem> Valid()
+    {
+        var errors = new List<DomainError>();
+        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TaskItemId == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
+        if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
+        return errors.Count > 0
+            ? DomainResult<ChecklistItem>.Failure(errors)
+            : DomainResult<ChecklistItem>.Success(this);
+    }
 }

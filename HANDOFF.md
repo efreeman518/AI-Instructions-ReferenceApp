@@ -7,9 +7,10 @@ Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure
 ## Current State
 
 - **currentPhase:** 5
-- **currentSubPhase:** a
+- **currentSubPhase:** b
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** true
+- **foundationComplete:** true
 
 ## Phase 1 Outputs
 
@@ -41,6 +42,21 @@ Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure
 - Aspire AppHost + ServiceDefaults
 - All hosts: Api, Scheduler, Gateway, Functions (shells)
 - **Gate: `dotnet build` succeeds — 0 errors**
+
+## Phase 5a Outputs
+
+- All 7 entities implemented with rich domain model (Create, Update, Valid, child management)
+- TaskItem status state machine: Open→InProgress→Completed, Open→Cancelled, InProgress→Blocked, Blocked→InProgress, reopen from Completed/Cancelled
+- Domain rules infrastructure: IRule<T>, RuleBase<T>, RuleExtensions, TaskItemStatusTransitionRule
+- 7 EF configurations (Fluent API): CategoryConfiguration, TagConfiguration, TaskItemConfiguration, CommentConfiguration, ChecklistItemConfiguration, AttachmentConfiguration, TaskItemTagConfiguration
+- DbContextTrxn: DbContextBase<string, Guid?>, schema "taskflow", ApplyConfigurationsFromAssembly
+- DbContextQuery: inherits Trxn (shared model)
+- 14 repositories (7 Query + 7 Trxn) with entity-specific Get/Search methods
+- Repository interfaces extended with entity-specific methods
+- All 7 entity builders activated (With* methods + Build() calling real Create())
+- InMemoryDbBuilder for test infrastructure
+- 75 unit tests: entity tests (create, validate, update, children, status transitions) + rule tests
+- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 75 passed, 0 failed**
 
 ### Entity Ordering Used
 Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
@@ -98,20 +114,20 @@ Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
 - Auth: EntraID (enterprise), scaffold mode for local dev
 - Policy matrix: StatusTransitionPolicy (role-based transition control)
 
-## Next Phase (Phase 5a — Foundation TDD)
+## Next Phase (Phase 5b — App Core TDD)
 
-Load `ai/SKILL.md`, `ai/placeholder-tokens.md`, `ai/tdd-protocol.md`, `patterns/data-layer-wiring.md`.
-Load templates: entity-template, ef-configuration-template, repository-template, domain-rules-template, updater-template, appsettings-template.
-Load test templates: test-templates-domain, test-templates-repository.
+Load `ai/SKILL.md`, `ai/placeholder-tokens.md`, `ai/tdd-protocol.md`, `patterns/api-host-wiring.md`.
+Load templates: service-template, endpoint-template, structure-validator-template, data-mapping-template, exception-handler-template.
+Load test templates: test-templates-service, test-templates-endpoint.
 
 TDD cycle per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag):
-1. Write domain entity tests (factory, validation, state machine) — RED
-2. Implement entity with rich domain model — GREEN
-3. Write repository tests (CRUD, paging, filtering) — RED
-4. Implement EF configurations, repositories, updaters — GREEN
+1. Write service unit tests (CRUD, search) — RED
+2. Implement services, mappers, validators — GREEN
+3. Write endpoint integration tests — RED
+4. Implement minimal API endpoints — GREEN
+5. Replace no-op DI stubs with real implementations
 
-Also implement: split DbContexts with pooling, audit interceptor, tenant filters, seed data, EF migration.
-**Gate:** `dotnet build` + `dotnet test --filter "TestCategory=Unit"` passes
+**Gate:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes
 
 ## Resource Implementation Summary
 

@@ -36,19 +36,99 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
 
     private TaskItem() { }
 
+    private TaskItem(Guid tenantId, string title, string? description, Priority priority, Guid? categoryId, Guid? parentTaskItemId)
+    {
+        TenantId = tenantId;
+        Title = title;
+        Description = description;
+        Priority = priority;
+        Status = TaskItemStatus.Open;
+        Features = TaskFeatures.None;
+        CategoryId = categoryId;
+        ParentTaskItemId = parentTaskItemId;
+    }
+
     public static DomainResult<TaskItem> Create(
         Guid tenantId, string title, string? description = null,
         Priority priority = Priority.None, Guid? categoryId = null,
         Guid? parentTaskItemId = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        var entity = new TaskItem(tenantId, title, description, priority, categoryId, parentTaskItemId);
+        return entity.Valid();
+    }
 
     public DomainResult<TaskItem> Update(
         string? title = null, string? description = null,
         Priority? priority = null, TaskFeatures? features = null,
         decimal? estimatedEffort = null, decimal? actualEffort = null,
         Guid? categoryId = null, Guid? parentTaskItemId = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        if (title is not null) Title = title;
+        if (description is not null) Description = description;
+        if (priority.HasValue) Priority = priority.Value;
+        if (features.HasValue) Features = features.Value;
+        if (estimatedEffort.HasValue) EstimatedEffort = estimatedEffort.Value;
+        if (actualEffort.HasValue) ActualEffort = actualEffort.Value;
+        if (categoryId.HasValue) CategoryId = categoryId.Value == Guid.Empty ? null : categoryId.Value;
+        if (parentTaskItemId.HasValue) ParentTaskItemId = parentTaskItemId.Value == Guid.Empty ? null : parentTaskItemId.Value;
+        return Valid();
+    }
 
     public DomainResult<TaskItem> TransitionStatus(TaskItemStatus newStatus)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        if (newStatus == TaskItemStatus.None)
+        {
+            Status = TaskItemStatus.None;
+            CompletedDate = null;
+            return DomainResult<TaskItem>.Success(this);
+        }
+
+        if (!IsValidTransition(Status, newStatus))
+            return DomainResult<TaskItem>.Failure($"Cannot transition from {Status} to {newStatus}.");
+
+        var previousStatus = Status;
+        Status = newStatus;
+
+        if (newStatus == TaskItemStatus.Completed)
+            CompletedDate = DateTimeOffset.UtcNow;
+        else if (previousStatus == TaskItemStatus.Completed)
+            CompletedDate = null;
+
+        return DomainResult<TaskItem>.Success(this);
+    }
+
+    public void UpdateDateRange(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    {
+        DateRange = new DateRange { StartDate = startDate, DueDate = dueDate };
+    }
+
+    public void UpdateRecurrencePattern(RecurrencePattern? pattern)
+    {
+        RecurrencePattern = pattern;
+    }
+
+    private static bool IsValidTransition(TaskItemStatus current, TaskItemStatus target) =>
+        (current, target) switch
+        {
+            (TaskItemStatus.Open, TaskItemStatus.InProgress) => true,
+            (TaskItemStatus.Open, TaskItemStatus.Cancelled) => true,
+            (TaskItemStatus.InProgress, TaskItemStatus.Completed) => true,
+            (TaskItemStatus.InProgress, TaskItemStatus.Blocked) => true,
+            (TaskItemStatus.InProgress, TaskItemStatus.Cancelled) => true,
+            (TaskItemStatus.Blocked, TaskItemStatus.InProgress) => true,
+            (TaskItemStatus.Blocked, TaskItemStatus.Cancelled) => true,
+            (TaskItemStatus.Completed, TaskItemStatus.Open) => true,
+            (TaskItemStatus.Cancelled, TaskItemStatus.Open) => true,
+            _ => false
+        };
+
+    private DomainResult<TaskItem> Valid()
+    {
+        var errors = new List<DomainError>();
+        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
+        return errors.Count > 0
+            ? DomainResult<TaskItem>.Failure(errors)
+            : DomainResult<TaskItem>.Success(this);
+    }
 }

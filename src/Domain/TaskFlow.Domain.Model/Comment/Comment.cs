@@ -17,9 +17,33 @@ public class Comment : EntityBase, ITenantEntity<Guid>
 
     private Comment() { }
 
+    private Comment(Guid tenantId, Guid taskItemId, string body)
+    {
+        TenantId = tenantId;
+        TaskItemId = taskItemId;
+        Body = body;
+    }
+
     public static DomainResult<Comment> Create(Guid tenantId, Guid taskItemId, string body)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        var entity = new Comment(tenantId, taskItemId, body);
+        return entity.Valid();
+    }
 
     public DomainResult<Comment> Update(string? body = null)
-        => throw new NotImplementedException("Shell — implement in Phase 5a");
+    {
+        if (body is not null) Body = body;
+        return Valid();
+    }
+
+    private DomainResult<Comment> Valid()
+    {
+        var errors = new List<DomainError>();
+        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TaskItemId == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
+        if (string.IsNullOrWhiteSpace(Body)) errors.Add(DomainError.Create("Body is required."));
+        return errors.Count > 0
+            ? DomainResult<Comment>.Failure(errors)
+            : DomainResult<Comment>.Success(this);
+    }
 }

@@ -7,6 +7,7 @@
   <ItemGroup>
     <PackageReference Include="MSTest" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +19,7 @@
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Services\TaskFlow.Application.Services.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Mappers\TaskFlow.Application.Mappers.csproj" />
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Model\TaskFlow.Domain.Model.csproj" />
+    <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Shared\TaskFlow.Domain.Shared.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
   </ItemGroup>
