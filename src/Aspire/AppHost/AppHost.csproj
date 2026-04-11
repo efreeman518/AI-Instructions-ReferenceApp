@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.3.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TaskFlow.Api\TaskFlow.Api.csproj" />
+    <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
+    <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
+    <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />
+  </ItemGroup>
+
+</Project>

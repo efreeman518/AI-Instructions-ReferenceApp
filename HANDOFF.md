@@ -2,14 +2,14 @@
 
 ## Session Summary
 
-Phase 1 (Domain Discovery), Phase 2 (Resource Definition), and Phase 3 (Implementation Plan) complete. All YAML specs validated, implementation plan authored, pre-flight checks passed.
+Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure generated, all 21 projects compile successfully.
 
 ## Current State
 
-- **currentPhase:** 4
-- **currentSubPhase:** null
+- **currentPhase:** 5
+- **currentSubPhase:** a
 - **instructionVersion:** "1.1"
-- **contractsScaffolded:** false
+- **contractsScaffolded:** true
 
 ## Phase 1 Outputs
 
@@ -24,6 +24,26 @@ Phase 1 (Domain Discovery), Phase 2 (Resource Definition), and Phase 3 (Implemen
 - `implementation-plan.md` — in project root, vertical slice order defined, all questions resolved
 - `dotnet-tools.json` — dotnet-ef 10.0.5 installed
 - Pre-flight: .NET 10.0.104 SDK verified, dotnet-ef installed
+
+## Phase 4 Outputs
+
+- `src/TaskFlow.slnx` — 21 projects in clean-architecture layout
+- Entity shells (7 entities) with NotImplementedException stubs
+- Interfaces: 7 service interfaces, 14 repository interfaces (query + trxn)
+- DTOs + SearchFilters for all entities  
+- Enums: TaskItemStatus, Priority, TaskFeatures (flags), AttachmentOwnerType
+- Value objects: DateRange, RecurrencePattern
+- Domain events: 7 event records implementing IDomainEvent
+- DbContext shells: TaskFlowDbContextTrxn + TaskFlowDbContextQuery
+- No-op service stubs for all services
+- Bootstrapper RegisterServices.cs with no-op wiring
+- Test infrastructure: TestConstants, entity + DTO builders
+- Aspire AppHost + ServiceDefaults
+- All hosts: Api, Scheduler, Gateway, Functions (shells)
+- **Gate: `dotnet build` succeeds — 0 errors**
+
+### Entity Ordering Used
+Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
 
 ## Next Phase (Phase 4 — Contract Scaffolding)
 
@@ -78,11 +98,20 @@ Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
 - Auth: EntraID (enterprise), scaffold mode for local dev
 - Policy matrix: StatusTransitionPolicy (role-based transition control)
 
-## Next Phase Details (Phase 4 — Contract Scaffolding)
+## Next Phase (Phase 5a — Foundation TDD)
 
-Load `ai/contract-scaffolding.md`, `skills/solution-structure.md`, `skills/package-dependencies.md`, `ai/placeholder-tokens.md`, `support/ef-packages-reference.md`.
-Generate full solution structure with interfaces, DTOs, entity shells, test infra, no-op DI stubs.
-**Gate:** `dotnet build` succeeds on full solution including test projects.
+Load `ai/SKILL.md`, `ai/placeholder-tokens.md`, `ai/tdd-protocol.md`, `patterns/data-layer-wiring.md`.
+Load templates: entity-template, ef-configuration-template, repository-template, domain-rules-template, updater-template, appsettings-template.
+Load test templates: test-templates-domain, test-templates-repository.
+
+TDD cycle per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag):
+1. Write domain entity tests (factory, validation, state machine) — RED
+2. Implement entity with rich domain model — GREEN
+3. Write repository tests (CRUD, paging, filtering) — RED
+4. Implement EF configurations, repositories, updaters — GREEN
+
+Also implement: split DbContexts with pooling, audit interceptor, tenant filters, seed data, EF migration.
+**Gate:** `dotnet build` + `dotnet test --filter "TestCategory=Unit"` passes
 
 ## Resource Implementation Summary
 

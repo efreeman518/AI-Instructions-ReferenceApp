@@ -1,0 +1,54 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="EF.Packages (Private Feed)">
+    <PackageVersion Include="EF.Domain" Version="1.0.55" />
+    <PackageVersion Include="EF.Domain.Contracts" Version="1.0.55" />
+    <PackageVersion Include="EF.Data" Version="1.0.55" />
+    <PackageVersion Include="EF.Data.Contracts" Version="1.0.55" />
+    <PackageVersion Include="EF.Common" Version="1.0.55" />
+    <PackageVersion Include="EF.Common.Contracts" Version="1.0.55" />
+    <PackageVersion Include="EF.Host" Version="1.0.55" />
+    <PackageVersion Include="EF.AspNetCore" Version="1.0.55" />
+    <PackageVersion Include="EF.BackgroundServices" Version="1.0.55" />
+    <PackageVersion Include="EF.Cache" Version="1.0.55" />
+    <PackageVersion Include="EF.Test.Unit" Version="1.0.55" />
+    <PackageVersion Include="EF.Test.Integration" Version="1.0.55" />
+  </ItemGroup>
+
+  <ItemGroup Label="Microsoft Entity Framework Core">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup Label="Microsoft ASP.NET Core">
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.1.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Aspire">
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.3.0" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.3.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="OpenTelemetry">
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.11.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.11.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.11.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.11.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="MSTest" Version="4.0.1" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+  </ItemGroup>
+</Project>

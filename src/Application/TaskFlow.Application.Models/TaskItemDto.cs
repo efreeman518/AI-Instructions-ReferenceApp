@@ -1,0 +1,33 @@
+using TaskFlow.Domain.Shared.Enums;
+
+namespace TaskFlow.Application.Models;
+
+public class TaskItemDto
+{
+    public Guid? Id { get; set; }
+    public string Title { get; set; } = null!;
+    public string? Description { get; set; }
+    public Priority Priority { get; set; }
+    public TaskItemStatus Status { get; set; }
+    public TaskFeatures Features { get; set; }
+    public decimal? EstimatedEffort { get; set; }
+    public decimal? ActualEffort { get; set; }
+    public DateTimeOffset? CompletedDate { get; set; }
+    public Guid? CategoryId { get; set; }
+    public Guid? ParentTaskItemId { get; set; }
+
+    // Value objects
+    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset? DueDate { get; set; }
+    public int? RecurrenceInterval { get; set; }
+    public string? RecurrenceFrequency { get; set; }
+    public DateTimeOffset? RecurrenceEndDate { get; set; }
+
+    // Related
+    public List<CommentDto>? Comments { get; set; }
+    public List<ChecklistItemDto>? ChecklistItems { get; set; }
+    public List<TagDto>? Tags { get; set; }
+    public List<AttachmentDto>? Attachments { get; set; }
+    public List<TaskItemDto>? SubTasks { get; set; }
+    public string? CategoryName { get; set; }
+}

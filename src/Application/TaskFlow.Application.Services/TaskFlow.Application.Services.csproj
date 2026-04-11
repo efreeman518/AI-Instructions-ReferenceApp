@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="EF.Common" />
+    <PackageReference Include="EF.Common.Contracts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskFlow.Application.Contracts\TaskFlow.Application.Contracts.csproj" />
+    <ProjectReference Include="..\TaskFlow.Application.Mappers\TaskFlow.Application.Mappers.csproj" />
+    <ProjectReference Include="..\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
+    <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Model\TaskFlow.Domain.Model.csproj" />
+  </ItemGroup>
+
+</Project>

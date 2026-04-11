@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="EF.Domain" />
+    <PackageReference Include="EF.BackgroundServices" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskFlow.Domain.Shared\TaskFlow.Domain.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

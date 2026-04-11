@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="EF.Host" />
+    <PackageReference Include="EF.Common" />
+    <PackageReference Include="EF.BackgroundServices" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\TaskFlow.Application.Services\TaskFlow.Application.Services.csproj" />
+    <ProjectReference Include="..\Application\TaskFlow.Application.Mappers\TaskFlow.Application.Mappers.csproj" />
+    <ProjectReference Include="..\Application\TaskFlow.Application.MessageHandlers\TaskFlow.Application.MessageHandlers.csproj" />
+    <ProjectReference Include="..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
+    <ProjectReference Include="..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
+  </ItemGroup>
+
+</Project>
