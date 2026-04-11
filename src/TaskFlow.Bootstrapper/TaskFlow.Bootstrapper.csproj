@@ -3,7 +3,13 @@
   <ItemGroup>
     <PackageReference Include="EF.Host" />
     <PackageReference Include="EF.Common" />
+    <PackageReference Include="EF.Data" />
     <PackageReference Include="EF.BackgroundServices" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="ZiggyCreatures.FusionCache" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
   </ItemGroup>
 
   <ItemGroup>

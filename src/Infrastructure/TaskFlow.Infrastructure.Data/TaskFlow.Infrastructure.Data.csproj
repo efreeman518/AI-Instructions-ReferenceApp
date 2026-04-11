@@ -3,6 +3,7 @@
   <ItemGroup>
     <PackageReference Include="EF.Data" />
     <PackageReference Include="EF.Common.Contracts" />
+    <PackageReference Include="EF.Domain.Contracts" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
   </ItemGroup>
 

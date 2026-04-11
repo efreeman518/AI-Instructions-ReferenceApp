@@ -3,7 +3,7 @@ using TaskFlow.Bootstrapper;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddTaskFlowServices();
+builder.Services.AddTaskFlowServices(builder.Configuration);
 
 // Phase 5d: Function triggers and handlers will be configured here
 

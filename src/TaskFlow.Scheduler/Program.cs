@@ -3,7 +3,7 @@ using TaskFlow.Bootstrapper;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddTaskFlowServices();
+builder.Services.AddTaskFlowServices(builder.Configuration);
 
 var app = builder.Build();
 

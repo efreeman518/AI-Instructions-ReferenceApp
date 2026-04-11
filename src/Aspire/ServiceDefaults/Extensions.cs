@@ -75,10 +75,14 @@ public static class Extensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        app.MapHealthChecks("/health");
-        app.MapHealthChecks("/alive", new HealthCheckOptions
+        app.MapHealthChecks("/healthz", new HealthCheckOptions
         {
-            Predicate = r => r.Tags.Contains("live")
+            Predicate = _ => true
+        });
+
+        app.MapHealthChecks("/readyz", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("ready")
         });
 
         return app;

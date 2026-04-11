@@ -6,6 +6,6 @@ public class TaskFlowDbContextQuery : TaskFlowDbContextTrxn
 {
     public TaskFlowDbContextQuery(DbContextOptions<TaskFlowDbContextQuery> options) : base(options) { }
 
-    // Query context uses no-tracking by default
-    // Phase 5a: ConnectionNoLockInterceptor will be added
+    // Query context uses no-tracking by default (configured in RegisterServices)
+    // Inherits tenant query filters and default data types from TaskFlowDbContextTrxn
 }

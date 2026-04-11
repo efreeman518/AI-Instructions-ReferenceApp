@@ -7,7 +7,7 @@ Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure
 ## Current State
 
 - **currentPhase:** 5
-- **currentSubPhase:** b
+- **currentSubPhase:** c
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** true
 - **foundationComplete:** true
@@ -61,11 +61,39 @@ Phase 1 through Phase 4 (Contract Scaffolding) complete. Full solution structure
 ### Entity Ordering Used
 Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
 
-## Next Phase (Phase 4 — Contract Scaffolding)
+## Phase 5b Outputs
 
-Load `ai/contract-scaffolding.md`, `skills/solution-structure.md`, `skills/package-dependencies.md`, `ai/placeholder-tokens.md`, `support/ef-packages-reference.md`.
-Generate full solution structure with interfaces, DTOs, entity shells, test infra, no-op DI stubs.
-**Gate:** `dotnet build` succeeds on full solution including test projects.
+- 7 service implementations with IRequestContext, ITenantBoundaryValidator, IEntityCacheProvider
+- 7 service interfaces with DefaultRequest<T>/DefaultResponse<T> wrappers, PagedResponse<T> (unwrapped)
+- 7 mapper classes (entity ↔ DTO)
+- 7 endpoint files with full CRUD + search
+- App-level types: DefaultRequest<T>, DefaultResponse<T>, AppConstants, ITenantBoundaryValidator, IEntityCacheProvider
+- TenantBoundaryValidator, NoOpEntityCacheProvider implementations
+- TenantId added to all 6 search filter classes
+- 162 unit tests (entity + rule + mapper + service tests) — all green
+- Old service stubs removed (replaced by real implementations)
+- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
+
+## Phase 5c Outputs
+
+- **Aspire AppHost**: persistent SQL (password param, data volume, port 38433), persistent Redis, named connection strings (TaskFlowDbContextTrxn, TaskFlowDbContextQuery, Redis1)
+- **ServiceDefaults**: `/healthz` (liveness), `/readyz` (readiness, "ready" tag)
+- **Database context pooling**: `AddPooledDbContextFactory` + `DbContextScopedFactory` for both Trxn and Query contexts, AuditInterceptor on Trxn, ConnectionNoLockInterceptor, ReadOnly intent on Query
+- **Tenant query filters**: automatic `HasQueryFilter` for all `ITenantEntity<Guid>` entities via `BuildTenantFilter`
+- **Default data types**: decimal(10,4), datetime2 global conventions
+- **FusionCache**: named cache instances from `CacheSettings[]` config, SystemTextJson serializer, Redis L2 + backplane (conditional)
+- **Health check**: SqlHealthCheck (readiness) using `IDbContextFactory`
+- **Middleware**: SecurityHeadersMiddleware (X-Content-Type-Options, X-Frame-Options, Referrer-Policy), CorrelationIdMiddleware (X-Correlation-Id header), GlobalExceptionHandler (409 concurrency, 422 validation, 404 not-found, 403 forbidden, 500 default)
+- **Rate limiting**: per-tenant fixed window (100/min) via `AddRateLimiter`
+- **Configuration**: appsettings.json with ConnectionStrings, CacheSettings, FeatureFlags sections
+- **Packages**: FusionCache 2.6.0, StackExchange.Redis backplane, Microsoft.Extensions.Caching.StackExchangeRedis
+- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
+
+## Next Phase (Phase 5d — Optional Hosts)
+
+Load `skills/background-services.md`, `skills/function-app.md`, `skills/gateway.md`, `skills/uno-ui.md`, `skills/notifications.md`.
+Implement YARP Gateway, Scheduler jobs (TickerQ), Function App triggers, Uno UI (WASM).
+**Gate:** Gateway forwards requests, scheduler runs, functions trigger.
 
 ## Domain Model Summary
 
