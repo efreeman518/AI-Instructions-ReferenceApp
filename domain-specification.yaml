@@ -1,0 +1,324 @@
+# ============================================================================
+# TaskFlow — Domain Specification (Phase 1 Output)
+# ============================================================================
+# Pure business domain model — no implementation details, no datatypes, no databases.
+# Schema reference: ai/domain-specification-schema.md
+# JSON Schema: schemas/domain-specification.schema.json
+# ============================================================================
+
+ProjectName: TaskFlow
+ProjectDescription: >-
+  A multi-tenant task management application demonstrating all architectural
+  patterns in the AI-Instructions-NewProject instruction set. TaskFlow covers
+  hierarchical categories, self-referencing sub-tasks, tagging, comments,
+  checklists, file attachments, state machines, domain events, caching,
+  messaging, AI search, and agent workflows — all running locally via
+  Aspire emulators with no remote Azure resources required.
+
+# ---------------------------------------------------------------------------
+# Tenancy & Auth Model
+# ---------------------------------------------------------------------------
+multiTenant: true
+tenantIsolation: row-level
+globalAdminRole: GlobalAdmin
+authProvider: EntraID
+authScenario: enterprise
+
+# ---------------------------------------------------------------------------
+# Entities
+# ---------------------------------------------------------------------------
+entities:
+
+  # =========================================================================
+  # Category — Self-referencing hierarchical grouping
+  # =========================================================================
+  - name: Category
+    description: >-
+      Hierarchical grouping for task items. Categories form a tree structure
+      via self-referencing parent-child relationship (e.g., Work > Engineering > Backend).
+    isTenantEntity: true
+    properties:
+      - { name: Name, required: true, description: "Category display name" }
+      - { name: Description, required: false, description: "Optional description of the category" }
+      - { name: SortOrder, kind: number, required: false, description: "Display order among siblings" }
+      - { name: IsActive, kind: boolean, required: false, description: "Whether the category is available for new task assignment" }
+    children:
+      - { name: SubCategories, entity: Category, relationship: self-referencing, selfReferenceKey: ParentCategoryId }
+      - { name: TaskItems, entity: TaskItem, relationship: one-to-many, cascadeDelete: false }
+    rules:
+      - { name: NameRequired, condition: "Name must not be empty", errorMessage: "Category name is required." }
+      - { name: MaxNestingDepth, condition: "Category hierarchy must not exceed 5 levels deep", errorMessage: "Category nesting exceeds maximum depth of 5." }
+      - { name: NoDuplicateSiblingNames, condition: "No two sibling categories under the same parent may share the same name", errorMessage: "A category with this name already exists at this level." }
+
+  # =========================================================================
+  # Tag — Flexible labeling (many-to-many with TaskItem)
+  # =========================================================================
+  - name: Tag
+    description: >-
+      Lightweight label for cross-cutting classification of task items.
+      Tags are tenant-scoped and can be applied to multiple tasks.
+    isTenantEntity: true
+    properties:
+      - { name: Name, required: true, description: "Tag display name" }
+      - { name: Color, required: false, description: "Hex color code for UI display (e.g., #FF5733)" }
+    rules:
+      - { name: NameRequired, condition: "Name must not be empty", errorMessage: "Tag name is required." }
+      - { name: UniqueNamePerTenant, condition: "Tag name must be unique within a tenant", errorMessage: "A tag with this name already exists." }
+
+  # =========================================================================
+  # TaskItem — Root aggregate, self-referencing sub-task hierarchy
+  # =========================================================================
+  - name: TaskItem
+    description: >-
+      The core work item. Supports a self-referencing parent-child hierarchy
+      for sub-tasks (max 3 levels), category assignment, tagging, comments,
+      checklists, and file attachments. Has a state machine governing its
+      lifecycle (Open → InProgress → Completed/Cancelled).
+    isTenantEntity: true
+    properties:
+      - { name: Title, required: true, description: "Short summary of the task" }
+      - { name: Description, kind: text, required: false, description: "Detailed description (supports rich text)" }
+      - { name: Priority, kind: enum, values: [None, Low, Medium, High, Critical], description: "Task priority level" }
+      - { name: Status, kind: enum, values: [None, Open, InProgress, Blocked, Completed, Cancelled], description: "Current lifecycle status (state machine)" }
+      - { name: Features, kind: flags_enum, values: [None, Recurring, Reminder, SharedLink], description: "Optional feature flags applied to this task" }
+      - { name: DateRange, kind: string, required: false, description: "Value object — StartDate and DueDate pair" }
+      - { name: RecurrencePattern, kind: string, required: false, description: "Value object — recurrence interval, frequency, and end date" }
+      - { name: EstimatedEffort, kind: number, required: false, description: "Estimated hours of effort" }
+      - { name: ActualEffort, kind: number, required: false, description: "Actual hours spent" }
+      - { name: CompletedDate, kind: date, required: false, description: "Date-time when the task was marked completed" }
+    children:
+      - { name: SubTasks, entity: TaskItem, relationship: self-referencing, selfReferenceKey: ParentTaskItemId }
+      - { name: Comments, entity: Comment, relationship: one-to-many, cascadeDelete: true }
+      - { name: ChecklistItems, entity: ChecklistItem, relationship: one-to-many, cascadeDelete: true }
+      - { name: Tags, entity: Tag, relationship: many-to-many }
+      - { name: Attachments, entity: Attachment, relationship: polymorphic-join, polymorphicEntityTypes: [TaskItem, Comment] }
+    navigation:
+      - { name: Category, entity: Category, required: false }
+    rules:
+      - { name: TitleRequired, condition: "Title must not be empty", errorMessage: "Task title is required." }
+      - { name: DueDateFuture, condition: "DueDate must be in the future when initially set", errorMessage: "Due date must be in the future." }
+      - { name: MaxSubTaskDepth, condition: "Sub-task hierarchy must not exceed 3 levels deep", errorMessage: "Sub-task nesting exceeds maximum depth of 3." }
+      - { name: CompletedDateOnlyWhenCompleted, condition: "CompletedDate is set only when Status is Completed", errorMessage: "CompletedDate can only be set on completed tasks." }
+      - { name: EffortNonNegative, condition: "EstimatedEffort and ActualEffort must be non-negative when set", errorMessage: "Effort values must be non-negative." }
+    stateMachine:
+      field: Status
+      initial: None
+      states: [None, Open, InProgress, Blocked, Completed, Cancelled]
+      transitions:
+        - { from: None, to: Open, action: Create }
+        - { from: Open, to: InProgress, action: Start }
+        - { from: Open, to: Cancelled, action: Cancel }
+        - { from: InProgress, to: Blocked, action: Block }
+        - { from: InProgress, to: Completed, action: Complete, guard: AllChecklistItemsComplete }
+        - { from: InProgress, to: Cancelled, action: Cancel }
+        - { from: Blocked, to: InProgress, action: Unblock }
+        - { from: Blocked, to: Cancelled, action: Cancel }
+        - { from: Completed, to: Open, action: Reopen }
+        - { from: Cancelled, to: Open, action: Reopen }
+    customActions:
+      - { name: Reschedule, params: [{ name: NewStartDate }, { name: NewDueDate }] }
+      - { name: Reassign, params: [{ name: NewAssigneeId }] }
+
+  # =========================================================================
+  # Comment — Discussion on tasks (1:M child)
+  # =========================================================================
+  - name: Comment
+    description: >-
+      A timestamped discussion entry on a task item. Supports cascade delete
+      when the parent task is removed.
+    isTenantEntity: true
+    properties:
+      - { name: Body, kind: text, required: true, description: "Comment content (plain text or markdown)" }
+    children:
+      - { name: Attachments, entity: Attachment, relationship: polymorphic-join, polymorphicEntityTypes: [TaskItem, Comment] }
+    rules:
+      - { name: BodyRequired, condition: "Body must not be empty", errorMessage: "Comment body is required." }
+
+  # =========================================================================
+  # ChecklistItem — Orderable sub-items within a task (1:M child)
+  # =========================================================================
+  - name: ChecklistItem
+    description: >-
+      A granular, orderable step within a task. Each checklist item can be
+      independently completed. All must be complete before the parent task
+      can transition to Completed.
+    isTenantEntity: true
+    properties:
+      - { name: Title, required: true, description: "Short description of the checklist step" }
+      - { name: IsCompleted, kind: boolean, required: false, description: "Whether the step is done" }
+      - { name: SortOrder, kind: number, required: false, description: "Display order within the parent task" }
+      - { name: CompletedDate, kind: date, required: false, description: "Date-time when the step was completed" }
+    rules:
+      - { name: TitleRequired, condition: "Title must not be empty", errorMessage: "Checklist item title is required." }
+      - { name: CompletedDateOnlyWhenCompleted, condition: "CompletedDate is set only when IsCompleted is true", errorMessage: "CompletedDate can only be set on completed checklist items." }
+
+  # =========================================================================
+  # Attachment — Polymorphic file/link references
+  # =========================================================================
+  - name: Attachment
+    description: >-
+      A file or link reference that can be attached to either a TaskItem or
+      a Comment via polymorphic join (OwnerType + OwnerId discriminator).
+      Actual file content is stored in blob storage.
+    isTenantEntity: true
+    properties:
+      - { name: FileName, required: true, description: "Original file name or link title" }
+      - { name: ContentType, required: false, description: "MIME type (e.g., application/pdf, image/png)" }
+      - { name: FileSizeBytes, kind: number, required: false, description: "File size in bytes" }
+      - { name: StorageUri, required: false, description: "Blob storage URI or external link" }
+      - { name: OwnerType, kind: enum, values: [TaskItem, Comment], description: "Polymorphic discriminator — which entity type owns this attachment" }
+    rules:
+      - { name: FileNameRequired, condition: "FileName must not be empty", errorMessage: "File name is required." }
+      - { name: ValidOwnerType, condition: "OwnerType must be TaskItem or Comment", errorMessage: "Invalid attachment owner type." }
+
+  # =========================================================================
+  # TaskItemTag — Explicit many-to-many join entity
+  # =========================================================================
+  - name: TaskItemTag
+    description: >-
+      Explicit join entity bridging the many-to-many relationship between
+      TaskItem and Tag. Enables additional metadata on the association
+      (e.g., who tagged it and when).
+    isTenantEntity: true
+    properties: []
+
+# ---------------------------------------------------------------------------
+# Domain-Level Rules (cross-entity)
+# ---------------------------------------------------------------------------
+domainRules:
+  - name: MaxActiveTasksPerTenant
+    appliesTo: [TaskItem]
+    dependsOn: [TenantQuotaPolicy]
+    errorMessage: "Tenant has reached the maximum number of active tasks."
+
+  - name: ChecklistCompletionRequired
+    appliesTo: [TaskItem, ChecklistItem]
+    dependsOn: []
+    errorMessage: "All checklist items must be completed before the task can be marked complete."
+
+  - name: SubTaskCompletionRequired
+    appliesTo: [TaskItem]
+    dependsOn: []
+    errorMessage: "All sub-tasks must be completed before the parent task can be marked complete."
+
+  - name: TaskNotOverdue
+    appliesTo: [TaskItem]
+    dependsOn: []
+    errorMessage: "Task is past its due date."
+
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
+events:
+  - name: TaskItemCreated
+    raisedBy: TaskItem
+    trigger: afterCreate
+    payload: [TenantId, TaskItemId, Title, Priority, CategoryId]
+
+  - name: TaskItemStatusChanged
+    raisedBy: TaskItem
+    trigger: afterStatusChange
+    payload: [TenantId, TaskItemId, PreviousStatus, NewStatus, ChangedBy]
+
+  - name: TaskItemCompleted
+    raisedBy: TaskItem
+    trigger: afterStatusChange
+    payload: [TenantId, TaskItemId, CompletedBy, CompletedDate, ActualEffort]
+
+  - name: TaskItemRescheduled
+    raisedBy: TaskItem
+    trigger: afterAction(Reschedule)
+    payload: [TenantId, TaskItemId, NewStartDate, NewDueDate]
+
+  - name: TaskItemOverdueSuspected
+    raisedBy: TaskItem
+    trigger: scheduled
+    payload: [TenantId, TaskItemId, DueDate]
+
+  - name: CommentAdded
+    raisedBy: Comment
+    trigger: afterCreate
+    payload: [TenantId, TaskItemId, CommentId, AuthorId]
+
+  - name: AttachmentUploaded
+    raisedBy: Attachment
+    trigger: afterCreate
+    payload: [TenantId, OwnerId, OwnerType, FileName, FileSizeBytes]
+
+# ---------------------------------------------------------------------------
+# Workflows
+# ---------------------------------------------------------------------------
+workflows:
+  - name: OverdueTaskEscalation
+    pattern: orchestrator
+    involvedEntities: [TaskItem]
+    steps:
+      - "Identify tasks past their due date"
+      - "Notify assigned user"
+      - "If still overdue after threshold, escalate to tenant admin"
+      - "Mark task as Blocked if no response"
+    compensationRequired: true
+    compensation:
+      rollbackOrder: reverse-step-order
+      rules:
+        - { onFailureOfStep: "Notify assigned user", compensationAction: "Cancel queued notification" }
+        - { onFailureOfStep: "Mark task as Blocked", compensationAction: "Revert status to InProgress" }
+    notes: "Escalation thresholds configurable per tenant. Runs as a scheduled background job."
+
+  - name: RecurringTaskGeneration
+    pattern: orchestrator
+    involvedEntities: [TaskItem]
+    steps:
+      - "Find tasks with Recurring feature flag and active RecurrencePattern"
+      - "Check if next occurrence is due"
+      - "Clone task with new DateRange based on recurrence"
+      - "Link new task as sibling (same parent) or standalone"
+    compensationRequired: false
+    notes: "Runs on a scheduled cadence. Idempotent — deduplicates by recurrence key."
+
+# ---------------------------------------------------------------------------
+# Policy Matrices
+# ---------------------------------------------------------------------------
+policyMatrices:
+  - name: StatusTransitionPolicy
+    dimensions: [CurrentStatus, RequestedAction, UserRole]
+    outputs: [Allowed, RequiresGuard]
+    rows:
+      - { CurrentStatus: None, RequestedAction: Create, UserRole: Member, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: Open, RequestedAction: Start, UserRole: Member, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: Open, RequestedAction: Cancel, UserRole: Member, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: Open, RequestedAction: Cancel, UserRole: Admin, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: InProgress, RequestedAction: Complete, UserRole: Member, Allowed: true, RequiresGuard: AllChecklistItemsComplete }
+      - { CurrentStatus: InProgress, RequestedAction: Cancel, UserRole: Admin, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: InProgress, RequestedAction: Cancel, UserRole: Member, Allowed: false, RequiresGuard: false }
+      - { CurrentStatus: Completed, RequestedAction: Reopen, UserRole: Admin, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: Completed, RequestedAction: Reopen, UserRole: Member, Allowed: false, RequiresGuard: false }
+      - { CurrentStatus: Cancelled, RequestedAction: Reopen, UserRole: Admin, Allowed: true, RequiresGuard: false }
+      - { CurrentStatus: Cancelled, RequestedAction: Reopen, UserRole: Member, Allowed: false, RequiresGuard: false }
+
+# ---------------------------------------------------------------------------
+# AI Capabilities
+# ---------------------------------------------------------------------------
+aiCapabilities:
+  search:
+    - entity: TaskItem
+      searchableFields: [Title, Description]
+      intent: >-
+        Users find tasks by describing what they need (e.g., 'backend API work due this week')
+        rather than exact keyword matches. Supports hybrid search (keyword + semantic + vector).
+
+  agentWorkflows:
+    - name: TaskAssistant
+      description: >-
+        An AI agent that helps users manage their tasks through natural language.
+        Can create, update, search, and summarize tasks. Uses function tools
+        delegating to TaskItem service for CRUD operations and grounded retrieval
+        (RAG) via the search index for context-aware answers.
+      involvedEntities: [TaskItem, Category, Tag, Comment, ChecklistItem]
+      humanInLoop: false
+      decisions:
+        - "Parse user intent (create, search, update, summarize)"
+        - "Search for relevant tasks using semantic search"
+        - "Create or update tasks based on natural language instructions"
+        - "Summarize task status and progress for a category or time range"
+        - "Suggest next actions based on overdue or blocked tasks"
