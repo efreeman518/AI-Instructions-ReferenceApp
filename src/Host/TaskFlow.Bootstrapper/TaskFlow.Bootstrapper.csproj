@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\Application\TaskFlow.Application.MessageHandlers\TaskFlow.Application.MessageHandlers.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.AI\TaskFlow.Infrastructure.AI.csproj" />
   </ItemGroup>
 
 </Project>

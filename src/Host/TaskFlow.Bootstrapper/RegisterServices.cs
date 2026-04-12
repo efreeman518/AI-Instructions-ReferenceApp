@@ -14,6 +14,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Services;
 using TaskFlow.Bootstrapper.HealthChecks;
+using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories;
 using ZiggyCreatures.Caching.Fusion;
@@ -32,6 +33,7 @@ public static class RegisterServices
         AddCachingServices(services, config);
         AddHealthChecks(services);
         AddApplicationServices(services);
+        services.AddAiServices(config);
 
         return services;
     }

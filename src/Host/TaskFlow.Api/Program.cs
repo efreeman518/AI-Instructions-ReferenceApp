@@ -52,5 +52,7 @@ app.MapCommentEndpoints();
 app.MapChecklistItemEndpoints();
 app.MapAttachmentEndpoints();
 app.MapTaskItemTagEndpoints();
+app.MapSearchEndpoints();
+app.MapAgentEndpoints();
 
 app.Run();

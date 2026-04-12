@@ -2,12 +2,12 @@
 
 ## Session Summary
 
-Phases 1–5f complete. 28-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID). 186 tests green (174 Unit + 12 Architecture).
+Phases 1–5g complete. 29-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs). 203 tests green (191 Unit + 12 Architecture).
 
 ## Current State
 
 - **currentPhase:** 5
-- **currentSubPhase:** g
+- **currentSubPhase:** complete
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** true
 - **foundationComplete:** true
@@ -147,36 +147,24 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **appsettings**: AuthMode: "Scaffold" in API (appsettings.json + appsettings.Development.json), CorsSettings in Gateway
 - **Gate: `dotnet build` — 28 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed, 0 failed**
 
-## Next Phase (Phase 5g — AI Integration)
+## Phase 5g Outputs
 
-### Exact Session Start Instructions
+- **TaskFlow.Infrastructure.AI** (new project): search + agent + tools infrastructure with conditional DI registration
+- **Search**: `ITaskFlowSearchService`, `TaskFlowSearchService` (Azure AI Search: keyword, semantic, vector, hybrid modes), `NoOpSearchService` (stub), `TaskItemSearchDocument`, `TaskItemSearchResult`, `TaskItemSearchIndexDefinition` (HNSW vector profile, semantic config with Title/Description/CategoryName/Status)
+- **Agent**: `ITaskAssistantAgent`, `TaskAssistantAgentService` (Microsoft Agent Framework `ChatClientAgent` + OpenAI, embedded system prompt), `NoOpTaskAssistantAgent` (stub), `AgentChatRequest`/`AgentChatResponse` models
+- **Agent tools**: `TaskItemTools` — 5 function tools (`SearchTasks`, `GetTaskDetails`, `CreateTask`, `UpdateTaskStatus`, `SummarizeBacklog`) delegating to `ITaskItemService` and `ITaskFlowSearchService`
+- **System prompt**: `Agents/Prompts/TaskAssistant.system-prompt.txt` — embedded resource, role definition + rules + response format
+- **DI registration**: `AiServiceCollectionExtensions.AddAiServices()` — conditional registration: absent/empty FoundryEndpoint → no-op agent, absent/empty SearchEndpoint → no-op search. App boots without cloud credentials.
+- **API endpoints**: `SearchEndpoints` (`GET /api/search/tasks` — query, mode, maxResults, tenant-scoped), `AgentEndpoints` (`POST /api/agent/chat` — request body + tenant from claims)
+- **Aspire wiring**: AppHost has commented-out `AddAzureOpenAI`/`AddAzureSearch` stubs (deployment-only, no emulator), with `WithReference` comments on API project
+- **Configuration**: `appsettings.json` → `AiServices` section (UseSearch, UseAgents, UseVectorSearch, FoundryEndpoint, AgentModelDeployment, EmbeddingModelDeployment, SearchEndpoint, SearchIndexName) — all disabled/empty by default
+- **Packages added**: Azure.AI.OpenAI 2.1.0, Azure.Identity 1.21.0, Azure.Search.Documents 11.7.0, Microsoft.Agents.AI.OpenAI 1.1.0, Microsoft.Extensions.Options.DataAnnotations 10.0.5, Aspire.Hosting.Azure.CognitiveServices 9.3.0, Aspire.Hosting.Azure.Search 9.3.0
+- **Tests (17 new)**: NoOpSearchServiceTests (3), NoOpTaskAssistantAgentTests (3), TaskItemToolsTests (6), AiServiceRegistrationTests (4 — DI wiring for no-op paths + settings binding)
+- **Gate: `dotnet build` — 29 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 203 passed (191 Unit + 12 Architecture), 0 failed**
 
-1. Read this HANDOFF.md first. Resume from Phase 5g.
-2. Read `implementation-plan.md` — Phase 5g section has the task list.
-3. Load instruction skills (from the AI-Instructions-NewProject repo):
-   - `skills/ai-integration.md` — AI Search, agents, embeddings
-   - `skills/azure-data-storage.md` — Cosmos DB, Azure Storage patterns
-4. `cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src` — all commands run from here.
-5. Verify baseline: `dotnet build TaskFlow.slnx` and `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — expect 186 passed.
+## All Phases Complete
 
-### Phase 5g Task Breakdown
-
-**5g-1: Infrastructure.AI project** — AI Search + Agent service interfaces and no-op stubs
-
-**5g-2: Azure AI Search** — taskitems-index (hybrid: keyword + semantic + vector), search service, on-write vectorization handler
-
-**5g-3: TaskAssistant Agent** — ChatClientAgent with function tools (CRUD + search + summarize), system prompt, RAG grounding, per-user conversation scoping
-
-**5g-4: Aspire + DI wiring** — AddAzureAISearch, AddAzureOpenAI, lazy-optional registration (no config → no-op)
-
-**5g-5: API endpoints** — /api/search/tasks, /api/agent/chat
-
-**5g-6: Configuration** — Foundry endpoint, model deployments, search index in appsettings
-
-### Gate
-`dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — all pass. App boots without AI config (no-op stubs active).
-
-### Project Structure Reference (28 projects)
+### Project Structure Reference (29 projects)
 ```
 src/
 ├── Domain/TaskFlow.Domain.Model/
@@ -188,6 +176,7 @@ src/
 ├── Application/TaskFlow.Application.MessageHandlers/
 ├── Infrastructure/TaskFlow.Infrastructure.Data/
 ├── Infrastructure/TaskFlow.Infrastructure.Repositories/
+├── Infrastructure/TaskFlow.Infrastructure.AI/   (AI Search + Agent Framework, deployment-only)
 ├── Host/TaskFlow.Bootstrapper/
 ├── Host/TaskFlow.Api/
 ├── Host/TaskFlow.Scheduler/
@@ -197,7 +186,7 @@ src/
 ├── Host/Aspire/ServiceDefaults/
 ├── UI/TaskFlow.Uno/          (Uno.Sdk/6.5.31, net10.0-browserwasm)
 ├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
-├── Test/Test.Unit/           (174 tests, TestCategory=Unit)
+├── Test/Test.Unit/           (191 tests, TestCategory=Unit)
 ├── Test/Test.Architecture/   (12 tests, TestCategory=Architecture)
 ├── Test/Test.Endpoints/      (empty shell)
 ├── Test/Test.Integration/    (empty shell)
@@ -211,15 +200,17 @@ src/
 cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src
 dotnet build TaskFlow.slnx                              # full solution (excludes Uno WASM)
 dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj         # Uno WASM (separate, needs Uno.Sdk)
-dotnet test --filter "TestCategory=Unit"                 # 174 unit tests
+dotnet test --filter "TestCategory=Unit"                 # 191 unit tests
 dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
-dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"  # combined gate (186)
+dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"  # combined gate (203)
 ```
 
 ### Known Constraints
 - Uno WASM (`TaskFlow.Uno.csproj`) builds separately — do NOT include in `dotnet build TaskFlow.slnx` unless the machine has Uno.Sdk resolved
 - Docker builds require Docker Desktop running — verify availability before attempting
 - Load tests (`[Ignore]`) require API host running — manual invocation only
+- AI services (Foundry/AI Search) are deployment-only — no emulator exists. App boots with no-op stubs when `AiServices:FoundryEndpoint` and `AiServices:SearchEndpoint` are empty
+- CI/CD workflows disabled (workflow_dispatch only) — need `NUGET_PAT` secret for private NuGet feed auth
 - Benchmarks are a console app — run via `dotnet run -c Release` not `dotnet test`
 
 ## Domain Model Summary

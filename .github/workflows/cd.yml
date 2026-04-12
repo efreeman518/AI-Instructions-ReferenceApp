@@ -1,15 +1,24 @@
 name: CD
 
+# TODO: [CONFIGURE] Re-enable after adding NUGET_PAT secret for GitHub Packages feed auth
+# on:
+#   push:
+#     branches: [main]
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         type: choice
+#         options: [dev, staging, prod]
+#         default: dev
+#         description: "Target environment"
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
         type: choice
         options: [dev, staging, prod]
         default: dev
-        description: "Target environment"
+        description: "Target environment (disabled until NuGet PAT configured)"
 
 permissions:
   id-token: write

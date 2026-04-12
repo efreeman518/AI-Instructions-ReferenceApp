@@ -1,15 +1,23 @@
 name: CI
 
+# TODO: [CONFIGURE] Re-enable after adding NUGET_PAT secret for GitHub Packages feed auth
+# on:
+#   pull_request:
+#     branches: [main, develop]
+#     paths-ignore: ['**.md', 'infra/**']
+#   workflow_dispatch:
+#     inputs:
+#       includeIntegration:
+#         type: boolean
+#         default: false
+#         description: "Run non-endpoint integration tests"
 on:
-  pull_request:
-    branches: [main, develop]
-    paths-ignore: ['**.md', 'infra/**']
   workflow_dispatch:
     inputs:
       includeIntegration:
         type: boolean
         default: false
-        description: "Run non-endpoint integration tests"
+        description: "Run non-endpoint integration tests (disabled until NuGet PAT configured)"
 
 jobs:
   build-and-test:

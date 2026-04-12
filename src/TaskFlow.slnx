@@ -13,6 +13,7 @@
   <Folder Name="/Infrastructure/">
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Data/TaskFlow.Infrastructure.Data.csproj" />
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Repositories/TaskFlow.Infrastructure.Repositories.csproj" />
+    <Project Path="Infrastructure/TaskFlow.Infrastructure.AI/TaskFlow.Infrastructure.AI.csproj" />
   </Folder>
   <Folder Name="/Host/">
     <Project Path="Host/TaskFlow.Bootstrapper/TaskFlow.Bootstrapper.csproj" />
