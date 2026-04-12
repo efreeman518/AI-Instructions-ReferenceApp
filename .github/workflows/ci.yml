@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths-ignore: ['**.md', 'infra/**']
+  workflow_dispatch:
+    inputs:
+      includeIntegration:
+        type: boolean
+        default: false
+        description: "Run non-endpoint integration tests"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+
+      - name: Restore
+        run: dotnet restore src/TaskFlow.slnx
+
+      - name: Build
+        run: dotnet build src/TaskFlow.slnx --no-restore --configuration Release
+
+      - name: Unit Tests
+        run: >
+          dotnet test src/TaskFlow.slnx
+          --no-build --configuration Release
+          --filter "TestCategory=Unit"
+          --logger "trx;LogFileName=unit-results.trx"
+          --results-directory ./TestResults
+
+      - name: Architecture Tests
+        run: >
+          dotnet test src/TaskFlow.slnx
+          --no-build --configuration Release
+          --filter "TestCategory=Architecture"
+          --logger "trx;LogFileName=arch-results.trx"
+          --results-directory ./TestResults
+
+      - name: Endpoint Tests
+        run: >
+          dotnet test src/TaskFlow.slnx
+          --no-build --configuration Release
+          --filter "TestCategory=Endpoint"
+          --logger "trx;LogFileName=endpoint-results.trx"
+          --results-directory ./TestResults
+
+      - name: Integration Tests (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true }}
+        run: >
+          dotnet test src/TaskFlow.slnx
+          --no-build --configuration Release
+          --filter "TestCategory=Integration&TestCategory!=Endpoint"
+          --logger "trx;LogFileName=integration-results.trx"
+          --results-directory ./TestResults
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults/*.trx

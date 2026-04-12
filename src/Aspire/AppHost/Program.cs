@@ -28,7 +28,7 @@ builder.AddProject<Projects.TaskFlow_Scheduler>("taskflowscheduler")
     .WaitFor(sql);
 
 // Gateway host
-builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
+var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
     .WithReference(api)
     .WaitFor(api);
 
@@ -36,5 +36,10 @@ builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
 builder.AddProject<Projects.TaskFlow_Functions>("taskflowfunctions")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WaitFor(sql);
+
+// Uno UI (WASM) — calls Gateway, not API directly
+builder.AddProject<Projects.TaskFlow_Uno>("taskflowuno")
+    .WithReference(gateway)
+    .WaitFor(gateway);
 
 await builder.Build().RunAsync();

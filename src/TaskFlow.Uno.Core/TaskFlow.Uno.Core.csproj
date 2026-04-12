@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>TaskFlow UI core business logic - models, services, and API client (platform-agnostic)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.Net.Http.Json" />
+  </ItemGroup>
+
+</Project>

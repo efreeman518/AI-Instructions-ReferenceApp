@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "StaleTaskCleanupCron": "0 0 3 * * 0",
+    "AttachmentBlobContainer": "attachments",
+    "ServiceBusConnection": "",
+    "DomainEventsTopic": "domain-events",
+    "DomainEventsSubscription": "function-processor"
+  },
+  "ConnectionStrings": {
+    "TaskFlowDbContextTrxn": ""
+  }
+}

@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />
+    <ProjectReference Include="..\..\TaskFlow.Uno\TaskFlow.Uno.csproj" />
   </ItemGroup>
 
 </Project>

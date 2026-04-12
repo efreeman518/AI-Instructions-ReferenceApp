@@ -1,11 +1,15 @@
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using TaskFlow.Bootstrapper;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = FunctionsApplication.CreateBuilder(args);
+
+builder.ConfigureFunctionsWebApplication();
 
 builder.AddServiceDefaults();
 builder.Services.AddTaskFlowServices(builder.Configuration);
 
-// Phase 5d: Function triggers and handlers will be configured here
-
-var host = builder.Build();
-host.Run();
+var app = builder.Build();
+await app.RunAsync();

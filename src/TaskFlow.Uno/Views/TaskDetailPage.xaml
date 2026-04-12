@@ -1,0 +1,149 @@
+<Page x:Class="TaskFlow.Uno.Views.TaskDetailPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:utu="using:Uno.Toolkit.UI">
+
+    <Grid Padding="24">
+        <ScrollViewer>
+            <StackPanel Spacing="16">
+                <!-- Header -->
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Task.Title}" Style="{StaticResource TitleLargeTextBlockStyle}" />
+                    <Button Grid.Column="1" Content="Edit" Command="{Binding EditTask}" />
+                    <Button Grid.Column="2" Content="Delete" Command="{Binding DeleteTask}" Foreground="Red" />
+                </Grid>
+
+                <!-- Status + Priority -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Padding="8,4" CornerRadius="4" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+                        <TextBlock Text="{Binding Task.Status}" />
+                    </Border>
+                    <Border Padding="8,4" CornerRadius="4" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+                        <TextBlock Text="{Binding Task.Priority}" />
+                    </Border>
+                    <TextBlock Text="{Binding Task.CategoryName}" Opacity="0.6" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Description -->
+                <TextBlock Text="{Binding Task.Description}" TextWrapping="Wrap" />
+
+                <!-- Dates -->
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Start" Style="{StaticResource CaptionTextBlockStyle}" Opacity="0.6" />
+                        <TextBlock Text="{Binding Task.StartDate}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Due" Style="{StaticResource CaptionTextBlockStyle}" Opacity="0.6" />
+                        <TextBlock Text="{Binding Task.DueDate}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Checklist -->
+                <TextBlock Text="Checklist" Style="{StaticResource TitleTextBlockStyle}" />
+                <ListView ItemsSource="{Binding ChecklistItems}" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="8" Padding="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Grid.Column="0" IsChecked="{Binding IsCompleted}"
+                                          Command="{Binding DataContext.ToggleChecklistItem, ElementName=TaskDetailPage}"
+                                          CommandParameter="{Binding}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" />
+                                <Button Grid.Column="2" Content="✕"
+                                        Command="{Binding DataContext.DeleteChecklistItem, ElementName=TaskDetailPage}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox PlaceholderText="New checklist item..." Text="{Binding NewChecklistTitle, Mode=TwoWay}" />
+                    <Button Grid.Column="1" Content="Add" Command="{Binding AddChecklistItem}" />
+                </Grid>
+
+                <!-- Comments -->
+                <TextBlock Text="Comments" Style="{StaticResource TitleTextBlockStyle}" />
+                <ListView ItemsSource="{Binding Comments}" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="8" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Body}" TextWrapping="Wrap" />
+                                <Button Grid.Column="1" Content="✕"
+                                        Command="{Binding DataContext.DeleteComment, ElementName=TaskDetailPage}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox PlaceholderText="Write a comment..." Text="{Binding NewCommentBody, Mode=TwoWay}" />
+                    <Button Grid.Column="1" Content="Post" Command="{Binding AddComment}" />
+                </Grid>
+
+                <!-- Attachments -->
+                <TextBlock Text="Attachments" Style="{StaticResource TitleTextBlockStyle}" />
+                <ListView ItemsSource="{Binding Attachments}" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="8" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding ContentType}" Opacity="0.6" VerticalAlignment="Center" />
+                                <Button Grid.Column="2" Content="✕"
+                                        Command="{Binding DataContext.DeleteAttachment, ElementName=TaskDetailPage}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Sub-Tasks -->
+                <TextBlock Text="Sub-Tasks" Style="{StaticResource TitleTextBlockStyle}" />
+                <ListView ItemsSource="{Binding SubTasks}" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="8" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Status}" Opacity="0.6" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

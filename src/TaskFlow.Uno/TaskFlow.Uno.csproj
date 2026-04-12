@@ -1,0 +1,64 @@
+<Project Sdk="Uno.Sdk/6.5.31">
+  <PropertyGroup>
+    <!-- Clear singular TargetFramework inherited from Directory.Build.props -->
+    <TargetFramework />
+    <TargetFrameworks>net10.0-browserwasm</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+    <ApplicationTitle>TaskFlow</ApplicationTitle>
+    <ApplicationId>com.taskflow.uno</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <UnoFeatures>
+      Material;
+      Hosting;
+      Toolkit;
+      Logging;
+      MVUX;
+      Configuration;
+      HttpKiota;
+      Serialization;
+      Localization;
+      Navigation;
+      ThemeService;
+      Authentication;
+    </UnoFeatures>
+
+    <UseMocks Condition="'$(UseMocks)'==''">true</UseMocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UseMocks)'=='true'">
+    <DefineConstants>$(DefineConstants);USE_MOCKS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Collections.Immutable" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json" />
+    <Content Include="appsettings.Development.json" />
+  </ItemGroup>
+
+  <!-- Workaround: Resizetizer 1.12.1 sets WasmPWAManifestFile to a directory
+       path when no UnoSplashScreen is configured. Clear it so ShellTask doesn't
+       call File.ReadAllText on a directory. -->
+  <Target Name="_FixWasmPwaManifestPath"
+          BeforeTargets="GenerateUnoWasmAssets"
+          AfterTargets="ProcessResizedImagesWasm"
+          Condition="$(TargetFramework.Contains('browserwasm'))">
+    <PropertyGroup>
+      <WasmPWAManifestFile Condition="'$(WasmPWAManifestFile)' != '' AND !$([System.IO.File]::Exists('$(WasmPWAManifestFile)'))"></WasmPWAManifestFile>
+    </PropertyGroup>
+  </Target>
+</Project>

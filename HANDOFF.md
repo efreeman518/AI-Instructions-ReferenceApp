@@ -2,12 +2,12 @@
 
 ## Session Summary
 
-Phases 1–5c complete. 21-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline. 162 unit tests green.
+Phases 1–5e complete (including Uno UI + Quality Gates). 28-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway. 186 tests green (174 Unit + 12 Architecture).
 
 ## Current State
 
 - **currentPhase:** 5
-- **currentSubPhase:** c
+- **currentSubPhase:** f
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** true
 - **foundationComplete:** true
@@ -89,11 +89,130 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **Packages**: FusionCache 2.6.0, StackExchange.Redis backplane, Microsoft.Extensions.Caching.StackExchangeRedis
 - **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
 
-## Next Phase (Phase 5d — Optional Hosts)
+## Phase 5d Outputs
 
-Load `skills/background-services.md`, `skills/function-app.md`, `skills/gateway.md`, `skills/uno-ui.md`, `skills/notifications.md`.
-Implement YARP Gateway, Scheduler jobs (TickerQ), Function App triggers, Uno UI (WASM).
-**Gate:** Gateway forwards requests, scheduler runs, functions trigger.
+- **YARP Gateway**: YARP reverse proxy with service-discovery destinations (`https+http://taskflowapi`), `PathRemovePrefix` transform, TokenService (stub) for downstream bearer tokens, `X-Orig-Request` claim relay header (Base64 JSON), CORS policy for Uno UI origins, auth stub (Phase 5f replaces)
+- **TickerQ Scheduler (v10.2.5)**: 3 `[TickerFunction]` jobs (OverdueTaskCheck, RecurringTaskGeneration, StaleTaskCleanup), BaseTickerQJob with scoped handler dispatch, 3 handler implementations using `ITaskItemService`, EF Core operational store (SQL Server), cron seeding via `ICronTickerManager<CronTickerEntity>`, optional dashboard
+- **Azure Functions (isolated worker v4)**: 4 trigger types — HTTP (health + TaskApiProxy), Timer (StaleTaskCleanup), Blob (ProcessAttachment), ServiceBus topic (ProcessTaskEvent), Bootstrapper DI reuse, `host.json` + `local.settings.json` configured
+- **Packages added**: Yarp.ReverseProxy 2.3.0, Microsoft.Extensions.ServiceDiscovery.Yarp 10.1.0, TickerQ 10.2.5 + EFCore + Dashboard, Azure Functions Worker packages
+- **Gate: `dotnet build` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
+
+## Phase 5d Outputs (Uno UI)
+
+- **TaskFlow.Uno** (WASM): Uno.Sdk/6.5.31, single project targeting `net10.0-browserwasm`, builds clean (0 errors, warnings only)
+- **TaskFlow.Uno.Core**: Platform-agnostic class library with Business models, services, and API client
+- **App.xaml**: `Application` base class with `MaterialToolkitTheme` (Uno.Toolkit.UI.Material)
+- **App.xaml.cs**: `Program.Main` entry point (manual, Uno SDK 6.5.x on .NET 10), `CreateBuilder` + `NavigateAsync<Shell>`
+- **App.xaml.host.cs**: UseToolkitNavigation, UseHttp with AddKiotaClient → Gateway, CustomAuth scaffold, navigation route registration, service DI
+- **Shell**: ExtendedSplashScreen loading container (Chefs pattern)
+- **MVUX Models (9)**: ShellModel, MainModel, DashboardModel, TaskListModel, TaskDetailModel, TaskFormModel, CategoryTreeModel, TagManagementModel, SettingsModel
+- **Business Services (7 interfaces + 7 implementations)**: ITaskItemApiService, ICategoryApiService, ITagApiService, ICommentApiService, IChecklistItemApiService, IAttachmentApiService, IDashboardService — all wrapping Kiota client → Gateway
+- **UI Models (7 records)**: TaskItemModel, CategoryModel, TagModel, CommentModel, ChecklistItemModel, AttachmentModel, DashboardSummary
+- **Views/Pages (7 + Shell)**: Shell (splash), MainPage (NavigationView sidebar with region-based nav), DashboardPage (summary cards, overdue counts, recent activity), TaskListPage (filter/sort/search, inline status toggle), TaskDetailPage (comments CRUD, checklist CRUD, attachments, sub-tasks), TaskFormPage (create/edit with validation), CategoryTreePage (hierarchy CRUD), TagManagementPage (CRUD + color), SettingsPage
+- **Kiota Client Stub**: TaskFlowApiClient with typed request builders mirroring all API endpoints (`/api/task-items`, `/api/categories`, `/api/tags`, `/api/comments`, `/api/checklist-items`, `/api/attachments`)
+- **Mock/Live switch**: `Features:UseMocks` config, `USE_MOCKS` compile constant, `MockHttpMessageHandler` with full canned data
+- **Aspire integration**: AppHost registers `taskflowuno` with `WithReference(gateway).WaitFor(gateway)`
+- **Solution**: 26 projects in `TaskFlow.slnx` (added `/UI/` folder with TaskFlow.Uno + TaskFlow.Uno.Core)
+- **Smoke tests (12)**: MockHttpMessageHandler tests (search/delete/404), TaskItemApiService mapping tests, CategoryApiService tests, DashboardService aggregation test
+- **Packages added**: CommunityToolkit.Mvvm 8.4.0 to Directory.Packages.props
+- **Build notes**: Uno.Sdk 6.5.31 required (6.0.67 bundles Uno.Wasm.Bootstrap 8.0.23 incompatible with .NET 9+); `<TargetFramework />` clears Directory.Build.props singular TFM; `Program.cs` entry point added manually (SDK auto-generation not triggered on .NET 10); global using for `System.Collections.Immutable` in Uno csproj
+- **Gate: `dotnet build TaskFlow.Uno/TaskFlow.Uno.csproj` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 174 passed, 0 failed**
+
+## Phase 5e Outputs
+
+- **Architecture Tests (12)**: DomainDependencyTests (3 — no deps on Application/Infrastructure/Hosts), ApplicationDependencyTests (4 — Contracts no deps on Infra/Hosts, Services no deps on Infra/Hosts), InfrastructureDependencyTests (2 — Repos no deps on Services/Hosts), ConventionTests (3 — all entities implement ITenantEntity<Guid>, all services implement interface counterpart, all entity properties have private setters)
+- **Dockerfiles (4)**: `TaskFlow.Api/Dockerfile`, `TaskFlow.Gateway/Dockerfile`, `TaskFlow.Scheduler/Dockerfile`, `TaskFlow.Functions/Dockerfile` — all multi-stage (restore → publish → runtime), `mcr.microsoft.com/dotnet/aspnet:10.0` runtime, `NUGET_TOKEN` build arg for private feed, `.dockerignore` at repo root
+- **CI/CD Pipeline**: `.github/workflows/ci.yml` (PR validation: restore → build → Unit + Architecture + Endpoint tests, optional Integration via workflow_dispatch), `.github/workflows/cd.yml` (main push: build → test → docker build/push via matrix + OIDC Azure auth, deploy placeholder per environment)
+- **Load Tests**: `Test/Test.Load/` project with NBomber 6.3.0 + NBomber.Http 6.2.0, TaskItem search throughput + CRUD scenarios, `[TestCategory("Load")]`, `[Ignore]` (manual run only)
+- **Benchmarks**: `Test/Test.Benchmarks/` project with BenchmarkDotNet 0.14.0, entity mapping benchmarks (ToDto, round-trip), console runner
+- **Packages added**: NBomber 6.3.0, NBomber.Http 6.2.0, BenchmarkDotNet 0.14.0 to Directory.Packages.props
+- **Solution**: 28 projects in `TaskFlow.slnx` (added Test.Load + Test.Benchmarks)
+- **Gate: `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed (174 Unit + 12 Architecture), 0 failed**
+
+## Next Phase (Phase 5f — Authentication)
+
+### Exact Session Start Instructions
+
+1. Read this HANDOFF.md first. Resume from Phase 5f.
+2. Read `implementation-plan.md` — Phase 5f section has the task list.
+3. Load instruction skills (from the AI-Instructions-NewProject repo):
+   - `skills/identity-management.md` — Entra ID, JWT Bearer, role-based policies
+   - `skills/security.md` — auth patterns, claim extraction, tenant isolation
+   - `skills/api.md` — endpoint auth policy wiring
+4. `cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src` — all commands run from here.
+5. Verify baseline: `dotnet build TaskFlow.slnx` and `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — expect 186 passed.
+
+### Phase 5f Task Breakdown
+
+**5f-1: Conditional Auth Registration**
+- `appsettings.json` section presence → JWT Bearer; absent → no-op passthrough
+- App still boots in scaffold mode without Entra config
+
+**5f-2: Auth Stub → Real Entra ID JWT Bearer**
+- Config-driven JWT Bearer authentication
+- Claim extraction precedence: oid > NameIdentifier > sub
+
+**5f-3: Role-Based Policies**
+- GlobalAdmin bypass + tenant-matched policies (TenantMember, TenantAdmin)
+- StatusTransitionPolicy (role-based transition control)
+
+**5f-4: Gateway Auth**
+- User-facing auth (Entra External)
+- Claim relay to API via X-Orig-Request header
+- Service-to-service tokens: Gateway → API via client credentials (TokenService)
+
+**5f-5: Update Appsettings**
+- Entra configuration sections (commented out for scaffold mode)
+- ValidateOnStart for auth config
+
+### Gate
+`dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — all pass, 0 failures. App boots without Entra config.
+
+### Project Structure Reference (28 projects)
+```
+src/
+├── Domain/TaskFlow.Domain.Model/
+├── Domain/TaskFlow.Domain.Shared/
+├── Application/TaskFlow.Application.Contracts/
+├── Application/TaskFlow.Application.Mappers/
+├── Application/TaskFlow.Application.Models/
+├── Application/TaskFlow.Application.Services/
+├── Application/TaskFlow.Application.MessageHandlers/
+├── Infrastructure/TaskFlow.Infrastructure.Data/
+├── Infrastructure/TaskFlow.Infrastructure.Repositories/
+├── TaskFlow.Bootstrapper/
+├── TaskFlow.Api/
+├── TaskFlow.Scheduler/
+├── TaskFlow.Gateway/
+├── TaskFlow.Functions/
+├── Aspire/AppHost/
+├── Aspire/ServiceDefaults/
+├── UI/TaskFlow.Uno/          (Uno.Sdk/6.5.31, net10.0-browserwasm)
+├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
+├── Test/Test.Unit/           (174 tests, TestCategory=Unit)
+├── Test/Test.Architecture/   (12 tests, TestCategory=Architecture)
+├── Test/Test.Endpoints/      (empty shell)
+├── Test/Test.Integration/    (empty shell)
+├── Test/Test.Load/           (NBomber, TestCategory=Load, manual run)
+├── Test/Test.Benchmarks/     (BenchmarkDotNet, console runner)
+├── Test/Test.Support/        (builders, InMemoryDbBuilder, TestConstants)
+```
+
+### Build Commands
+```powershell
+cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src
+dotnet build TaskFlow.slnx                              # full solution (excludes Uno WASM)
+dotnet build TaskFlow.Uno/TaskFlow.Uno.csproj            # Uno WASM (separate, needs Uno.Sdk)
+dotnet test --filter "TestCategory=Unit"                 # 174 unit tests
+dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
+dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"  # combined gate (186)
+```
+
+### Known Constraints
+- Uno WASM (`TaskFlow.Uno.csproj`) builds separately — do NOT include in `dotnet build TaskFlow.slnx` unless the machine has Uno.Sdk resolved
+- Docker builds require Docker Desktop running — verify availability before attempting
+- Load tests (`[Ignore]`) require API host running — manual invocation only
+- Benchmarks are a console app — run via `dotnet run -c Release` not `dotnet test`
 
 ## Domain Model Summary
 

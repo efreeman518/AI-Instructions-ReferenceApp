@@ -1,12 +1,31 @@
+using TaskFlow.Gateway;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Services.AddGatewayServices(builder.Configuration);
+
+// Auth stub — Phase 5f replaces with real Entra ID JWT Bearer
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Pipeline order: security → CORS → middleware → endpoints → reverse proxy
+app.UseExceptionHandler(appBuilder =>
+    appBuilder.Run(async ctx =>
+    {
+        ctx.Response.StatusCode = 500;
+        await ctx.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+    }));
+
+app.UseCors("UnoUI");
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 app.MapGet("/", () => "TaskFlow Gateway");
 
-// Phase 5d: YARP reverse proxy will be configured here
+app.MapReverseProxy();
 
 app.Run();
