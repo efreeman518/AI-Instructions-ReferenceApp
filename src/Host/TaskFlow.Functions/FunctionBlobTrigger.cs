@@ -7,7 +7,7 @@ public class FunctionBlobTrigger(ILogger<FunctionBlobTrigger> logger)
 {
     [Function(nameof(ProcessAttachment))]
     public Task ProcessAttachment(
-        [BlobTrigger("%AttachmentBlobContainer%/{name}", Connection = "AzureWebJobsStorage")] Stream blobStream,
+        [BlobTrigger("%AttachmentBlobContainer%/{name}", Connection = "BlobStorage1")] Stream blobStream,
         string name,
         CancellationToken ct)
     {

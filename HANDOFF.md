@@ -2,7 +2,7 @@
 
 ## Session Summary
 
-Phases 1–5g complete. 29-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs). 203 tests green (191 Unit + 12 Architecture).
+Phases 1–5g complete + post-phase hardening. 30-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests. 218 tests green (191 Unit + 12 Architecture + 15 Endpoint).
 
 ## Current State
 
@@ -162,9 +162,22 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **Tests (17 new)**: NoOpSearchServiceTests (3), NoOpTaskAssistantAgentTests (3), TaskItemToolsTests (6), AiServiceRegistrationTests (4 — DI wiring for no-op paths + settings binding)
 - **Gate: `dotnet build` — 29 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 203 passed (191 Unit + 12 Architecture), 0 failed**
 
+## Post-Phase 5 Hardening
+
+- **TaskFlow.Infrastructure.Storage** (new project): Blob storage, Service Bus, and Cosmos DB infrastructure implementations
+- **Blob Storage**: `IBlobStorageRepository` (Upload/Download/Delete/Exists/GetUri), `BlobStorageRepository` using named `BlobServiceClient` via `IAzureClientFactory`, container auto-create, `BlobStorageSettings` config. `AttachmentService` wired to delete blobs on attachment delete (fire-and-forget with warning log).
+- **Service Bus**: `IDomainEventPublisher` (PublishAsync with topic/queue + correlation ID), `ServiceBusDomainEventPublisher` (JSON-serialized events to "DomainEvents" topic, Subject=EventType), `NoOpDomainEventPublisher` (stub when Service Bus unavailable). `TaskItemService` publishes `TaskItemCreatedEvent` on create and `TaskItemStatusChangedEvent` on status change.
+- **Cosmos DB**: `ITaskViewRepository` + `TaskViewDto` (Upsert/Get/QueryByTenant/Delete), `CosmosTaskViewRepository` (database "taskflow-db", container "task-views", partition key=tenantId), `NoOpTaskViewRepository` (stub). `TaskViewDocument` (Newtonsoft.Json-annotated denormalized read model). `TaskViewProjectionService` + `ITaskViewProjectionService` reads TaskItem and upserts to Cosmos. Read-optimized `TaskViewEndpoints` (GET by id, GET by tenant).
+- **Aspire emulators**: Azure Storage (`AddAzureStorage().RunAsEmulator()` → Blobs), Service Bus (`AddAzureServiceBus().RunAsEmulator()` with topic "DomainEvents"/subscription "function-processor" + queue "TaskCommands"), Cosmos DB (`AddAzureCosmosDB().RunAsEmulator()`). All wired to API; blobs+serviceBus to Functions.
+- **Function triggers updated**: `FunctionServiceBusTrigger` connection changed to "ServiceBus1" (Aspire resource name), now projects into Cosmos via `ITaskViewProjectionService` for TaskItemCreated/StatusChanged events. `FunctionBlobTrigger` connection changed to "BlobStorage1".
+- **Endpoint integration tests** (15 tests, `[TestCategory("Endpoint")]`): `CustomApiFactory` (WebApplicationFactory-based, in-memory DB swap, removes pooled factories/interceptors/hosted services), `TaskItemEndpointTests` (8 tests: CRUD + search + full cycle), `CategoryEndpointTests` (7 tests: CRUD + search + full cycle). `TestDbContextFactory` handles `DbContextBase` required-member bypass via reflection.
+- **Packages added**: Azure.Storage.Blobs 12.24.0, Azure.Messaging.ServiceBus 7.18.4, Microsoft.Azure.Cosmos 3.46.1, Microsoft.Extensions.Azure 1.12.0, Newtonsoft.Json 13.0.3, Aspire.Hosting.Azure.Storage/ServiceBus/CosmosDB 9.3.0, Microsoft.EntityFrameworkCore.InMemory (test), EF.Common.Contracts (test)
+- **Architecture test updated**: service convention test passes (TaskViewProjectionService implements ITaskViewProjectionService)
+- **Gate: `dotnet build` — 30 projects, 0 errors; `dotnet test` — 218 passed (191 Unit + 12 Architecture + 15 Endpoint), 0 failed**
+
 ## All Phases Complete
 
-### Project Structure Reference (29 projects)
+### Project Structure Reference (30 projects)
 ```
 src/
 ├── Domain/TaskFlow.Domain.Model/
@@ -177,6 +190,7 @@ src/
 ├── Infrastructure/TaskFlow.Infrastructure.Data/
 ├── Infrastructure/TaskFlow.Infrastructure.Repositories/
 ├── Infrastructure/TaskFlow.Infrastructure.AI/   (AI Search + Agent Framework, deployment-only)
+├── Infrastructure/TaskFlow.Infrastructure.Storage/ (Blob, Service Bus, Cosmos DB)
 ├── Host/TaskFlow.Bootstrapper/
 ├── Host/TaskFlow.Api/
 ├── Host/TaskFlow.Scheduler/
@@ -188,7 +202,7 @@ src/
 ├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
 ├── Test/Test.Unit/           (191 tests, TestCategory=Unit)
 ├── Test/Test.Architecture/   (12 tests, TestCategory=Architecture)
-├── Test/Test.Endpoints/      (empty shell)
+├── Test/Test.Endpoints/      (15 tests, TestCategory=Endpoint, WebApplicationFactory)
 ├── Test/Test.Integration/    (empty shell)
 ├── Test/Test.Load/           (NBomber, TestCategory=Load, manual run)
 ├── Test/Test.Benchmarks/     (BenchmarkDotNet, console runner)
@@ -202,7 +216,9 @@ dotnet build TaskFlow.slnx                              # full solution (exclude
 dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj         # Uno WASM (separate, needs Uno.Sdk)
 dotnet test --filter "TestCategory=Unit"                 # 191 unit tests
 dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
-dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"  # combined gate (203)
+dotnet test --filter "TestCategory=Endpoint"             # 15 endpoint tests (WebApplicationFactory)
+dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"  # combined gate (218)
+dotnet test TaskFlow.slnx                                # all tests including endpoint (218)
 ```
 
 ### Known Constraints

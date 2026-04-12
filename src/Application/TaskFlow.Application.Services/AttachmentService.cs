@@ -1,9 +1,11 @@
 using EF.Common.Contracts;
 using EF.Data.Contracts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
+using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
@@ -16,7 +18,8 @@ internal class AttachmentService(
     IAttachmentRepositoryTrxn repoTrxn,
     IAttachmentRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
-    IEntityCacheProvider cache) : IAttachmentService
+    IEntityCacheProvider cache,
+    IBlobStorageRepository? blobStorage = null) : IAttachmentService
 {
     private Guid? RequestTenantId => requestContext.TenantId;
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
@@ -141,6 +144,20 @@ internal class AttachmentService(
         {
             logger.LogError(ex, "Error deleting Attachment {Id}", id);
             return Result.Failure(ex.GetBaseException().Message);
+        }
+
+        // Delete blob from storage if available
+        if (blobStorage is not null && !string.IsNullOrEmpty(entity.StorageUri))
+        {
+            try
+            {
+                var blobName = $"{entity.TenantId}/{entity.OwnerId}/{entity.FileName}";
+                await blobStorage.DeleteAsync("attachments", blobName, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to delete blob for Attachment {Id}", id);
+            }
         }
 
         await cache.RemoveAsync($"Attachment:{id}", ct);

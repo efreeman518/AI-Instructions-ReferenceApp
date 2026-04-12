@@ -2,12 +2,15 @@ using EF.Common.Contracts;
 using EF.Data.Contracts;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts;
+using TaskFlow.Application.Contracts.Messaging;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model.Events;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
@@ -17,7 +20,8 @@ internal class TaskItemService(
     ITaskItemRepositoryTrxn repoTrxn,
     ITaskItemRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
-    IEntityCacheProvider cache) : ITaskItemService
+    IEntityCacheProvider cache,
+    IDomainEventPublisher eventPublisher) : ITaskItemService
 {
     private Guid? RequestTenantId => requestContext.TenantId;
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
@@ -85,6 +89,11 @@ internal class TaskItemService(
 
         var resultDto = entity.ToDto();
         await cache.SetAsync($"TaskItem:{entity.Id}", resultDto, ct);
+
+        await eventPublisher.PublishAsync(
+            new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
+            requestContext.CorrelationId, ct);
+
         return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = resultDto });
     }
 
@@ -105,8 +114,10 @@ internal class TaskItemService(
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         // Handle status transition if changed
+        TaskItemStatus? oldStatus = null;
         if (dto.Status != entity.Status)
         {
+            oldStatus = entity.Status;
             var transitionResult = entity.TransitionStatus(dto.Status);
             if (transitionResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(transitionResult.ErrorMessage!);
         }
@@ -145,6 +156,14 @@ internal class TaskItemService(
 
         var resultDto = entity.ToDto();
         await cache.SetAsync($"TaskItem:{entity.Id}", resultDto, ct);
+
+        if (oldStatus.HasValue)
+        {
+            await eventPublisher.PublishAsync(
+                new TaskItemStatusChangedEvent(entity.Id, entity.TenantId, oldStatus.Value, entity.Status),
+                requestContext.CorrelationId, ct);
+        }
+
         return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = resultDto });
     }
 

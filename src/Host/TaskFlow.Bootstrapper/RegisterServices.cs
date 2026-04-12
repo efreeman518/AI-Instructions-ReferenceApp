@@ -14,9 +14,16 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Services;
 using TaskFlow.Bootstrapper.HealthChecks;
+using Azure.Messaging.ServiceBus;
+using Azure.Storage.Blobs;
+using Microsoft.Extensions.Azure;
+using TaskFlow.Application.Contracts.Messaging;
+using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories;
+using TaskFlow.Infrastructure.Storage;
+using TaskFlow.Infrastructure.Storage.CosmosDb;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
@@ -31,6 +38,9 @@ public static class RegisterServices
         AddRequestContext(services);
         AddDatabaseServices(services, config);
         AddCachingServices(services, config);
+        AddBlobStorageServices(services, config);
+        AddServiceBusServices(services, config);
+        AddCosmosDbServices(services, config);
         AddHealthChecks(services);
         AddApplicationServices(services);
         services.AddAiServices(config);
@@ -209,6 +219,54 @@ public static class RegisterServices
             .AddCheck<SqlHealthCheck>("sql", tags: ["ready"]);
     }
 
+    private static void AddBlobStorageServices(IServiceCollection services, IConfiguration config)
+    {
+        var connStr = config.GetConnectionString("BlobStorage1");
+        if (string.IsNullOrEmpty(connStr)) return;
+
+        services.AddAzureClients(builder =>
+        {
+            builder.AddBlobServiceClient(connStr)
+                .WithName("TaskFlowBlobClient");
+        });
+
+        services.Configure<BlobStorageSettings>(
+            config.GetSection("BlobStorageSettings"));
+
+        services.AddScoped<IBlobStorageRepository, BlobStorageRepository>();
+    }
+
+    private static void AddServiceBusServices(IServiceCollection services, IConfiguration config)
+    {
+        var connStr = config.GetConnectionString("ServiceBus1");
+        if (string.IsNullOrEmpty(connStr))
+        {
+            services.AddSingleton<IDomainEventPublisher, NoOpDomainEventPublisher>();
+            return;
+        }
+
+        services.AddAzureClients(builder =>
+        {
+            builder.AddServiceBusClient(connStr)
+                .WithName("TaskFlowSBClient");
+        });
+
+        services.AddSingleton<IDomainEventPublisher, ServiceBusDomainEventPublisher>();
+    }
+
+    private static void AddCosmosDbServices(IServiceCollection services, IConfiguration config)
+    {
+        var connStr = config.GetConnectionString("CosmosDb1");
+        if (string.IsNullOrEmpty(connStr))
+        {
+            services.AddSingleton<ITaskViewRepository, NoOpTaskViewRepository>();
+            return;
+        }
+
+        services.AddSingleton(_ => new Microsoft.Azure.Cosmos.CosmosClient(connStr));
+        services.AddSingleton<ITaskViewRepository, CosmosTaskViewRepository>();
+    }
+
     private static void AddApplicationServices(IServiceCollection services)
     {
         // Cross-cutting
@@ -223,5 +281,8 @@ public static class RegisterServices
         services.AddScoped<IChecklistItemService, ChecklistItemService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<ITaskItemTagService, TaskItemTagService>();
+
+        // Projection
+        services.AddScoped<ITaskViewProjectionService, TaskViewProjectionService>();
     }
 }

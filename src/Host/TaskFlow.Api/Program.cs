@@ -54,5 +54,6 @@ app.MapAttachmentEndpoints();
 app.MapTaskItemTagEndpoints();
 app.MapSearchEndpoints();
 app.MapAgentEndpoints();
+app.MapTaskViewEndpoints();
 
 app.Run();

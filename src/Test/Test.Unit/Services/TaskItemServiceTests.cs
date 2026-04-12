@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using EF.Common.Contracts;
 using EF.Data.Contracts;
 using TaskFlow.Application.Contracts;
+using TaskFlow.Application.Contracts.Messaging;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
@@ -22,6 +23,7 @@ public class TaskItemServiceTests
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
     private readonly Mock<IEntityCacheProvider> _cacheMock = new();
+    private readonly Mock<IDomainEventPublisher> _eventPublisherMock = new();
 
     [TestInitialize]
     public void Setup()
@@ -39,7 +41,8 @@ public class TaskItemServiceTests
         _repoTrxnMock.Object,
         _repoQueryMock.Object,
         _tenantBoundaryValidatorMock.Object,
-        _cacheMock.Object);
+        _cacheMock.Object,
+        _eventPublisherMock.Object);
 
     [TestMethod]
     [TestCategory("Unit")]
