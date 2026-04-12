@@ -2,12 +2,12 @@
 
 ## Session Summary
 
-Phases 1–5e complete (including Uno UI + Quality Gates). 28-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway. 186 tests green (174 Unit + 12 Architecture).
+Phases 1–5f complete. 28-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration, DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID). 186 tests green (174 Unit + 12 Architecture).
 
 ## Current State
 
 - **currentPhase:** 5
-- **currentSubPhase:** f
+- **currentSubPhase:** g
 - **instructionVersion:** "1.1"
 - **contractsScaffolded:** true
 - **foundationComplete:** true
@@ -116,7 +116,7 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **Smoke tests (12)**: MockHttpMessageHandler tests (search/delete/404), TaskItemApiService mapping tests, CategoryApiService tests, DashboardService aggregation test
 - **Packages added**: CommunityToolkit.Mvvm 8.4.0 to Directory.Packages.props
 - **Build notes**: Uno.Sdk 6.5.31 required (6.0.67 bundles Uno.Wasm.Bootstrap 8.0.23 incompatible with .NET 9+); `<TargetFramework />` clears Directory.Build.props singular TFM; `Program.cs` entry point added manually (SDK auto-generation not triggered on .NET 10); global using for `System.Collections.Immutable` in Uno csproj
-- **Gate: `dotnet build TaskFlow.Uno/TaskFlow.Uno.csproj` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 174 passed, 0 failed**
+- **Gate: `dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 174 passed, 0 failed**
 
 ## Phase 5e Outputs
 
@@ -129,44 +129,52 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **Solution**: 28 projects in `TaskFlow.slnx` (added Test.Load + Test.Benchmarks)
 - **Gate: `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed (174 Unit + 12 Architecture), 0 failed**
 
-## Next Phase (Phase 5f — Authentication)
+## Phase 5f Outputs
+
+- **ScaffoldAuthHandler**: Predictable test identity with oid, tenant_id, GlobalAdmin/TenantAdmin/TenantMember roles — all requests succeed in scaffold mode
+- **AuthConfiguration**: Config-driven toggle (`AuthMode` key) — "Scaffold" → ScaffoldAuthHandler, "EntraID" → JWT Bearer with Entra ID validation
+- **AuthorizationPolicies**: 4 policies — GlobalAdmin (role check), TenantMatch (GlobalAdmin bypass OR TenantMember/TenantAdmin + tenant_id claim), TenantAdmin (GlobalAdmin bypass OR TenantAdmin role), StatusTransition (any authenticated tenant role)
+- **GatewayClaimsMiddleware**: Reads X-Orig-Request header (Base64 JSON) forwarded by Gateway, enriches authenticated principal with original user claims (oid, tenant_id, name, roles)
+- **IRequestContext from claims**: Bootstrapper now extracts userId/tenantId/roles from authenticated ClaimsPrincipal via IHttpContextAccessor. Claim precedence: oid > NameIdentifier > sub. Falls back to scaffold defaults for non-HTTP contexts (background jobs, tests).
+- **Gateway auth**: Config-driven JWT Bearer — `EntraExternal` section present → real Entra External ID validation; absent → no-op passthrough (scaffold mode)
+- **Gateway TokenService**: Config-aware with MSAL-ready scaffold (checks `EntraID:ClientCredentials` section, falls back to scaffold stub tokens)
+- **Gateway CORS**: Config-driven AllowedOrigins via `CorsSettings:AllowedOrigins` section
+- **Claim relay**: Gateway X-Orig-Request header now uses oid > NameIdentifier > sub precedence
+- **AppConstants**: Added ROLE_TENANT_ADMIN, ROLE_TENANT_MEMBER constants
+- **API middleware pipeline**: UseAuthentication → GatewayClaimsMiddleware → UseAuthorization (correct order)
+- **Packages added**: Microsoft.AspNetCore.Authentication.JwtBearer 10.0.5, Microsoft.Identity.Web 3.8.3 to Directory.Packages.props; JwtBearer refs in API + Gateway csprojfiles
+- **Bootstrapper**: Added FrameworkReference Microsoft.AspNetCore.App for IHttpContextAccessor access
+- **appsettings**: AuthMode: "Scaffold" in API (appsettings.json + appsettings.Development.json), CorsSettings in Gateway
+- **Gate: `dotnet build` — 28 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed, 0 failed**
+
+## Next Phase (Phase 5g — AI Integration)
 
 ### Exact Session Start Instructions
 
-1. Read this HANDOFF.md first. Resume from Phase 5f.
-2. Read `implementation-plan.md` — Phase 5f section has the task list.
+1. Read this HANDOFF.md first. Resume from Phase 5g.
+2. Read `implementation-plan.md` — Phase 5g section has the task list.
 3. Load instruction skills (from the AI-Instructions-NewProject repo):
-   - `skills/identity-management.md` — Entra ID, JWT Bearer, role-based policies
-   - `skills/security.md` — auth patterns, claim extraction, tenant isolation
-   - `skills/api.md` — endpoint auth policy wiring
+   - `skills/ai-integration.md` — AI Search, agents, embeddings
+   - `skills/azure-data-storage.md` — Cosmos DB, Azure Storage patterns
 4. `cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src` — all commands run from here.
 5. Verify baseline: `dotnet build TaskFlow.slnx` and `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — expect 186 passed.
 
-### Phase 5f Task Breakdown
+### Phase 5g Task Breakdown
 
-**5f-1: Conditional Auth Registration**
-- `appsettings.json` section presence → JWT Bearer; absent → no-op passthrough
-- App still boots in scaffold mode without Entra config
+**5g-1: Infrastructure.AI project** — AI Search + Agent service interfaces and no-op stubs
 
-**5f-2: Auth Stub → Real Entra ID JWT Bearer**
-- Config-driven JWT Bearer authentication
-- Claim extraction precedence: oid > NameIdentifier > sub
+**5g-2: Azure AI Search** — taskitems-index (hybrid: keyword + semantic + vector), search service, on-write vectorization handler
 
-**5f-3: Role-Based Policies**
-- GlobalAdmin bypass + tenant-matched policies (TenantMember, TenantAdmin)
-- StatusTransitionPolicy (role-based transition control)
+**5g-3: TaskAssistant Agent** — ChatClientAgent with function tools (CRUD + search + summarize), system prompt, RAG grounding, per-user conversation scoping
 
-**5f-4: Gateway Auth**
-- User-facing auth (Entra External)
-- Claim relay to API via X-Orig-Request header
-- Service-to-service tokens: Gateway → API via client credentials (TokenService)
+**5g-4: Aspire + DI wiring** — AddAzureAISearch, AddAzureOpenAI, lazy-optional registration (no config → no-op)
 
-**5f-5: Update Appsettings**
-- Entra configuration sections (commented out for scaffold mode)
-- ValidateOnStart for auth config
+**5g-5: API endpoints** — /api/search/tasks, /api/agent/chat
+
+**5g-6: Configuration** — Foundry endpoint, model deployments, search index in appsettings
 
 ### Gate
-`dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — all pass, 0 failures. App boots without Entra config.
+`dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — all pass. App boots without AI config (no-op stubs active).
 
 ### Project Structure Reference (28 projects)
 ```
@@ -180,13 +188,13 @@ src/
 ├── Application/TaskFlow.Application.MessageHandlers/
 ├── Infrastructure/TaskFlow.Infrastructure.Data/
 ├── Infrastructure/TaskFlow.Infrastructure.Repositories/
-├── TaskFlow.Bootstrapper/
-├── TaskFlow.Api/
-├── TaskFlow.Scheduler/
-├── TaskFlow.Gateway/
-├── TaskFlow.Functions/
-├── Aspire/AppHost/
-├── Aspire/ServiceDefaults/
+├── Host/TaskFlow.Bootstrapper/
+├── Host/TaskFlow.Api/
+├── Host/TaskFlow.Scheduler/
+├── Host/TaskFlow.Gateway/
+├── Host/TaskFlow.Functions/
+├── Host/Aspire/AppHost/
+├── Host/Aspire/ServiceDefaults/
 ├── UI/TaskFlow.Uno/          (Uno.Sdk/6.5.31, net10.0-browserwasm)
 ├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
 ├── Test/Test.Unit/           (174 tests, TestCategory=Unit)
@@ -202,7 +210,7 @@ src/
 ```powershell
 cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src
 dotnet build TaskFlow.slnx                              # full solution (excludes Uno WASM)
-dotnet build TaskFlow.Uno/TaskFlow.Uno.csproj            # Uno WASM (separate, needs Uno.Sdk)
+dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj         # Uno WASM (separate, needs Uno.Sdk)
 dotnet test --filter "TestCategory=Unit"                 # 174 unit tests
 dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
 dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"  # combined gate (186)

@@ -47,13 +47,13 @@ jobs:
       matrix:
         include:
           - name: taskflow-api
-            dockerfile: src/TaskFlow.Api/Dockerfile
+            dockerfile: src/Host/TaskFlow.Api/Dockerfile
           - name: taskflow-gateway
-            dockerfile: src/TaskFlow.Gateway/Dockerfile
+            dockerfile: src/Host/TaskFlow.Gateway/Dockerfile
           - name: taskflow-scheduler
-            dockerfile: src/TaskFlow.Scheduler/Dockerfile
+            dockerfile: src/Host/TaskFlow.Scheduler/Dockerfile
           - name: taskflow-functions
-            dockerfile: src/TaskFlow.Functions/Dockerfile
+            dockerfile: src/Host/TaskFlow.Functions/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

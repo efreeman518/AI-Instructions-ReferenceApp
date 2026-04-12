@@ -7,8 +7,8 @@ WORKDIR /source
 COPY src/TaskFlow.slnx src/Directory.Build.props src/Directory.Packages.props src/global.json src/nuget.config ./src/
 
 # Copy csproj files for restore
-COPY src/TaskFlow.Gateway/TaskFlow.Gateway.csproj src/TaskFlow.Gateway/
-COPY src/Aspire/ServiceDefaults/ServiceDefaults.csproj src/Aspire/ServiceDefaults/
+COPY src/Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj src/Host/TaskFlow.Gateway/
+COPY src/Host/Aspire/ServiceDefaults/ServiceDefaults.csproj src/Host/Aspire/ServiceDefaults/
 
 # Configure private NuGet feed auth (if token provided)
 RUN if [ -n "$NUGET_TOKEN" ]; then \
@@ -17,11 +17,11 @@ RUN if [ -n "$NUGET_TOKEN" ]; then \
         --username docker --password "$NUGET_TOKEN" --store-password-in-clear-text; \
     fi
 
-RUN dotnet restore src/TaskFlow.Gateway/TaskFlow.Gateway.csproj
+RUN dotnet restore src/Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj
 
 # Copy source and build
 COPY src/ src/
-RUN dotnet publish src/TaskFlow.Gateway/TaskFlow.Gateway.csproj -c Release -o /app --no-restore
+RUN dotnet publish src/Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj -c Release -o /app --no-restore
 
 # Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

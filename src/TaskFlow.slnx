@@ -14,20 +14,20 @@
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Data/TaskFlow.Infrastructure.Data.csproj" />
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Repositories/TaskFlow.Infrastructure.Repositories.csproj" />
   </Folder>
-  <Folder Name="/Hosts/">
-    <Project Path="TaskFlow.Bootstrapper/TaskFlow.Bootstrapper.csproj" />
-    <Project Path="TaskFlow.Api/TaskFlow.Api.csproj" />
-    <Project Path="TaskFlow.Scheduler/TaskFlow.Scheduler.csproj" />
-    <Project Path="TaskFlow.Gateway/TaskFlow.Gateway.csproj" />
-    <Project Path="TaskFlow.Functions/TaskFlow.Functions.csproj" />
+  <Folder Name="/Host/">
+    <Project Path="Host/TaskFlow.Bootstrapper/TaskFlow.Bootstrapper.csproj" />
+    <Project Path="Host/TaskFlow.Api/TaskFlow.Api.csproj" />
+    <Project Path="Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj" />
+    <Project Path="Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj" />
+    <Project Path="Host/TaskFlow.Functions/TaskFlow.Functions.csproj" />
+  </Folder>
+  <Folder Name="/Host/Aspire/">
+    <Project Path="Host/Aspire/AppHost/AppHost.csproj" />
+    <Project Path="Host/Aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/UI/">
-    <Project Path="TaskFlow.Uno/TaskFlow.Uno.csproj" />
-    <Project Path="TaskFlow.Uno.Core/TaskFlow.Uno.Core.csproj" />
-  </Folder>
-  <Folder Name="/Aspire/">
-    <Project Path="Aspire/AppHost/AppHost.csproj" />
-    <Project Path="Aspire/ServiceDefaults/ServiceDefaults.csproj" />
+    <Project Path="UI/TaskFlow.Uno/TaskFlow.Uno.csproj" />
+    <Project Path="UI/TaskFlow.Uno.Core/TaskFlow.Uno.Core.csproj" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/Test.Support/Test.Support.csproj" />

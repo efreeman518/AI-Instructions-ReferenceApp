@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Test.Support\Test.Support.csproj" />
-    <ProjectReference Include="..\..\TaskFlow.Api\TaskFlow.Api.csproj" />
+    <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
   </ItemGroup>
 
 </Project>

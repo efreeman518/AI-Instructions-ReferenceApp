@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EF.Common.Contracts;
 using EF.Data;
 using EF.Data.Interceptors;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
@@ -36,10 +38,42 @@ public static class RegisterServices
 
     private static void AddRequestContext(IServiceCollection services)
     {
-        // Request context — scaffold default (Phase 5f replaces with real auth-based context)
+        services.AddHttpContextAccessor();
+
+        // Build IRequestContext from authenticated claims (works for both Scaffold and real Entra tokens)
         services.AddScoped<IRequestContext<string, Guid?>>(sp =>
-            new RequestContext<string, Guid?>("system", Guid.NewGuid().ToString(),
-                Guid.Parse("00000000-0000-0000-0000-000000000001"), new List<string>()));
+        {
+            var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+            var user = httpContextAccessor.HttpContext?.User;
+
+            if (user?.Identity?.IsAuthenticated != true)
+            {
+                // Fallback for non-HTTP contexts (background jobs, tests)
+                return new RequestContext<string, Guid?>(
+                    "system",
+                    Guid.NewGuid().ToString(),
+                    Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                    new List<string>());
+            }
+
+            // Claim extraction precedence: oid > NameIdentifier > sub
+            var userId = user.FindFirst("oid")?.Value
+                      ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? user.FindFirst("sub")?.Value
+                      ?? "unknown";
+
+            var correlationId = httpContextAccessor.HttpContext?.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+                             ?? Guid.NewGuid().ToString();
+
+            var tenantClaim = user.FindFirst("tenant_id")?.Value;
+            Guid? tenantId = Guid.TryParse(tenantClaim, out var tid) ? tid : null;
+
+            var roles = user.FindAll(ClaimTypes.Role)
+                           .Select(c => c.Value)
+                           .ToList();
+
+            return new RequestContext<string, Guid?>(userId, correlationId, tenantId, roles);
+        });
     }
 
     private static void AddDatabaseServices(IServiceCollection services, IConfiguration config)

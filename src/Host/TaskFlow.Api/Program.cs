@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using TaskFlow.Api.Auth;
 using TaskFlow.Api.Endpoints;
 using TaskFlow.Api.Middleware;
 using TaskFlow.Bootstrapper;
@@ -7,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddTaskFlowServices(builder.Configuration);
+
+// Authentication + Authorization
+builder.Services.AddTaskFlowAuth(builder.Configuration);
+builder.Services.AddTaskFlowAuthorization();
 
 // Global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -33,6 +38,9 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<GatewayClaimsMiddleware>();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 

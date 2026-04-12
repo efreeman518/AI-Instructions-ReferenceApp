@@ -5,8 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddGatewayServices(builder.Configuration);
 
-// Auth stub — Phase 5f replaces with real Entra ID JWT Bearer
-builder.Services.AddAuthentication();
+// Authorization (auth registered in AddGatewayServices)
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
