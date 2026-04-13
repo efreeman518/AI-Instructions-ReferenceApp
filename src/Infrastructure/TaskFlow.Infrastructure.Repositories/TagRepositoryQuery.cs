@@ -13,11 +13,11 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITagRepositoryQuery
 {
     public async Task<Tag?> GetTagAsync(Guid id, CancellationToken ct = default)
-        => await db.Tags.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+        => await DB.Tags.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
 
     public async Task<PagedResponse<Tag>> SearchTagsAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.Tags.AsNoTracking().AsQueryable();
+        var query = DB.Tags.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {

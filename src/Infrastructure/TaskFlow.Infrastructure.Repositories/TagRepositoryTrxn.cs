@@ -10,5 +10,5 @@ public class TagRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITagRepositoryTrxn
 {
     public async Task<Tag?> GetTagAsync(Guid id, CancellationToken ct = default)
-        => await db.Tags.FirstOrDefaultAsync(t => t.Id == id, ct);
+        => await DB.Tags.FirstOrDefaultAsync(t => t.Id == id, ct);
 }

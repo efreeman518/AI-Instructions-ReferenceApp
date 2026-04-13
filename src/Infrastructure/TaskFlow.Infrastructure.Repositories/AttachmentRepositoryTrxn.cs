@@ -10,5 +10,5 @@ public class AttachmentRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), IAttachmentRepositoryTrxn
 {
     public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
-        => await db.Attachments.FirstOrDefaultAsync(a => a.Id == id, ct);
+        => await DB.Attachments.FirstOrDefaultAsync(a => a.Id == id, ct);
 }

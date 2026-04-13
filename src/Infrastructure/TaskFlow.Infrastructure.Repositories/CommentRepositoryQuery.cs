@@ -13,13 +13,13 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICommentRepositoryQuery
 {
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
-        => await db.Comments
+        => await DB.Comments
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<PagedResponse<Comment>> SearchCommentsAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.Comments.AsNoTracking().AsQueryable();
+        var query = DB.Comments.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {

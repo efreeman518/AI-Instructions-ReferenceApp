@@ -10,6 +10,7 @@ using TaskFlow.Application.Services.Rules;
 
 namespace TaskFlow.Application.Services;
 
+#pragma warning disable CS9113 // Parameter 'cache' is unread — reserved for future caching
 internal class TaskItemTagService(
     ILogger<TaskItemTagService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -17,6 +18,7 @@ internal class TaskItemTagService(
     ITaskItemTagRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache) : ITaskItemTagService
+#pragma warning restore CS9113
 {
     private Guid? RequestTenantId => requestContext.TenantId;
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;

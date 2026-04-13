@@ -10,7 +10,7 @@ public class TaskItemRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITaskItemRepositoryTrxn
 {
     public async Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default)
-        => await db.TaskItems
+        => await DB.TaskItems
             .Include(t => t.Category)
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)

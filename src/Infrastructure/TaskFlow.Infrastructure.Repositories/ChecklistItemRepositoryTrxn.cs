@@ -10,5 +10,5 @@ public class ChecklistItemRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), IChecklistItemRepositoryTrxn
 {
     public async Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default)
-        => await db.ChecklistItems.FirstOrDefaultAsync(ci => ci.Id == id, ct);
+        => await DB.ChecklistItems.FirstOrDefaultAsync(ci => ci.Id == id, ct);
 }

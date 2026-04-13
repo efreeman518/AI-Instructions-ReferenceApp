@@ -48,8 +48,8 @@ public class TaskItemToolsTests
 
         var result = await _tools.SearchTasks("login");
 
-        Assert.IsTrue(result.Contains("Fix login bug"));
-        Assert.IsTrue(result.Contains("High"));
+        Assert.Contains(result, "Fix login bug");
+        Assert.Contains(result, "High");
     }
 
     [TestMethod]
@@ -83,8 +83,8 @@ public class TaskItemToolsTests
 
         var result = await _tools.GetTaskDetails(taskId.ToString());
 
-        Assert.IsTrue(result.Contains("Important Task"));
-        Assert.IsTrue(result.Contains("InProgress"));
+        Assert.Contains(result, "Important Task");
+        Assert.Contains(result, "InProgress");
     }
 
     [TestMethod]
@@ -92,7 +92,7 @@ public class TaskItemToolsTests
     {
         var result = await _tools.GetTaskDetails("not-a-guid");
 
-        Assert.IsTrue(result.Contains("Invalid task ID"));
+        Assert.Contains(result, "Invalid task ID");
     }
 
     [TestMethod]
@@ -106,7 +106,7 @@ public class TaskItemToolsTests
 
         var result = await _tools.GetTaskDetails(taskId.ToString());
 
-        Assert.IsTrue(result.Contains("not found"));
+        Assert.Contains(result, "not found");
     }
 
     [TestMethod]
@@ -120,8 +120,8 @@ public class TaskItemToolsTests
 
         var result = await _tools.CreateTask("New task", "A description", "High");
 
-        Assert.IsTrue(result.Contains("Created task"));
-        Assert.IsTrue(result.Contains(newId.ToString()));
+        Assert.Contains(result, "Created task");
+        Assert.Contains(result, newId.ToString());
     }
 
     [TestMethod]
@@ -141,8 +141,8 @@ public class TaskItemToolsTests
 
         var result = await _tools.SummarizeBacklog();
 
-        Assert.IsTrue(result.Contains("4 total"));
-        Assert.IsTrue(result.Contains("Open: 2"));
-        Assert.IsTrue(result.Contains("InProgress: 1"));
+        Assert.Contains(result, "4 total");
+        Assert.Contains(result, "Open: 2");
+        Assert.Contains(result, "InProgress: 1");
     }
 }

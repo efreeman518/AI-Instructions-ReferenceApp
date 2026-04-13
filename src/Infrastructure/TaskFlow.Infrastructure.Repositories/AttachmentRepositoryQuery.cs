@@ -14,11 +14,11 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IAttachmentRepositoryQuery
 {
     public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
-        => await db.Attachments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
+        => await DB.Attachments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
 
     public async Task<PagedResponse<Attachment>> SearchAttachmentsAsync(SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.Attachments.AsNoTracking().AsQueryable();
+        var query = DB.Attachments.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {
@@ -41,5 +41,5 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
     }
 
     public async Task<int> CountByOwnerAsync(AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)
-        => await db.Attachments.AsNoTracking().CountAsync(a => a.OwnerType == ownerType && a.OwnerId == ownerId, ct);
+        => await DB.Attachments.AsNoTracking().CountAsync(a => a.OwnerType == ownerType && a.OwnerId == ownerId, ct);
 }

@@ -37,6 +37,7 @@
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.3.0" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.3.0" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="9.3.0" />
+    <PackageVersion Include="KubernetesClient" Version="17.0.14" />
   </ItemGroup>
   <ItemGroup Label="YARP">
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
@@ -57,11 +58,12 @@
     <PackageVersion Include="TickerQ.Dashboard" Version="10.2.5" />
   </ItemGroup>
   <ItemGroup Label="OpenTelemetry">
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.11.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.11.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.11.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.11.0" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.11.2" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
   </ItemGroup>
   <ItemGroup Label="Caching">
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />

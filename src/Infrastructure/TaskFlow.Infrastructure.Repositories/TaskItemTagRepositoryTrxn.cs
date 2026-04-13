@@ -10,7 +10,7 @@ public class TaskItemTagRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITaskItemTagRepositoryTrxn
 {
     public async Task<TaskItemTag?> GetTaskItemTagAsync(Guid id, CancellationToken ct = default)
-        => await db.TaskItemTags
+        => await DB.TaskItemTags
             .Include(tt => tt.TaskItem)
             .Include(tt => tt.Tag)
             .FirstOrDefaultAsync(tt => tt.Id == id, ct);

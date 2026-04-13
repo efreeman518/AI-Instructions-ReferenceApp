@@ -10,6 +10,6 @@ public class CommentRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ICommentRepositoryTrxn
 {
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
-        => await db.Comments
+        => await DB.Comments
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 }

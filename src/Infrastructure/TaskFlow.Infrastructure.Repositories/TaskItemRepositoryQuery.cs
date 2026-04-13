@@ -13,7 +13,7 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITaskItemRepositoryQuery
 {
     public async Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default)
-        => await db.TaskItems
+        => await DB.TaskItems
             .AsNoTracking()
             .Include(t => t.Category)
             .Include(t => t.Comments)
@@ -24,7 +24,7 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
 
     public async Task<PagedResponse<TaskItem>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.TaskItems.AsNoTracking().AsQueryable();
+        var query = DB.TaskItems.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {

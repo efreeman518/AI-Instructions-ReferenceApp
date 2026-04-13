@@ -13,11 +13,11 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IChecklistItemRepositoryQuery
 {
     public async Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default)
-        => await db.ChecklistItems.AsNoTracking().FirstOrDefaultAsync(ci => ci.Id == id, ct);
+        => await DB.ChecklistItems.AsNoTracking().FirstOrDefaultAsync(ci => ci.Id == id, ct);
 
     public async Task<PagedResponse<ChecklistItem>> SearchChecklistItemsAsync(SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.ChecklistItems.AsNoTracking().AsQueryable();
+        var query = DB.ChecklistItems.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {

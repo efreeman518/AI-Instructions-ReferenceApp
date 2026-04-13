@@ -15,7 +15,7 @@ public class NoOpSearchServiceTests
         var results = await _service.SearchTaskItemsAsync("test query", SearchMode.Keyword, Guid.NewGuid());
 
         Assert.IsNotNull(results);
-        Assert.AreEqual(0, results.Count);
+        Assert.IsEmpty(results);
     }
 
     [TestMethod]

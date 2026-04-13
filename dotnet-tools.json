@@ -2,10 +2,10 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "dotnet-ef": {
-      "version": "10.0.5",
+    "ilspycmd": {
+      "version": "10.0.0.8330",
       "commands": [
-        "dotnet-ef"
+        "ilspycmd"
       ],
       "rollForward": false
     }

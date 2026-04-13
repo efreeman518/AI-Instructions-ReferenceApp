@@ -24,6 +24,9 @@ jobs:
         with:
           global-json-file: src/global.json
 
+      - name: Install required workloads
+        run: dotnet workload install wasm-tools
+
       - name: Configure private NuGet feed
         env:
           NUGET_PAT: ${{ secrets.NUGET_PAT }}

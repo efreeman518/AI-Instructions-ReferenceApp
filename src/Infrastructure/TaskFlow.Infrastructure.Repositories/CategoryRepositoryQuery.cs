@@ -13,14 +13,14 @@ public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICategoryRepositoryQuery
 {
     public async Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default)
-        => await db.Categories
+        => await DB.Categories
             .AsNoTracking()
             .Include(c => c.SubCategories)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<PagedResponse<Category>> SearchCategoriesAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default)
     {
-        var query = db.Categories.AsNoTracking().AsQueryable();
+        var query = DB.Categories.AsNoTracking().AsQueryable();
 
         if (request.Filter is not null)
         {

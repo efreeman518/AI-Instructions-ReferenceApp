@@ -5,10 +5,12 @@ using Microsoft.Extensions.Options;
 
 namespace TaskFlow.Infrastructure.AI.Search;
 
+#pragma warning disable CS9113 // Parameter 'settings' is unread — reserved for future AI configuration
 public class TaskFlowSearchService(
     ILogger<TaskFlowSearchService> logger,
     SearchClient searchClient,
     IOptions<TaskFlowAiSettings> settings) : ITaskFlowSearchService
+#pragma warning restore CS9113
 {
     public async Task<IReadOnlyList<TaskItemSearchResult>> SearchTaskItemsAsync(
         string query, SearchMode mode, Guid? tenantId, int maxResults = 10, CancellationToken ct = default)

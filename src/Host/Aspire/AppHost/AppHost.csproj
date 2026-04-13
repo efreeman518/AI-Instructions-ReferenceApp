@@ -15,6 +15,7 @@
     <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <PackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
+    <PackageReference Include="KubernetesClient" />
   </ItemGroup>
 
   <ItemGroup>

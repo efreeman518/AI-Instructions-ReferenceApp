@@ -154,6 +154,6 @@ public class CategoryServiceTests
         var response = await CreateService().SearchAsync(request);
 
         Assert.AreEqual(2, response.Total);
-        Assert.AreEqual(2, response.Data.Count);
+        Assert.HasCount(2, response.Data);
     }
 }
