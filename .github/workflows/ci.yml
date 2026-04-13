@@ -22,10 +22,12 @@ jobs:
           global-json-file: src/global.json
 
       - name: Configure private NuGet feed
+        if: ${{ secrets.NUGET_PAT != '' }}
         run: |
           dotnet nuget update source efreeman518-github \
             --configfile src/nuget.config \
-            --username github-actions --password ${{ secrets.NUGET_PAT }} \
+            --username github-actions \
+            --password "${{ secrets.NUGET_PAT }}" \
             --store-password-in-clear-text
 
       - name: Restore
