@@ -112,7 +112,7 @@ public class StaleTaskCleanupHandlerTests
         _serviceMock.Setup(s => s.SearchAsync(
                 It.IsAny<SearchRequest<TaskItemSearchFilter>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PagedResponse<TaskItemDto> { Data = null, Total = 0 });
+            .ReturnsAsync(new PagedResponse<TaskItemDto> { Data = null!, Total = 0 });
 
         await _handler.HandleAsync(CancellationToken.None);
 

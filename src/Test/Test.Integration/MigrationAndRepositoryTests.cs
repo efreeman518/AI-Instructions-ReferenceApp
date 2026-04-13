@@ -29,7 +29,7 @@ public class MigrationAndRepositoryTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'taskflow'";
         var tableCount = (int)(await cmd.ExecuteScalarAsync())!;
-        Assert.IsTrue(tableCount >= 7, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
+        Assert.IsGreaterThanOrEqualTo(tableCount, 7, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
     }
 
     [TestMethod]
@@ -143,8 +143,8 @@ public class MigrationAndRepositoryTests
             .FirstOrDefaultAsync(t => t.Id == task.Id);
 
         Assert.IsNotNull(loaded);
-        Assert.AreEqual(1, loaded.Comments.Count);
-        Assert.AreEqual(1, loaded.ChecklistItems.Count);
+        Assert.HasCount(1, loaded.Comments);
+        Assert.HasCount(1, loaded.ChecklistItems);
     }
 
     [TestMethod]
@@ -171,7 +171,7 @@ public class MigrationAndRepositoryTests
             .FirstOrDefaultAsync(t => t.Id == task.Id);
 
         Assert.IsNotNull(loaded);
-        Assert.AreEqual(1, loaded.TaskItemTags.Count);
+        Assert.HasCount(1, loaded.TaskItemTags);
         Assert.AreEqual("M2MTag", loaded.TaskItemTags.First().Tag!.Name);
     }
 
@@ -195,7 +195,7 @@ public class MigrationAndRepositoryTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM taskflow.Categories WHERE Name LIKE 'Tenant%Cat'";
         var rawCount = (int)(await cmd.ExecuteScalarAsync())!;
-        Assert.IsTrue(rawCount >= 2, $"Expected at least 2 categories in raw query, found {rawCount}");
+        Assert.IsGreaterThanOrEqualTo(rawCount, 2, $"Expected at least 2 categories in raw query, found {rawCount}");
 
         // When query filter is active, only matching tenant data is visible.
         // The DbContextBase sets TenantId — we need to check if it applies.
@@ -205,7 +205,7 @@ public class MigrationAndRepositoryTests
         var allViaEf = await db.Categories.IgnoreQueryFilters()
             .Where(c => c.Name.EndsWith("Cat"))
             .ToListAsync();
-        Assert.IsTrue(allViaEf.Count >= 2);
+        Assert.IsGreaterThanOrEqualTo(allViaEf.Count, 2);
 
         // With query filters active (default), filtered count should differ based on context TenantId
         var filteredCount = await db.Categories
@@ -215,7 +215,7 @@ public class MigrationAndRepositoryTests
         // The filter is active — the count depends on the context's TenantId.
         // Since our test context doesn't match either tenant, we may get 0 or partial.
         // The key assertion: IgnoreQueryFilters returns MORE than filtered query.
-        Assert.IsTrue(allViaEf.Count >= filteredCount, "Query filter should restrict results");
+        Assert.IsGreaterThanOrEqualTo(allViaEf.Count, filteredCount, "Query filter should restrict results");
     }
 
     [TestMethod]

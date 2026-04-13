@@ -13,8 +13,7 @@ public class DatabaseFixture
     [AssemblyInitialize]
     public static async Task AssemblyInit(TestContext _)
     {
-        _container = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .Build();
 
         await _container.StartAsync();

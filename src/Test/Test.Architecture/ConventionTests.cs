@@ -26,7 +26,7 @@ public class ConventionTests : BaseTest
             .Where(e => !tenantInterface.IsAssignableFrom(e))
             .ToList();
 
-        Assert.AreEqual(0, nonTenantEntities.Count,
+        Assert.IsEmpty(nonTenantEntities,
             $"Entities missing ITenantEntity<Guid>: {string.Join(", ", nonTenantEntities.Select(t => t.Name))}");
     }
 
@@ -37,7 +37,7 @@ public class ConventionTests : BaseTest
             .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Service"))
             .ToList();
 
-        Assert.IsTrue(serviceTypes.Count > 0, "No service implementations found");
+        Assert.IsNotEmpty(serviceTypes, "No service implementations found");
 
         var failures = new List<string>();
         foreach (var service in serviceTypes)
@@ -50,7 +50,7 @@ public class ConventionTests : BaseTest
                 failures.Add($"{service.Name} does not implement {expectedInterface}");
         }
 
-        Assert.AreEqual(0, failures.Count,
+        Assert.IsEmpty(failures,
             $"Service convention violations: {string.Join("; ", failures)}");
     }
 
@@ -71,7 +71,7 @@ public class ConventionTests : BaseTest
                 violations.Add($"{entity.Name}: {string.Join(", ", publicSetters.Select(p => p.Name))}");
         }
 
-        Assert.AreEqual(0, violations.Count,
+        Assert.IsEmpty(violations,
             $"Entities with public setters (encapsulation violation): {string.Join("; ", violations)}");
     }
 }

@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Messaging;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 
+#pragma warning disable CS8620, CS8714 // Uno MVUX IState<T?>/IFeed<T> nullability mismatch
+
 namespace TaskFlow.Uno.Presentation;
 
 public partial record CategoryTreeModel(

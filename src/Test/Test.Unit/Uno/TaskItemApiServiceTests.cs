@@ -35,7 +35,7 @@ public class TaskItemApiServiceTests
     {
         var results = await _service.SearchAsync();
 
-        Assert.IsTrue(results.Count > 0);
+        Assert.IsNotEmpty(results);
         Assert.AreEqual("Build dashboard UI", results[0].Title);
         Assert.AreEqual("InProgress", results[0].Status);
         Assert.AreEqual("High", results[0].Priority);

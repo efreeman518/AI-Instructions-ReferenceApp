@@ -179,7 +179,7 @@ public class AttachmentEndpointTests
         var created = await response.Content.ReadFromJsonAsync<AttachmentDto>();
         Assert.IsNotNull(created);
         Assert.AreEqual("upload-test.txt", created.FileName);
-        Assert.IsTrue(created.StorageUri.Contains("upload-test.txt"));
+        Assert.Contains("upload-test.txt", created.StorageUri);
         Assert.AreEqual(fileBytes.Length, created.FileSizeBytes);
     }
 }

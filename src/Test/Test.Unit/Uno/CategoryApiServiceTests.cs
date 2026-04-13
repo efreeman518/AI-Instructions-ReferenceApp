@@ -35,7 +35,7 @@ public class CategoryApiServiceTests
     {
         var results = await _service.SearchAsync();
 
-        Assert.IsTrue(results.Count > 0);
+        Assert.IsNotEmpty(results);
         Assert.AreEqual("Development", results[0].Name);
         Assert.IsTrue(results[0].IsActive);
     }

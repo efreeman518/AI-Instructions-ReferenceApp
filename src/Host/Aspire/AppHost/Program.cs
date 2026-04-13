@@ -17,8 +17,9 @@ var blobs = storage.AddBlobs("BlobStorage1");
 
 // Azure Service Bus — emulator
 var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator();
-serviceBus.AddTopic("DomainEvents", ["function-processor"]);
-serviceBus.AddQueue("TaskCommands");
+var domainEventsTopic = serviceBus.AddServiceBusTopic("DomainEvents");
+domainEventsTopic.AddServiceBusSubscription("function-processor");
+serviceBus.AddServiceBusQueue("TaskCommands");
 
 // Azure Cosmos DB — emulator
 var cosmos = builder.AddAzureCosmosDB("CosmosDb1")

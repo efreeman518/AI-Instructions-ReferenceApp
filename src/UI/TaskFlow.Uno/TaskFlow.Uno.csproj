@@ -11,6 +11,9 @@
     <ApplicationVersion>1</ApplicationVersion>
     <IsAotCompatible>true</IsAotCompatible>
 
+    <!-- Suppress Uno Extensions trimming/AOT warnings (framework limitation, not app code) -->
+    <NoWarn>$(NoWarn);IL2026;IL3050</NoWarn>
+
     <UnoFeatures>
       Material;
       Hosting;

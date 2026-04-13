@@ -46,34 +46,30 @@ jobs:
 
       - name: Unit Tests
         run: >
-          dotnet test src/TaskFlow.slnx
+          dotnet test src/Test/Test.Unit/Test.Unit.csproj
           --no-build --configuration Release
-          --filter "TestCategory=Unit"
           --logger "trx;LogFileName=unit-results.trx"
           --results-directory ./TestResults
 
       - name: Architecture Tests
         run: >
-          dotnet test src/TaskFlow.slnx
+          dotnet test src/Test/Test.Architecture/Test.Architecture.csproj
           --no-build --configuration Release
-          --filter "TestCategory=Architecture"
           --logger "trx;LogFileName=arch-results.trx"
           --results-directory ./TestResults
 
       - name: Endpoint Tests
         run: >
-          dotnet test src/TaskFlow.slnx
+          dotnet test src/Test/Test.Endpoints/Test.Endpoints.csproj
           --no-build --configuration Release
-          --filter "TestCategory=Endpoint"
           --logger "trx;LogFileName=endpoint-results.trx"
           --results-directory ./TestResults
 
       - name: Integration Tests (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true }}
         run: >
-          dotnet test src/TaskFlow.slnx
+          dotnet test src/Test/Test.Integration/Test.Integration.csproj
           --no-build --configuration Release
-          --filter "TestCategory=Integration&TestCategory!=Endpoint"
           --logger "trx;LogFileName=integration-results.trx"
           --results-directory ./TestResults
 

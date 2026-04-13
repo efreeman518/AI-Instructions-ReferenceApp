@@ -24,7 +24,7 @@ public class DashboardServiceTests
         Assert.AreEqual(1, summary.OpenTasks);       // Fix login validation
         Assert.AreEqual(1, summary.InProgressTasks);  // Build dashboard UI
         Assert.AreEqual(1, summary.CompletedTasks);   // Write documentation
-        Assert.IsTrue(summary.OverdueTasks >= 1);     // Fix login validation is overdue
-        Assert.IsTrue(summary.RecentActivity.Count > 0);
+        Assert.IsGreaterThanOrEqualTo(summary.OverdueTasks, 1);     // Fix login validation is overdue
+        Assert.IsNotEmpty(summary.RecentActivity);
     }
 }

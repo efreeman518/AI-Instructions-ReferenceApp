@@ -36,8 +36,8 @@ public class MockHttpMessageHandlerTests
         var result = await response.Content.ReadFromJsonAsync<PagedResponse<TaskItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Items!.Count > 0);
-        Assert.AreEqual("Build dashboard UI", result.Items[0].Title);
+        Assert.IsNotEmpty(result.Items!);
+        Assert.AreEqual("Build dashboard UI", result.Items![0].Title);
     }
 
     [TestMethod]
@@ -50,8 +50,8 @@ public class MockHttpMessageHandlerTests
         var result = await response.Content.ReadFromJsonAsync<PagedResponse<CategoryDto>>();
 
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Items!.Count > 0);
-        Assert.AreEqual("Development", result.Items[0].Name);
+        Assert.IsNotEmpty(result.Items!);
+        Assert.AreEqual("Development", result.Items![0].Name);
     }
 
     [TestMethod]
@@ -64,8 +64,8 @@ public class MockHttpMessageHandlerTests
         var result = await response.Content.ReadFromJsonAsync<PagedResponse<TagDto>>();
 
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Items!.Count > 0);
-        Assert.AreEqual("frontend", result.Items[0].Name);
+        Assert.IsNotEmpty(result.Items!);
+        Assert.AreEqual("frontend", result.Items![0].Name);
     }
 
     [TestMethod]
