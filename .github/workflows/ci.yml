@@ -1,23 +1,15 @@
 name: CI
 
-# TODO: [CONFIGURE] Re-enable after adding NUGET_PAT secret for GitHub Packages feed auth
-# on:
-#   pull_request:
-#     branches: [main, develop]
-#     paths-ignore: ['**.md', 'infra/**']
-#   workflow_dispatch:
-#     inputs:
-#       includeIntegration:
-#         type: boolean
-#         default: false
-#         description: "Run non-endpoint integration tests"
 on:
+  pull_request:
+    branches: [main, develop]
+    paths-ignore: ['**.md', 'infra/**']
   workflow_dispatch:
     inputs:
       includeIntegration:
         type: boolean
         default: false
-        description: "Run non-endpoint integration tests (disabled until NuGet PAT configured)"
+        description: "Run integration tests (requires Docker for TestContainers)"
 
 jobs:
   build-and-test:
@@ -28,6 +20,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: src/global.json
+
+      - name: Configure private NuGet feed
+        run: |
+          dotnet nuget update source efreeman518-github \
+            --configfile src/nuget.config \
+            --username github-actions --password ${{ secrets.NUGET_PAT }} \
+            --store-password-in-clear-text
 
       - name: Restore
         run: dotnet restore src/TaskFlow.slnx

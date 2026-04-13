@@ -9,6 +9,7 @@ using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
@@ -88,6 +89,53 @@ internal class AttachmentService(
         var resultDto = entity.ToDto();
         await cache.SetAsync($"Attachment:{entity.Id}", resultDto, ct);
         return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = resultDto });
+    }
+
+    public async Task<Result<DefaultResponse<AttachmentDto>>> UploadAsync(
+        Stream fileStream, string fileName, string contentType, long fileSizeBytes,
+        AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)
+    {
+        var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
+            logger, RequestTenantId, RequestRoles, RequestTenantId,
+            "Attachment:Upload", "Attachment");
+        if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
+
+        if (blobStorage is null)
+            return Result<DefaultResponse<AttachmentDto>>.Failure("Blob storage is not configured.");
+
+        var tenantId = RequestTenantId ?? Guid.Empty;
+        var blobName = $"{tenantId}/{ownerId}/{fileName}";
+
+        try
+        {
+            await blobStorage.UploadAsync("attachments", blobName, fileStream, contentType, ct: ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error uploading blob for Attachment {FileName}", fileName);
+            return Result<DefaultResponse<AttachmentDto>>.Failure($"Blob upload failed: {ex.GetBaseException().Message}");
+        }
+
+        var storageUri = (await blobStorage.GetBlobUriAsync("attachments", blobName, ct)).ToString();
+        var entityResult = Domain.Model.Attachment.Create(tenantId, fileName, contentType, fileSizeBytes, storageUri, ownerType, ownerId);
+        if (entityResult.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(entityResult.ErrorMessage!);
+
+        var entity = entityResult.Value!;
+        repoTrxn.Create(ref entity);
+
+        try
+        {
+            await repoTrxn.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error persisting Attachment after upload");
+            return Result<DefaultResponse<AttachmentDto>>.Failure(ex.GetBaseException().Message);
+        }
+
+        var uploadedDto = entity.ToDto();
+        await cache.SetAsync($"Attachment:{entity.Id}", uploadedDto, ct);
+        return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = uploadedDto });
     }
 
     public async Task<Result<DefaultResponse<AttachmentDto>>> UpdateAsync(

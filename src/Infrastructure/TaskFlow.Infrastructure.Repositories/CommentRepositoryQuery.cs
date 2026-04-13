@@ -15,7 +15,6 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
         => await db.Comments
             .AsNoTracking()
-            .Include(c => c.Attachments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<PagedResponse<Comment>> SearchCommentsAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default)
@@ -32,7 +31,6 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
 
         var total = await query.CountAsync(ct);
         var data = await query
-            .Include(c => c.Attachments)
             .OrderBy(c => c.Id)
             .Skip(request.PageIndex * request.PageSize)
             .Take(request.PageSize)

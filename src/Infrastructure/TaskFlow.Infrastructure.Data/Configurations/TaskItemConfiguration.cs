@@ -46,10 +46,5 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
             .WithOne(e => e.TaskItem)
             .HasForeignKey(e => e.TaskItemId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(e => e.Attachments)
-            .WithOne()
-            .HasForeignKey(e => e.OwnerId)
-            .OnDelete(DeleteBehavior.NoAction);
     }
 }

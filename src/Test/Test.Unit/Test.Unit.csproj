@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.AI\TaskFlow.Infrastructure.AI.csproj" />
     <ProjectReference Include="..\..\UI\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
+    <ProjectReference Include="..\..\Host\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,24 +1,15 @@
 name: CD
 
-# TODO: [CONFIGURE] Re-enable after adding NUGET_PAT secret for GitHub Packages feed auth
-# on:
-#   push:
-#     branches: [main]
-#   workflow_dispatch:
-#     inputs:
-#       environment:
-#         type: choice
-#         options: [dev, staging, prod]
-#         default: dev
-#         description: "Target environment"
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
         type: choice
         options: [dev, staging, prod]
         default: dev
-        description: "Target environment (disabled until NuGet PAT configured)"
+        description: "Target environment"
 
 permissions:
   id-token: write
@@ -36,6 +27,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: src/global.json
+
+      - name: Configure private NuGet feed
+        run: |
+          dotnet nuget update source efreeman518-github \
+            --configfile src/nuget.config \
+            --username github-actions --password ${{ secrets.NUGET_PAT }} \
+            --store-password-in-clear-text
 
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION_PATH }}
@@ -78,7 +76,7 @@ jobs:
       - name: Build and Push
         run: |
           docker build \
-            --build-arg NUGET_TOKEN=${{ secrets.NUGET_TOKEN }} \
+            --build-arg NUGET_TOKEN=${{ secrets.NUGET_PAT }} \
             -t ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.name }}:${{ github.sha }} \
             -t ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.name }}:latest \
             -f ${{ matrix.dockerfile }} .

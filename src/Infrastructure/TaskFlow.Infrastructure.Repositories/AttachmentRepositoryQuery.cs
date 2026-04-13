@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -38,4 +39,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
 
         return new PagedResponse<Attachment> { Data = data, Total = total, PageSize = request.PageSize, PageIndex = request.PageIndex };
     }
+
+    public async Task<int> CountByOwnerAsync(AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)
+        => await db.Attachments.AsNoTracking().CountAsync(a => a.OwnerType == ownerType && a.OwnerId == ownerId, ct);
 }

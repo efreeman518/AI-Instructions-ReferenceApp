@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
+using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Api.Endpoints;
 
@@ -25,6 +26,21 @@ public static class AttachmentEndpoints
             if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
             return Results.Created($"/api/attachments/{result.Value!.Item!.Id}", result.Value.Item);
         }).WithName("CreateAttachment");
+
+        group.MapPost("/upload", async (
+            IFormFile file,
+            [FromForm] AttachmentOwnerType ownerType,
+            [FromForm] Guid ownerId,
+            [FromServices] IAttachmentService service,
+            CancellationToken ct) =>
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await service.UploadAsync(
+                stream, file.FileName, file.ContentType, file.Length,
+                ownerType, ownerId, ct);
+            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
+            return Results.Created($"/api/attachments/{result.Value!.Item!.Id}", result.Value.Item);
+        }).WithName("UploadAttachment").DisableAntiforgery();
 
         group.MapPut("/{id:guid}", async (Guid id, [FromBody] AttachmentDto dto, [FromServices] IAttachmentService service, CancellationToken ct) =>
         {

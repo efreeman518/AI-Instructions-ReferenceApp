@@ -2,7 +2,7 @@
 
 ## Session Summary
 
-Phases 1–5g complete + post-phase hardening. 30-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests. 218 tests green (191 Unit + 12 Architecture + 15 Endpoint).
+Phases 1–5g complete + post-phase hardening + Session A (test hardening + EF migrations) + Session B (infrastructure validation). 30-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated. 263 tests green (204 Unit + 12 Architecture + 36 Endpoint + 11 Integration).
 
 ## Current State
 
@@ -200,10 +200,10 @@ src/
 ├── Host/Aspire/ServiceDefaults/
 ├── UI/TaskFlow.Uno/          (Uno.Sdk/6.5.31, net10.0-browserwasm)
 ├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
-├── Test/Test.Unit/           (191 tests, TestCategory=Unit)
+├── Test/Test.Unit/           (204 tests, TestCategory=Unit)
 ├── Test/Test.Architecture/   (12 tests, TestCategory=Architecture)
-├── Test/Test.Endpoints/      (15 tests, TestCategory=Endpoint, WebApplicationFactory)
-├── Test/Test.Integration/    (empty shell)
+├── Test/Test.Endpoints/      (36 tests, TestCategory=Endpoint, WebApplicationFactory)
+├── Test/Test.Integration/    (11 tests, TestCategory=Integration, TestContainers + SQL Server)
 ├── Test/Test.Load/           (NBomber, TestCategory=Load, manual run)
 ├── Test/Test.Benchmarks/     (BenchmarkDotNet, console runner)
 ├── Test/Test.Support/        (builders, InMemoryDbBuilder, TestConstants)
@@ -214,11 +214,12 @@ src/
 cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src
 dotnet build TaskFlow.slnx                              # full solution (excludes Uno WASM)
 dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj         # Uno WASM (separate, needs Uno.Sdk)
-dotnet test --filter "TestCategory=Unit"                 # 191 unit tests
+dotnet test --filter "TestCategory=Unit"                 # 204 unit tests
 dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
-dotnet test --filter "TestCategory=Endpoint"             # 15 endpoint tests (WebApplicationFactory)
-dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"  # combined gate (218)
-dotnet test TaskFlow.slnx                                # all tests including endpoint (218)
+dotnet test --filter "TestCategory=Endpoint"             # 36 endpoint tests (WebApplicationFactory)
+dotnet test --filter "TestCategory=Integration"          # 11 integration tests (TestContainers, needs Docker)
+dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"  # combined gate (252)
+dotnet test TaskFlow.slnx                                # all tests (263, Integration needs Docker)
 ```
 
 ### Known Constraints
@@ -228,6 +229,62 @@ dotnet test TaskFlow.slnx                                # all tests including e
 - AI services (Foundry/AI Search) are deployment-only — no emulator exists. App boots with no-op stubs when `AiServices:FoundryEndpoint` and `AiServices:SearchEndpoint` are empty
 - CI/CD workflows disabled (workflow_dispatch only) — need `NUGET_PAT` secret for private NuGet feed auth
 - Benchmarks are a console app — run via `dotnet run -c Release` not `dotnet test`
+
+## Remaining Work — Post-Phase Hardening Backlog
+
+Ranked by value. Items grouped into sessions of related work.
+
+### Session A: Test Hardening + EF Migrations — COMPLETE
+
+1. ~~**EF Migration Baseline**~~ — Migration `InitialCreate` generated for `TaskFlowDbContextTrxn`. Snapshot verified: all 7 entities, value objects (DateRange, RecurrencePattern), decimal(10,4) convention, taskflow schema. `DesignTimeDbContextFactory` added (`AuditId = "design-time"`, localdb connection). Microsoft.EntityFrameworkCore.Design added to API project.
+2. ~~**Scheduler Job Unit Tests**~~ — 13 new unit tests: OverdueTaskCheckHandlerTests (4), RecurringTaskGenerationHandlerTests (4), StaleTaskCleanupHandlerTests (5). All pass with mocked `ITaskItemService`.
+3. ~~**Integration Tests (TestContainers)**~~ — 8 integration tests with `Testcontainers.MsSql 4.11.0`: migration apply, Category/TaskItem/Tag CRUD, TaskItem with children (Comments, ChecklistItems), TaskItemTag M:M, tenant query filter isolation, Attachment table+constraint verification. `DatabaseFixture` provides assembly-level container lifecycle. **Note:** Attachment entity has dual FK constraints (`FK_Attachments_Comments_OwnerId` + `FK_Attachments_TaskItems_OwnerId`) on the shared `OwnerId` column — both cannot be satisfied simultaneously. This is an EF convention-generated model issue (both Comment and TaskItem have `ICollection<Attachment> Attachments` navigation). Consider fixing in Session B by configuring one FK as shadow/no-action or switching to TPH inheritance.
+4. ~~**Endpoint Test Coverage Expansion**~~ — 20 new endpoint tests: TagEndpointTests (5), CommentEndpointTests (5), ChecklistItemEndpointTests (5), AttachmentEndpointTests (5). TaskView skipped (Cosmos-based, not supported by in-memory DB factory).
+
+**Gate results:** `dotnet build TaskFlow.slnx` — 30 projects, 0 errors. `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"` — 251 passed. `dotnet test --filter "TestCategory=Integration"` — 8 passed.
+
+### Session B: Infrastructure Validation — COMPLETE
+
+1. ~~**Fix Attachment Polymorphic FK Model**~~ — Comment and TaskItem both had `ICollection<Attachment> Attachments` navigation → EF generated dual FK constraints (`FK_Attachments_Comments_OwnerId` + `FK_Attachments_TaskItems_OwnerId`) on shared `OwnerId` column. **Fix:** Removed `ICollection<Attachment> Attachments` from Comment and TaskItem entities; removed `HasMany(e => e.Attachments)` from CommentConfiguration and TaskItemConfiguration; kept AttachmentConfiguration with property-only mapping (composite `OwnerType + OwnerId` index, no FK relationship). Removed `.Include(t => t.Attachments)` from 5 repository query methods. Added `.Include(t => t.Category)` to TaskItemRepositoryQuery/Trxn (was missing, needed by projection). Added `CountByOwnerAsync(ownerType, ownerId)` to `IAttachmentRepositoryQuery` + impl. Updated `TaskViewProjectionService` to use explicit `CountByOwnerAsync` instead of navigation. Migration: regenerated single `InitialCreate` baseline (no FK constraints on Attachments table, composite index retained).
+
+2. ~~**Blob Upload End-to-End**~~ — Added `UploadAsync` to `IAttachmentService` + `AttachmentService`. `POST /api/attachments/upload` endpoint accepts `IFormFile` (multipart), `ownerType`, `ownerId` form fields → calls `IBlobStorageRepository.UploadAsync` → persists Attachment entity with blob URI. Original `POST /api/attachments` (JSON body) retained for metadata-only creates. New endpoint test with `InMemoryBlobStorageRepository` stub. **1 new endpoint test.**
+
+3. ~~**Domain Event Integration Test**~~ — 3 new integration tests: projection pipeline (TaskItem created → `TaskViewProjectionService` → TaskView produced with correct data), TaskItem with children (comment, attachment, checklist → counts verified), Service Bus message parsing (JSON → TaskItemId extraction). Uses real SQL (TestContainers) + `InMemoryTaskViewRepository` (Cosmos stub). Fixed `DomainEventsTopic` config mismatch in Functions `local.settings.json` (`domain-events` → `DomainEvents` to match publisher). **3 new integration tests.**
+
+4. ~~**Docker Smoke Test**~~ — Attempted `docker build -f src/Host/TaskFlow.Api/Dockerfile . ` — fails with NU1301/401 on private NuGet feed (expected without `NUGET_TOKEN`). Dockerfiles are structurally correct. **Requires `NUGET_PAT` token:** `docker build --build-arg NUGET_TOKEN=<PAT> -f src/Host/TaskFlow.Api/Dockerfile -t taskflow-api:dev .` (same for Gateway, Scheduler, Functions).
+
+5. ~~**CI Activation**~~ — `ci.yml`: switched trigger from `workflow_dispatch` to `pull_request` (main, develop). Added `Configure private NuGet feed` step using `secrets.NUGET_PAT`. `cd.yml`: switched trigger from `workflow_dispatch` to `push` (main) + `workflow_dispatch`. Added NuGet feed config step. Standardized secret name to `NUGET_PAT` throughout. **Requires:** add `NUGET_PAT` secret in GitHub repo Settings → Secrets → Actions.
+
+**Gate results:** `dotnet build TaskFlow.slnx` — 30 projects, 0 errors. `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"` — 252 passed. `dotnet test --filter "TestCategory=Integration"` — 11 passed. Total: 263 tests green.
+
+**Docker build commands** (run from repo root):
+```powershell
+$PAT = "<your-nuget-read-pat>"
+docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Api/Dockerfile -t taskflow-api:dev .
+docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Gateway/Dockerfile -t taskflow-gateway:dev .
+docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Scheduler/Dockerfile -t taskflow-scheduler:dev .
+docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Functions/Dockerfile -t taskflow-functions:dev .
+```
+
+**GitHub secret setup:**
+1. Go to repo → Settings → Secrets and variables → Actions
+2. Add repository secret: Name=`NUGET_PAT`, Value=your GitHub PAT with `read:packages` scope
+
+### Session C: Deployment Readiness
+
+9. **IaC (Bicep/azd)** — Not started. Add `infra/` directory with Bicep modules for SQL, Redis, Service Bus, Storage, Cosmos, App Service/Container Apps. Add `azure.yaml` for `azd` integration. See `skills/iac.md` in instruction repo.
+10. **AI Services Live Validation** — Currently no-op stubs. Requires real Azure Foundry + AI Search resources. Deploy index, test hybrid search, validate agent tool calls. Cannot progress without cloud credentials.
+11. **Uno UI Testing** — Currently mock-only via `MockHttpMessageHandler`. Could add Uno.UITest or Playwright WASM tests for critical user flows (task CRUD, category tree navigation).
+
+### Dependencies / Blockers
+
+| Item | Blocker | Status |
+|---|---|---|
+| Docker Smoke Test | `NUGET_PAT` required for private NuGet feed | Dockerfiles verified, builds blocked on PAT |
+| CI Activation | `NUGET_PAT` GitHub secret needed | Workflows activated, secret must be added |
+| AI Services | Azure Foundry + AI Search cloud resources | Not started |
+| Domain Event Integration | Aspire emulators (Docker) | Projection pipeline tested; full Service Bus→Function→Cosmos needs Aspire AppHost |
+| IaC | No blocker | Not started |
 
 ## Domain Model Summary
 

@@ -11,10 +11,10 @@ public class TaskItemRepositoryTrxn(TaskFlowDbContextTrxn db)
 {
     public async Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default)
         => await db.TaskItems
+            .Include(t => t.Category)
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
             .Include(t => t.TaskItemTags).ThenInclude(tt => tt.Tag)
-            .Include(t => t.Attachments)
             .Include(t => t.SubTasks)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 }

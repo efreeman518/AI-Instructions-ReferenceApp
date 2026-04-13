@@ -32,7 +32,6 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     public ICollection<Comment> Comments { get; private set; } = [];
     public ICollection<ChecklistItem> ChecklistItems { get; private set; } = [];
     public ICollection<TaskItemTag> TaskItemTags { get; private set; } = [];
-    public ICollection<Attachment> Attachments { get; private set; } = [];
 
     private TaskItem() { }
 

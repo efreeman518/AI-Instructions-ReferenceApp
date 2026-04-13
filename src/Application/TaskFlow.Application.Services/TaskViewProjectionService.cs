@@ -2,21 +2,25 @@ using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Contracts.Storage;
+using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
 public class TaskViewProjectionService : ITaskViewProjectionService
 {
     private readonly ITaskItemRepositoryQuery _taskItemRepo;
+    private readonly IAttachmentRepositoryQuery _attachmentRepo;
     private readonly ITaskViewRepository _taskViewRepo;
     private readonly ILogger<TaskViewProjectionService> _logger;
 
     public TaskViewProjectionService(
         ITaskItemRepositoryQuery taskItemRepo,
+        IAttachmentRepositoryQuery attachmentRepo,
         ITaskViewRepository taskViewRepo,
         ILogger<TaskViewProjectionService> logger)
     {
         _taskItemRepo = taskItemRepo;
+        _attachmentRepo = attachmentRepo;
         _taskViewRepo = taskViewRepo;
         _logger = logger;
     }
@@ -49,7 +53,7 @@ public class TaskViewProjectionService : ITaskViewProjectionService
             CommentCount = entity.Comments.Count,
             ChecklistTotal = entity.ChecklistItems.Count,
             ChecklistCompleted = entity.ChecklistItems.Count(ci => ci.IsCompleted),
-            AttachmentCount = entity.Attachments.Count,
+            AttachmentCount = await _attachmentRepo.CountByOwnerAsync(AttachmentOwnerType.TaskItem, entity.Id, ct),
             SubTaskCount = entity.SubTasks.Count,
             LastModifiedUtc = DateTimeOffset.UtcNow,
             CreatedUtc = DateTimeOffset.UtcNow

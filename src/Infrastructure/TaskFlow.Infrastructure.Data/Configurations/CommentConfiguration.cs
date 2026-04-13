@@ -12,10 +12,5 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Property(e => e.TenantId).IsRequired();
         builder.Property(e => e.Body).HasMaxLength(2000).IsRequired();
         builder.Property(e => e.RowVersion).IsRowVersion();
-
-        builder.HasMany(e => e.Attachments)
-            .WithOne()
-            .HasForeignKey(e => e.OwnerId)
-            .OnDelete(DeleteBehavior.NoAction);
     }
 }

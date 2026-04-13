@@ -6,7 +6,7 @@
     "StaleTaskCleanupCron": "0 0 3 * * 0",
     "AttachmentBlobContainer": "attachments",
     "ServiceBus1": "",
-    "DomainEventsTopic": "domain-events",
+    "DomainEventsTopic": "DomainEvents",
     "DomainEventsSubscription": "function-processor"
   },
   "ConnectionStrings": {

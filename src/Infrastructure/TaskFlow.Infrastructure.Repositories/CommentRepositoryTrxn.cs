@@ -11,6 +11,5 @@ public class CommentRepositoryTrxn(TaskFlowDbContextTrxn db)
 {
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
         => await db.Comments
-            .Include(c => c.Attachments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 }

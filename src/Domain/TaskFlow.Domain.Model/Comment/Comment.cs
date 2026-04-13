@@ -13,7 +13,6 @@ public class Comment : EntityBase, ITenantEntity<Guid>
 
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
-    public ICollection<Attachment> Attachments { get; private set; } = [];
 
     private Comment() { }
 
