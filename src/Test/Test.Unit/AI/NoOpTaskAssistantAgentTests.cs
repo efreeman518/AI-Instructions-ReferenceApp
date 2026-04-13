@@ -19,7 +19,7 @@ public class NoOpTaskAssistantAgentTests
         Assert.IsNotNull(response);
         Assert.IsFalse(response.IsConfigured);
         Assert.IsNotNull(response.Message);
-        Assert.Contains(response.Message, "not configured");
+        Assert.Contains("not configured", response.Message);
     }
 
     [TestMethod]
