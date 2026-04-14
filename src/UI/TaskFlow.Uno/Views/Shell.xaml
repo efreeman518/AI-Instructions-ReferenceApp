@@ -19,5 +19,9 @@
                 </Grid>
             </DataTemplate>
         </utu:ExtendedSplashScreen.LoadingContentTemplate>
+
+        <utu:ExtendedSplashScreen.Content>
+            <Frame />
+        </utu:ExtendedSplashScreen.Content>
     </utu:ExtendedSplashScreen>
 </UserControl>

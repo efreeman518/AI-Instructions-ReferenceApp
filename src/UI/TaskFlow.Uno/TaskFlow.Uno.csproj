@@ -29,7 +29,7 @@
       Authentication;
     </UnoFeatures>
 
-    <UseMocks Condition="'$(UseMocks)'==''">true</UseMocks>
+    <UseMocks Condition="'$(UseMocks)'==''">false</UseMocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(UseMocks)'=='true'">

@@ -12,7 +12,7 @@ var redis = builder.AddRedis("redis")
     .WithDataVolume("taskflow-redis-data");
 
 // Azure Storage (Blob) — emulator
-var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator();
+var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
 var blobs = storage.AddBlobs("BlobStorage1");
 
 // Azure Service Bus — emulator

@@ -95,7 +95,7 @@ public partial class App : Application
     private static void RegisterRoutes(IViewRegistry views, IRouteRegistry routes)
     {
         views.Register(
-            new ViewMap(ViewModel: typeof(ShellModel)),
+            new ViewMap<Shell, ShellModel>(),
             new ViewMap<MainPage, MainModel>(),
             new ViewMap<DashboardPage, DashboardModel>(),
             new ViewMap<TaskListPage, TaskListModel>(),
