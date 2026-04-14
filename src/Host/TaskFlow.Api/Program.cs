@@ -3,6 +3,8 @@ using TaskFlow.Api.Auth;
 using TaskFlow.Api.Endpoints;
 using TaskFlow.Api.Middleware;
 using TaskFlow.Bootstrapper;
+using TaskFlow.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,16 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+// Apply pending EF migrations on startup
+var connStr = builder.Configuration.GetConnectionString("TaskFlowDbContextTrxn");
+if (!string.IsNullOrEmpty(connStr))
+{
+    using var scope = app.Services.CreateScope();
+    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TaskFlowDbContextTrxn>>();
+    await using var db = await factory.CreateDbContextAsync();
+    await db.Database.MigrateAsync();
+}
 
 // Middleware pipeline (order matters)
 app.UseMiddleware<SecurityHeadersMiddleware>();

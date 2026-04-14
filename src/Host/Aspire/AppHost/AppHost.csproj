@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Aspire.AppHost.Sdk" Version="9.3.0" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <UserSecretsId>1ff79f7a-4df8-4442-a9ed-762565d2e039</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +24,8 @@
     <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />
-    <ProjectReference Include="..\..\..\UI\TaskFlow.Uno\TaskFlow.Uno.csproj" />
+    <!-- Uno.Sdk does not expose GetTargetPath; run Uno WASM separately -->
+    <!-- <ProjectReference Include="..\..\..\UI\TaskFlow.Uno\TaskFlow.Uno.csproj" /> -->
   </ItemGroup>
 
 </Project>

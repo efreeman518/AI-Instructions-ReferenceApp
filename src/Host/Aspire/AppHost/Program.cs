@@ -64,11 +64,18 @@ builder.AddProject<Projects.TaskFlow_Functions>("taskflowfunctions")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WithReference(blobs)
     .WithReference(serviceBus)
-    .WaitFor(sql);
+    .WithEnvironment("AzureWebJobsSecretStorageType", "Files")
+    .WithEnvironment(ctx =>
+    {
+        ctx.EnvironmentVariables["AzureWebJobsStorage"] = storage.Resource;
+    })
+    .WaitFor(sql)
+    .WaitFor(storage);
 
 // Uno UI (WASM) — calls Gateway, not API directly
-builder.AddProject<Projects.TaskFlow_Uno>("taskflowuno")
-    .WithReference(gateway)
-    .WaitFor(gateway);
+// Uno.Sdk does not expose GetTargetPath; run Uno WASM separately
+// builder.AddProject<Projects.TaskFlow_Uno>("taskflowuno")
+//     .WithReference(gateway)
+//     .WaitFor(gateway);
 
 await builder.Build().RunAsync();

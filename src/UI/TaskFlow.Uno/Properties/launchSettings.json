@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "TaskFlow.Uno": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:55551;http://localhost:55552"
+    }
+  }
+}

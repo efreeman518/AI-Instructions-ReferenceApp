@@ -18,6 +18,9 @@ using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Azure;
 using TaskFlow.Application.Contracts.Messaging;
+using EF.BackgroundServices;
+using EF.BackgroundServices.InternalMessageBus;
+using EF.BackgroundServices.Work;
 using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.Data;
@@ -35,6 +38,9 @@ public static class RegisterServices
     public static IServiceCollection AddTaskFlowServices(
         this IServiceCollection services, IConfiguration config)
     {
+        // Cross-cutting infrastructure
+        services.AddSupportServices();
+
         AddRequestContext(services);
         AddDatabaseServices(services, config);
         AddCachingServices(services, config);
@@ -284,5 +290,12 @@ public static class RegisterServices
 
         // Projection
         services.AddScoped<ITaskViewProjectionService, TaskViewProjectionService>();
+    }
+
+    private static IServiceCollection AddSupportServices(this IServiceCollection services)
+    {
+        services.AddChannelBackgroundTaskQueueWithShutdownHandling();
+        services.AddSingleton<IInternalMessageBus, InternalMessageBus>();
+        return services;
     }
 }
