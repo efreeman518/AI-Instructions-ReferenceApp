@@ -3,6 +3,7 @@ using EF.Data;
 using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Contracts.Repositories;
+using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
@@ -14,30 +15,58 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IAttachmentRepositoryQuery
 {
     public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
-        => await DB.Attachments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
-
-    public async Task<PagedResponse<Attachment>> SearchAttachmentsAsync(SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
     {
-        var query = DB.Attachments.AsNoTracking().AsQueryable();
+        return await GetEntityAsync(
+            false,
+            filter: (Attachment a) => a.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 
-        if (request.Filter is not null)
+    public async Task<PagedResponse<AttachmentDto>> SearchAttachmentsAsync(SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
+    {
+        var q = DB.Set<Attachment>().ComposeIQueryable(false);
+
+        // ordering
+        if (request.Sorts?.Any() ?? false)
         {
-            if (!string.IsNullOrWhiteSpace(request.Filter.SearchTerm))
-                query = query.Where(a => a.FileName.Contains(request.Filter.SearchTerm));
-            if (request.Filter.OwnerType.HasValue)
-                query = query.Where(a => a.OwnerType == request.Filter.OwnerType.Value);
-            if (request.Filter.OwnerId.HasValue)
-                query = query.Where(a => a.OwnerId == request.Filter.OwnerId.Value);
+            q = q.OrderBy(request.Sorts);
+        }
+        else
+        {
+            q = q.OrderBy(e => e.FileName);
         }
 
-        var total = await query.CountAsync(ct);
-        var data = await query
-            .OrderBy(a => a.FileName)
-            .Skip(request.PageIndex * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(ct);
+        // filtering
+        var filter = request.Filter;
+        if (filter is not null)
+        {
+            var searchTerm = filter.SearchTerm?.Trim();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                q = q.Where(e => e.FileName.Contains(searchTerm));
 
-        return new PagedResponse<Attachment> { Data = data, Total = total, PageSize = request.PageSize, PageIndex = request.PageIndex };
+            if (filter.OwnerType.HasValue)
+                q = q.Where(e => e.OwnerType == filter.OwnerType.Value);
+
+            if (filter.OwnerId.HasValue)
+                q = q.Where(e => e.OwnerId == filter.OwnerId.Value);
+
+            if (filter.TenantId.HasValue)
+                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+        }
+
+        (var data, var total) = await q.QueryPageProjectionAsync(AttachmentMapper.ProjectorSearch,
+            pageSize: request.PageSize, pageIndex: request.PageIndex,
+            includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
+            cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return new PagedResponse<AttachmentDto>
+        {
+            PageIndex = request.PageIndex,
+            PageSize = request.PageSize,
+            Data = data,
+            Total = total
+        };
     }
 
     public async Task<int> CountByOwnerAsync(AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)

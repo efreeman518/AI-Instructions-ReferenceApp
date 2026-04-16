@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 // Kiota client stub — replace with Kiota-generated client when OpenAPI spec is available.
 // This stub provides the typed navigation structure matching the API surface.
 
@@ -110,9 +112,39 @@ public class SearchRequest<TFilter> where TFilter : class, new()
 
 public class PagedResponse<T>
 {
+    [JsonPropertyName("items")]
     public List<T>? Items { get; set; }
+
+    // The API currently returns `data` rather than `items` for paged responses.
+    // Mirror that payload into Items so the rest of the Uno services can stay typed.
+    [JsonPropertyName("data")]
+    public List<T>? Data
+    {
+        get => Items;
+        set => Items = value;
+    }
+
+    [JsonPropertyName("totalCount")]
     public int TotalCount { get; set; }
+
+    [JsonPropertyName("total")]
+    public int Total
+    {
+        get => TotalCount;
+        set => TotalCount = value;
+    }
+
+    [JsonPropertyName("pageNumber")]
     public int PageNumber { get; set; }
+
+    [JsonPropertyName("pageIndex")]
+    public int PageIndex
+    {
+        get => PageNumber > 0 ? PageNumber - 1 : 0;
+        set => PageNumber = value + 1;
+    }
+
+    [JsonPropertyName("pageSize")]
     public int PageSize { get; set; }
 }
 

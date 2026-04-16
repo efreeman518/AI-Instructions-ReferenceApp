@@ -27,18 +27,15 @@ public partial class App : Application
                 )
                 .UseHttp((context, services) =>
                 {
+                    var gatewayUrl = context.Configuration["GatewayBaseUrl"] ?? "https://localhost:7120";
                     services.AddTransient<MockHttpMessageHandler>();
-                    services.AddKiotaClient<TaskFlowApiClient>(
-                        context,
-                        options: new EndpointOptions
-                        {
-                            Url = context.Configuration["GatewayBaseUrl"] ?? "https://localhost:7200"
-                        }
+                    services
+                        .AddHttpClient<TaskFlowApiClient>(client =>
+                            client.BaseAddress = new Uri(gatewayUrl))
 #if USE_MOCKS
-                        , configure: (builder, endpoint) =>
-                            builder.ConfigurePrimaryAndInnerHttpMessageHandler<MockHttpMessageHandler>()
+                        .ConfigurePrimaryHttpMessageHandler<MockHttpMessageHandler>()
 #endif
-                    );
+                    ;
                 })
 #if DEBUG
                 .UseEnvironment(Environments.Development)
@@ -107,16 +104,13 @@ public partial class App : Application
         );
 
         routes.Register(
-            new RouteMap("", View: views.FindByViewModel<ShellModel>(),
+            new RouteMap("", View: views.FindByViewModel<MainModel>(),
                 Nested:
                 [
-                    new RouteMap("Main", View: views.FindByViewModel<MainModel>(), Nested:
-                    [
-                        new RouteMap("Dashboard", View: views.FindByViewModel<DashboardModel>(), IsDefault: true),
-                        new RouteMap("TaskList", View: views.FindByViewModel<TaskListModel>()),
-                        new RouteMap("Categories", View: views.FindByViewModel<CategoryTreeModel>()),
-                        new RouteMap("Tags", View: views.FindByViewModel<TagManagementModel>()),
-                    ]),
+                    new RouteMap("Dashboard", View: views.FindByViewModel<DashboardModel>(), IsDefault: true),
+                    new RouteMap("TaskList", View: views.FindByViewModel<TaskListModel>()),
+                    new RouteMap("Categories", View: views.FindByViewModel<CategoryTreeModel>()),
+                    new RouteMap("Tags", View: views.FindByViewModel<TagManagementModel>()),
                     new RouteMap("TaskDetail", View: views.FindByViewModel<TaskDetailModel>()),
                     new RouteMap("TaskForm", View: views.FindByViewModel<TaskFormModel>()),
                     new RouteMap("Settings", View: views.FindByViewModel<SettingsModel>()),

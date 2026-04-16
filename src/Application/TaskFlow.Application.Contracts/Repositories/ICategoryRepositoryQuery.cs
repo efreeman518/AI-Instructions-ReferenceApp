@@ -8,5 +8,5 @@ namespace TaskFlow.Application.Contracts.Repositories;
 public interface ICategoryRepositoryQuery : IRepositoryBase
 {
     Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default);
-    Task<PagedResponse<Category>> SearchCategoriesAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default);
+    Task<PagedResponse<CategoryDto>> SearchCategoriesAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default);
 }

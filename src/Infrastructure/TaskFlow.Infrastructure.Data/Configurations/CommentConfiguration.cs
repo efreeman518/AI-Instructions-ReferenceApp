@@ -4,13 +4,18 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
-public class CommentConfiguration : IEntityTypeConfiguration<Comment>
+public class CommentConfiguration() : EntityBaseConfiguration<Comment>(false)
 {
-    public void Configure(EntityTypeBuilder<Comment> builder)
+    public override void Configure(EntityTypeBuilder<Comment> builder)
     {
-        builder.HasKey(e => e.Id);
+        base.Configure(builder);
+        builder.ToTable("Comment");
+
         builder.Property(e => e.TenantId).IsRequired();
         builder.Property(e => e.Body).HasMaxLength(2000).IsRequired();
-        builder.Property(e => e.RowVersion).IsRowVersion();
+
+        builder.HasIndex(e => new { e.TenantId, e.TaskItemId })
+            .HasDatabaseName("CIX_Comment_TenantId_TaskItemId")
+            .IsClustered();
     }
 }

@@ -16,7 +16,7 @@ var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator(c => c.WithL
 var blobs = storage.AddBlobs("BlobStorage1");
 
 // Azure Service Bus — emulator
-var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator();
+var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
 var domainEventsTopic = serviceBus.AddServiceBusTopic("DomainEvents");
 domainEventsTopic.AddServiceBusSubscription("function-processor");
 serviceBus.AddServiceBusQueue("TaskCommands");

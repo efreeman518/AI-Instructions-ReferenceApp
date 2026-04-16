@@ -1,8 +1,11 @@
+using System.Linq.Expressions;
 using EF.Common.Contracts;
 using EF.Data;
 using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using TaskFlow.Application.Contracts.Repositories;
+using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -13,46 +16,90 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITaskItemRepositoryQuery
 {
     public async Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default)
-        => await DB.TaskItems
-            .AsNoTracking()
-            .Include(t => t.Category)
-            .Include(t => t.Comments)
-            .Include(t => t.ChecklistItems)
-            .Include(t => t.TaskItemTags).ThenInclude(tt => tt.Tag)
-            .Include(t => t.SubTasks)
-            .FirstOrDefaultAsync(t => t.Id == id, ct);
-
-    public async Task<PagedResponse<TaskItem>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
     {
-        var query = DB.TaskItems.AsNoTracking().AsQueryable();
-
-        if (request.Filter is not null)
+        var includesList = new List<Expression<Func<IQueryable<TaskItem>, IIncludableQueryable<TaskItem, object?>>>>
         {
-            if (!string.IsNullOrWhiteSpace(request.Filter.SearchTerm))
-                query = query.Where(t => t.Title.Contains(request.Filter.SearchTerm));
-            if (request.Filter.Status.HasValue)
-                query = query.Where(t => t.Status == request.Filter.Status.Value);
-            if (request.Filter.Priority.HasValue)
-                query = query.Where(t => t.Priority == request.Filter.Priority.Value);
-            if (request.Filter.CategoryId.HasValue)
-                query = query.Where(t => t.CategoryId == request.Filter.CategoryId.Value);
-            if (request.Filter.ParentTaskItemId.HasValue)
-                query = query.Where(t => t.ParentTaskItemId == request.Filter.ParentTaskItemId.Value);
-            if (request.Filter.DueBefore.HasValue)
-                query = query.Where(t => t.DateRange.DueDate != null && t.DateRange.DueDate <= request.Filter.DueBefore.Value);
-            if (request.Filter.DueAfter.HasValue)
-                query = query.Where(t => t.DateRange.DueDate != null && t.DateRange.DueDate >= request.Filter.DueAfter.Value);
-            if (request.Filter.IsOverdue == true)
-                query = query.Where(t => t.DateRange.DueDate != null && t.DateRange.DueDate < DateTimeOffset.UtcNow && t.CompletedDate == null);
+            q => q.Include(t => t.Category),
+            q => q.Include(t => t.Comments),
+            q => q.Include(t => t.ChecklistItems),
+            q => q.Include(t => t.TaskItemTags).ThenInclude(tt => tt.Tag),
+            q => q.Include(t => t.SubTasks)
+        };
+
+        return await GetEntityAsync(
+            false,
+            filter: t => t.Id == id,
+            splitQueryThresholdOptions: SplitQueryThresholdOptions.Default,
+            includes: [.. includesList],
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
+
+    public async Task<PagedResponse<TaskItemDto>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
+    {
+        var q = DB.Set<TaskItem>().ComposeIQueryable(false);
+
+        // ordering
+        if (request.Sorts?.Any() ?? false)
+        {
+            q = q.OrderBy(request.Sorts);
+        }
+        else
+        {
+            q = q.OrderBy(e => e.TenantId).ThenBy(e => e.Title);
         }
 
-        var total = await query.CountAsync(ct);
-        var data = await query
-            .OrderBy(t => t.Title)
-            .Skip(request.PageIndex * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(ct);
+        // filtering
+        var filter = request.Filter;
+        if (filter is not null)
+        {
+            var searchTerm = filter.SearchTerm?.Trim();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                q = q.Where(e => e.Title.Contains(searchTerm));
 
-        return new PagedResponse<TaskItem> { Data = data, Total = total, PageSize = request.PageSize, PageIndex = request.PageIndex };
+            if (filter.Status.HasValue)
+                q = q.Where(e => e.Status == filter.Status.Value);
+
+            if (filter.Priority.HasValue)
+                q = q.Where(e => e.Priority == filter.Priority.Value);
+
+            if (filter.CategoryId.HasValue)
+                q = q.Where(e => e.CategoryId == filter.CategoryId.Value);
+
+            if (filter.ParentTaskItemId.HasValue)
+                q = q.Where(e => e.ParentTaskItemId == filter.ParentTaskItemId.Value);
+
+            if (filter.TenantId.HasValue)
+                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+
+            if (filter.DueBefore.HasValue)
+                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate <= filter.DueBefore.Value);
+
+            if (filter.DueAfter.HasValue)
+                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate >= filter.DueAfter.Value);
+
+            if (filter.IsOverdue.HasValue && filter.IsOverdue.Value)
+                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate < DateTimeOffset.UtcNow && e.CompletedDate == null);
+        }
+
+        // includes for SplitQuery
+        var includesList = new List<Expression<Func<IQueryable<TaskItem>, IIncludableQueryable<TaskItem, object?>>>>
+        {
+            q => q.Include(t => t.Category),
+            q => q.Include(t => t.TaskItemTags).ThenInclude(tt => tt.Tag)
+        };
+
+        (var data, var total) = await q.QueryPageProjectionAsync(TaskItemMapper.ProjectorSearch,
+            pageSize: request.PageSize, pageIndex: request.PageIndex,
+            includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
+            includes: [.. includesList], cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return new PagedResponse<TaskItemDto>
+        {
+            PageIndex = request.PageIndex,
+            PageSize = request.PageSize,
+            Data = data,
+            Total = total
+        };
     }
 }

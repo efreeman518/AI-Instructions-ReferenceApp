@@ -1,5 +1,5 @@
 using EF.Data;
-using Microsoft.EntityFrameworkCore;
+using EF.Data.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -10,6 +10,11 @@ public class CommentRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ICommentRepositoryTrxn
 {
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
-        => await DB.Comments
-            .FirstOrDefaultAsync(c => c.Id == id, ct);
+    {
+        return await GetEntityAsync(
+            true,
+            filter: (Comment c) => c.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 }

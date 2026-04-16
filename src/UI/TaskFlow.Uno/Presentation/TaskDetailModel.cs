@@ -103,6 +103,6 @@ public partial record TaskDetailModel(
         var task = await Task;
         if (task?.Id is null) return;
         await TaskItemService.DeleteAsync(task.Id.Value, ct);
-        await Navigator.NavigateBackAsync(this, cancellation: ct);
+        await Navigator.NavigateRouteAsync(this, "TaskList", cancellation: ct);
     }
 }

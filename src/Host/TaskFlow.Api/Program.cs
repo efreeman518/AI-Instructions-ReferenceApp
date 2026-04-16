@@ -1,71 +1,90 @@
-using System.Threading.RateLimiting;
-using TaskFlow.Api.Auth;
-using TaskFlow.Api.Endpoints;
-using TaskFlow.Api.Middleware;
+using Azure.Identity;
+using EF.Common;
+using Microsoft.AspNetCore.DataProtection;
+using TaskFlow.Api;
 using TaskFlow.Bootstrapper;
-using TaskFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var config = builder.Configuration;
+var services = builder.Services;
+var appName = config.GetValue<string>("AppName") ?? "TaskFlow.Api";
+var env = config.GetValue<string>("ASPNETCORE_ENVIRONMENT")
+    ?? config.GetValue<string>("DOTNET_ENVIRONMENT") ?? "Undefined";
+var credential = CreateAzureCredential(config);
 
-builder.AddServiceDefaults();
-builder.Services.AddTaskFlowServices(builder.Configuration);
+ILogger<Program> startupLogger = CreateStartupLogger();
+startupLogger.LogInformation("{AppName} {Environment} - Startup.", appName, env);
 
-// Authentication + Authorization
-builder.Services.AddTaskFlowAuth(builder.Configuration);
-builder.Services.AddTaskFlowAuthorization();
-
-// Global exception handler
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-
-// Rate limiting
-builder.Services.AddRateLimiter(options =>
+try
 {
-    options.AddPolicy("PerTenant", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.User?.FindFirst("tenant_id")?.Value ?? "anonymous",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 100,
-                Window = TimeSpan.FromMinutes(1)
-            }));
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-});
+    // 1. Service defaults (OpenTelemetry, health, resilience)
+    builder.AddServiceDefaults();
 
-var app = builder.Build();
+    // 2. Data Protection (Azure Blob key storage + Key Vault key encryption)
+    ConfigureDataProtection();
 
-// Apply pending EF migrations on startup
-var connStr = builder.Configuration.GetConnectionString("TaskFlowDbContextTrxn");
-if (!string.IsNullOrEmpty(connStr))
+    // 3. Registration chain — order matters for dependency resolution
+    services
+        .RegisterInfrastructureServices(config)
+        .RegisterDomainServices(config)
+        .RegisterApplicationServices(config)
+        .RegisterBackgroundServices(config)
+        .AddApiServices(config, startupLogger);
+
+    // 4. Build + pipeline
+    var app = builder.Build().ConfigurePipeline();
+
+    // 5. Startup tasks (migrations, warmup)
+    await app.RunStartupTasks();
+
+    // 6. Switch to runtime logger
+    StaticLogging.SetStaticLoggerFactory(app.Services.GetRequiredService<ILoggerFactory>());
+
+    await app.RunAsync();
+}
+catch (Exception ex)
 {
-    using var scope = app.Services.CreateScope();
-    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TaskFlowDbContextTrxn>>();
-    await using var db = await factory.CreateDbContextAsync();
-    await db.Database.MigrateAsync();
+    startupLogger.LogCritical(ex, "{AppName} {Environment} - Host terminated unexpectedly.", appName, env);
+}
+finally
+{
+    startupLogger.LogInformation("{AppName} {Environment} - Ending application.", appName, env);
 }
 
-// Middleware pipeline (order matters)
-app.UseMiddleware<SecurityHeadersMiddleware>();
-app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseExceptionHandler();
-app.UseRateLimiter();
-app.UseAuthentication();
-app.UseMiddleware<GatewayClaimsMiddleware>();
-app.UseAuthorization();
+ILogger<Program> CreateStartupLogger()
+{
+    StaticLogging.CreateStaticLoggerFactory(logBuilder =>
+    {
+        logBuilder.SetMinimumLevel(LogLevel.Information);
+        logBuilder.AddConsole();
+    });
+    return StaticLogging.CreateLogger<Program>();
+}
 
-app.MapDefaultEndpoints();
+static DefaultAzureCredential CreateAzureCredential(IConfiguration config)
+{
+    var options = new DefaultAzureCredentialOptions();
+    var managedIdentityClientId = config.GetValue<string?>("ManagedIdentityClientId", null);
+    if (managedIdentityClientId is not null)
+        options.ManagedIdentityClientId = managedIdentityClientId;
+    var sharedTokenCacheTenantId = config.GetValue<string?>("SharedTokenCacheTenantId", null);
+    if (sharedTokenCacheTenantId is not null)
+        options.SharedTokenCacheTenantId = sharedTokenCacheTenantId;
+    return new DefaultAzureCredential(options);
+}
 
-// API endpoint groups
-app.MapCategoryEndpoints();
-app.MapTagEndpoints();
-app.MapTaskItemEndpoints();
-app.MapCommentEndpoints();
-app.MapChecklistItemEndpoints();
-app.MapAttachmentEndpoints();
-app.MapTaskItemTagEndpoints();
-app.MapSearchEndpoints();
-app.MapAgentEndpoints();
-app.MapTaskViewEndpoints();
+void ConfigureDataProtection()
+{
+    var keysFileUrl = config.GetValue<string?>("DataProtectionKeysFileUrl", null);
+    var encryptionKeyUrl = config.GetValue<string?>("DataProtectionEncryptionKeyUrl", null);
+    if (!string.IsNullOrEmpty(keysFileUrl) && !string.IsNullOrEmpty(encryptionKeyUrl))
+    {
+        startupLogger.LogInformation("{AppName} {Environment} - Configure Data Protection.", appName, env);
+        services.AddDataProtection()
+            .PersistKeysToAzureBlobStorage(new Uri(keysFileUrl), credential)
+            .ProtectKeysWithAzureKeyVault(new Uri(encryptionKeyUrl), credential);
+    }
+}
 
-app.Run();
+// Required for WebApplicationFactory in integration tests
+public partial class Program { }

@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
@@ -22,22 +23,26 @@ internal class CommentService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<CommentDto> BuildResponse(CommentDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<CommentDto>> SearchAsync(
         SearchRequest<CommentSearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("CommentSearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchCommentsAsync(request, ct);
-        return new PagedResponse<CommentDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchCommentsAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<CommentDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -47,26 +52,27 @@ internal class CommentService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Comment:Get", "Comment", entity.Id);
+            "Comment:Get", nameof(Comment), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<CommentDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<CommentDto>>> CreateAsync(
         DefaultRequest<CommentDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = CommentStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "Comment:Create", "Comment");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "Comment:Create", nameof(Comment));
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId);
         if (entityResult.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -82,26 +88,30 @@ internal class CommentService(
             return Result<DefaultResponse<CommentDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Comment:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<CommentDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<CommentDto>>> UpdateAsync(
         DefaultRequest<CommentDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = CommentStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(validation.Errors);
 
         var entity = await repoTrxn.GetCommentAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<CommentDto>>.Success(new() { Item = null });
+        if (entity == null)
+            return Result<DefaultResponse<CommentDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Comment:Update", "Comment", entity.Id);
+            "Comment:Update", nameof(Comment), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(Comment), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.Body);
         if (updateResult.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(updateResult.ErrorMessage!);
@@ -116,9 +126,7 @@ internal class CommentService(
             return Result<DefaultResponse<CommentDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Comment:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<CommentDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -128,7 +136,7 @@ internal class CommentService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Comment:Delete", "Comment", entity.Id);
+            "Comment:Delete", nameof(Comment), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

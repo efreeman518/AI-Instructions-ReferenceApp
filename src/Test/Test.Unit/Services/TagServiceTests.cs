@@ -145,8 +145,8 @@ public class TagServiceTests
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()
     {
-        var entities = new List<Tag> { new TagBuilder().Build() };
-        var pagedResponse = new PagedResponse<Tag> { Data = entities, Total = 1, PageSize = 10, PageIndex = 0 };
+        var dtos = new List<TagDto> { new() { Name = "Test" } };
+        var pagedResponse = new PagedResponse<TagDto> { Data = dtos, Total = 1, PageSize = 10, PageIndex = 0 };
         _repoQueryMock.Setup(r => r.SearchTagsAsync(It.IsAny<SearchRequest<TagSearchFilter>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResponse);
 

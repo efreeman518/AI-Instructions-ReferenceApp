@@ -8,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddTaskFlowServices(builder.Configuration);
-builder.Services.AddSchedulerServices(builder.Configuration);
+builder.Services
+    .RegisterInfrastructureServices(builder.Configuration)
+    .RegisterApplicationServices(builder.Configuration)
+    .AddSchedulerServices(builder.Configuration);
 builder.AddTickerQConfig();
 
 var app = builder.Build();

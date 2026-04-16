@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using EF.AspNetCore;
 using EF.Common.Contracts;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 
@@ -7,47 +9,106 @@ namespace TaskFlow.Api.Endpoints;
 
 public static class CommentEndpoints
 {
-    public static IEndpointRouteBuilder MapCommentEndpoints(this IEndpointRouteBuilder app)
+    private static bool _problemDetailsIncludeStackTrace;
+
+    public static IEndpointRouteBuilder MapCommentEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
-        var group = app.MapGroup("/api/comments").WithTags("Comments");
+        _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        group.MapGet("/{id:guid}", async (Guid id, [FromServices] ICommentService service, CancellationToken ct) =>
-        {
-            var result = await service.GetAsync(id, ct);
-            if (result.IsNone) return Results.NotFound();
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.Ok(result.Value!.Item);
-        }).WithName("GetComment");
+        var g = group.MapGroup("/api/comments").WithTags("Comments");
 
-        group.MapPost("/", async ([FromBody] CommentDto dto, [FromServices] ICommentService service, CancellationToken ct) =>
-        {
-            var result = await service.CreateAsync(new DefaultRequest<CommentDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            return Results.Created($"/api/comments/{result.Value!.Item!.Id}", result.Value.Item);
-        }).WithName("CreateComment");
+        g.MapPost("/search", Search)
+            .Produces<PagedResponse<CommentDto>>(StatusCodes.Status200OK)
+            .WithSummary("Search Comments with paging, filters, and sorts");
 
-        group.MapPut("/{id:guid}", async (Guid id, [FromBody] CommentDto dto, [FromServices] ICommentService service, CancellationToken ct) =>
-        {
-            dto.Id = id;
-            var result = await service.UpdateAsync(new DefaultRequest<CommentDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            if (result.Value?.Item == null) return Results.NotFound();
-            return Results.Ok(result.Value.Item);
-        }).WithName("UpdateComment");
+        g.MapGet("/{id:guid}", GetById)
+            .Produces<DefaultResponse<CommentDto>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Get a single Comment");
 
-        group.MapDelete("/{id:guid}", async (Guid id, [FromServices] ICommentService service, CancellationToken ct) =>
-        {
-            var result = await service.DeleteAsync(id, ct);
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.NoContent();
-        }).WithName("DeleteComment");
+        g.MapPost("/", Create)
+            .Produces<DefaultResponse<CommentDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .WithSummary("Create a new Comment");
 
-        group.MapPost("/search", async ([FromBody] SearchRequest<CommentSearchFilter> request, [FromServices] ICommentService service, CancellationToken ct) =>
-        {
-            var response = await service.SearchAsync(request, ct);
-            return Results.Ok(response);
-        }).WithName("SearchComments");
+        g.MapPut("/{id:guid}", Update)
+            .Produces<DefaultResponse<CommentDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update an existing Comment");
 
-        return app;
+        g.MapDelete("/{id:guid}", Delete)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Delete a Comment");
+
+        return group;
+    }
+
+    private static async Task<IResult> Search(
+        [FromServices] ICommentService service,
+        [FromBody] SearchRequest<CommentSearchFilter> request,
+        CancellationToken ct)
+    {
+        var items = await service.SearchAsync(request, ct);
+        return TypedResults.Ok(items);
+    }
+
+    private static async Task<IResult> GetById(
+        [FromServices] ICommentService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.GetAsync(id, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+            () => TypedResults.NotFound(id));
+    }
+
+    private static async Task<IResult> Create(
+        HttpContext httpContext,
+        [FromServices] ICommentService service,
+        [FromBody] DefaultRequest<CommentDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.CreateAsync(request, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Created(httpContext.Request.Path, response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Update(
+        HttpContext httpContext,
+        [FromServices] ICommentService service,
+        Guid id,
+        [FromBody] DefaultRequest<CommentDto> request,
+        CancellationToken ct)
+    {
+        if (request.Item.Id != null && request.Item.Id != id)
+            return TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponse(
+                statusCodeOverride: StatusCodes.Status400BadRequest,
+                message: $"{ErrorConstants.ERROR_URL_BODY_ID_MISMATCH}: {id} <> {request.Item.Id}"));
+
+        var result = await service.UpdateAsync(request, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Delete(
+        HttpContext httpContext,
+        [FromServices] ICommentService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.DeleteAsync(id, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(
+                ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                    messages: errors, traceId: httpContext.TraceIdentifier,
+                    includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using EF.AspNetCore;
 using EF.Common.Contracts;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
@@ -8,62 +10,131 @@ namespace TaskFlow.Api.Endpoints;
 
 public static class AttachmentEndpoints
 {
-    public static IEndpointRouteBuilder MapAttachmentEndpoints(this IEndpointRouteBuilder app)
+    private static bool _problemDetailsIncludeStackTrace;
+
+    public static IEndpointRouteBuilder MapAttachmentEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
-        var group = app.MapGroup("/api/attachments").WithTags("Attachments");
+        _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        group.MapGet("/{id:guid}", async (Guid id, [FromServices] IAttachmentService service, CancellationToken ct) =>
-        {
-            var result = await service.GetAsync(id, ct);
-            if (result.IsNone) return Results.NotFound();
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.Ok(result.Value!.Item);
-        }).WithName("GetAttachment");
+        var g = group.MapGroup("/api/attachments").WithTags("Attachments");
 
-        group.MapPost("/", async ([FromBody] AttachmentDto dto, [FromServices] IAttachmentService service, CancellationToken ct) =>
-        {
-            var result = await service.CreateAsync(new DefaultRequest<AttachmentDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            return Results.Created($"/api/attachments/{result.Value!.Item!.Id}", result.Value.Item);
-        }).WithName("CreateAttachment");
+        g.MapPost("/search", Search)
+            .Produces<PagedResponse<AttachmentDto>>(StatusCodes.Status200OK)
+            .WithSummary("Search Attachments with paging, filters, and sorts");
 
-        group.MapPost("/upload", async (
-            IFormFile file,
-            [FromForm] AttachmentOwnerType ownerType,
-            [FromForm] Guid ownerId,
-            [FromServices] IAttachmentService service,
-            CancellationToken ct) =>
-        {
-            await using var stream = file.OpenReadStream();
-            var result = await service.UploadAsync(
-                stream, file.FileName, file.ContentType, file.Length,
-                ownerType, ownerId, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            return Results.Created($"/api/attachments/{result.Value!.Item!.Id}", result.Value.Item);
-        }).WithName("UploadAttachment").DisableAntiforgery();
+        g.MapGet("/{id:guid}", GetById)
+            .Produces<DefaultResponse<AttachmentDto>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Get a single Attachment");
 
-        group.MapPut("/{id:guid}", async (Guid id, [FromBody] AttachmentDto dto, [FromServices] IAttachmentService service, CancellationToken ct) =>
-        {
-            dto.Id = id;
-            var result = await service.UpdateAsync(new DefaultRequest<AttachmentDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            if (result.Value?.Item == null) return Results.NotFound();
-            return Results.Ok(result.Value.Item);
-        }).WithName("UpdateAttachment");
+        g.MapPost("/", Create)
+            .Produces<DefaultResponse<AttachmentDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .WithSummary("Create a new Attachment");
 
-        group.MapDelete("/{id:guid}", async (Guid id, [FromServices] IAttachmentService service, CancellationToken ct) =>
-        {
-            var result = await service.DeleteAsync(id, ct);
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.NoContent();
-        }).WithName("DeleteAttachment");
+        g.MapPost("/upload", Upload)
+            .Produces<DefaultResponse<AttachmentDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .WithSummary("Upload a file Attachment")
+            .DisableAntiforgery();
 
-        group.MapPost("/search", async ([FromBody] SearchRequest<AttachmentSearchFilter> request, [FromServices] IAttachmentService service, CancellationToken ct) =>
-        {
-            var response = await service.SearchAsync(request, ct);
-            return Results.Ok(response);
-        }).WithName("SearchAttachments");
+        g.MapPut("/{id:guid}", Update)
+            .Produces<DefaultResponse<AttachmentDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update an existing Attachment");
 
-        return app;
+        g.MapDelete("/{id:guid}", Delete)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Delete an Attachment");
+
+        return group;
+    }
+
+    private static async Task<IResult> Search(
+        [FromServices] IAttachmentService service,
+        [FromBody] SearchRequest<AttachmentSearchFilter> request,
+        CancellationToken ct)
+    {
+        var items = await service.SearchAsync(request, ct);
+        return TypedResults.Ok(items);
+    }
+
+    private static async Task<IResult> GetById(
+        [FromServices] IAttachmentService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.GetAsync(id, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+            () => TypedResults.NotFound(id));
+    }
+
+    private static async Task<IResult> Create(
+        HttpContext httpContext,
+        [FromServices] IAttachmentService service,
+        [FromBody] DefaultRequest<AttachmentDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.CreateAsync(request, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Created(httpContext.Request.Path, response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Upload(
+        HttpContext httpContext,
+        IFormFile file,
+        [FromForm] AttachmentOwnerType ownerType,
+        [FromForm] Guid ownerId,
+        [FromServices] IAttachmentService service,
+        CancellationToken ct)
+    {
+        await using var stream = file.OpenReadStream();
+        var result = await service.UploadAsync(
+            stream, file.FileName, file.ContentType, file.Length,
+            ownerType, ownerId, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Created(httpContext.Request.Path, response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Update(
+        HttpContext httpContext,
+        [FromServices] IAttachmentService service,
+        Guid id,
+        [FromBody] DefaultRequest<AttachmentDto> request,
+        CancellationToken ct)
+    {
+        if (request.Item.Id != null && request.Item.Id != id)
+            return TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponse(
+                statusCodeOverride: StatusCodes.Status400BadRequest,
+                message: $"{ErrorConstants.ERROR_URL_BODY_ID_MISMATCH}: {id} <> {request.Item.Id}"));
+
+        var result = await service.UpdateAsync(request, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Delete(
+        HttpContext httpContext,
+        [FromServices] IAttachmentService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.DeleteAsync(id, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(
+                ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                    messages: errors, traceId: httpContext.TraceIdentifier,
+                    includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

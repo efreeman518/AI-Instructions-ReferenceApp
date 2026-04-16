@@ -9,7 +9,9 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 
 builder.AddServiceDefaults();
-builder.Services.AddTaskFlowServices(builder.Configuration);
+builder.Services
+    .RegisterInfrastructureServices(builder.Configuration)
+    .RegisterApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 await app.RunAsync();

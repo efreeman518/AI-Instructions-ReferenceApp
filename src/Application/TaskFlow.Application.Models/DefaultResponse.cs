@@ -1,6 +1,7 @@
 namespace TaskFlow.Application.Models;
 
-public class DefaultResponse<T> where T : class
+public record DefaultResponse<T>
 {
     public T? Item { get; set; }
+    public TenantInfoDto? TenantInfo { get; set; } = null;
 }

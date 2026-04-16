@@ -1,8 +1,6 @@
 namespace TaskFlow.Application.Models;
 
-public class CommentSearchFilter
+public record CommentSearchFilter : DefaultSearchFilter
 {
-    public Guid? TenantId { get; set; }
-    public string? SearchTerm { get; set; }
     public Guid? TaskItemId { get; set; }
 }

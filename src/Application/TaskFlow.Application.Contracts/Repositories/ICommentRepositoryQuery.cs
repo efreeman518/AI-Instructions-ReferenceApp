@@ -8,5 +8,5 @@ namespace TaskFlow.Application.Contracts.Repositories;
 public interface ICommentRepositoryQuery : IRepositoryBase
 {
     Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default);
-    Task<PagedResponse<Comment>> SearchCommentsAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default);
+    Task<PagedResponse<CommentDto>> SearchCommentsAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default);
 }

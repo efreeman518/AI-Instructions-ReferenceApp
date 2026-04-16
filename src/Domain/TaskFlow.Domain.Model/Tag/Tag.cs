@@ -3,7 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
-public class Tag : EntityBase, ITenantEntity<Guid>
+public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
 {
     public Guid TenantId { get; init; }
     public string Name { get; private set; } = null!;
@@ -43,4 +43,25 @@ public class Tag : EntityBase, ITenantEntity<Guid>
             ? DomainResult<Tag>.Failure(errors)
             : DomainResult<Tag>.Success(this);
     }
+
+    // Value-based equality: same TenantId + case-insensitive trimmed Name
+    public bool Equals(Tag? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        return TenantId == other.TenantId
+            && string.Equals(Normalize(Name), Normalize(other.Name), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Tag t && Equals(t);
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(
+            TenantId,
+            (Normalize(Name) ?? string.Empty).ToUpperInvariant());
+    }
+
+    private static string? Normalize(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

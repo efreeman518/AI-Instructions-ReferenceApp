@@ -1,5 +1,5 @@
 using EF.Data;
-using Microsoft.EntityFrameworkCore;
+using EF.Data.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -10,5 +10,11 @@ public class TagRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITagRepositoryTrxn
 {
     public async Task<Tag?> GetTagAsync(Guid id, CancellationToken ct = default)
-        => await DB.Tags.FirstOrDefaultAsync(t => t.Id == id, ct);
+    {
+        return await GetEntityAsync(
+            true,
+            filter: (Tag t) => t.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 }

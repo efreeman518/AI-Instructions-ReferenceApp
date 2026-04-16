@@ -1,10 +1,11 @@
+using TaskFlow.Application.Models.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Models;
 
-public class TaskItemDto
+public record TaskItemDto : EntityBaseDto, ITenantEntityDto
 {
-    public Guid? Id { get; set; }
+    public Guid TenantId { get; set; }
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
     public Priority Priority { get; set; }

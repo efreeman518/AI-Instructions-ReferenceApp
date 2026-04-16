@@ -171,8 +171,8 @@ public class AttachmentServiceTests
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()
     {
-        var entities = new List<Attachment> { new AttachmentBuilder().Build() };
-        var pagedResponse = new PagedResponse<Attachment> { Data = entities, Total = 1, PageSize = 10, PageIndex = 0 };
+        var dtos = new List<AttachmentDto> { new() { FileName = "Test" } };
+        var pagedResponse = new PagedResponse<AttachmentDto> { Data = dtos, Total = 1, PageSize = 10, PageIndex = 0 };
         _repoQueryMock.Setup(r => r.SearchAttachmentsAsync(It.IsAny<SearchRequest<AttachmentSearchFilter>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResponse);
 

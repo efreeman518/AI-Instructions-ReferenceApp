@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using EF.AspNetCore;
 using EF.Common.Contracts;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 
@@ -7,47 +9,106 @@ namespace TaskFlow.Api.Endpoints;
 
 public static class ChecklistItemEndpoints
 {
-    public static IEndpointRouteBuilder MapChecklistItemEndpoints(this IEndpointRouteBuilder app)
+    private static bool _problemDetailsIncludeStackTrace;
+
+    public static IEndpointRouteBuilder MapChecklistItemEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
-        var group = app.MapGroup("/api/checklist-items").WithTags("ChecklistItems");
+        _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        group.MapGet("/{id:guid}", async (Guid id, [FromServices] IChecklistItemService service, CancellationToken ct) =>
-        {
-            var result = await service.GetAsync(id, ct);
-            if (result.IsNone) return Results.NotFound();
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.Ok(result.Value!.Item);
-        }).WithName("GetChecklistItem");
+        var g = group.MapGroup("/api/checklist-items").WithTags("ChecklistItems");
 
-        group.MapPost("/", async ([FromBody] ChecklistItemDto dto, [FromServices] IChecklistItemService service, CancellationToken ct) =>
-        {
-            var result = await service.CreateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            return Results.Created($"/api/checklist-items/{result.Value!.Item!.Id}", result.Value.Item);
-        }).WithName("CreateChecklistItem");
+        g.MapPost("/search", Search)
+            .Produces<PagedResponse<ChecklistItemDto>>(StatusCodes.Status200OK)
+            .WithSummary("Search ChecklistItems with paging, filters, and sorts");
 
-        group.MapPut("/{id:guid}", async (Guid id, [FromBody] ChecklistItemDto dto, [FromServices] IChecklistItemService service, CancellationToken ct) =>
-        {
-            dto.Id = id;
-            var result = await service.UpdateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            if (result.Value?.Item == null) return Results.NotFound();
-            return Results.Ok(result.Value.Item);
-        }).WithName("UpdateChecklistItem");
+        g.MapGet("/{id:guid}", GetById)
+            .Produces<DefaultResponse<ChecklistItemDto>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Get a single ChecklistItem");
 
-        group.MapDelete("/{id:guid}", async (Guid id, [FromServices] IChecklistItemService service, CancellationToken ct) =>
-        {
-            var result = await service.DeleteAsync(id, ct);
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.NoContent();
-        }).WithName("DeleteChecklistItem");
+        g.MapPost("/", Create)
+            .Produces<DefaultResponse<ChecklistItemDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .WithSummary("Create a new ChecklistItem");
 
-        group.MapPost("/search", async ([FromBody] SearchRequest<ChecklistItemSearchFilter> request, [FromServices] IChecklistItemService service, CancellationToken ct) =>
-        {
-            var response = await service.SearchAsync(request, ct);
-            return Results.Ok(response);
-        }).WithName("SearchChecklistItems");
+        g.MapPut("/{id:guid}", Update)
+            .Produces<DefaultResponse<ChecklistItemDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update an existing ChecklistItem");
 
-        return app;
+        g.MapDelete("/{id:guid}", Delete)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Delete a ChecklistItem");
+
+        return group;
+    }
+
+    private static async Task<IResult> Search(
+        [FromServices] IChecklistItemService service,
+        [FromBody] SearchRequest<ChecklistItemSearchFilter> request,
+        CancellationToken ct)
+    {
+        var items = await service.SearchAsync(request, ct);
+        return TypedResults.Ok(items);
+    }
+
+    private static async Task<IResult> GetById(
+        [FromServices] IChecklistItemService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.GetAsync(id, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+            () => TypedResults.NotFound(id));
+    }
+
+    private static async Task<IResult> Create(
+        HttpContext httpContext,
+        [FromServices] IChecklistItemService service,
+        [FromBody] DefaultRequest<ChecklistItemDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.CreateAsync(request, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Created(httpContext.Request.Path, response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Update(
+        HttpContext httpContext,
+        [FromServices] IChecklistItemService service,
+        Guid id,
+        [FromBody] DefaultRequest<ChecklistItemDto> request,
+        CancellationToken ct)
+    {
+        if (request.Item.Id != null && request.Item.Id != id)
+            return TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponse(
+                statusCodeOverride: StatusCodes.Status400BadRequest,
+                message: $"{ErrorConstants.ERROR_URL_BODY_ID_MISMATCH}: {id} <> {request.Item.Id}"));
+
+        var result = await service.UpdateAsync(request, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Delete(
+        HttpContext httpContext,
+        [FromServices] IChecklistItemService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.DeleteAsync(id, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(
+                ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                    messages: errors, traceId: httpContext.TraceIdentifier,
+                    includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

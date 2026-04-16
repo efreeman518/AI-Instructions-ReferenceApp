@@ -145,8 +145,8 @@ public class CategoryServiceTests
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()
     {
-        var entities = new List<Category> { new CategoryBuilder().Build(), new CategoryBuilder().WithName("Second").Build() };
-        var pagedResponse = new PagedResponse<Category> { Data = entities, Total = 2, PageSize = 10, PageIndex = 0 };
+        var dtos = new List<CategoryDto> { new() { Name = "Test" }, new() { Name = "Second" } };
+        var pagedResponse = new PagedResponse<CategoryDto> { Data = dtos, Total = 2, PageSize = 10, PageIndex = 0 };
         _repoQueryMock.Setup(r => r.SearchCategoriesAsync(It.IsAny<SearchRequest<CategorySearchFilter>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResponse);
 

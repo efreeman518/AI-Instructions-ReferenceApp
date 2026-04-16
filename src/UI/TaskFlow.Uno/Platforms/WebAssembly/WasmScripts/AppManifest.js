@@ -1,4 +1,4 @@
 var UnoAppManifest = {
     displayName: "TaskFlow",
-    splashScreenColor: "transparent"
+    splashScreenColor: "#6750A4"
 };

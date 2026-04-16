@@ -1,6 +1,6 @@
 namespace TaskFlow.Application.Models;
 
-public class DefaultRequest<T> where T : class
+public record DefaultRequest<T>
 {
     public T Item { get; set; } = default!;
 }

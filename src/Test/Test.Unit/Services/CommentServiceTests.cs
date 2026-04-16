@@ -145,8 +145,8 @@ public class CommentServiceTests
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()
     {
-        var entities = new List<Comment> { new CommentBuilder().Build() };
-        var pagedResponse = new PagedResponse<Comment> { Data = entities, Total = 1, PageSize = 10, PageIndex = 0 };
+        var dtos = new List<CommentDto> { new() { Body = "Test" } };
+        var pagedResponse = new PagedResponse<CommentDto> { Data = dtos, Total = 1, PageSize = 10, PageIndex = 0 };
         _repoQueryMock.Setup(r => r.SearchCommentsAsync(It.IsAny<SearchRequest<CommentSearchFilter>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResponse);
 

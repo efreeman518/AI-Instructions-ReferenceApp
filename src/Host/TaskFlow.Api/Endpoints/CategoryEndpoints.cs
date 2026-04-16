@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using EF.AspNetCore;
 using EF.Common.Contracts;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 
@@ -7,47 +9,106 @@ namespace TaskFlow.Api.Endpoints;
 
 public static class CategoryEndpoints
 {
-    public static IEndpointRouteBuilder MapCategoryEndpoints(this IEndpointRouteBuilder app)
+    private static bool _problemDetailsIncludeStackTrace;
+
+    public static IEndpointRouteBuilder MapCategoryEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
-        var group = app.MapGroup("/api/categories").WithTags("Categories");
+        _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        group.MapGet("/{id:guid}", async (Guid id, [FromServices] ICategoryService service, CancellationToken ct) =>
-        {
-            var result = await service.GetAsync(id, ct);
-            if (result.IsNone) return Results.NotFound();
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.Ok(result.Value!.Item);
-        }).WithName("GetCategory");
+        var g = group.MapGroup("/api/categories").WithTags("Categories");
 
-        group.MapPost("/", async ([FromBody] CategoryDto dto, [FromServices] ICategoryService service, CancellationToken ct) =>
-        {
-            var result = await service.CreateAsync(new DefaultRequest<CategoryDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            return Results.Created($"/api/categories/{result.Value!.Item!.Id}", result.Value.Item);
-        }).WithName("CreateCategory");
+        g.MapPost("/search", Search)
+            .Produces<PagedResponse<CategoryDto>>(StatusCodes.Status200OK)
+            .WithSummary("Search Categories with paging, filters, and sorts");
 
-        group.MapPut("/{id:guid}", async (Guid id, [FromBody] CategoryDto dto, [FromServices] ICategoryService service, CancellationToken ct) =>
-        {
-            dto.Id = id;
-            var result = await service.UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto }, ct);
-            if (result.IsFailure) return Results.BadRequest(result.ErrorMessage);
-            if (result.Value?.Item == null) return Results.NotFound();
-            return Results.Ok(result.Value.Item);
-        }).WithName("UpdateCategory");
+        g.MapGet("/{id:guid}", GetById)
+            .Produces<DefaultResponse<CategoryDto>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Get a single Category");
 
-        group.MapDelete("/{id:guid}", async (Guid id, [FromServices] ICategoryService service, CancellationToken ct) =>
-        {
-            var result = await service.DeleteAsync(id, ct);
-            if (result.IsFailure) return Results.Problem(result.ErrorMessage);
-            return Results.NoContent();
-        }).WithName("DeleteCategory");
+        g.MapPost("/", Create)
+            .Produces<DefaultResponse<CategoryDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .WithSummary("Create a new Category");
 
-        group.MapPost("/search", async ([FromBody] SearchRequest<CategorySearchFilter> request, [FromServices] ICategoryService service, CancellationToken ct) =>
-        {
-            var response = await service.SearchAsync(request, ct);
-            return Results.Ok(response);
-        }).WithName("SearchCategories");
+        g.MapPut("/{id:guid}", Update)
+            .Produces<DefaultResponse<CategoryDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update an existing Category");
 
-        return app;
+        g.MapDelete("/{id:guid}", Delete)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Delete a Category");
+
+        return group;
+    }
+
+    private static async Task<IResult> Search(
+        [FromServices] ICategoryService service,
+        [FromBody] SearchRequest<CategorySearchFilter> request,
+        CancellationToken ct)
+    {
+        var items = await service.SearchAsync(request, ct);
+        return TypedResults.Ok(items);
+    }
+
+    private static async Task<IResult> GetById(
+        [FromServices] ICategoryService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.GetAsync(id, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+            () => TypedResults.NotFound(id));
+    }
+
+    private static async Task<IResult> Create(
+        HttpContext httpContext,
+        [FromServices] ICategoryService service,
+        [FromBody] DefaultRequest<CategoryDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.CreateAsync(request, ct);
+        return result.Match<IResult>(
+            response => TypedResults.Created(httpContext.Request.Path, response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Update(
+        HttpContext httpContext,
+        [FromServices] ICategoryService service,
+        Guid id,
+        [FromBody] DefaultRequest<CategoryDto> request,
+        CancellationToken ct)
+    {
+        if (request.Item.Id != null && request.Item.Id != id)
+            return TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponse(
+                statusCodeOverride: StatusCodes.Status400BadRequest,
+                message: $"{ErrorConstants.ERROR_URL_BODY_ID_MISMATCH}: {id} <> {request.Item.Id}"));
+
+        var result = await service.UpdateAsync(request, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    private static async Task<IResult> Delete(
+        HttpContext httpContext,
+        [FromServices] ICategoryService service, Guid id, CancellationToken ct)
+    {
+        var result = await service.DeleteAsync(id, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(
+                ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                    messages: errors, traceId: httpContext.TraceIdentifier,
+                    includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

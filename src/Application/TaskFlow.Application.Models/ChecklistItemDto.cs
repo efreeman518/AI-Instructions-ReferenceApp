@@ -1,8 +1,10 @@
+using TaskFlow.Application.Models.Shared;
+
 namespace TaskFlow.Application.Models;
 
-public class ChecklistItemDto
+public record ChecklistItemDto : EntityBaseDto, ITenantEntityDto
 {
-    public Guid? Id { get; set; }
+    public Guid TenantId { get; set; }
     public string Title { get; set; } = null!;
     public bool IsCompleted { get; set; }
     public int SortOrder { get; set; }

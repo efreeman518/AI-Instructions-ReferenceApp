@@ -8,6 +8,7 @@ using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Model.Events;
 using TaskFlow.Domain.Model.ValueObjects;
 using TaskFlow.Domain.Shared.Enums;
@@ -27,22 +28,26 @@ internal class TaskItemService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<TaskItemDto> BuildResponse(TaskItemDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<TaskItemDto>> SearchAsync(
         SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("TaskItemSearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchTaskItemsAsync(request, ct);
-        return new PagedResponse<TaskItemDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchTaskItemsAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<TaskItemDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -52,26 +57,28 @@ internal class TaskItemService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Get", "TaskItem", entity.Id);
+            "TaskItem:Get", nameof(TaskItem), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<TaskItemDto>>> CreateAsync(
         DefaultRequest<TaskItemDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = TaskItemStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "TaskItem:Create", "TaskItem");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "TaskItem:Create", nameof(TaskItem));
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId)
+            .Bind(e => repoTrxn.UpdateFromDto(e, dto));
         if (entityResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -88,30 +95,35 @@ internal class TaskItemService(
         }
 
         var resultDto = entity.ToDto();
-        await cache.SetAsync($"TaskItem:{entity.Id}", resultDto, ct);
 
         await eventPublisher.PublishAsync(
             new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
             requestContext.CorrelationId, ct);
 
-        return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
 
     public async Task<Result<DefaultResponse<TaskItemDto>>> UpdateAsync(
         DefaultRequest<TaskItemDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = TaskItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetTaskItemAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = null });
+        var entity = await repoTrxn.GetTaskItemAsync(dto.Id!.Value, ct: ct);
+        if (entity == null)
+            return Result<DefaultResponse<TaskItemDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Update", "TaskItem", entity.Id);
+            "TaskItem:Update", nameof(TaskItem), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(TaskItem), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         // Handle status transition if changed
         TaskItemStatus? oldStatus = null;
@@ -144,6 +156,10 @@ internal class TaskItemService(
             entity.UpdateRecurrencePattern(null);
         }
 
+        // Sync child collections via Updater
+        var syncResult = repoTrxn.UpdateFromDto(entity, dto);
+        if (syncResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(syncResult.ErrorMessage!);
+
         try
         {
             await repoTrxn.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, ct);
@@ -155,7 +171,6 @@ internal class TaskItemService(
         }
 
         var resultDto = entity.ToDto();
-        await cache.SetAsync($"TaskItem:{entity.Id}", resultDto, ct);
 
         if (oldStatus.HasValue)
         {
@@ -164,17 +179,17 @@ internal class TaskItemService(
                 requestContext.CorrelationId, ct);
         }
 
-        return Result<DefaultResponse<TaskItemDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(id, ct);
+        var entity = await repoTrxn.GetTaskItemAsync(id, ct: ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Delete", "TaskItem", entity.Id);
+            "TaskItem:Delete", nameof(TaskItem), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

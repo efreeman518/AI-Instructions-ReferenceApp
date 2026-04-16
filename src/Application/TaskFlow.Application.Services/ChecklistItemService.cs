@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
@@ -22,22 +23,26 @@ internal class ChecklistItemService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<ChecklistItemDto> BuildResponse(ChecklistItemDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<ChecklistItemDto>> SearchAsync(
         SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("ChecklistItemSearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchChecklistItemsAsync(request, ct);
-        return new PagedResponse<ChecklistItemDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchChecklistItemsAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -47,26 +52,27 @@ internal class ChecklistItemService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "ChecklistItem:Get", "ChecklistItem", entity.Id);
+            "ChecklistItem:Get", nameof(ChecklistItem), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<ChecklistItemDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<ChecklistItemDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> CreateAsync(
         DefaultRequest<ChecklistItemDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = ChecklistItemStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "ChecklistItem:Create", "ChecklistItem");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "ChecklistItem:Create", nameof(ChecklistItem));
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId);
         if (entityResult.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -82,26 +88,30 @@ internal class ChecklistItemService(
             return Result<DefaultResponse<ChecklistItemDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"ChecklistItem:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<ChecklistItemDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<ChecklistItemDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> UpdateAsync(
         DefaultRequest<ChecklistItemDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = ChecklistItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(validation.Errors);
 
         var entity = await repoTrxn.GetChecklistItemAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new() { Item = null });
+        if (entity == null)
+            return Result<DefaultResponse<ChecklistItemDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "ChecklistItem:Update", "ChecklistItem", entity.Id);
+            "ChecklistItem:Update", nameof(ChecklistItem), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(ChecklistItem), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.Title, dto.IsCompleted, dto.SortOrder);
         if (updateResult.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(updateResult.ErrorMessage!);
@@ -116,9 +126,7 @@ internal class ChecklistItemService(
             return Result<DefaultResponse<ChecklistItemDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"ChecklistItem:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<ChecklistItemDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<ChecklistItemDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -128,7 +136,7 @@ internal class ChecklistItemService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "ChecklistItem:Delete", "ChecklistItem", entity.Id);
+            "ChecklistItem:Delete", nameof(ChecklistItem), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

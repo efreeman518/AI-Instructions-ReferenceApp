@@ -8,5 +8,5 @@ namespace TaskFlow.Application.Contracts.Repositories;
 public interface IChecklistItemRepositoryQuery : IRepositoryBase
 {
     Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default);
-    Task<PagedResponse<ChecklistItem>> SearchChecklistItemsAsync(SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default);
+    Task<PagedResponse<ChecklistItemDto>> SearchChecklistItemsAsync(SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default);
 }

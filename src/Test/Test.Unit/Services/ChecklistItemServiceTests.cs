@@ -146,8 +146,8 @@ public class ChecklistItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()
     {
-        var entities = new List<ChecklistItem> { new ChecklistItemBuilder().Build() };
-        var pagedResponse = new PagedResponse<ChecklistItem> { Data = entities, Total = 1, PageSize = 10, PageIndex = 0 };
+        var dtos = new List<ChecklistItemDto> { new() { Title = "Test" } };
+        var pagedResponse = new PagedResponse<ChecklistItemDto> { Data = dtos, Total = 1, PageSize = 10, PageIndex = 0 };
         _repoQueryMock.Setup(r => r.SearchChecklistItemsAsync(It.IsAny<SearchRequest<ChecklistItemSearchFilter>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResponse);
 

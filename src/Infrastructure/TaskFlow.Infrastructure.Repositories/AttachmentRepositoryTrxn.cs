@@ -1,5 +1,5 @@
 using EF.Data;
-using Microsoft.EntityFrameworkCore;
+using EF.Data.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -10,5 +10,11 @@ public class AttachmentRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), IAttachmentRepositoryTrxn
 {
     public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
-        => await DB.Attachments.FirstOrDefaultAsync(a => a.Id == id, ct);
+    {
+        return await GetEntityAsync(
+            true,
+            filter: (Attachment a) => a.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 }

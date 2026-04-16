@@ -11,8 +11,13 @@ public partial record TagManagementModel(
     ITagApiService TagService,
     IMessenger Messenger)
 {
+    public IState<int> TagsVersion => State<int>.Value(this, () => 0);
+
     public IListFeed<TagModel> Tags => ListFeed.Async(async ct =>
-        (IImmutableList<TagModel>)(await TagService.SearchAsync(ct: ct)).ToImmutableList());
+    {
+        _ = await TagsVersion;
+        return (IImmutableList<TagModel>)(await TagService.SearchAsync(ct: ct)).ToImmutableList();
+    });
 
     public IState<string> NewTagName => State<string>.Value(this, () => string.Empty);
     public IState<string> NewTagColor => State<string>.Value(this, () => "#3B82F6");
@@ -26,6 +31,7 @@ public partial record TagManagementModel(
 
         await TagService.CreateAsync(new TagModel { Name = name, Color = color }, ct);
         await NewTagName.UpdateAsync(_ => string.Empty, ct);
+        await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
     public async ValueTask UpdateTag(CancellationToken ct)
@@ -35,12 +41,14 @@ public partial record TagManagementModel(
 
         await TagService.UpdateAsync(editing, ct);
         await EditingTag.UpdateAsync(_ => null, ct);
+        await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
     public async ValueTask DeleteTag(TagModel tag, CancellationToken ct)
     {
         if (tag.Id is null) return;
         await TagService.DeleteAsync(tag.Id.Value, ct);
+        await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
     public async ValueTask StartEdit(TagModel tag, CancellationToken ct) =>

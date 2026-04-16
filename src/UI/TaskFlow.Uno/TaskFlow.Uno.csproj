@@ -29,8 +29,13 @@
       Authentication;
     </UnoFeatures>
 
+    <!-- Default to the real gateway. Enable mock mode explicitly with /p:UseMocks=true when needed. -->
     <UseMocks Condition="'$(UseMocks)'==''">false</UseMocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <UnoSplashScreen Include="Assets\splashscreen.svg" BaseSize="128,128" Color="#6750A4" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(UseMocks)'=='true'">
     <DefineConstants>$(DefineConstants);USE_MOCKS</DefineConstants>
@@ -48,20 +53,29 @@
     <ProjectReference Include="..\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="appsettings.json" />
-    <Content Include="appsettings.Development.json" />
-  </ItemGroup>
-
-  <!-- Workaround: Resizetizer 1.12.1 sets WasmPWAManifestFile to a directory
-       path when no UnoSplashScreen is configured. Clear it so ShellTask doesn't
-       call File.ReadAllText on a directory. -->
+  <!-- Workaround: Resizetizer sets WasmPWAManifestFile to a directory when
+       no PWA manifest is configured. Clear it so ShellTask doesn't crash. -->
   <Target Name="_FixWasmPwaManifestPath"
           BeforeTargets="GenerateUnoWasmAssets"
-          AfterTargets="ProcessResizedImagesWasm"
-          Condition="$(TargetFramework.Contains('browserwasm'))">
+          Condition="'$(WasmPWAManifestFile)' != '' AND !$(WasmPWAManifestFile.EndsWith('.json'))">
     <PropertyGroup>
-      <WasmPWAManifestFile Condition="'$(WasmPWAManifestFile)' != '' AND !$([System.IO.File]::Exists('$(WasmPWAManifestFile)'))"></WasmPWAManifestFile>
+      <WasmPWAManifestFile />
     </PropertyGroup>
   </Target>
+
+  <!-- Workaround: WasmAppHost serves from the output root while Uno generates
+       browser assets under $(TargetDir)wwwroot. Mirror those files into the
+       output root so the hashed package and framework assets resolve at runtime. -->
+  <Target Name="_MirrorWasmStaticAssetsForAppHost"
+          AfterTargets="Build"
+          Condition="'$(TargetPlatformIdentifier)' == 'BrowserWasm' AND Exists('$(TargetDir)wwwroot')">
+    <ItemGroup>
+      <_WasmStaticAssetsToMirror Include="$(TargetDir)wwwroot\**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_WasmStaticAssetsToMirror)"
+          DestinationFiles="@(_WasmStaticAssetsToMirror->'$(TargetDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

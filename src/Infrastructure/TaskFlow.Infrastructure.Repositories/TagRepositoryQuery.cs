@@ -1,8 +1,8 @@
 using EF.Common.Contracts;
 using EF.Data;
 using EF.Data.Contracts;
-using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Contracts.Repositories;
+using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -13,25 +13,51 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITagRepositoryQuery
 {
     public async Task<Tag?> GetTagAsync(Guid id, CancellationToken ct = default)
-        => await DB.Tags.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
-
-    public async Task<PagedResponse<Tag>> SearchTagsAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
     {
-        var query = DB.Tags.AsNoTracking().AsQueryable();
+        return await GetEntityAsync(
+            false,
+            filter: (Tag t) => t.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 
-        if (request.Filter is not null)
+    public async Task<PagedResponse<TagDto>> SearchTagsAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
+    {
+        var q = DB.Set<Tag>().ComposeIQueryable(false);
+
+        // ordering
+        if (request.Sorts?.Any() ?? false)
         {
-            if (!string.IsNullOrWhiteSpace(request.Filter.SearchTerm))
-                query = query.Where(t => t.Name.Contains(request.Filter.SearchTerm));
+            q = q.OrderBy(request.Sorts);
+        }
+        else
+        {
+            q = q.OrderBy(e => e.Name);
         }
 
-        var total = await query.CountAsync(ct);
-        var data = await query
-            .OrderBy(t => t.Name)
-            .Skip(request.PageIndex * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(ct);
+        // filtering
+        var filter = request.Filter;
+        if (filter is not null)
+        {
+            var searchTerm = filter.SearchTerm?.Trim();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                q = q.Where(e => e.Name.Contains(searchTerm));
 
-        return new PagedResponse<Tag> { Data = data, Total = total, PageSize = request.PageSize, PageIndex = request.PageIndex };
+            if (filter.TenantId.HasValue)
+                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+        }
+
+        (var data, var total) = await q.QueryPageProjectionAsync(TagMapper.ProjectorSearch,
+            pageSize: request.PageSize, pageIndex: request.PageIndex,
+            includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
+            cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return new PagedResponse<TagDto>
+        {
+            PageIndex = request.PageIndex,
+            PageSize = request.PageSize,
+            Data = data,
+            Total = total
+        };
     }
 }

@@ -4,15 +4,16 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
-public class CategoryConfiguration : IEntityTypeConfiguration<Category>
+public class CategoryConfiguration() : EntityBaseConfiguration<Category>(true)
 {
-    public void Configure(EntityTypeBuilder<Category> builder)
+    public override void Configure(EntityTypeBuilder<Category> builder)
     {
-        builder.HasKey(e => e.Id);
+        base.Configure(builder);
+        builder.ToTable("Category");
+
         builder.Property(e => e.TenantId).IsRequired();
         builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(500);
-        builder.Property(e => e.RowVersion).IsRowVersion();
 
         builder.HasOne(e => e.ParentCategory)
             .WithMany(e => e.SubCategories)
@@ -23,5 +24,11 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .WithOne(e => e.Category)
             .HasForeignKey(e => e.CategoryId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(e => new { e.TenantId, e.Name })
+            .HasDatabaseName("IX_Category_TenantId_Name")
+            .IsUnique();
+
+        builder.HasIndex(e => e.TenantId).HasDatabaseName("IX_Category_TenantId");
     }
 }

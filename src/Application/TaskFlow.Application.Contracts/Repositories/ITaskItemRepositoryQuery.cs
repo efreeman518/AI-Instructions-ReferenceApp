@@ -8,5 +8,5 @@ namespace TaskFlow.Application.Contracts.Repositories;
 public interface ITaskItemRepositoryQuery : IRepositoryBase
 {
     Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default);
-    Task<PagedResponse<TaskItem>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default);
+    Task<PagedResponse<TaskItemDto>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default);
 }

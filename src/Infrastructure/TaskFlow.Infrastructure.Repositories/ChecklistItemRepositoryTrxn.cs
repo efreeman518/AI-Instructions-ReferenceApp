@@ -1,5 +1,5 @@
 using EF.Data;
-using Microsoft.EntityFrameworkCore;
+using EF.Data.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
 using TaskFlow.Infrastructure.Data;
@@ -10,5 +10,11 @@ public class ChecklistItemRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), IChecklistItemRepositoryTrxn
 {
     public async Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default)
-        => await DB.ChecklistItems.FirstOrDefaultAsync(ci => ci.Id == id, ct);
+    {
+        return await GetEntityAsync(
+            true,
+            filter: (ChecklistItem ci) => ci.Id == id,
+            cancellationToken: ct
+        ).ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 }

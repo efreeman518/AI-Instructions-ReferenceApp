@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
@@ -22,22 +23,26 @@ internal class CategoryService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<CategoryDto> BuildResponse(CategoryDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<CategoryDto>> SearchAsync(
         SearchRequest<CategorySearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("CategorySearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchCategoriesAsync(request, ct);
-        return new PagedResponse<CategoryDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchCategoriesAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<CategoryDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -47,26 +52,27 @@ internal class CategoryService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Get", "Category", entity.Id);
+            "Category:Get", nameof(Category), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<CategoryDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<CategoryDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<CategoryDto>>> CreateAsync(
         DefaultRequest<CategoryDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = CategoryStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "Category:Create", "Category");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "Category:Create", nameof(Category));
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId);
         if (entityResult.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -82,26 +88,30 @@ internal class CategoryService(
             return Result<DefaultResponse<CategoryDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Category:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<CategoryDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<CategoryDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<CategoryDto>>> UpdateAsync(
         DefaultRequest<CategoryDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = CategoryStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(validation.Errors);
 
         var entity = await repoTrxn.GetCategoryAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<CategoryDto>>.Success(new() { Item = null });
+        if (entity == null)
+            return Result<DefaultResponse<CategoryDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Update", "Category", entity.Id);
+            "Category:Update", nameof(Category), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(Category), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.Name, dto.Description, dto.SortOrder, dto.IsActive, dto.ParentCategoryId);
         if (updateResult.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(updateResult.ErrorMessage!);
@@ -116,9 +126,7 @@ internal class CategoryService(
             return Result<DefaultResponse<CategoryDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Category:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<CategoryDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<CategoryDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -128,7 +136,7 @@ internal class CategoryService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Delete", "Category", entity.Id);
+            "Category:Delete", nameof(Category), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

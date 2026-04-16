@@ -4,11 +4,13 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
-public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
+public class TaskItemConfiguration() : EntityBaseConfiguration<TaskItem>(false)
 {
-    public void Configure(EntityTypeBuilder<TaskItem> builder)
+    public override void Configure(EntityTypeBuilder<TaskItem> builder)
     {
-        builder.HasKey(e => e.Id);
+        base.Configure(builder);
+        builder.ToTable("TaskItem");
+
         builder.Property(e => e.TenantId).IsRequired();
         builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(2000);
@@ -17,7 +19,6 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.Property(e => e.Features).HasConversion<int>();
         builder.Property(e => e.EstimatedEffort).HasPrecision(10, 2);
         builder.Property(e => e.ActualEffort).HasPrecision(10, 2);
-        builder.Property(e => e.RowVersion).IsRowVersion();
 
         builder.OwnsOne(e => e.DateRange, dr =>
         {
@@ -40,11 +41,23 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.HasMany(e => e.Comments)
             .WithOne(e => e.TaskItem)
             .HasForeignKey(e => e.TaskItemId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(e => e.ChecklistItems)
             .WithOne(e => e.TaskItem)
             .HasForeignKey(e => e.TaskItemId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Clustered composite index for tenant-scoped queries
+        builder.HasIndex(e => new { e.TenantId, e.Id })
+            .HasDatabaseName("CIX_TaskItem_TenantId_Id")
+            .IsUnique()
+            .IsClustered();
+
+        builder.HasIndex(e => e.Status).HasDatabaseName("IX_TaskItem_Status");
+        builder.HasIndex(e => e.Priority).HasDatabaseName("IX_TaskItem_Priority");
+        builder.HasIndex(e => e.CategoryId).HasDatabaseName("IX_TaskItem_CategoryId");
     }
 }

@@ -1,41 +1,69 @@
 <Page x:Class="TaskFlow.Uno.Views.TaskFormPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:utu="using:Uno.Toolkit.UI">
+      xmlns:uen="using:Uno.Extensions.Navigation.UI"
+      xmlns:utu="using:Uno.Toolkit.UI"
+      Background="{ThemeResource BackgroundBrush}">
 
-    <Grid Padding="24">
-        <ScrollViewer>
-            <StackPanel Spacing="16" MaxWidth="600">
-                <TextBlock Text="Task" Style="{StaticResource TitleLargeTextBlockStyle}" />
+    <ScrollViewer>
+        <utu:AutoLayout Spacing="16"
+                        Padding="{utu:Responsive Normal='16,12,16,16', Wide='24,16,24,24'}"
+                        MaxWidth="{utu:Responsive Normal=10000, Wide=640}"
+                        HorizontalAlignment="Left">
 
-                <TextBox Header="Title" Text="{Binding Title, Mode=TwoWay}" PlaceholderText="Enter task title" />
-
-                <TextBox Header="Description" Text="{Binding Description, Mode=TwoWay}"
-                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100"
-                         PlaceholderText="Enter description" />
-
-                <ComboBox Header="Priority" PlaceholderText="Select priority" Width="200">
-                    <ComboBoxItem Content="None" />
-                    <ComboBoxItem Content="Low" />
-                    <ComboBoxItem Content="Medium" />
-                    <ComboBoxItem Content="High" />
-                    <ComboBoxItem Content="Critical" />
-                </ComboBox>
-
-                <CalendarDatePicker Header="Start Date" />
-
-                <CalendarDatePicker Header="Due Date" />
-
-                <ComboBox Header="Category"
-                          ItemsSource="{Binding Categories}"
-                          DisplayMemberPath="Name"
-                          PlaceholderText="Select category" />
-
-                <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" Margin="0,24,0,0">
-                    <Button Content="Cancel" Command="{Binding Cancel}" />
-                    <Button Content="Save" Command="{Binding Save}" Style="{StaticResource FilledButtonStyle}" />
+            <!-- Back link + title -->
+            <Button uen:Navigation.Request="Dashboard"
+                    Style="{StaticResource TextButtonStyle}"
+                    Padding="0,4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE72B;" FontSize="12" />
+                    <TextBlock Text="Back to Dashboard" Style="{StaticResource LabelMedium}" />
                 </StackPanel>
+            </Button>
+
+            <TextBlock Text="New Task" Style="{StaticResource TitleLarge}" />
+            <TextBlock Text="Create or edit a task"
+                       Style="{StaticResource BodyMedium}"
+                       Foreground="{ThemeResource OnSurfaceVariantBrush}"
+                       Margin="0,0,0,4" />
+
+            <utu:CardContentControl Style="{StaticResource FilledCardContentControlStyle}">
+                <utu:AutoLayout Spacing="16">
+                    <TextBox Header="Title" Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="What needs to be done?" />
+
+                    <TextBox Header="Description" Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
+                             PlaceholderText="Add details, context, or notes..." />
+
+                    <ComboBox Header="Priority" PlaceholderText="Select priority"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="None" />
+                        <ComboBoxItem Content="Low" />
+                        <ComboBoxItem Content="Medium" />
+                        <ComboBoxItem Content="High" />
+                        <ComboBoxItem Content="Critical" />
+                    </ComboBox>
+
+                    <StackPanel Orientation="{utu:Responsive Normal=Vertical, Wide=Horizontal}"
+                                Spacing="{utu:Responsive Normal=12, Wide=16}">
+                        <CalendarDatePicker Header="Start Date" HorizontalAlignment="Stretch" MinWidth="180" />
+                        <CalendarDatePicker Header="Due Date" HorizontalAlignment="Stretch" MinWidth="180" />
+                    </StackPanel>
+
+                    <ComboBox Header="Category"
+                              ItemsSource="{Binding Categories}"
+                              DisplayMemberPath="Name"
+                              PlaceholderText="Select category"
+                              HorizontalAlignment="Stretch" />
+                </utu:AutoLayout>
+            </utu:CardContentControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" Margin="0,4,0,0">
+                <Button Content="Cancel" Command="{Binding Cancel}" Padding="20,8" />
+                <Button Content="Save Task" Command="{Binding Save}"
+                        Style="{StaticResource FilledButtonStyle}" Padding="20,8" />
             </StackPanel>
-        </ScrollViewer>
-    </Grid>
+        </utu:AutoLayout>
+    </ScrollViewer>
 </Page>

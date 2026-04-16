@@ -1,7 +1,6 @@
 using EF.Common.Contracts;
 using EF.Data.Contracts;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
@@ -9,6 +8,7 @@ using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
@@ -26,22 +26,26 @@ internal class AttachmentService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<AttachmentDto> BuildResponse(AttachmentDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<AttachmentDto>> SearchAsync(
         SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("AttachmentSearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchAttachmentsAsync(request, ct);
-        return new PagedResponse<AttachmentDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchAttachmentsAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<AttachmentDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -51,26 +55,27 @@ internal class AttachmentService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Attachment:Get", "Attachment", entity.Id);
+            "Attachment:Get", nameof(Attachment), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<AttachmentDto>>> CreateAsync(
         DefaultRequest<AttachmentDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = AttachmentStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "Attachment:Create", "Attachment");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "Attachment:Create", nameof(Attachment));
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId);
         if (entityResult.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -86,9 +91,7 @@ internal class AttachmentService(
             return Result<DefaultResponse<AttachmentDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Attachment:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<AttachmentDto>>> UploadAsync(
@@ -97,7 +100,7 @@ internal class AttachmentService(
     {
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "Attachment:Upload", "Attachment");
+            "Attachment:Upload", nameof(Attachment));
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
 
         if (blobStorage is null)
@@ -133,26 +136,30 @@ internal class AttachmentService(
             return Result<DefaultResponse<AttachmentDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var uploadedDto = entity.ToDto();
-        await cache.SetAsync($"Attachment:{entity.Id}", uploadedDto, ct);
-        return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = uploadedDto });
+        return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<AttachmentDto>>> UpdateAsync(
         DefaultRequest<AttachmentDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = AttachmentStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(validation.Errors);
 
         var entity = await repoTrxn.GetAttachmentAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = null });
+        if (entity == null)
+            return Result<DefaultResponse<AttachmentDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Attachment:Update", "Attachment", entity.Id);
+            "Attachment:Update", nameof(Attachment), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(Attachment), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.FileName, dto.ContentType, dto.FileSizeBytes, dto.StorageUri);
         if (updateResult.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(updateResult.ErrorMessage!);
@@ -167,9 +174,7 @@ internal class AttachmentService(
             return Result<DefaultResponse<AttachmentDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Attachment:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<AttachmentDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -179,7 +184,7 @@ internal class AttachmentService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Attachment:Delete", "Attachment", entity.Id);
+            "Attachment:Delete", nameof(Attachment), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

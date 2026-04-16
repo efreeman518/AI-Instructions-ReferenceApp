@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Yarp.ReverseProxy.Transforms;
@@ -12,6 +14,7 @@ public static class RegisterGatewayServices
     public static IServiceCollection AddGatewayServices(
         this IServiceCollection services, IConfiguration config)
     {
+        services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         services.AddSingleton<TokenService>();
         AddAuthentication(services, config);
         AddReverseProxy(services, config);

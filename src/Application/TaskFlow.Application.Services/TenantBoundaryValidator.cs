@@ -1,34 +1,30 @@
 using EF.Common.Contracts;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts;
+using TaskFlow.Application.Services.Rules;
 
 namespace TaskFlow.Application.Services;
 
-internal class TenantBoundaryValidator : ITenantBoundaryValidator
+internal sealed class TenantBoundaryValidator : ITenantBoundaryValidator
 {
     public Result EnsureTenantBoundary(ILogger logger, Guid? requestTenantId,
         IReadOnlyCollection<string> roles, Guid? entityTenantId,
         string operation, string entityName, Guid? entityId = null)
     {
-        // GlobalAdmin bypass
-        if (roles.Contains(AppConstants.ROLE_GLOBAL_ADMIN))
-            return Result.Success();
+        return ValidationHelper.EnsureTenantBoundary(
+            logger, requestTenantId, roles, entityTenantId,
+            operation, entityName, entityId);
+    }
 
-        if (requestTenantId == null)
-            return Result.Failure($"Tenant context required for {operation} on {entityName}.");
-
-        if (entityTenantId != null && entityTenantId != requestTenantId)
-            return Result.Failure($"Tenant boundary violation: {operation} on {entityName} {entityId}.");
-
-        return Result.Success();
+    public Result EnsureGlobalAdmin(IReadOnlyCollection<string> callerRoles, string operation)
+    {
+        return ValidationHelper.EnsureGlobalAdmin(callerRoles, operation);
     }
 
     public Result PreventTenantChange(ILogger logger, Guid? currentTenantId, Guid? newTenantId,
-        string entityName, Guid? entityId = null)
+        string entityName, Guid entityId)
     {
-        if (currentTenantId != newTenantId)
-            return Result.Failure($"Cannot change tenant for {entityName} {entityId}.");
-
-        return Result.Success();
+        return ValidationHelper.PreventTenantChange(logger, currentTenantId, newTenantId,
+            entityName, entityId);
     }
 }

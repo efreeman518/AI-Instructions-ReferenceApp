@@ -4,13 +4,18 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
-public class ChecklistItemConfiguration : IEntityTypeConfiguration<ChecklistItem>
+public class ChecklistItemConfiguration() : EntityBaseConfiguration<ChecklistItem>(false)
 {
-    public void Configure(EntityTypeBuilder<ChecklistItem> builder)
+    public override void Configure(EntityTypeBuilder<ChecklistItem> builder)
     {
-        builder.HasKey(e => e.Id);
+        base.Configure(builder);
+        builder.ToTable("ChecklistItem");
+
         builder.Property(e => e.TenantId).IsRequired();
         builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
-        builder.Property(e => e.RowVersion).IsRowVersion();
+
+        builder.HasIndex(e => new { e.TenantId, e.TaskItemId })
+            .HasDatabaseName("CIX_ChecklistItem_TenantId_TaskItemId")
+            .IsClustered();
     }
 }

@@ -36,30 +36,31 @@ public partial record TaskFormModel(
         var dueDate = await DueDate;
         var categoryId = await SelectedCategoryId;
 
-        if (string.IsNullOrWhiteSpace(title)) return;
-
-        var model = (task ?? new TaskItemModel()) with
+        if (!string.IsNullOrWhiteSpace(title))
         {
-            Title = title,
-            Description = description,
-            Priority = priority ?? "None",
-            StartDate = startDate,
-            DueDate = dueDate,
-            CategoryId = categoryId
-        };
+            var model = (task ?? new TaskItemModel()) with
+            {
+                Title = title,
+                Description = description,
+                Priority = priority ?? "None",
+                StartDate = startDate,
+                DueDate = dueDate,
+                CategoryId = categoryId
+            };
 
-        if (model.Id.HasValue)
-        {
-            await TaskItemService.UpdateAsync(model, ct);
+            if (model.Id.HasValue)
+            {
+                await TaskItemService.UpdateAsync(model, ct);
+            }
+            else
+            {
+                await TaskItemService.CreateAsync(model, ct);
+            }
         }
-        else
-        {
-            await TaskItemService.CreateAsync(model, ct);
-        }
 
-        await Navigator.NavigateBackAsync(this, cancellation: ct);
+        await Navigator.NavigateRouteAsync(this, "Dashboard", cancellation: ct);
     }
 
     public async ValueTask Cancel(CancellationToken ct) =>
-        await Navigator.NavigateBackAsync(this, cancellation: ct);
+        await Navigator.NavigateRouteAsync(this, "Dashboard", cancellation: ct);
 }

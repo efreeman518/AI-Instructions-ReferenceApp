@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
+using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
@@ -22,22 +23,26 @@ internal class TagService(
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;
     private bool IsGlobalAdmin => RequestRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN);
 
+    #region Helpers
+
+    private static DefaultResponse<TagDto> BuildResponse(TagDto dto) =>
+        new() { Item = dto, TenantInfo = null };
+
+    #endregion
+
     public async Task<PagedResponse<TagDto>> SearchAsync(
         SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
     {
         if (!IsGlobalAdmin)
         {
             request.Filter ??= new();
+            if (request.Filter.TenantId is Guid supplied && supplied != RequestTenantId)
+            {
+                logger.LogTenantFilterManipulation("TagSearch", RequestTenantId, supplied);
+            }
             request.Filter.TenantId = RequestTenantId;
         }
-        var page = await repoQuery.SearchTagsAsync(request, ct);
-        return new PagedResponse<TagDto>
-        {
-            Data = page.Data.Select(e => e.ToDto()).ToList(),
-            Total = page.Total,
-            PageSize = page.PageSize,
-            PageIndex = page.PageIndex
-        };
+        return await repoQuery.SearchTagsAsync(request, ct);
     }
 
     public async Task<Result<DefaultResponse<TagDto>>> GetAsync(Guid id, CancellationToken ct = default)
@@ -47,26 +52,27 @@ internal class TagService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Get", "Tag", entity.Id);
+            "Tag:Get", nameof(Tag), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(boundary.ErrorMessage!);
 
-        return Result<DefaultResponse<TagDto>>.Success(new() { Item = entity.ToDto() });
+        return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<TagDto>>> CreateAsync(
         DefaultRequest<TagDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = TagStructureValidator.ValidateCreate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(validation.Errors);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, RequestTenantId,
-            "Tag:Create", "Tag");
+            logger, RequestTenantId, RequestRoles, dto.TenantId,
+            "Tag:Create", nameof(Tag));
         if (boundary.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(boundary.ErrorMessage!);
 
-        var entityResult = dto.ToEntity(RequestTenantId ?? Guid.Empty);
+        var entityResult = dto.ToEntity(dto.TenantId);
         if (entityResult.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(entityResult.ErrorMessage!);
 
         var entity = entityResult.Value!;
@@ -82,26 +88,30 @@ internal class TagService(
             return Result<DefaultResponse<TagDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Tag:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<TagDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result<DefaultResponse<TagDto>>> UpdateAsync(
         DefaultRequest<TagDto> request, CancellationToken ct = default)
     {
         var dto = request.Item;
+        dto.TenantId = RequestTenantId ?? Guid.Empty;
 
         var validation = TagStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(validation.Errors);
 
         var entity = await repoTrxn.GetTagAsync(dto.Id!.Value, ct);
-        if (entity == null) return Result<DefaultResponse<TagDto>>.Success(new() { Item = null });
+        if (entity == null)
+            return Result<DefaultResponse<TagDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Update", "Tag", entity.Id);
+            "Tag:Update", nameof(Tag), entity.Id);
         if (boundary.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(boundary.ErrorMessage!);
+
+        var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
+            logger, entity.TenantId, dto.TenantId, nameof(Tag), entity.Id);
+        if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.Name, dto.Color);
         if (updateResult.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(updateResult.ErrorMessage!);
@@ -116,9 +126,7 @@ internal class TagService(
             return Result<DefaultResponse<TagDto>>.Failure(ex.GetBaseException().Message);
         }
 
-        var resultDto = entity.ToDto();
-        await cache.SetAsync($"Tag:{entity.Id}", resultDto, ct);
-        return Result<DefaultResponse<TagDto>>.Success(new() { Item = resultDto });
+        return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -128,7 +136,7 @@ internal class TagService(
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Delete", "Tag", entity.Id);
+            "Tag:Delete", nameof(Tag), entity.Id);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);
