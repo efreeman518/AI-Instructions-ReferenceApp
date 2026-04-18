@@ -150,7 +150,7 @@ internal class AttachmentService(
 
         var entity = await repoTrxn.GetAttachmentAsync(dto.Id!.Value, ct);
         if (entity == null)
-            return Result<DefaultResponse<AttachmentDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
+            return Result<DefaultResponse<AttachmentDto>>.Success(new DefaultResponse<AttachmentDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,

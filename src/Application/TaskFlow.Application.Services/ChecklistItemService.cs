@@ -102,7 +102,7 @@ internal class ChecklistItemService(
 
         var entity = await repoTrxn.GetChecklistItemAsync(dto.Id!.Value, ct);
         if (entity == null)
-            return Result<DefaultResponse<ChecklistItemDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
+            return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,

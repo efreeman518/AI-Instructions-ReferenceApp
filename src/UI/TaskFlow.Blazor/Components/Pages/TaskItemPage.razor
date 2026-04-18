@@ -1,0 +1,357 @@
+@page "/tasks/new"
+@page "/tasks/{Id:guid}"
+@inject FloatService FloatService
+@inject ITaskFlowApiClient Api
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+
+<PageTitle>@(IsNew ? "New Task" : "Edit Task") - TaskFlow</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/tasks"))" />
+    <MudText Typo="Typo.h4" Class="ml-2">@(IsNew ? "New Task" : "Edit Task")</MudText>
+    <MudSpacer />
+    @if (!IsNew)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="DeleteAsync" Disabled="@FloatService.RequestIsActive">Delete</MudButton>
+    }
+    <MudButton Class="ml-2" Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="SaveAsync" Disabled="@FloatService.RequestIsActive">Save</MudButton>
+</div>
+
+@if (_model is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudTextField @bind-Value="_model.Title" Label="Title" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_model.Description" Label="Description" Lines="4" Variant="Variant.Outlined" Class="mb-3" />
+
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="TaskItemStatus" @bind-Value="_model.Status" Label="Status" Variant="Variant.Outlined">
+                            @foreach (var s in Enum.GetValues<TaskItemStatus>().Where(s => s != TaskItemStatus.None))
+                            {
+                                <MudSelectItem Value="@s">@s</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Priority" @bind-Value="_model.Priority" Label="Priority" Variant="Variant.Outlined">
+                            @foreach (var p in Enum.GetValues<Priority>().Where(p => p != Priority.None))
+                            {
+                                <MudSelectItem Value="@p">@p</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Date="@_startDate" DateChanged="@(d => _startDate = d)"
+                                       Label="Start Date" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Date="@_dueDate" DateChanged="@(d => _dueDate = d)"
+                                       Label="Due Date" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid?" Value="_model.CategoryId" ValueChanged="OnCategoryChanged"
+                                   Label="Category" Clearable="true" Variant="Variant.Outlined">
+                            @foreach (var c in _categories)
+                            {
+                                <MudSelectItem Value="@((Guid?)c.Id)">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="_model.EstimatedEffort" Label="Est. Effort" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="_model.ActualEffort" Label="Actual Effort" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudExpansionPanels Class="mt-4" MultiExpansion="true">
+                <MudExpansionPanel Text="@($"Checklist ({_checklist.Count})")" Expanded="@(!IsNew)">
+                    <div class="d-flex align-center mb-2">
+                        <MudTextField @bind-Value="_newChecklistTitle" Placeholder="Add item..." Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" Immediate="true"
+                                      OnKeyDown="@(async e => { if (e.Key == "Enter") await AddChecklistAsync(); })" />
+                        <MudButton Class="ml-2" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="AddChecklistAsync">Add</MudButton>
+                    </div>
+                    @foreach (var item in _checklist)
+                    {
+                        <div class="d-flex align-center">
+                            <MudCheckBox T="bool" Value="@item.IsCompleted"
+                                         ValueChanged="@(async v => await ToggleChecklistAsync(item, v))" />
+                            <MudText Class="@(item.IsCompleted ? "mud-text-disabled" : "")">@item.Title</MudText>
+                            <MudSpacer />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                           OnClick="@(() => DeleteChecklistAsync(item))" />
+                        </div>
+                    }
+                    @if (_checklist.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">No checklist items yet.</MudText>
+                    }
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="@($"Comments ({_comments.Count})")" Expanded="@(!IsNew)">
+                    <div class="d-flex align-start mb-2">
+                        <MudTextField @bind-Value="_newCommentBody" Placeholder="Add a comment..."
+                                      Variant="Variant.Outlined" Lines="2" />
+                        <MudButton Class="ml-2 mt-1" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="AddCommentAsync">Add</MudButton>
+                    </div>
+                    @foreach (var c in _comments)
+                    {
+                        <MudPaper Class="pa-2 mb-1" Elevation="0" Outlined="true">
+                            <div class="d-flex align-start">
+                                <MudText Typo="Typo.body2" Style="flex: 1; white-space: pre-wrap;">@c.Body</MudText>
+                                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                               OnClick="@(() => DeleteCommentAsync(c))" />
+                            </div>
+                        </MudPaper>
+                    }
+                    @if (_comments.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">No comments yet.</MudText>
+                    }
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.subtitle1">Info</MudText>
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.body2">ID: @(_model.Id?.ToString() ?? "(new)")</MudText>
+                <MudText Typo="Typo.body2">Category: @(_selectedCategoryName ?? "-")</MudText>
+                @if (_model.CompletedDate is not null)
+                {
+                    <MudText Typo="Typo.body2">Completed: @_model.CompletedDate.Value.LocalDateTime</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private bool IsNew => Id is null;
+    private TaskItemDto? _model;
+    private DateTime? _startDate;
+    private DateTime? _dueDate;
+    private List<CategoryDto> _categories = new();
+    private List<ChecklistItemDto> _checklist = new();
+    private List<CommentDto> _comments = new();
+    private string? _newChecklistTitle;
+    private string? _newCommentBody;
+    private string? _selectedCategoryName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        FloatService.ModuleName = IsNew ? "Tasks / New" : "Tasks / Edit";
+        await LoadCategoriesAsync();
+        if (IsNew)
+        {
+            _model = new TaskItemDto
+            {
+                Title = string.Empty,
+                Status = TaskItemStatus.Open,
+                Priority = Priority.Medium
+            };
+            _checklist = new();
+            _comments = new();
+            _startDate = null;
+            _dueDate = null;
+        }
+        else
+        {
+            await LoadTaskAsync(Id!.Value);
+        }
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        var result = await FloatService.ExecuteWithProgressAsync(
+            () => Api.SearchCategoriesAsync(new SearchRequest<CategorySearchFilter>
+            {
+                Filter = new CategorySearchFilter { IsActive = true },
+                PageSize = 200
+            }), "Failed to load categories.");
+        _categories = result?.Data?.ToList() ?? new();
+    }
+
+    private async Task LoadTaskAsync(Guid id)
+    {
+        var result = await FloatService.ExecuteWithProgressAsync(
+            () => Api.GetTaskItemAsync(id), "Failed to load task.");
+        if (result?.Item is null)
+        {
+            FloatService.ShowSnack("Task not found.", Severity.Warning);
+            Nav.NavigateTo("/tasks");
+            return;
+        }
+        _model = result.Item;
+        _startDate = _model.StartDate?.LocalDateTime;
+        _dueDate = _model.DueDate?.LocalDateTime;
+        _selectedCategoryName = _categories.FirstOrDefault(c => c.Id == _model.CategoryId)?.Name;
+        await LoadChildrenAsync(id);
+    }
+
+    private async Task LoadChildrenAsync(Guid taskId)
+    {
+        var checklistTask = Api.SearchChecklistItemsAsync(new SearchRequest<ChecklistItemSearchFilter>
+        {
+            Filter = new ChecklistItemSearchFilter { TaskItemId = taskId },
+            PageSize = 200
+        });
+        var commentsTask = Api.SearchCommentsAsync(new SearchRequest<CommentSearchFilter>
+        {
+            Filter = new CommentSearchFilter { TaskItemId = taskId },
+            PageSize = 200
+        });
+        await Task.WhenAll(checklistTask, commentsTask);
+        _checklist = checklistTask.Result.Data?.OrderBy(c => c.SortOrder).ToList() ?? new();
+        _comments = commentsTask.Result.Data?.ToList() ?? new();
+    }
+
+    private void OnCategoryChanged(Guid? value)
+    {
+        if (_model is null) return;
+        _model.CategoryId = value;
+        _selectedCategoryName = _categories.FirstOrDefault(c => c.Id == value)?.Name;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_model is null) return;
+        if (string.IsNullOrWhiteSpace(_model.Title))
+        {
+            FloatService.ShowSnack("Title is required.", Severity.Warning);
+            return;
+        }
+
+        _model.StartDate = _startDate.HasValue ? new DateTimeOffset(_startDate.Value) : null;
+        _model.DueDate = _dueDate.HasValue ? new DateTimeOffset(_dueDate.Value) : null;
+
+        if (IsNew)
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.CreateTaskItemAsync(new DefaultRequest<TaskItemDto> { Item = _model }),
+                "Failed to create task.");
+            if (resp?.Item?.Id is Guid newId)
+            {
+                FloatService.ShowSnack("Task created.", Severity.Success);
+                FloatService.NotifyTaskItemsChanged();
+                Nav.NavigateTo($"/tasks/{newId}");
+            }
+        }
+        else
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.UpdateTaskItemAsync(_model.Id!.Value,
+                    new DefaultRequest<TaskItemDto> { Item = _model }),
+                "Failed to update task.");
+            if (resp?.Item is not null)
+            {
+                _model = resp.Item;
+                FloatService.ShowSnack("Task saved.", Severity.Success);
+                FloatService.NotifyTaskItemsChanged();
+            }
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_model?.Id is null) return;
+        var confirm = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Delete task",
+            Message = $"Delete '{_model.Title}'? This cannot be undone.",
+            YesText = "Delete",
+            CancelText = "Cancel"
+        });
+        if (confirm != true) return;
+
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteTaskItemAsync(_model.Id.Value), "Failed to delete task.");
+        if (ok)
+        {
+            FloatService.ShowSnack("Task deleted.", Severity.Success);
+            FloatService.NotifyTaskItemsChanged();
+            Nav.NavigateTo("/tasks");
+        }
+    }
+
+    private async Task AddChecklistAsync()
+    {
+        if (_model?.Id is null || string.IsNullOrWhiteSpace(_newChecklistTitle)) return;
+        var dto = new ChecklistItemDto
+        {
+            Title = _newChecklistTitle!,
+            TaskItemId = _model.Id.Value,
+            SortOrder = _checklist.Count
+        };
+        var resp = await FloatService.ExecuteWithProgressAsync(
+            () => Api.CreateChecklistItemAsync(new DefaultRequest<ChecklistItemDto> { Item = dto }),
+            "Failed to add item.");
+        if (resp?.Item is not null)
+        {
+            _checklist.Add(resp.Item);
+            _newChecklistTitle = null;
+        }
+    }
+
+    private async Task ToggleChecklistAsync(ChecklistItemDto item, bool completed)
+    {
+        var updated = item with { IsCompleted = completed };
+        var resp = await FloatService.ExecuteWithProgressAsync(
+            () => Api.UpdateChecklistItemAsync(item.Id!.Value, new DefaultRequest<ChecklistItemDto> { Item = updated }),
+            "Failed to update item.");
+        if (resp?.Item is not null)
+        {
+            var idx = _checklist.FindIndex(c => c.Id == item.Id);
+            if (idx >= 0) _checklist[idx] = resp.Item;
+        }
+    }
+
+    private async Task DeleteChecklistAsync(ChecklistItemDto item)
+    {
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteChecklistItemAsync(item.Id!.Value), "Failed to delete item.");
+        if (ok) _checklist.RemoveAll(c => c.Id == item.Id);
+    }
+
+    private async Task AddCommentAsync()
+    {
+        if (_model?.Id is null || string.IsNullOrWhiteSpace(_newCommentBody)) return;
+        var dto = new CommentDto
+        {
+            Body = _newCommentBody!,
+            TaskItemId = _model.Id.Value
+        };
+        var resp = await FloatService.ExecuteWithProgressAsync(
+            () => Api.CreateCommentAsync(new DefaultRequest<CommentDto> { Item = dto }),
+            "Failed to add comment.");
+        if (resp?.Item is not null)
+        {
+            _comments.Insert(0, resp.Item);
+            _newCommentBody = null;
+        }
+    }
+
+    private async Task DeleteCommentAsync(CommentDto c)
+    {
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteCommentAsync(c.Id!.Value), "Failed to delete comment.");
+        if (ok) _comments.RemoveAll(x => x.Id == c.Id);
+    }
+}

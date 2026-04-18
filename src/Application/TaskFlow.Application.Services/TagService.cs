@@ -102,7 +102,7 @@ internal class TagService(
 
         var entity = await repoTrxn.GetTagAsync(dto.Id!.Value, ct);
         if (entity == null)
-            return Result<DefaultResponse<TagDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
+            return Result<DefaultResponse<TagDto>>.Success(new DefaultResponse<TagDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,

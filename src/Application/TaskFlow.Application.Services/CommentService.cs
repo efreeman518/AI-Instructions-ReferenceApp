@@ -102,7 +102,7 @@ internal class CommentService(
 
         var entity = await repoTrxn.GetCommentAsync(dto.Id!.Value, ct);
         if (entity == null)
-            return Result<DefaultResponse<CommentDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
+            return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,

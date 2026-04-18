@@ -1,0 +1,176 @@
+@page "/categories"
+@inject FloatService FloatService
+@inject ITaskFlowApiClient Api
+@inject IDialogService DialogService
+
+<PageTitle>Categories - TaskFlow</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4">Categories</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="StartNew">New Category</MudButton>
+</div>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudTable Items="_sorted" Hover="true" Dense="true" Loading="@FloatService.RequestIsActive">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Parent</MudTh>
+                    <MudTh>Sort</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh Style="width: 120px;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        @if (context.ParentCategoryId is not null)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" Class="mr-1" />
+                        }
+                        @context.Name
+                    </MudTd>
+                    <MudTd>@(ParentName(context.ParentCategoryId) ?? "-")</MudTd>
+                    <MudTd>@context.SortOrder</MudTd>
+                    <MudTd>
+                        <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                 Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => StartEdit(context))" />
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText>No categories yet.</MudText></NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">@(_editing?.Id is null ? "New Category" : "Edit Category")</MudText>
+            @if (_editing is not null)
+            {
+                <MudTextField @bind-Value="_editing.Name" Label="Name" Required="true"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_editing.Description" Label="Description" Lines="2"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <MudSelect T="Guid?" @bind-Value="_editing.ParentCategoryId" Label="Parent" Clearable="true"
+                           Variant="Variant.Outlined" Class="mb-3">
+                    @foreach (var c in _categories.Where(c => c.Id != _editing.Id))
+                    {
+                        <MudSelectItem Value="@((Guid?)c.Id)">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField @bind-Value="_editing.SortOrder" Label="Sort Order" Variant="Variant.Outlined"
+                                 Class="mb-3" />
+                <MudSwitch T="bool" @bind-Value="_editing.IsActive" Label="Active" Color="Color.Primary" Class="mb-3" />
+                <div class="d-flex">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                               Disabled="@FloatService.RequestIsActive">Save</MudButton>
+                    <MudButton Class="ml-2" OnClick="Cancel">Cancel</MudButton>
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Select a category to edit, or create a new one.</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<CategoryDto> _categories = new();
+    private CategoryDto? _editing;
+
+    private IEnumerable<CategoryDto> _sorted =>
+        _categories
+            .OrderBy(c => c.ParentCategoryId.HasValue ? 1 : 0)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Name);
+
+    protected override async Task OnInitializedAsync()
+    {
+        FloatService.ModuleName = "Categories";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await FloatService.ExecuteWithProgressAsync(
+            () => Api.SearchCategoriesAsync(new SearchRequest<CategorySearchFilter>
+            {
+                Filter = new CategorySearchFilter(),
+                PageSize = 500
+            }), "Failed to load categories.");
+        _categories = result?.Data?.ToList() ?? new();
+    }
+
+    private string? ParentName(Guid? parentId) =>
+        parentId is null ? null : _categories.FirstOrDefault(c => c.Id == parentId)?.Name;
+
+    private void StartNew() => _editing = new CategoryDto { Name = string.Empty, IsActive = true };
+    private void StartEdit(CategoryDto c) => _editing = c with { };
+    private void Cancel() => _editing = null;
+
+    private async Task SaveAsync()
+    {
+        if (_editing is null || string.IsNullOrWhiteSpace(_editing.Name))
+        {
+            FloatService.ShowSnack("Name is required.", Severity.Warning);
+            return;
+        }
+
+        if (_editing.Id is null)
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.CreateCategoryAsync(new DefaultRequest<CategoryDto> { Item = _editing }),
+                "Failed to create category.");
+            if (resp?.Item is not null)
+            {
+                FloatService.ShowSnack("Category created.", Severity.Success);
+                _editing = null;
+                await LoadAsync();
+            }
+        }
+        else
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.UpdateCategoryAsync(_editing.Id.Value,
+                    new DefaultRequest<CategoryDto> { Item = _editing }),
+                "Failed to update category.");
+            if (resp?.Item is not null)
+            {
+                FloatService.ShowSnack("Category saved.", Severity.Success);
+                _editing = null;
+                await LoadAsync();
+            }
+        }
+        FloatService.NotifyCategoriesChanged();
+    }
+
+    private async Task DeleteAsync(CategoryDto c)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Delete category",
+            Message = $"Delete '{c.Name}'? This cannot be undone.",
+            YesText = "Delete",
+            CancelText = "Cancel"
+        });
+        if (confirm != true) return;
+
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteCategoryAsync(c.Id!.Value), "Failed to delete category.");
+        if (ok)
+        {
+            FloatService.ShowSnack("Category deleted.", Severity.Success);
+            FloatService.NotifyCategoriesChanged();
+            if (_editing?.Id == c.Id) _editing = null;
+            await LoadAsync();
+        }
+    }
+}

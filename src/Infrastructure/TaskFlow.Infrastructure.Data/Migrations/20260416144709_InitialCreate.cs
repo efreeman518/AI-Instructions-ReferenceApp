@@ -15,7 +15,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 name: "taskflow");
 
             migrationBuilder.CreateTable(
-                name: "Attachments",
+                name: "Attachment",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -31,11 +31,12 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Attachments", x => x.Id);
+                    table.PrimaryKey("PK_Attachment", x => x.Id)
+                        .Annotation("SqlServer:Clustered", false);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Categories",
+                name: "Category",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -50,18 +51,19 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Categories", x => x.Id);
+                    table.PrimaryKey("PK_Category", x => x.Id)
+                        .Annotation("SqlServer:Clustered", true);
                     table.ForeignKey(
-                        name: "FK_Categories_Categories_ParentCategoryId",
+                        name: "FK_Category_Category_ParentCategoryId",
                         column: x => x.ParentCategoryId,
                         principalSchema: "taskflow",
-                        principalTable: "Categories",
+                        principalTable: "Category",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Tags",
+                name: "Tag",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -73,11 +75,12 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Tags", x => x.Id);
+                    table.PrimaryKey("PK_Tag", x => x.Id)
+                        .Annotation("SqlServer:Clustered", true);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TaskItems",
+                name: "TaskItem",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -102,25 +105,26 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TaskItems", x => x.Id);
+                    table.PrimaryKey("PK_TaskItem", x => x.Id)
+                        .Annotation("SqlServer:Clustered", false);
                     table.ForeignKey(
-                        name: "FK_TaskItems_Categories_CategoryId",
+                        name: "FK_TaskItem_Category_CategoryId",
                         column: x => x.CategoryId,
                         principalSchema: "taskflow",
-                        principalTable: "Categories",
+                        principalTable: "Category",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_TaskItems_TaskItems_ParentTaskItemId",
+                        name: "FK_TaskItem_TaskItem_ParentTaskItemId",
                         column: x => x.ParentTaskItemId,
                         principalSchema: "taskflow",
-                        principalTable: "TaskItems",
+                        principalTable: "TaskItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ChecklistItems",
+                name: "ChecklistItem",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -135,18 +139,19 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChecklistItems", x => x.Id);
+                    table.PrimaryKey("PK_ChecklistItem", x => x.Id)
+                        .Annotation("SqlServer:Clustered", false);
                     table.ForeignKey(
-                        name: "FK_ChecklistItems_TaskItems_TaskItemId",
+                        name: "FK_ChecklistItem_TaskItem_TaskItemId",
                         column: x => x.TaskItemId,
                         principalSchema: "taskflow",
-                        principalTable: "TaskItems",
+                        principalTable: "TaskItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Comments",
+                name: "Comment",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -158,18 +163,19 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.PrimaryKey("PK_Comment", x => x.Id)
+                        .Annotation("SqlServer:Clustered", false);
                     table.ForeignKey(
-                        name: "FK_Comments_TaskItems_TaskItemId",
+                        name: "FK_Comment_TaskItem_TaskItemId",
                         column: x => x.TaskItemId,
                         principalSchema: "taskflow",
-                        principalTable: "TaskItems",
+                        principalTable: "TaskItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TaskItemTags",
+                name: "TaskItemTag",
                 schema: "taskflow",
                 columns: table => new
                 {
@@ -181,69 +187,143 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TaskItemTags", x => x.Id);
+                    table.PrimaryKey("PK_TaskItemTag", x => x.Id)
+                        .Annotation("SqlServer:Clustered", false);
                     table.ForeignKey(
-                        name: "FK_TaskItemTags_Tags_TagId",
+                        name: "FK_TaskItemTag_Tag_TagId",
                         column: x => x.TagId,
                         principalSchema: "taskflow",
-                        principalTable: "Tags",
+                        principalTable: "Tag",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TaskItemTags_TaskItems_TaskItemId",
+                        name: "FK_TaskItemTag_TaskItem_TaskItemId",
                         column: x => x.TaskItemId,
                         principalSchema: "taskflow",
-                        principalTable: "TaskItems",
+                        principalTable: "TaskItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Attachments_OwnerType_OwnerId",
+                name: "IX_Attachment_OwnerType_OwnerId",
                 schema: "taskflow",
-                table: "Attachments",
+                table: "Attachment",
                 columns: new[] { "OwnerType", "OwnerId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Categories_ParentCategoryId",
+                name: "IX_Attachment_TenantId_Id",
                 schema: "taskflow",
-                table: "Categories",
+                table: "Attachment",
+                columns: new[] { "TenantId", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Category_ParentCategoryId",
+                schema: "taskflow",
+                table: "Category",
                 column: "ParentCategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ChecklistItems_TaskItemId",
+                name: "IX_Category_TenantId",
                 schema: "taskflow",
-                table: "ChecklistItems",
+                table: "Category",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Category_TenantId_Name",
+                schema: "taskflow",
+                table: "Category",
+                columns: new[] { "TenantId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "CIX_ChecklistItem_TenantId_TaskItemId",
+                schema: "taskflow",
+                table: "ChecklistItem",
+                columns: new[] { "TenantId", "TaskItemId" })
+                .Annotation("SqlServer:Clustered", true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChecklistItem_TaskItemId",
+                schema: "taskflow",
+                table: "ChecklistItem",
                 column: "TaskItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Comments_TaskItemId",
+                name: "CIX_Comment_TenantId_TaskItemId",
                 schema: "taskflow",
-                table: "Comments",
+                table: "Comment",
+                columns: new[] { "TenantId", "TaskItemId" })
+                .Annotation("SqlServer:Clustered", true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comment_TaskItemId",
+                schema: "taskflow",
+                table: "Comment",
                 column: "TaskItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskItems_CategoryId",
+                name: "IX_Tag_TenantId",
                 schema: "taskflow",
-                table: "TaskItems",
+                table: "Tag",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tag_TenantId_Name",
+                schema: "taskflow",
+                table: "Tag",
+                columns: new[] { "TenantId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "CIX_TaskItem_TenantId_Id",
+                schema: "taskflow",
+                table: "TaskItem",
+                columns: new[] { "TenantId", "Id" },
+                unique: true)
+                .Annotation("SqlServer:Clustered", true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItem_CategoryId",
+                schema: "taskflow",
+                table: "TaskItem",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskItems_ParentTaskItemId",
+                name: "IX_TaskItem_ParentTaskItemId",
                 schema: "taskflow",
-                table: "TaskItems",
+                table: "TaskItem",
                 column: "ParentTaskItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskItemTags_TagId",
+                name: "IX_TaskItem_Priority",
                 schema: "taskflow",
-                table: "TaskItemTags",
+                table: "TaskItem",
+                column: "Priority");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItem_Status",
+                schema: "taskflow",
+                table: "TaskItem",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "CIX_TaskItemTag_TenantId_TaskItemId",
+                schema: "taskflow",
+                table: "TaskItemTag",
+                columns: new[] { "TenantId", "TaskItemId" })
+                .Annotation("SqlServer:Clustered", true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItemTag_TagId",
+                schema: "taskflow",
+                table: "TaskItemTag",
                 column: "TagId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskItemTags_TaskItemId_TagId",
+                name: "IX_TaskItemTag_TaskItemId_TagId",
                 schema: "taskflow",
-                table: "TaskItemTags",
+                table: "TaskItemTag",
                 columns: new[] { "TaskItemId", "TagId" },
                 unique: true);
         }
@@ -252,31 +332,31 @@ namespace TaskFlow.Infrastructure.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Attachments",
+                name: "Attachment",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "ChecklistItems",
+                name: "ChecklistItem",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "Comments",
+                name: "Comment",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "TaskItemTags",
+                name: "TaskItemTag",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "Tags",
+                name: "Tag",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "TaskItems",
+                name: "TaskItem",
                 schema: "taskflow");
 
             migrationBuilder.DropTable(
-                name: "Categories",
+                name: "Category",
                 schema: "taskflow");
         }
     }

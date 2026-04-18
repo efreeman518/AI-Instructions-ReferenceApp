@@ -133,8 +133,9 @@ ipch/
 *.vspx
 *.sap
 
-# Visual Studio Trace Files
+# Visual Studio Trace Files (exclude .e2e trace files but not Test.E2E project)
 *.e2e
+!**/Test.E2E/
 
 # TFS 2012 Local Workspace
 $tf/
@@ -416,3 +417,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Playwright diagnostic screenshots
+playwright-screenshots/
+
+# Playwright test output
+test-results/

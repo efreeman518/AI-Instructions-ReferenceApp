@@ -1,0 +1,118 @@
+@page "/"
+@inject FloatService FloatService
+@inject ITaskFlowApiClient Api
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Dashboard - TaskFlow</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column" Elevation="2">
+            <MudText Typo="Typo.overline">Total</MudText>
+            <MudText Typo="Typo.h3">@_total</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column" Elevation="2">
+            <MudText Typo="Typo.overline">Open</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Info">@_open</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column" Elevation="2">
+            <MudText Typo="Typo.overline">In Progress</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Warning">@_inProgress</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column" Elevation="2">
+            <MudText Typo="Typo.overline">Completed</MudText>
+            <MudText Typo="Typo.h3" Color="Color.Success">@_completed</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mt-6" Elevation="2">
+    <div class="d-flex align-center mb-4">
+        <MudText Typo="Typo.h6">Recent Tasks</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Nav.NavigateTo("/tasks/new"))">New Task</MudButton>
+        <MudButton Class="ml-2" StartIcon="@Icons.Material.Filled.List"
+                   OnClick="@(() => Nav.NavigateTo("/tasks"))">View All</MudButton>
+    </div>
+
+    <MudTable Items="_recent" Hover="true" Dense="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Title</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Priority</MudTh>
+            <MudTh>Due</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Title</MudTd>
+            <MudTd>@context.Status</MudTd>
+            <MudTd>@context.Priority</MudTd>
+            <MudTd>@(context.DueDate?.LocalDateTime.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+            <MudTd>
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => Nav.NavigateTo($"/tasks/{context.Id}"))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText>No tasks found.</MudText></NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private int _total;
+    private int _open;
+    private int _inProgress;
+    private int _completed;
+    private bool _loading;
+    private List<TaskItemDto> _recent = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        FloatService.ModuleName = "Dashboard";
+        FloatService.TaskItemsChanged += OnTaskItemsChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var recent = await FloatService.ExecuteWithProgressAsync(
+            () => Api.SearchTaskItemsAsync(new SearchRequest<TaskItemSearchFilter>
+            {
+                Filter = new TaskItemSearchFilter(),
+                PageSize = 10,
+                PageIndex = 0
+            }),
+            "Failed to load tasks.");
+
+        if (recent is not null)
+        {
+            _recent = recent.Data?.ToList() ?? new();
+            _total = recent.Total;
+            _open = _recent.Count(t => t.Status == TaskItemStatus.Open);
+            _inProgress = _recent.Count(t => t.Status == TaskItemStatus.InProgress);
+            _completed = _recent.Count(t => t.Status == TaskItemStatus.Completed);
+        }
+        _loading = false;
+    }
+
+    private async void OnTaskItemsChanged()
+    {
+        await InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+    }
+
+    public void Dispose()
+    {
+        FloatService.TaskItemsChanged -= OnTaskItemsChanged;
+    }
+}

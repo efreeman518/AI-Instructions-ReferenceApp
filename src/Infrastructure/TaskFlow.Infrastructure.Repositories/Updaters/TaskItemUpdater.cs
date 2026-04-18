@@ -53,7 +53,17 @@ internal static class TaskItemUpdater
                 incomingDto =>
                 {
                     var result = ChecklistItem.Create(updatedEntity.TenantId, updatedEntity.Id, incomingDto.Title, incomingDto.SortOrder);
-                    if (result.IsSuccess) updatedEntity.ChecklistItems.Add(result.Value!);
+                    if (result.IsSuccess)
+                    {
+                        // Apply IsCompleted immediately — Create() doesn't take it,
+                        // so a buffered "checked" item from the client would lose
+                        // that state without this follow-up Update.
+                        if (incomingDto.IsCompleted)
+                        {
+                            result.Value!.Update(isCompleted: true);
+                        }
+                        updatedEntity.ChecklistItems.Add(result.Value!);
+                    }
                     return result;
                 },
                 (existing, incomingDto) => existing.Update(incomingDto.Title, incomingDto.IsCompleted, incomingDto.SortOrder),

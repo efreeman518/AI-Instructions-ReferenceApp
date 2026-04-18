@@ -1,0 +1,150 @@
+@page "/tags"
+@inject FloatService FloatService
+@inject ITaskFlowApiClient Api
+@inject IDialogService DialogService
+
+<PageTitle>Tags - TaskFlow</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4">Tags</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="StartNew">New Tag</MudButton>
+</div>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudTable Items="_tags" Hover="true" Dense="true" Loading="@FloatService.RequestIsActive">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Color</MudTh>
+                    <MudTh Style="width: 120px;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; margin-right: 8px;
+                                        background-color: @(context.Color ?? "#999")"></div>
+                            <MudText Typo="Typo.body2">@(context.Color ?? "-")</MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => StartEdit(context))" />
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText>No tags yet.</MudText></NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">@(_editing?.Id is null ? "New Tag" : "Edit Tag")</MudText>
+            @if (_editing is not null)
+            {
+                <MudTextField @bind-Value="_editing.Name" Label="Name" Required="true"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_editing.Color" Label="Color (hex, e.g. #FF8800)"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <div class="d-flex">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                               Disabled="@FloatService.RequestIsActive">Save</MudButton>
+                    <MudButton Class="ml-2" OnClick="Cancel">Cancel</MudButton>
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Select a tag to edit, or create a new one.</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<TagDto> _tags = new();
+    private TagDto? _editing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        FloatService.ModuleName = "Tags";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await FloatService.ExecuteWithProgressAsync(
+            () => Api.SearchTagsAsync(new SearchRequest<TagSearchFilter>
+            {
+                Filter = new TagSearchFilter(),
+                PageSize = 500
+            }), "Failed to load tags.");
+        _tags = result?.Data?.OrderBy(t => t.Name).ToList() ?? new();
+    }
+
+    private void StartNew() => _editing = new TagDto { Name = string.Empty };
+    private void StartEdit(TagDto t) => _editing = t with { };
+    private void Cancel() => _editing = null;
+
+    private async Task SaveAsync()
+    {
+        if (_editing is null || string.IsNullOrWhiteSpace(_editing.Name))
+        {
+            FloatService.ShowSnack("Name is required.", Severity.Warning);
+            return;
+        }
+
+        if (_editing.Id is null)
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.CreateTagAsync(new DefaultRequest<TagDto> { Item = _editing }),
+                "Failed to create tag.");
+            if (resp?.Item is not null)
+            {
+                FloatService.ShowSnack("Tag created.", Severity.Success);
+                _editing = null;
+                await LoadAsync();
+            }
+        }
+        else
+        {
+            var resp = await FloatService.ExecuteWithProgressAsync(
+                () => Api.UpdateTagAsync(_editing.Id.Value,
+                    new DefaultRequest<TagDto> { Item = _editing }),
+                "Failed to update tag.");
+            if (resp?.Item is not null)
+            {
+                FloatService.ShowSnack("Tag saved.", Severity.Success);
+                _editing = null;
+                await LoadAsync();
+            }
+        }
+        FloatService.NotifyTagsChanged();
+    }
+
+    private async Task DeleteAsync(TagDto t)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Delete tag",
+            Message = $"Delete '{t.Name}'? This cannot be undone.",
+            YesText = "Delete",
+            CancelText = "Cancel"
+        });
+        if (confirm != true) return;
+
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteTagAsync(t.Id!.Value), "Failed to delete tag.");
+        if (ok)
+        {
+            FloatService.ShowSnack("Tag deleted.", Severity.Success);
+            FloatService.NotifyTagsChanged();
+            if (_editing?.Id == t.Id) _editing = null;
+            await LoadAsync();
+        }
+    }
+}

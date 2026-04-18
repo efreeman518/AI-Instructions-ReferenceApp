@@ -5,28 +5,35 @@
       xmlns:utu="using:Uno.Toolkit.UI"
       Background="{ThemeResource BackgroundBrush}">
 
-    <Grid>
-        <!-- Outer shell: header + main area -->
+    <!-- Entire page is the Main region so header + menu buttons can issue
+         uen:Navigation.Request to Main's sibling routes. -->
+    <Grid uen:Region.Attached="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <!-- App Header Bar -->
+        <!-- Persistent app header -->
         <Grid Grid.Row="0"
+              Grid.ColumnSpan="2"
               Background="{ThemeResource PrimaryBrush}"
-              Padding="16,10" ColumnSpacing="12">
+              Padding="16,10"
+              ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" Spacing="10"
-                        VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE9D5;" FontSize="22"
-                          Foreground="{ThemeResource OnPrimaryBrush}" />
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE9D5;" FontSize="22" Foreground="{ThemeResource OnPrimaryBrush}" />
                 <TextBlock Text="TaskFlow"
                            Style="{StaticResource TitleMedium}"
                            Foreground="{ThemeResource OnPrimaryBrush}"
@@ -36,14 +43,14 @@
             <Border Grid.Column="1" />
 
             <Button Grid.Column="2"
+                    Click="NavigateTopClick" Tag="TaskItem"
                     Background="Transparent"
                     BorderThickness="0"
-                    Padding="8"
-                    ToolTipService.ToolTip="Sign In (coming soon)">
+                    Padding="10,6"
+                    ToolTipService.ToolTip="New Task">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE77B;" FontSize="16"
-                              Foreground="{ThemeResource OnPrimaryBrush}" />
-                    <TextBlock Text="Sign In"
+                    <FontIcon Glyph="&#xE710;" FontSize="16" Foreground="{ThemeResource OnPrimaryBrush}" />
+                    <TextBlock Text="New Task"
                                Foreground="{ThemeResource OnPrimaryBrush}"
                                Style="{StaticResource LabelMedium}"
                                VerticalAlignment="Center"
@@ -52,118 +59,224 @@
             </Button>
 
             <Button Grid.Column="3"
-                    uen:Navigation.Request="Settings"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8"
+                    ToolTipService.ToolTip="Sign In (coming soon)">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE77B;" FontSize="16" Foreground="{ThemeResource OnPrimaryBrush}" />
+                    <TextBlock Text="Sign In"
+                               Foreground="{ThemeResource OnPrimaryBrush}"
+                               Style="{StaticResource LabelMedium}"
+                               VerticalAlignment="Center"
+                               Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}" />
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="4"
+                    Click="NavigateTopClick" Tag="Settings"
                     Background="Transparent"
                     BorderThickness="0"
                     Padding="8"
                     ToolTipService.ToolTip="Settings">
-                <FontIcon Glyph="&#xE713;" FontSize="16"
-                          Foreground="{ThemeResource OnPrimaryBrush}" />
+                <FontIcon Glyph="&#xE713;" FontSize="16" Foreground="{ThemeResource OnPrimaryBrush}" />
             </Button>
         </Grid>
 
-        <!-- Main area: sidebar + content + bottom tabs (Chefs pattern) -->
-        <Grid x:Name="MainGrid" Grid.Row="1"
-              uen:Region.Attached="True">
+        <!-- Side nav (wide / desktop) — custom-styled buttons.
+             Local resources override the default button hover brushes so
+             hovered menu items get a darker tint + contrasting foreground. -->
+        <Border Grid.Row="1"
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Background="{ThemeResource SurfaceBrush}"
+                BorderBrush="{ThemeResource OutlineVariantBrush}"
+                BorderThickness="0,0,1,0"
+                Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}"
+                Width="180">
+            <Border.Resources>
+                <!-- Darker tinted background on hover so menu items stand out.
+                     Foreground goes to PrimaryBrush (accent purple) so the
+                     hovered item's text becomes visually distinct. -->
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black" Opacity="0.4" />
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Black" Opacity="0.6" />
+                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="PrimaryBrush" />
+                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PrimaryBrush" />
+            </Border.Resources>
+            <StackPanel Orientation="Vertical" Padding="12,16" Spacing="4">
+                <Button Click="NavigateTopClick" Tag="Dashboard"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="14,12"
+                        CornerRadius="10"
+                        Foreground="{ThemeResource OnSurfaceBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE80F;" FontSize="18" />
+                        <TextBlock Text="Dashboard"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Click="NavigateTopClick" Tag="TaskList"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="14,12"
+                        CornerRadius="10"
+                        Foreground="{ThemeResource OnSurfaceBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE9D5;" FontSize="18" />
+                        <TextBlock Text="Tasks"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Click="NavigateTopClick" Tag="Categories"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="14,12"
+                        CornerRadius="10"
+                        Foreground="{ThemeResource OnSurfaceBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE8B7;" FontSize="18" />
+                        <TextBlock Text="Categories"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Click="NavigateTopClick" Tag="Tags"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="14,12"
+                        CornerRadius="10"
+                        Foreground="{ThemeResource OnSurfaceBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE8EC;" FontSize="18" />
+                        <TextBlock Text="Tags"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
 
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+                <Border Height="1"
+                        Margin="14,10"
+                        Background="{ThemeResource OutlineVariantBrush}"
+                        Opacity="0.5" />
 
+                <Button Click="NavigateTopClick" Tag="TaskItem"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Background="{ThemeResource PrimaryBrush}"
+                        BorderThickness="0"
+                        Padding="14,12"
+                        CornerRadius="10"
+                        Foreground="{ThemeResource OnPrimaryBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE710;" FontSize="18" Foreground="{ThemeResource OnPrimaryBrush}" />
+                        <TextBlock Text="Add Task"
+                                   Foreground="{ThemeResource OnPrimaryBrush}"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Content region (Visibility navigator swaps sibling routes here) -->
+        <Grid Grid.Row="1"
+              Grid.Column="1"
+              x:Name="RootGrid"
+              uen:Region.Attached="True"
+              uen:Region.Navigator="Visibility" />
+
+        <!-- Bottom nav (narrow / mobile) — custom-styled buttons -->
+        <Grid Grid.Row="2"
+              Grid.Column="1"
+              Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}"
+              Background="{ThemeResource SurfaceBrush}"
+              BorderBrush="{ThemeResource OutlineVariantBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="4,6">
+            <Grid.Resources>
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black" Opacity="0.4" />
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Black" Opacity="0.6" />
+                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="PrimaryBrush" />
+                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PrimaryBrush" />
+            </Grid.Resources>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-
-            <!-- Navigation content — empty Grid, framework populates via routes -->
-            <Grid x:Name="NavigationGrid"
-                  Grid.Row="0" Grid.Column="1"
-                  uen:Region.Attached="True"
-                  uen:Region.Navigator="Visibility" />
-
-            <!-- Bottom TabBar (narrow / mobile) -->
-            <utu:TabBar x:Name="BottomTabs"
-                        Grid.Row="1" Grid.Column="1"
-                        Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}"
-                        uen:Region.Attached="True"
-                        Style="{StaticResource BottomTabBarStyle}">
-                <utu:TabBarItem uen:Region.Name="Dashboard"
-                                IsSelectable="True"
-                                Content="Home"
-                                Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                    <utu:TabBarItem.Icon>
-                        <FontIcon Glyph="&#xE80F;" />
-                    </utu:TabBarItem.Icon>
-                </utu:TabBarItem>
-                <utu:TabBarItem uen:Region.Name="TaskList"
-                                IsSelectable="True"
-                                Content="Tasks"
-                                Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                    <utu:TabBarItem.Icon>
-                        <FontIcon Glyph="&#xE9D5;" />
-                    </utu:TabBarItem.Icon>
-                </utu:TabBarItem>
-                <utu:TabBarItem uen:Region.Name="Categories"
-                                IsSelectable="True"
-                                Content="Categories"
-                                Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                    <utu:TabBarItem.Icon>
-                        <FontIcon Glyph="&#xE8B7;" />
-                    </utu:TabBarItem.Icon>
-                </utu:TabBarItem>
-                <utu:TabBarItem uen:Region.Name="Tags"
-                                IsSelectable="True"
-                                Content="Tags"
-                                Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                    <utu:TabBarItem.Icon>
-                        <FontIcon Glyph="&#xE8EC;" />
-                    </utu:TabBarItem.Icon>
-                </utu:TabBarItem>
-            </utu:TabBar>
-
-            <!-- Vertical Side TabBar (wide / desktop) -->
-            <utu:AutoLayout Grid.RowSpan="2"
-                            Background="{ThemeResource SurfaceBrush}"
-                            Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}"
-                            Width="120">
-                <utu:TabBar uen:Region.Attached="True"
-                            Style="{StaticResource VerticalTabBarStyle}"
-                            utu:AutoLayout.PrimaryAlignment="Stretch">
-                    <utu:TabBarItem uen:Region.Name="Dashboard"
-                                    IsSelectable="True"
-                                    Content="Dashboard"
-                                    Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                        <utu:TabBarItem.Icon>
-                            <FontIcon Glyph="&#xE80F;" />
-                        </utu:TabBarItem.Icon>
-                    </utu:TabBarItem>
-                    <utu:TabBarItem uen:Region.Name="TaskList"
-                                    IsSelectable="True"
-                                    Content="Tasks"
-                                    Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                        <utu:TabBarItem.Icon>
-                            <FontIcon Glyph="&#xE9D5;" />
-                        </utu:TabBarItem.Icon>
-                    </utu:TabBarItem>
-                    <utu:TabBarItem uen:Region.Name="Categories"
-                                    IsSelectable="True"
-                                    Content="Categories"
-                                    Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                        <utu:TabBarItem.Icon>
-                            <FontIcon Glyph="&#xE8B7;" />
-                        </utu:TabBarItem.Icon>
-                    </utu:TabBarItem>
-                    <utu:TabBarItem uen:Region.Name="Tags"
-                                    IsSelectable="True"
-                                    Content="Tags"
-                                    Foreground="{ThemeResource OnSurfaceVariantBrush}">
-                        <utu:TabBarItem.Icon>
-                            <FontIcon Glyph="&#xE8EC;" />
-                        </utu:TabBarItem.Icon>
-                    </utu:TabBarItem>
-                </utu:TabBar>
-            </utu:AutoLayout>
+            <Button Grid.Column="0"
+                    Click="NavigateTopClick" Tag="Dashboard"
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6,8"
+                    Foreground="{ThemeResource OnSurfaceBrush}">
+                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE80F;" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Home" Style="{StaticResource LabelSmall}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="1"
+                    Click="NavigateTopClick" Tag="TaskList"
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6,8"
+                    Foreground="{ThemeResource OnSurfaceBrush}">
+                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE9D5;" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Tasks" Style="{StaticResource LabelSmall}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="2"
+                    Click="NavigateTopClick" Tag="Categories"
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6,8"
+                    Foreground="{ThemeResource OnSurfaceBrush}">
+                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Categories" Style="{StaticResource LabelSmall}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="3"
+                    Click="NavigateTopClick" Tag="Tags"
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6,8"
+                    Foreground="{ThemeResource OnSurfaceBrush}">
+                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE8EC;" FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="Tags" Style="{StaticResource LabelSmall}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="4"
+                    Click="NavigateTopClick" Tag="TaskItem"
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6,8"
+                    Foreground="{ThemeResource PrimaryBrush}">
+                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE710;" FontSize="18" HorizontalAlignment="Center" Foreground="{ThemeResource PrimaryBrush}" />
+                    <TextBlock Text="Add" Style="{StaticResource LabelSmall}" HorizontalAlignment="Center" Foreground="{ThemeResource PrimaryBrush}" />
+                </StackPanel>
+            </Button>
         </Grid>
     </Grid>
 </Page>

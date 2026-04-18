@@ -54,7 +54,7 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(ChecklistItemMapper.ProjectorSearch,
-            pageSize: request.PageSize, pageIndex: request.PageIndex,
+            pageSize: request.PageSize, pageIndex: Math.Max(1, request.PageIndex),
             includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
             cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);
 

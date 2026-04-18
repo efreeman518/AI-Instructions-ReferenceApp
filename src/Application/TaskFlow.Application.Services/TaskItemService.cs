@@ -114,7 +114,7 @@ internal class TaskItemService(
 
         var entity = await repoTrxn.GetTaskItemAsync(dto.Id!.Value, ct: ct);
         if (entity == null)
-            return Result<DefaultResponse<TaskItemDto>>.Failure($"{ErrorConstants.ERROR_ITEM_NOTFOUND}: {dto.Id}");
+            return Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
             logger, RequestTenantId, RequestRoles, entity.TenantId,

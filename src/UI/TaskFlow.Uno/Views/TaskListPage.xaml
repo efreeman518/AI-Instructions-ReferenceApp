@@ -4,11 +4,11 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:uen="using:Uno.Extensions.Navigation.UI"
       xmlns:utu="using:Uno.Toolkit.UI"
+      xmlns:uer="using:Uno.Extensions.Reactive.UI"
       Background="{ThemeResource BackgroundBrush}">
 
     <Grid Padding="{utu:Responsive Normal='16,16,16,16', Wide='24,24,24,24'}" RowSpacing="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -26,14 +26,12 @@
                            Style="{StaticResource BodyMedium}"
                            Foreground="{ThemeResource OnSurfaceVariantBrush}" />
             </utu:AutoLayout>
-            <Button Grid.Column="1"
-                    Content="&#xE710;  New Task"
-                    uen:Navigation.Request="TaskForm"
-                    Style="{StaticResource FabButtonStyle}" />
         </Grid>
 
-        <!-- Filters — wide -->
-        <Grid Grid.Row="1" ColumnSpacing="8">
+        <!-- Search -->
+        <Grid Grid.Row="1"
+              ColumnSpacing="12"
+              Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -41,97 +39,437 @@
             </Grid.ColumnDefinitions>
 
             <TextBox Grid.Column="0"
-                     PlaceholderText="&#xE721;  Search tasks..."
-                     Text="{Binding SearchTerm, Mode=TwoWay}" />
+                     PlaceholderText="Search tasks by title, description, or category"
+                     Text="{Binding SearchTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     AutomationProperties.Name="Task search input" />
 
-            <ComboBox Grid.Column="1" PlaceholderText="Status" Width="150"
-                      Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
-                <ComboBoxItem Content="All" />
-                <ComboBoxItem Content="Open" />
-                <ComboBoxItem Content="InProgress" />
-                <ComboBoxItem Content="Completed" />
-                <ComboBoxItem Content="Blocked" />
-                <ComboBoxItem Content="Cancelled" />
-            </ComboBox>
+            <ComboBox Grid.Column="1"
+                      Header="Page size"
+                      ItemsSource="{Binding PageSizeOptions}"
+                      SelectedItem="{Binding SelectedPageSize, Mode=TwoWay}"
+                      MinWidth="120"
+                      HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Task page size" />
 
-            <ComboBox Grid.Column="2" PlaceholderText="Priority" Width="150"
-                      Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
-                <ComboBoxItem Content="All" />
-                <ComboBoxItem Content="Critical" />
-                <ComboBoxItem Content="High" />
-                <ComboBoxItem Content="Medium" />
-                <ComboBoxItem Content="Low" />
-            </ComboBox>
+            <Button Grid.Column="2"
+                    Command="{Binding Search}"
+                    Style="{StaticResource FormActionButtonStyle}"
+                    AutomationProperties.Name="Search tasks">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE721;" />
+                    <TextBlock Text="Search" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
         </Grid>
 
-        <!-- Narrow-only filter row -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
-                    Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}">
-            <ComboBox PlaceholderText="Status" Width="120">
-                <ComboBoxItem Content="All" />
-                <ComboBoxItem Content="Open" />
-                <ComboBoxItem Content="InProgress" />
-                <ComboBoxItem Content="Completed" />
-                <ComboBoxItem Content="Blocked" />
-            </ComboBox>
-            <ComboBox PlaceholderText="Priority" Width="120">
-                <ComboBoxItem Content="All" />
-                <ComboBoxItem Content="Critical" />
-                <ComboBoxItem Content="High" />
-                <ComboBoxItem Content="Medium" />
-                <ComboBoxItem Content="Low" />
-            </ComboBox>
-        </StackPanel>
+        <Border Grid.Row="1"
+                Style="{StaticResource InlineFormCardStyle}"
+                Padding="16"
+                Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}">
+            <utu:AutoLayout Spacing="12">
+                <TextBlock Text="Find the task you need, then jump between pages without losing context."
+                           Style="{StaticResource BodyMedium}"
+                           Foreground="{ThemeResource OnSurfaceVariantBrush}" />
 
-        <!-- Task List -->
-        <ListView Grid.Row="3"
-                  ItemsSource="{Binding Items}"
-                  SelectionMode="None">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Border Style="{StaticResource ListItemCardStyle}"
-                            uen:Navigation.Request="TaskDetail"
-                            uen:Navigation.Data="{Binding}">
-                        <Grid ColumnSpacing="12">
+                <TextBox PlaceholderText="Search tasks by title, description, or category"
+                         Text="{Binding SearchTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         AutomationProperties.Name="Task search input" />
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox Grid.Column="0"
+                              Header="Page size"
+                              ItemsSource="{Binding PageSizeOptions}"
+                              SelectedItem="{Binding SelectedPageSize, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="Task page size" />
+
+                    <Button Grid.Column="1"
+                            Command="{Binding Search}"
+                            Style="{StaticResource FormActionButtonStyle}"
+                            AutomationProperties.Name="Search tasks">
+                        <TextBlock Text="Search" />
+                    </Button>
+                </Grid>
+            </utu:AutoLayout>
+        </Border>
+
+        <!-- Task List — bound directly to TaskPage state (no FeedView wrapper) -->
+        <Grid Grid.Row="2" RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <CheckBox Grid.Column="0"
-                                      IsChecked="{Binding Status, Converter={x:Null}}"
-                                      Command="{Binding DataContext.ToggleStatus, ElementName=TaskListRoot}"
-                                      CommandParameter="{Binding}"
-                                      VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="0"
+                                       Style="{StaticResource BodyMedium}"
+                                       Foreground="{ThemeResource OnSurfaceVariantBrush}">
+                                <Run Text="Showing " />
+                                <Run Text="{Binding StartItemNumber}" />
+                                <Run Text=" to " />
+                                <Run Text="{Binding EndItemNumber}" />
+                                <Run Text=" of " />
+                                <Run Text="{Binding TotalCount}" />
+                                <Run Text=" tasks" />
+                            </TextBlock>
 
-                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Title}"
-                                           Style="{StaticResource BodyStrongTextBlockStyle}"
-                                           TextTrimming="CharacterEllipsis" />
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="&#xE8B7;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding CategoryName}" Opacity="0.5"
-                                               Style="{StaticResource CaptionTextBlockStyle}" />
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Border Grid.Column="2" Style="{StaticResource BadgeStyle}">
-                                <TextBlock Text="{Binding Status}" Style="{StaticResource BadgeTextStyle}" />
-                            </Border>
-
-                            <Border Grid.Column="3" Style="{StaticResource BadgeStyle}">
-                                <TextBlock Text="{Binding Priority}" Style="{StaticResource BadgeTextStyle}" />
-                            </Border>
-
-                            <TextBlock Grid.Column="4" Text="{Binding DueDate}" Opacity="0.5"
-                                       Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource BodyMedium}"
+                                       Foreground="{ThemeResource OnSurfaceVariantBrush}">
+                                <Run Text="Page " />
+                                <Run Text="{Binding PageNumber}" />
+                                <Run Text=" of " />
+                                <Run Text="{Binding TotalPages}" />
+                            </TextBlock>
                         </Grid>
-                    </Border>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+
+                        <Border Grid.Row="1"
+                                Style="{StaticResource ListItemCardStyle}"
+                                Background="{ThemeResource SurfaceBrush}"
+                                Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.2*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="Task" Style="{StaticResource StatLabelStyle}" />
+                                    <TextBlock Grid.Column="1" Text="Status" Style="{StaticResource StatLabelStyle}" />
+                                    <TextBlock Grid.Column="2" Text="Category" Style="{StaticResource StatLabelStyle}" />
+                                    <TextBlock Grid.Column="3" Text="Priority" Style="{StaticResource StatLabelStyle}" />
+                                    <TextBlock Grid.Column="4" Text="Start" Style="{StaticResource StatLabelStyle}" />
+                                    <TextBlock Grid.Column="5" Text="Due" Style="{StaticResource StatLabelStyle}" />
+                                </Grid>
+                            </Border>
+
+                        <!-- Scrollable items region — only this row scrolls; header/pager stay fixed -->
+                        <ScrollViewer Grid.Row="2"
+                                      VerticalScrollMode="Auto"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollMode="Disabled"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                            <ItemsControl ItemsSource="{Binding Items}"
+                                          Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="4" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button uen:Navigation.Request="TaskItem"
+                                                uen:Navigation.Data="{Binding}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Stretch"
+                                                VerticalAlignment="Top"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="0"
+                                                Margin="0,2"
+                                                Foreground="{ThemeResource OnSurfaceBrush}">
+                                            <Border Style="{StaticResource ListItemCardStyle}">
+                                                <Grid ColumnSpacing="16">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2.2*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <utu:AutoLayout Spacing="4" utu:AutoLayout.PrimaryAlignment="Stretch">
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                                   Foreground="{ThemeResource OnSurfaceBrush}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Description}"
+                                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                                   Foreground="{ThemeResource OnSurfaceVariantBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxLines="2" />
+                                                    </utu:AutoLayout>
+
+                                                    <Border Grid.Column="1" Style="{StaticResource BadgeStyle}" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Status}" Style="{StaticResource BadgeTextStyle}" HorizontalAlignment="Center" />
+                                                    </Border>
+
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding CategoryName, TargetNullValue=Unassigned}"
+                                                               Style="{StaticResource BodyMedium}"
+                                                               Foreground="{ThemeResource OnSurfaceBrush}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+
+                                                    <Border Grid.Column="3" Style="{StaticResource BadgeStyle}" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Priority}" Style="{StaticResource BadgeTextStyle}" HorizontalAlignment="Center" />
+                                                    </Border>
+
+                                                    <TextBlock Grid.Column="4"
+                                                               Text="{Binding StartDate, Converter={StaticResource NullableDateToShortDate}}"
+                                                               Style="{StaticResource BodyMedium}"
+                                                               Foreground="{ThemeResource OnSurfaceBrush}"
+                                                               VerticalAlignment="Center" />
+
+                                                    <TextBlock Grid.Column="5"
+                                                               Text="{Binding DueDate, Converter={StaticResource NullableDateToShortDate}}"
+                                                               Style="{StaticResource BodyMedium}"
+                                                               Foreground="{ThemeResource OnSurfaceBrush}"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ItemsControl ItemsSource="{Binding Items}"
+                                          Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="4" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button uen:Navigation.Request="TaskItem"
+                                                uen:Navigation.Data="{Binding}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Stretch"
+                                                VerticalAlignment="Top"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="0"
+                                                Margin="0,2"
+                                                Foreground="{ThemeResource OnSurfaceBrush}">
+                                            <Border Style="{StaticResource ListItemCardStyle}"
+                                                    Background="{ThemeResource SurfaceBrush}">
+                                                <utu:AutoLayout Spacing="12"
+                                                                utu:AutoLayout.PrimaryAlignment="Stretch">
+                                                    <Grid ColumnSpacing="10">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                                   Foreground="{ThemeResource OnSurfaceBrush}"
+                                                                   TextWrapping="WrapWholeWords"
+                                                                   MaxLines="2" />
+
+                                                        <Border Grid.Column="1"
+                                                                Style="{StaticResource BadgeStyle}"
+                                                                VerticalAlignment="Top">
+                                                            <TextBlock Text="{Binding Status}"
+                                                                       Style="{StaticResource BadgeTextStyle}"
+                                                                       HorizontalAlignment="Center" />
+                                                        </Border>
+                                                    </Grid>
+
+                                                    <TextBlock Text="{Binding Description}"
+                                                               Style="{StaticResource BodyMedium}"
+                                                               Foreground="{ThemeResource OnSurfaceVariantBrush}"
+                                                               TextWrapping="WrapWholeWords"
+                                                               MaxLines="3" />
+
+                                                    <Grid ColumnSpacing="16" RowSpacing="8">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <utu:AutoLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                                            <TextBlock Text="Category"
+                                                                       Style="{StaticResource StatLabelStyle}"
+                                                                       Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                                                            <TextBlock Text="{Binding CategoryName, TargetNullValue=Unassigned}"
+                                                                       Style="{StaticResource BodyMedium}"
+                                                                       Foreground="{ThemeResource OnSurfaceBrush}"
+                                                                       TextWrapping="WrapWholeWords" />
+                                                        </utu:AutoLayout>
+
+                                                        <utu:AutoLayout Grid.Row="0" Grid.Column="1" Spacing="2">
+                                                            <TextBlock Text="Priority"
+                                                                       Style="{StaticResource StatLabelStyle}"
+                                                                       Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                                                            <TextBlock Text="{Binding Priority}"
+                                                                       Style="{StaticResource BodyMedium}"
+                                                                       Foreground="{ThemeResource OnSurfaceBrush}" />
+                                                        </utu:AutoLayout>
+
+                                                        <utu:AutoLayout Grid.Row="1" Grid.Column="0" Spacing="2">
+                                                            <TextBlock Text="Start"
+                                                                       Style="{StaticResource StatLabelStyle}"
+                                                                       Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                                                            <TextBlock Text="{Binding StartDate, Converter={StaticResource NullableDateToShortDate}}"
+                                                                       Style="{StaticResource BodyMedium}"
+                                                                       Foreground="{ThemeResource OnSurfaceBrush}" />
+                                                        </utu:AutoLayout>
+
+                                                        <utu:AutoLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                                                            <TextBlock Text="Due"
+                                                                       Style="{StaticResource StatLabelStyle}"
+                                                                       Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                                                            <TextBlock Text="{Binding DueDate, Converter={StaticResource NullableDateToShortDate}}"
+                                                                       Style="{StaticResource BodyMedium}"
+                                                                       Foreground="{ThemeResource OnSurfaceBrush}" />
+                                                        </utu:AutoLayout>
+                                                    </Grid>
+                                                </utu:AutoLayout>
+                                            </Border>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="No tasks found. Adjust your search or create a new task."
+                                   Style="{StaticResource EmptyStateTextStyle}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+                        <Grid Grid.Row="3" ColumnSpacing="12"
+                              Visibility="{utu:Responsive Normal=Collapsed, Wide=Visible}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Choose 10, 20, or 50 above and press Search to update the list size."
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource OnSurfaceVariantBrush}"
+                                       VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        Visibility="{Binding ShowPager, Converter={StaticResource BoolToVisibility}}">
+                                <Button Command="{Binding DataContext.FirstPage, ElementName=TaskListRoot}"
+                                        IsEnabled="{Binding HasPreviousPage}"
+                                        Style="{StaticResource PanelNavButtonStyle}">
+                                    <TextBlock Text="First" />
+                                </Button>
+
+                                <Button Command="{Binding DataContext.PreviousPage, ElementName=TaskListRoot}"
+                                        IsEnabled="{Binding HasPreviousPage}"
+                                        Style="{StaticResource PanelNavButtonStyle}">
+                                    <TextBlock Text="Previous" />
+                                </Button>
+
+                                <ItemsControl ItemsSource="{Binding VisiblePageNumbers}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding DataContext.GoToPage, ElementName=TaskListRoot}"
+                                                    CommandParameter="{Binding}"
+                                                    Style="{StaticResource PagerNumberButtonStyle}">
+                                                <TextBlock Text="{Binding}" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Command="{Binding DataContext.NextPage, ElementName=TaskListRoot}"
+                                        IsEnabled="{Binding HasNextPage}"
+                                        Style="{StaticResource PanelNavButtonStyle}">
+                                    <TextBlock Text="Next" />
+                                </Button>
+
+                                <Button Command="{Binding DataContext.LastPage, ElementName=TaskListRoot}"
+                                        IsEnabled="{Binding HasNextPage}"
+                                        Style="{StaticResource FormActionButtonStyle}">
+                                    <TextBlock Text="Last" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <utu:AutoLayout Grid.Row="3" Spacing="12"
+                                        Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}">
+                            <TextBlock Text="Choose 10, 20, or 50 above and press Search to update the list size."
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+
+                            <ScrollViewer HorizontalScrollMode="Enabled"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollMode="Disabled"
+                                          Visibility="{Binding ShowPager, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Command="{Binding DataContext.FirstPage, ElementName=TaskListRoot}"
+                                            IsEnabled="{Binding HasPreviousPage}"
+                                            Style="{StaticResource PanelNavButtonStyle}">
+                                        <TextBlock Text="First" />
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.PreviousPage, ElementName=TaskListRoot}"
+                                            IsEnabled="{Binding HasPreviousPage}"
+                                            Style="{StaticResource PanelNavButtonStyle}">
+                                        <TextBlock Text="Previous" />
+                                    </Button>
+
+                                    <ItemsControl ItemsSource="{Binding VisiblePageNumbers}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="8" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding DataContext.GoToPage, ElementName=TaskListRoot}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource PagerNumberButtonStyle}">
+                                                    <TextBlock Text="{Binding}" />
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button Command="{Binding DataContext.NextPage, ElementName=TaskListRoot}"
+                                            IsEnabled="{Binding HasNextPage}"
+                                            Style="{StaticResource PanelNavButtonStyle}">
+                                        <TextBlock Text="Next" />
+                                    </Button>
+
+                                    <Button Command="{Binding DataContext.LastPage, ElementName=TaskListRoot}"
+                                            IsEnabled="{Binding HasNextPage}"
+                                            Style="{StaticResource FormActionButtonStyle}">
+                                        <TextBlock Text="Last" />
+                                    </Button>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </utu:AutoLayout>
+        </Grid>
     </Grid>
 </Page>

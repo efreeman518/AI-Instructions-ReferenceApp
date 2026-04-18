@@ -65,7 +65,8 @@ public class MockHttpMessageHandlerTests
 
         Assert.IsNotNull(result);
         Assert.IsNotEmpty(result.Items!);
-        Assert.AreEqual("frontend", result.Items![0].Name);
+        // Mock SearchTags orders alphabetically — "backend" sorts before "frontend".
+        Assert.AreEqual("backend", result.Items![0].Name);
     }
 
     [TestMethod]

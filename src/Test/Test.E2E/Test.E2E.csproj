@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="EF.Common.Contracts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Test.Support\Test.Support.csproj" />
+    <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
+    <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
+  </ItemGroup>
+
+</Project>

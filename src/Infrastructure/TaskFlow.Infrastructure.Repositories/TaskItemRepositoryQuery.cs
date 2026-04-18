@@ -90,7 +90,7 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
         };
 
         (var data, var total) = await q.QueryPageProjectionAsync(TaskItemMapper.ProjectorSearch,
-            pageSize: request.PageSize, pageIndex: request.PageIndex,
+            pageSize: request.PageSize, pageIndex: Math.Max(1, request.PageIndex),
             includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
             includes: [.. includesList], cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);
 

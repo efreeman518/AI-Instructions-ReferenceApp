@@ -62,6 +62,7 @@ var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
 // Functions host
 builder.AddProject<Projects.TaskFlow_Functions>("taskflowfunctions")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
+    .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
     .WithReference(blobs)
     .WithReference(serviceBus)
     .WithEnvironment("AzureWebJobsSecretStorageType", "Files")

@@ -31,6 +31,9 @@ public class AttachmentServiceTests
         _tenantBoundaryValidatorMock
             .Setup(x => x.EnsureTenantBoundary(It.IsAny<ILogger>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>()))
             .Returns(Result.Success());
+        _tenantBoundaryValidatorMock
+            .Setup(x => x.PreventTenantChange(It.IsAny<ILogger>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<Guid>()))
+            .Returns(Result.Success());
     }
 
     private AttachmentService CreateService() => new(

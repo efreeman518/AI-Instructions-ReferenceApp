@@ -1,0 +1,66 @@
+@inherits LayoutComponentBase
+@inject FloatService FloatService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<MudThemeProvider IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+        <MudText Typo="Typo.h6" Class="ml-3">TaskFlow</MudText>
+        @if (!string.IsNullOrWhiteSpace(FloatService.ModuleName))
+        {
+            <MudText Typo="Typo.subtitle1" Class="ml-3 mud-text-secondary">/ @FloatService.ModuleName</MudText>
+        }
+        @if (FloatService.RequestIsActive)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ml-3" Color="Color.Secondary" />
+        }
+        <MudSpacer />
+        <MudTooltip Text="Toggle dark mode">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="@(() => _isDarkMode = !_isDarkMode)" />
+        </MudTooltip>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Always">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Navigation</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Href="/tasks" Icon="@Icons.Material.Filled.ListAlt">Tasks</MudNavLink>
+            <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.AccountTree">Categories</MudNavLink>
+            <MudNavLink Href="/tags" Icon="@Icons.Material.Filled.Label">Tags</MudNavLink>
+            <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    protected override void OnInitialized()
+    {
+        FloatService.StateHasChanged = StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        if (FloatService.StateHasChanged == StateHasChanged)
+            FloatService.StateHasChanged = null;
+    }
+}

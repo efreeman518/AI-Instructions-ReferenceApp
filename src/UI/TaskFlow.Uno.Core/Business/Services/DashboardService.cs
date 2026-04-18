@@ -17,7 +17,7 @@ public class DashboardService(ITaskItemApiService taskItemService) : IDashboardS
             BlockedTasks = allTasks.Count(t => t.Status == "Blocked"),
             CancelledTasks = allTasks.Count(t => t.Status == "Cancelled"),
             OverdueTasks = allTasks.Count(t => t.IsOverdue),
-            RecentActivity = allTasks.OrderByDescending(t => t.Id).Take(10).ToList()
+            RecentActivity = allTasks.Take(10).ToList()
         };
     }
 }

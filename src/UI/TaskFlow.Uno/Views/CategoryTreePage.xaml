@@ -4,51 +4,28 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:uen="using:Uno.Extensions.Navigation.UI"
       xmlns:utu="using:Uno.Toolkit.UI"
+      xmlns:uer="using:Uno.Extensions.Reactive.UI"
       Background="{ThemeResource BackgroundBrush}">
 
     <Grid Padding="{utu:Responsive Normal='16,16,16,16', Wide='24,24,24,24'}" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <utu:AutoLayout Grid.Row="0" Orientation="Horizontal" Spacing="8">
-            <Button uen:Navigation.Request="Dashboard"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Dashboard" />
-            </Button>
-            <Button uen:Navigation.Request="TaskList"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Tasks" />
-            </Button>
-            <Button uen:Navigation.Request="Categories"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Categories" />
-            </Button>
-            <Button uen:Navigation.Request="Tags"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Tags" />
-            </Button>
-        </utu:AutoLayout>
-
-        <utu:AutoLayout Grid.Row="1" Spacing="2">
+        <!-- Header -->
+        <utu:AutoLayout Grid.Row="0" Spacing="2">
             <TextBlock Text="Categories" Style="{StaticResource TitleLarge}" />
             <TextBlock Text="Organize tasks with hierarchical categories"
                        Style="{StaticResource BodyMedium}"
                        Foreground="{ThemeResource OnSurfaceVariantBrush}" />
         </utu:AutoLayout>
 
-        <!-- Create Form -->
-        <Border Grid.Row="2" Style="{StaticResource InlineFormCardStyle}">
+        <!-- Create/Edit Form -->
+        <Border Grid.Row="1" Style="{StaticResource InlineFormCardStyle}">
             <utu:AutoLayout Spacing="8">
                 <TextBlock Text="ADD CATEGORY" Style="{StaticResource StatLabelStyle}" />
-                <TextBlock Text="Edit category"
-                           Style="{StaticResource BodyMedium}"
-                           Foreground="{ThemeResource OnSurfaceVariantBrush}"
-                           Visibility="{Binding IsEditing}" />
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -68,14 +45,13 @@
                             Style="{StaticResource FormActionButtonStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE710;" />
-                            <TextBlock Text="Add" VerticalAlignment="Center" Visibility="{Binding IsCreating}" />
-                            <TextBlock Text="Save" VerticalAlignment="Center" Visibility="{Binding IsEditing}" />
+                            <TextBlock Text="Save" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Grid.Column="3"
                             Command="{Binding CancelEdit}"
                             Style="{StaticResource PanelNavButtonStyle}"
-                            Visibility="{Binding IsEditing}">
+                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Text="Cancel" />
                     </Button>
                 </Grid>
@@ -86,59 +62,80 @@
             </utu:AutoLayout>
         </Border>
 
-        <ListView Grid.Row="4" ItemsSource="{Binding Categories}" SelectionMode="None">
-            <ListView.ItemTemplate>
+        <!-- Category List -->
+        <uer:FeedView Grid.Row="2" Source="{Binding Categories}">
+            <uer:FeedView.ValueTemplate>
                 <DataTemplate>
-                    <Border Style="{StaticResource ListItemCardStyle}">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                    <ListView ItemsSource="{Binding Data}" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListItemCardStyle}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                            <FontIcon Glyph="&#xE8B7;"
-                                      FontSize="16"
-                                      Foreground="{StaticResource AccentPrimaryLightBrush}"
-                                      VerticalAlignment="Center" />
+                                        <FontIcon Glyph="&#xE8B7;"
+                                                  FontSize="16"
+                                                  Foreground="{StaticResource AccentPrimaryLightBrush}"
+                                                  VerticalAlignment="Center" />
 
-                            <StackPanel Grid.Column="1" Spacing="2">
-                                <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="{Binding Description}"
-                                           Opacity="0.6"
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBlock Text="{Binding Description}"
+                                                       Opacity="0.6"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
 
-                            <Border Grid.Column="2" Style="{StaticResource BadgeStyle}">
-                                <TextBlock Text="{Binding IsActive}" Style="{StaticResource BadgeTextStyle}" />
-                            </Border>
+                                        <Border Grid.Column="2" Style="{StaticResource BadgeStyle}">
+                                            <TextBlock Text="{Binding IsActive, Converter={StaticResource BoolToActiveText}}" Style="{StaticResource BadgeTextStyle}" />
+                                        </Border>
 
-                            <Button Grid.Column="3"
-                                    Content="&#xE70F;"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    FontSize="14"
-                                    Command="{Binding DataContext.StartEdit, ElementName=CategoryTreeRoot}"
-                                    CommandParameter="{Binding}"
-                                    Background="Transparent"
-                                    Padding="8"
-                                    Opacity="0.7" />
+                                        <Button Grid.Column="3"
+                                                Content="&#xE70F;"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                FontSize="14"
+                                                Command="{Binding DataContext.StartEdit, ElementName=CategoryTreeRoot}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent"
+                                                Padding="8"
+                                                Opacity="0.7" />
 
-                            <Button Grid.Column="4"
-                                    Content="&#xE74D;"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    FontSize="14"
-                                    Command="{Binding DataContext.DeleteCategory, ElementName=CategoryTreeRoot}"
-                                    CommandParameter="{Binding}"
-                                    Background="Transparent"
-                                    Padding="8"
-                                    Foreground="{StaticResource AccentDangerBrush}" />
-                        </Grid>
-                    </Border>
+                                        <Button Grid.Column="4"
+                                                Content="&#xE74D;"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                FontSize="14"
+                                                Command="{Binding DataContext.DeleteCategory, ElementName=CategoryTreeRoot}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent"
+                                                Padding="8"
+                                                Foreground="{StaticResource AccentDangerBrush}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </uer:FeedView.ValueTemplate>
+            <uer:FeedView.ProgressTemplate>
+                <DataTemplate>
+                    <ProgressRing IsActive="True"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Width="48" Height="48" />
+                </DataTemplate>
+            </uer:FeedView.ProgressTemplate>
+            <uer:FeedView.NoneTemplate>
+                <DataTemplate>
+                    <TextBlock Text="No categories yet. Add one above!"
+                               Style="{StaticResource EmptyStateTextStyle}" />
+                </DataTemplate>
+            </uer:FeedView.NoneTemplate>
+        </uer:FeedView>
     </Grid>
 </Page>

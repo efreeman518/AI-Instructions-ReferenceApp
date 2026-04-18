@@ -30,6 +30,7 @@
   <Folder Name="/UI/">
     <Project Path="UI/TaskFlow.Uno/TaskFlow.Uno.csproj" />
     <Project Path="UI/TaskFlow.Uno.Core/TaskFlow.Uno.Core.csproj" />
+    <Project Path="UI/TaskFlow.Blazor/TaskFlow.Blazor.csproj" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/Test.Support/Test.Support.csproj" />
@@ -39,5 +40,6 @@
     <Project Path="Test/Test.Architecture/Test.Architecture.csproj" />
     <Project Path="Test/Test.Load/Test.Load.csproj" />
     <Project Path="Test/Test.Benchmarks/Test.Benchmarks.csproj" />
+    <Project Path="Test/Test.E2E/Test.E2E.csproj" />
   </Folder>
 </Solution>

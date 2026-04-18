@@ -26,7 +26,6 @@ namespace TaskFlow.Infrastructure.Data.Migrations
             modelBuilder.Entity("TaskFlow.Domain.Model.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ContentType")
@@ -63,15 +62,20 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerType", "OwnerId");
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
 
-                    b.ToTable("Attachments", "taskflow");
+                    b.HasIndex("OwnerType", "OwnerId")
+                        .HasDatabaseName("IX_Attachment_OwnerType_OwnerId");
+
+                    b.HasIndex("TenantId", "Id")
+                        .HasDatabaseName("IX_Attachment_TenantId_Id");
+
+                    b.ToTable("Attachment", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.Category", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
@@ -102,15 +106,23 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"));
+
                     b.HasIndex("ParentCategoryId");
 
-                    b.ToTable("Categories", "taskflow");
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_Category_TenantId");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Category_TenantId_Name");
+
+                    b.ToTable("Category", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.ChecklistItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset?>("CompletedDate")
@@ -140,15 +152,21 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("ChecklistItems", "taskflow");
+                    b.HasIndex("TenantId", "TaskItemId")
+                        .HasDatabaseName("CIX_ChecklistItem_TenantId_TaskItemId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("TenantId", "TaskItemId"));
+
+                    b.ToTable("ChecklistItem", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.Comment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Body")
@@ -169,15 +187,21 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("Comments", "taskflow");
+                    b.HasIndex("TenantId", "TaskItemId")
+                        .HasDatabaseName("CIX_Comment_TenantId_TaskItemId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("TenantId", "TaskItemId"));
+
+                    b.ToTable("Comment", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.Tag", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Color")
@@ -199,13 +223,21 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags", "taskflow");
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"));
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_Tag_TenantId");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Tag_TenantId_Name");
+
+                    b.ToTable("Tag", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("ActualEffort")
@@ -253,17 +285,31 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_TaskItem_CategoryId");
 
                     b.HasIndex("ParentTaskItemId");
 
-                    b.ToTable("TaskItems", "taskflow");
+                    b.HasIndex("Priority")
+                        .HasDatabaseName("IX_TaskItem_Priority");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_TaskItem_Status");
+
+                    b.HasIndex("TenantId", "Id")
+                        .IsUnique()
+                        .HasDatabaseName("CIX_TaskItem_TenantId_Id");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("TenantId", "Id"));
+
+                    b.ToTable("TaskItem", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.TaskItemTag", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("RowVersion")
@@ -282,12 +328,20 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
                     b.HasIndex("TagId");
 
                     b.HasIndex("TaskItemId", "TagId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_TaskItemTag_TaskItemId_TagId");
 
-                    b.ToTable("TaskItemTags", "taskflow");
+                    b.HasIndex("TenantId", "TaskItemId")
+                        .HasDatabaseName("CIX_TaskItemTag_TenantId_TaskItemId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("TenantId", "TaskItemId"));
+
+                    b.ToTable("TaskItemTag", "taskflow");
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Model.Category", b =>
@@ -349,7 +403,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                             b1.HasKey("TaskItemId");
 
-                            b1.ToTable("TaskItems", "taskflow");
+                            b1.ToTable("TaskItem", "taskflow");
 
                             b1.WithOwner()
                                 .HasForeignKey("TaskItemId");
@@ -376,7 +430,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                             b1.HasKey("TaskItemId");
 
-                            b1.ToTable("TaskItems", "taskflow");
+                            b1.ToTable("TaskItem", "taskflow");
 
                             b1.WithOwner()
                                 .HasForeignKey("TaskItemId");

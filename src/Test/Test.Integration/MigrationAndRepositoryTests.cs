@@ -193,7 +193,7 @@ public class MigrationAndRepositoryTests
         var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM taskflow.Categories WHERE Name LIKE 'Tenant%Cat'";
+        cmd.CommandText = "SELECT COUNT(*) FROM taskflow.Category WHERE Name LIKE 'Tenant%Cat'";
         var rawCount = (int)(await cmd.ExecuteScalarAsync())!;
         Assert.IsGreaterThanOrEqualTo(rawCount, 2, $"Expected at least 2 categories in raw query, found {rawCount}");
 
@@ -231,7 +231,7 @@ public class MigrationAndRepositoryTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = 'taskflow' AND TABLE_NAME = 'Attachments'
+            WHERE TABLE_SCHEMA = 'taskflow' AND TABLE_NAME = 'Attachment'
             AND COLUMN_NAME IN ('Id','TenantId','FileName','ContentType','FileSizeBytes','StorageUri','OwnerType','OwnerId')";
         var colCount = (int)(await cmd.ExecuteScalarAsync())!;
         Assert.AreEqual(8, colCount, "Attachments table should have 8 expected columns");
@@ -242,7 +242,7 @@ public class MigrationAndRepositoryTests
             SELECT COUNT(*) FROM sys.indexes i
             JOIN sys.tables t ON i.object_id = t.object_id
             JOIN sys.schemas s ON t.schema_id = s.schema_id
-            WHERE s.name = 'taskflow' AND t.name = 'Attachments' AND i.name LIKE '%OwnerType_OwnerId%'";
+            WHERE s.name = 'taskflow' AND t.name = 'Attachment' AND i.name LIKE '%OwnerType_OwnerId%'";
         var idxCount = (int)(await idxCmd.ExecuteScalarAsync())!;
         Assert.AreEqual(1, idxCount, "Expected composite index on OwnerType+OwnerId");
     }

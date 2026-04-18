@@ -1,69 +1,78 @@
 <Page x:Class="TaskFlow.Uno.Views.SettingsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:uen="using:Uno.Extensions.Navigation.UI"
       xmlns:utu="using:Uno.Toolkit.UI"
       Background="{ThemeResource BackgroundBrush}">
 
     <ScrollViewer>
-        <utu:AutoLayout Spacing="16"
-                        Padding="{utu:Responsive Normal='16,12,16,16', Wide='24,16,24,24'}"
-                        MaxWidth="{utu:Responsive Normal=10000, Wide=560}"
-                        HorizontalAlignment="Left">
+        <utu:AutoLayout Padding="{utu:Responsive Normal='16,16,16,16', Wide='32,24,32,24'}"
+                        Spacing="20"
+                        MaxWidth="1200"
+                        utu:AutoLayout.PrimaryAlignment="Stretch">
 
-            <!-- Back link -->
-            <Button uen:Navigation.Request="Dashboard"
-                    Style="{StaticResource TextButtonStyle}"
-                    Padding="0,4">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE72B;" FontSize="12" />
-                    <TextBlock Text="Back to Dashboard" Style="{StaticResource LabelMedium}" />
-                </StackPanel>
-            </Button>
+            <!-- Page Header -->
+            <utu:AutoLayout Spacing="4" Padding="0,4,0,0">
+                <TextBlock Text="Settings" Style="{StaticResource TitleLarge}" />
+                <TextBlock Text="Configure application preferences"
+                           Foreground="{ThemeResource OnSurfaceVariantBrush}"
+                           Style="{StaticResource BodyMedium}" />
+            </utu:AutoLayout>
 
-            <TextBlock Text="Settings" Style="{StaticResource TitleLarge}" />
-            <TextBlock Text="Configure application preferences"
-                       Style="{StaticResource BodyMedium}"
-                       Foreground="{ThemeResource OnSurfaceVariantBrush}"
-                       Margin="0,0,0,4" />
-
-                <utu:CardContentControl Style="{StaticResource FilledCardContentControlStyle}">
-                    <utu:AutoLayout Spacing="16">
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <FontIcon Glyph="&#xE774;" FontSize="18" Foreground="{StaticResource AccentInfoBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="API Configuration" Style="{StaticResource TitleSmall}" />
-                        </Grid>
-
-                        <TextBox Header="Gateway URL" Text="{Binding GatewayUrl, Mode=TwoWay}" />
-
-                        <ToggleSwitch Header="Use Mock Data" IsOn="{Binding UseMocks, Mode=TwoWay}"
-                                      OnContent="Using mock data" OffContent="Using live API" />
+            <!-- API Configuration -->
+            <Border Background="{ThemeResource SurfaceVariantBrush}"
+                    CornerRadius="16"
+                    Padding="20">
+                <utu:AutoLayout Spacing="16">
+                    <utu:AutoLayout Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE774;" FontSize="20"
+                                  Foreground="{ThemeResource PrimaryBrush}"
+                                  utu:AutoLayout.CounterAlignment="Center" />
+                        <TextBlock Text="API Configuration"
+                                   Style="{StaticResource TitleMedium}"
+                                   Foreground="{ThemeResource OnSurfaceBrush}"
+                                   utu:AutoLayout.CounterAlignment="Center" />
                     </utu:AutoLayout>
-                </utu:CardContentControl>
 
-                <utu:CardContentControl Style="{StaticResource FilledCardContentControlStyle}">
-                    <utu:AutoLayout Spacing="12">
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <FontIcon Glyph="&#xE946;" FontSize="18" Foreground="{StaticResource AccentPrimaryLightBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="About" Style="{StaticResource TitleSmall}" />
-                        </Grid>
+                    <TextBox Header="Gateway URL"
+                             Text="{Binding GatewayUrl, Mode=TwoWay}"
+                             PlaceholderText="https://localhost:7120" />
 
-                        <utu:AutoLayout Spacing="4">
-                            <TextBlock Text="TaskFlow" Style="{StaticResource BodyStrongTextBlockStyle}" FontSize="16" />
-                            <TextBlock Text="Version 1.0" Opacity="0.6" />
-                            <TextBlock Text="Built with Uno Platform + .NET 10" Opacity="0.5"
-                                       Style="{StaticResource CaptionTextBlockStyle}" />
-                        </utu:AutoLayout>
+                    <ToggleSwitch Header="Use Mock Data"
+                                  IsOn="{Binding UseMocks, Mode=TwoWay}"
+                                  OnContent="Using mock data"
+                                  OffContent="Using live API" />
+                </utu:AutoLayout>
+            </Border>
+
+            <!-- About -->
+            <Border Background="{ThemeResource SurfaceVariantBrush}"
+                    CornerRadius="16"
+                    Padding="20">
+                <utu:AutoLayout Spacing="12">
+                    <utu:AutoLayout Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE946;" FontSize="20"
+                                  Foreground="{StaticResource AccentInfoBrush}"
+                                  utu:AutoLayout.CounterAlignment="Center" />
+                        <TextBlock Text="About"
+                                   Style="{StaticResource TitleMedium}"
+                                   Foreground="{ThemeResource OnSurfaceBrush}"
+                                   utu:AutoLayout.CounterAlignment="Center" />
                     </utu:AutoLayout>
-                </utu:CardContentControl>
+
+                    <utu:AutoLayout Spacing="4">
+                        <TextBlock Text="TaskFlow"
+                                   Style="{StaticResource TitleSmall}"
+                                   Foreground="{ThemeResource OnSurfaceBrush}" />
+                        <TextBlock Text="Version 1.0"
+                                   Style="{StaticResource BodySmall}"
+                                   Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                        <TextBlock Text="Built with Uno Platform + .NET 10"
+                                   Style="{StaticResource LabelSmall}"
+                                   Foreground="{ThemeResource OnSurfaceVariantBrush}" />
+                    </utu:AutoLayout>
+                </utu:AutoLayout>
+            </Border>
+
         </utu:AutoLayout>
     </ScrollViewer>
 </Page>

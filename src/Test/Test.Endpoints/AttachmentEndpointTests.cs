@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Application.Models;
@@ -11,6 +13,11 @@ namespace Test.Endpoints;
 public class AttachmentEndpointTests
 {
     private static CustomApiFactory _factory = null!;
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
@@ -23,8 +30,8 @@ public class AttachmentEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForAttachment", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/task-items", dto);
-        var created = await response.Content.ReadFromJsonAsync<TaskItemDto>();
+        var response = await client.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
         return created!.Id!.Value;
     }
 
@@ -44,10 +51,10 @@ public class AttachmentEndpointTests
             OwnerId = taskId
         };
 
-        var response = await client.PostAsJsonAsync("/api/attachments", dto);
+        var response = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<AttachmentDto>();
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("test.pdf", created.FileName);
     }
@@ -67,13 +74,13 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<AttachmentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
         var response = await client.GetAsync($"/api/attachments/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<AttachmentDto>();
+        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
         Assert.IsNotNull(result);
         Assert.AreEqual("get-test.docx", result.FileName);
     }
@@ -104,8 +111,8 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<AttachmentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
         var updateDto = new AttachmentDto
         {
@@ -117,10 +124,10 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var response = await client.PutAsJsonAsync($"/api/attachments/{created.Id}", updateDto);
+        var response = await client.PutAsJsonAsync($"/api/attachments/{created.Id}", new DefaultRequest<AttachmentDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = await response.Content.ReadFromJsonAsync<AttachmentDto>();
+        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
         Assert.AreEqual("after.png", updated!.FileName);
     }
 
@@ -139,8 +146,8 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<AttachmentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
         var response = await client.DeleteAsync($"/api/attachments/{created!.Id}");
 
@@ -176,7 +183,7 @@ public class AttachmentEndpointTests
         var response = await client.PostAsync("/api/attachments/upload", content);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<AttachmentDto>();
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("upload-test.txt", created.FileName);
         Assert.Contains("upload-test.txt", created.StorageUri);

@@ -4,36 +4,18 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:uen="using:Uno.Extensions.Navigation.UI"
       xmlns:utu="using:Uno.Toolkit.UI"
+      xmlns:uer="using:Uno.Extensions.Reactive.UI"
       Background="{ThemeResource BackgroundBrush}">
 
     <Grid Padding="{utu:Responsive Normal='16,16,16,16', Wide='24,24,24,24'}" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <utu:AutoLayout Grid.Row="0" Orientation="Horizontal" Spacing="8">
-            <Button uen:Navigation.Request="Dashboard"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Dashboard" />
-            </Button>
-            <Button uen:Navigation.Request="TaskList"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Tasks" />
-            </Button>
-            <Button uen:Navigation.Request="Categories"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Categories" />
-            </Button>
-            <Button uen:Navigation.Request="Tags"
-                    Style="{StaticResource PanelNavButtonStyle}">
-                <TextBlock Text="Tags" />
-            </Button>
-        </utu:AutoLayout>
-
-        <utu:AutoLayout Grid.Row="1" Spacing="2">
+        <!-- Header -->
+        <utu:AutoLayout Grid.Row="0" Spacing="2">
             <TextBlock Text="Tags" Style="{StaticResource TitleLarge}" />
             <TextBlock Text="Label and color-code your tasks"
                        Style="{StaticResource BodyMedium}"
@@ -41,7 +23,7 @@
         </utu:AutoLayout>
 
         <!-- Create Form -->
-        <Border Grid.Row="2" Style="{StaticResource InlineFormCardStyle}">
+        <Border Grid.Row="1" Style="{StaticResource InlineFormCardStyle}">
             <utu:AutoLayout Spacing="8">
                 <TextBlock Text="ADD TAG" Style="{StaticResource StatLabelStyle}" />
                 <Grid ColumnSpacing="8">
@@ -50,8 +32,10 @@
                         <ColumnDefinition Width="120" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" PlaceholderText="Tag name" Text="{Binding NewTagName, Mode=TwoWay}" MinHeight="48" />
-                    <TextBox Grid.Column="1" PlaceholderText="#hex color" Text="{Binding NewTagColor, Mode=TwoWay}" MinHeight="48" />
+                    <TextBox Grid.Column="0" PlaceholderText="Tag name"
+                             Text="{Binding NewTagName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="48" />
+                    <TextBox Grid.Column="1" PlaceholderText="#hex color"
+                             Text="{Binding NewTagColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="48" />
                     <Button Grid.Column="2"
                             Command="{Binding CreateTag}"
                             Style="{StaticResource FormActionButtonStyle}">
@@ -65,42 +49,62 @@
         </Border>
 
         <!-- Tag List -->
-        <ListView Grid.Row="3" ItemsSource="{Binding Tags}" SelectionMode="None">
-            <ListView.ItemTemplate>
+        <uer:FeedView Grid.Row="2" Source="{Binding Tags}">
+            <uer:FeedView.ValueTemplate>
                 <DataTemplate>
-                    <Border Style="{StaticResource ListItemCardStyle}">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                    <ListView ItemsSource="{Binding Data}" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListItemCardStyle}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                            <Border Grid.Column="0" Width="24" Height="24" CornerRadius="12"
-                                    Background="{Binding Color}" VerticalAlignment="Center">
-                                <FontIcon Glyph="&#xE8EC;" FontSize="12" Foreground="White"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
+                                        <Border Grid.Column="0" Width="24" Height="24" CornerRadius="12"
+                                                Background="{Binding Color}" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE8EC;" FontSize="12" Foreground="White"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
 
-                            <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                       Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
 
-                            <Button Grid.Column="2" Content="&#xE70F;"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"
-                                    Command="{Binding DataContext.StartEdit, ElementName=TagManagementRoot}"
-                                    CommandParameter="{Binding}"
-                                    Background="Transparent" Padding="8" Opacity="0.6" />
+                                        <Button Grid.Column="2" Content="&#xE70F;"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"
+                                                Command="{Binding DataContext.StartEdit, ElementName=TagManagementRoot}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" Padding="8" Opacity="0.6" />
 
-                            <Button Grid.Column="3" Content="&#xE74D;"
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"
-                                    Command="{Binding DataContext.DeleteTag, ElementName=TagManagementRoot}"
-                                    CommandParameter="{Binding}"
-                                    Background="Transparent" Padding="8" Foreground="{StaticResource AccentDangerBrush}" />
-                        </Grid>
-                    </Border>
+                                        <Button Grid.Column="3" Content="&#xE74D;"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="14"
+                                                Command="{Binding DataContext.DeleteTag, ElementName=TagManagementRoot}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" Padding="8" Foreground="{StaticResource AccentDangerBrush}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </uer:FeedView.ValueTemplate>
+            <uer:FeedView.ProgressTemplate>
+                <DataTemplate>
+                    <ProgressRing IsActive="True"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Width="48" Height="48" />
+                </DataTemplate>
+            </uer:FeedView.ProgressTemplate>
+            <uer:FeedView.NoneTemplate>
+                <DataTemplate>
+                    <TextBlock Text="No tags yet. Add one above!"
+                               Style="{StaticResource EmptyStateTextStyle}" />
+                </DataTemplate>
+            </uer:FeedView.NoneTemplate>
+        </uer:FeedView>
     </Grid>
 </Page>

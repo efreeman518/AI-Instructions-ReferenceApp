@@ -83,6 +83,9 @@
   </ItemGroup>
   <ItemGroup Label="UI">
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="MudBlazor" Version="9.2.0" />
+    <PackageVersion Include="Refit" Version="10.0.1" />
+    <PackageVersion Include="Refit.HttpClientFactory" Version="10.0.1" />
   </ItemGroup>
   <ItemGroup Label="Azure Storage">
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />

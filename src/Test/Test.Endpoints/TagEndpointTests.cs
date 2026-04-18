@@ -26,10 +26,10 @@ public class TagEndpointTests
         using var client = CreateClient();
         var dto = new TagDto { Name = "Urgent", Color = "#FF0000" };
 
-        var response = await client.PostAsJsonAsync("/api/tags", dto);
+        var response = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<TagDto>();
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Urgent", created.Name);
         Assert.IsNotNull(created.Id);
@@ -41,13 +41,13 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "GetTag", Color = "#00FF00" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TagDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
         var response = await client.GetAsync($"/api/tags/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<TagDto>();
+        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
         Assert.IsNotNull(result);
         Assert.AreEqual("GetTag", result.Name);
     }
@@ -69,14 +69,14 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "BeforeTag", Color = "#111111" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TagDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
         var updateDto = new TagDto { Id = created!.Id, Name = "AfterTag", Color = "#222222" };
-        var response = await client.PutAsJsonAsync($"/api/tags/{created.Id}", updateDto);
+        var response = await client.PutAsJsonAsync($"/api/tags/{created.Id}", new DefaultRequest<TagDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = await response.Content.ReadFromJsonAsync<TagDto>();
+        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
         Assert.AreEqual("AfterTag", updated!.Name);
     }
 
@@ -86,8 +86,8 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "ToDeleteTag", Color = "#333333" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TagDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
         var response = await client.DeleteAsync($"/api/tags/{created!.Id}");
 

@@ -1,0 +1,202 @@
+@page "/tasks"
+@inject FloatService FloatService
+@inject ITaskFlowApiClient Api
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@implements IDisposable
+
+<PageTitle>Tasks - TaskFlow</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4">Tasks</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Nav.NavigateTo("/tasks/new"))">New Task</MudButton>
+</div>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_searchTerm" Label="Search" Placeholder="Title or description"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+                          OnKeyDown="OnSearchKey" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="TaskItemStatus?" @bind-Value="_status" Label="Status" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var s in _statusOptions)
+                {
+                    <MudSelectItem Value="@((TaskItemStatus?)s)">@s</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Priority?" @bind-Value="_priority" Label="Priority" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var p in _priorityOptions)
+                {
+                    <MudSelectItem Value="@((Priority?)p)">@p</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="@FloatService.RequestIsActive">Search</MudButton>
+            <MudButton Class="ml-2" OnClick="ClearFilters">Clear</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" ServerData="LoadServerData" Hover="true" Dense="true" Striped="true"
+          Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Title</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Priority</MudTh>
+        <MudTh>Due</MudTh>
+        <MudTh>Completed</MudTh>
+        <MudTh Style="width: 140px;">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Title">@context.Title</MudTd>
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Priority">@context.Priority</MudTd>
+        <MudTd DataLabel="Due">@(context.DueDate?.LocalDateTime.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+        <MudTd DataLabel="Completed">@(context.CompletedDate?.LocalDateTime.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+        <MudTd>
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle"
+                           Color="@(context.Status == TaskItemStatus.Completed ? Color.Success : Color.Default)"
+                           OnClick="@(() => ToggleStatusAsync(context))" />
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => Nav.NavigateTo($"/tasks/{context.Id}"))" />
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                           OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent><MudText>No tasks found.</MudText></NoRecordsContent>
+    <LoadingContent><MudText>Loading...</MudText></LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<TaskItemDto> _table = null!;
+    private string? _searchTerm;
+    private TaskItemStatus? _status;
+    private Priority? _priority;
+    private bool _loading;
+
+    private static readonly TaskItemStatus[] _statusOptions =
+        Enum.GetValues<TaskItemStatus>().Where(s => s != TaskItemStatus.None).ToArray();
+    private static readonly Priority[] _priorityOptions =
+        Enum.GetValues<Priority>().Where(p => p != Priority.None).ToArray();
+
+    protected override void OnInitialized()
+    {
+        FloatService.ModuleName = "Tasks";
+        FloatService.TaskItemsChanged += OnExternalChange;
+    }
+
+    private async Task<TableData<TaskItemDto>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        _loading = true;
+        var request = new SearchRequest<TaskItemSearchFilter>
+        {
+            PageIndex = state.Page,
+            PageSize = state.PageSize,
+            Filter = new TaskItemSearchFilter
+            {
+                SearchTerm = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+                Status = _status,
+                Priority = _priority
+            }
+        };
+        var response = await FloatService.ExecuteWithProgressAsync(
+            () => Api.SearchTaskItemsAsync(request, ct), "Failed to search tasks.");
+        _loading = false;
+        return new TableData<TaskItemDto>
+        {
+            Items = response?.Data ?? Enumerable.Empty<TaskItemDto>(),
+            TotalItems = response?.Total ?? 0
+        };
+    }
+
+    private async Task SearchAsync() => await _table.ReloadServerData();
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = null;
+        _status = null;
+        _priority = null;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchAsync();
+    }
+
+    private async Task ToggleStatusAsync(TaskItemDto item)
+    {
+        var newStatus = item.Status == TaskItemStatus.Completed
+            ? TaskItemStatus.Open
+            : TaskItemStatus.Completed;
+        var updated = item with { Status = newStatus };
+
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.UpdateTaskItemAsync(item.Id!.Value, new DefaultRequest<TaskItemDto> { Item = updated }),
+            "Failed to update status.");
+        if (ok is not null)
+        {
+            FloatService.ShowSnack($"Task marked {newStatus}.", Severity.Success);
+            FloatService.NotifyTaskItemsChanged();
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task DeleteAsync(TaskItemDto item)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Delete task",
+            Message = $"Delete '{item.Title}'? This cannot be undone.",
+            YesText = "Delete",
+            CancelText = "Cancel"
+        });
+        if (confirm != true) return;
+
+        var ok = await FloatService.ExecuteWithProgressAsync(
+            () => Api.DeleteTaskItemAsync(item.Id!.Value), "Failed to delete task.");
+        if (ok)
+        {
+            FloatService.ShowSnack("Task deleted.", Severity.Success);
+            FloatService.NotifyTaskItemsChanged();
+            await _table.ReloadServerData();
+        }
+    }
+
+    private static Color StatusColor(TaskItemStatus s) => s switch
+    {
+        TaskItemStatus.Open => Color.Info,
+        TaskItemStatus.InProgress => Color.Warning,
+        TaskItemStatus.Blocked => Color.Error,
+        TaskItemStatus.Completed => Color.Success,
+        TaskItemStatus.Cancelled => Color.Dark,
+        _ => Color.Default
+    };
+
+    private async void OnExternalChange()
+    {
+        await InvokeAsync(async () => await _table.ReloadServerData());
+    }
+
+    public void Dispose()
+    {
+        FloatService.TaskItemsChanged -= OnExternalChange;
+    }
+}

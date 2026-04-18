@@ -20,11 +20,14 @@ public class DashboardServiceTests
 
         var summary = await dashboardService.GetSummaryAsync();
 
-        Assert.AreEqual(3, summary.TotalTasks);
-        Assert.AreEqual(1, summary.OpenTasks);       // Fix login validation
-        Assert.AreEqual(1, summary.InProgressTasks);  // Build dashboard UI
-        Assert.AreEqual(1, summary.CompletedTasks);   // Write documentation
-        Assert.IsGreaterThanOrEqualTo(summary.OverdueTasks, 1);     // Fix login validation is overdue
+        Assert.AreEqual(14, summary.TotalTasks);
+        Assert.AreEqual(7, summary.OpenTasks);
+        Assert.AreEqual(3, summary.InProgressTasks);
+        Assert.AreEqual(2, summary.CompletedTasks);
+        Assert.AreEqual(1, summary.BlockedTasks);
+        Assert.AreEqual(1, summary.CancelledTasks);
+        // Signature is IsGreaterThanOrEqualTo(lowerBound, value) — asserts value >= lowerBound.
+        Assert.IsGreaterThanOrEqualTo(1, summary.OverdueTasks);     // at least "Fix login validation" is overdue
         Assert.IsNotEmpty(summary.RecentActivity);
     }
 }

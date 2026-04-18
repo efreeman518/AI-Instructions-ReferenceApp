@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
 
@@ -9,6 +11,11 @@ namespace Test.Endpoints;
 public class CommentEndpointTests
 {
     private static CustomApiFactory _factory = null!;
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
@@ -21,8 +28,8 @@ public class CommentEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForComment", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/task-items", dto);
-        var created = await response.Content.ReadFromJsonAsync<TaskItemDto>();
+        var response = await client.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
         return created!.Id!.Value;
     }
 
@@ -34,10 +41,10 @@ public class CommentEndpointTests
         var taskId = await CreateParentTaskItem(client);
         var dto = new CommentDto { Body = "Test comment", TaskItemId = taskId };
 
-        var response = await client.PostAsJsonAsync("/api/comments", dto);
+        var response = await client.PostAsJsonAsync("/api/comments", new DefaultRequest<CommentDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<CommentDto>();
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Test comment", created.Body);
     }
@@ -49,13 +56,13 @@ public class CommentEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new CommentDto { Body = "GetComment body", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/comments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<CommentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/comments", new DefaultRequest<CommentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
 
         var response = await client.GetAsync($"/api/comments/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<CommentDto>();
+        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
         Assert.IsNotNull(result);
         Assert.AreEqual("GetComment body", result.Body);
     }
@@ -78,14 +85,14 @@ public class CommentEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new CommentDto { Body = "Before update", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/comments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<CommentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/comments", new DefaultRequest<CommentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
 
         var updateDto = new CommentDto { Id = created!.Id, Body = "After update", TaskItemId = taskId };
-        var response = await client.PutAsJsonAsync($"/api/comments/{created.Id}", updateDto);
+        var response = await client.PutAsJsonAsync($"/api/comments/{created.Id}", new DefaultRequest<CommentDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = await response.Content.ReadFromJsonAsync<CommentDto>();
+        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
         Assert.AreEqual("After update", updated!.Body);
     }
 
@@ -96,8 +103,8 @@ public class CommentEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new CommentDto { Body = "ToDelete comment", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/comments", dto);
-        var created = await createResponse.Content.ReadFromJsonAsync<CommentDto>();
+        var createResponse = await client.PostAsJsonAsync("/api/comments", new DefaultRequest<CommentDto> { Item = dto });
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
 
         var response = await client.DeleteAsync($"/api/comments/{created!.Id}");
 

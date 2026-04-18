@@ -28,7 +28,7 @@ public partial class App : Application
                 .UseHttp((context, services) =>
                 {
                     var gatewayUrl = context.Configuration["GatewayBaseUrl"] ?? "https://localhost:7120";
-                    services.AddTransient<MockHttpMessageHandler>();
+                    services.AddSingleton<MockHttpMessageHandler>();
                     services
                         .AddHttpClient<TaskFlowApiClient>(client =>
                             client.BaseAddress = new Uri(gatewayUrl))
@@ -55,7 +55,11 @@ public partial class App : Application
                 .ConfigureServices((context, services) =>
                 {
                     services
-                        .AddSingleton<IMessenger, WeakReferenceMessenger>()
+                        // StrongReferenceMessenger: MVUX bindables hold models
+                        // weakly in some scenarios, so WeakReferenceMessenger
+                        // registrations get GC'd and cross-model refresh
+                        // messages (TaskItemsChangedMessage) silently drop.
+                        .AddSingleton<IMessenger, StrongReferenceMessenger>()
                         .AddSingleton<ITaskItemApiService, TaskItemApiService>()
                         .AddSingleton<ICategoryApiService, CategoryApiService>()
                         .AddSingleton<ITagApiService, TagApiService>()
@@ -64,7 +68,10 @@ public partial class App : Application
                         .AddSingleton<IAttachmentApiService, AttachmentApiService>()
                         .AddSingleton<IDashboardService, DashboardService>();
                 })
-                .UseNavigation(ReactiveViewModelMappings.ViewModelMappings, RegisterRoutes));
+                .UseNavigation(
+                    ReactiveViewModelMappings.ViewModelMappings,
+                    RegisterRoutes,
+                    configure: navConfig => navConfig with { AddressBarUpdateEnabled = false }));
     }
 
     private async ValueTask<IDictionary<string, string>?> ProcessCredentials(
@@ -92,28 +99,31 @@ public partial class App : Application
     private static void RegisterRoutes(IViewRegistry views, IRouteRegistry routes)
     {
         views.Register(
-            new ViewMap<Shell, ShellModel>(),
+            new ViewMap(ViewModel: typeof(ShellModel)),
             new ViewMap<MainPage, MainModel>(),
             new ViewMap<DashboardPage, DashboardModel>(),
             new ViewMap<TaskListPage, TaskListModel>(),
-            new DataViewMap<TaskDetailPage, TaskDetailModel, TaskItemModel>(),
-            new ViewMap<TaskFormPage, TaskFormModel>(),
+            new ViewMap<TaskItemPage, TaskItemPageModel>(Data: new DataMap<TaskItemModel>()),
             new ViewMap<CategoryTreePage, CategoryTreeModel>(),
             new ViewMap<TagManagementPage, TagManagementModel>(),
             new ViewMap<SettingsPage, SettingsModel>()
         );
 
         routes.Register(
-            new RouteMap("", View: views.FindByViewModel<MainModel>(),
+            new RouteMap("", View: views.FindByViewModel<ShellModel>(),
                 Nested:
                 [
-                    new RouteMap("Dashboard", View: views.FindByViewModel<DashboardModel>(), IsDefault: true),
-                    new RouteMap("TaskList", View: views.FindByViewModel<TaskListModel>()),
-                    new RouteMap("Categories", View: views.FindByViewModel<CategoryTreeModel>()),
-                    new RouteMap("Tags", View: views.FindByViewModel<TagManagementModel>()),
-                    new RouteMap("TaskDetail", View: views.FindByViewModel<TaskDetailModel>()),
-                    new RouteMap("TaskForm", View: views.FindByViewModel<TaskFormModel>()),
-                    new RouteMap("Settings", View: views.FindByViewModel<SettingsModel>()),
+                    new RouteMap("Main", View: views.FindByViewModel<MainModel>(), IsDefault: true,
+                        Nested:
+                        [
+                            new RouteMap("Dashboard", View: views.FindByViewModel<DashboardModel>(), IsDefault: true),
+                            new RouteMap("TaskList", View: views.FindByViewModel<TaskListModel>()),
+                            new RouteMap("Categories", View: views.FindByViewModel<CategoryTreeModel>()),
+                            new RouteMap("Tags", View: views.FindByViewModel<TagManagementModel>()),
+                            new RouteMap("TaskItem", View: views.FindByViewModel<TaskItemPageModel>()),
+                            new RouteMap("Settings", View: views.FindByViewModel<SettingsModel>()),
+                        ]
+                    ),
                 ]
             )
         );

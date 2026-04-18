@@ -1,0 +1,29 @@
+@page "/settings"
+@inject FloatService FloatService
+@inject IConfiguration Config
+
+<PageTitle>Settings - TaskFlow</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Settings</MudText>
+
+<MudPaper Class="pa-4" Elevation="2" Style="max-width: 720px;">
+    <MudText Typo="Typo.h6" Class="mb-3">Connection</MudText>
+    <MudField Label="Gateway Base URL" Variant="Variant.Outlined">
+        @(Config["Gateway:BaseUrl"] ?? "(not configured)")
+    </MudField>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+        Set via Gateway:BaseUrl in appsettings.json.
+    </MudText>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.h6" Class="mb-3">About</MudText>
+    <MudText Typo="Typo.body2">TaskFlow Blazor UI — MudBlazor shell with Refit-backed gateway client.</MudText>
+</MudPaper>
+
+@code {
+    protected override void OnInitialized()
+    {
+        FloatService.ModuleName = "Settings";
+    }
+}
