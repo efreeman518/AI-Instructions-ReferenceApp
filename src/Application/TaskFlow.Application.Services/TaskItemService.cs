@@ -156,8 +156,10 @@ internal class TaskItemService(
             entity.UpdateRecurrencePattern(null);
         }
 
-        // Sync child collections via Updater
-        var syncResult = repoTrxn.UpdateFromDto(entity, dto);
+        // Sync child collections via Updater — removed items must be hard-deleted,
+        // not just unlinked, so the UI's single-payload save can retire checklist
+        // items / comments that were removed client-side.
+        var syncResult = repoTrxn.UpdateFromDto(entity, dto, RelatedDeleteBehavior.RelationshipAndEntity);
         if (syncResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(syncResult.ErrorMessage!);
 
         try

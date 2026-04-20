@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
+using TaskFlow.Uno.Core.Client.Http;
 using TaskFlow.Uno.Presentation;
 using TaskFlow.Uno.Views;
 using Uno.Extensions.Http.Kiota;
@@ -29,9 +31,17 @@ public partial class App : Application
                 {
                     var gatewayUrl = context.Configuration["GatewayBaseUrl"] ?? "https://localhost:7120";
                     services.AddSingleton<MockHttpMessageHandler>();
+                    services.AddTransient<BusyDelegatingHandler>();
+                    services.AddTransient<ProblemDetailsDelegatingHandler>();
                     services
                         .AddHttpClient<TaskFlowApiClient>(client =>
                             client.BaseAddress = new Uri(gatewayUrl))
+                        // Busy is outermost so the indicator stays on during
+                        // the inner problem+json parse. ProblemDetails is
+                        // innermost so it sees the raw non-2xx response before
+                        // anything else translates it.
+                        .AddHttpMessageHandler<BusyDelegatingHandler>()
+                        .AddHttpMessageHandler<ProblemDetailsDelegatingHandler>()
 #if USE_MOCKS
                         .ConfigurePrimaryHttpMessageHandler<MockHttpMessageHandler>()
 #endif
@@ -60,6 +70,9 @@ public partial class App : Application
                         // registrations get GC'd and cross-model refresh
                         // messages (TaskItemsChangedMessage) silently drop.
                         .AddSingleton<IMessenger, StrongReferenceMessenger>()
+                        .AddSingleton<IBusyTracker, BusyTracker>()
+                        .AddSingleton<INotificationService, NotificationService>()
+                        .AddSingleton<IFormGuard, FormGuard>()
                         .AddSingleton<ITaskItemApiService, TaskItemApiService>()
                         .AddSingleton<ICategoryApiService, CategoryApiService>()
                         .AddSingleton<ITagApiService, TagApiService>()

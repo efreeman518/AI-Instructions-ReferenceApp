@@ -1,4 +1,6 @@
+using Moq;
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
@@ -20,7 +22,7 @@ public class AttachmentApiServiceTests
         _handler = new MockHttpMessageHandler();
         _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("https://localhost:7200") };
         _apiClient = new TaskFlowApiClient(_httpClient);
-        _service = new AttachmentApiService(_apiClient);
+        _service = new AttachmentApiService(_apiClient, Mock.Of<INotificationService>());
     }
 
     [TestCleanup]

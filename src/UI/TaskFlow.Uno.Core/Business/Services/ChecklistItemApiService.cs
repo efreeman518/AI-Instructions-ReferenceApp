@@ -1,9 +1,12 @@
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class ChecklistItemApiService(TaskFlowApiClient client) : IChecklistItemApiService
+public class ChecklistItemApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : IChecklistItemApiService
 {
     public async Task<IReadOnlyList<ChecklistItemModel>> SearchAsync(Guid? taskItemId = null,
         bool? isCompleted = null, CancellationToken ct = default)
@@ -28,19 +31,24 @@ public class ChecklistItemApiService(TaskFlowApiClient client) : IChecklistItemA
     {
         var dto = MapToDto(model);
         var result = await client.Api.ChecklistItems.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess($"Added \"{created.Title}\".", ct: ct);
+        return created;
     }
 
     public async Task<ChecklistItemModel> UpdateAsync(ChecklistItemModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
         var result = await client.Api.ChecklistItems[model.Id!.Value].PutAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var updated = MapToModel(result!);
+        await notifications.ShowSuccess($"Updated \"{updated.Title}\".", ct: ct);
+        return updated;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.ChecklistItems[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Checklist item deleted.", ct: ct);
     }
 
     private static ChecklistItemModel MapToModel(ChecklistItemDto dto) => new()

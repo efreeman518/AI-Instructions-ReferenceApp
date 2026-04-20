@@ -1,5 +1,6 @@
 @page "/tasks/new"
 @page "/tasks/{Id:guid}"
+@implements IDisposable
 @inject FloatService FloatService
 @inject ITaskFlowApiClient Api
 @inject NavigationManager Nav
@@ -77,48 +78,48 @@ else
             </MudPaper>
 
             <MudExpansionPanels Class="mt-4" MultiExpansion="true">
-                <MudExpansionPanel Text="@($"Checklist ({_checklist.Count})")" Expanded="@(!IsNew)">
+                <MudExpansionPanel Text="@($"Checklist ({Checklist.Count})")" Expanded="@(!IsNew)">
                     <div class="d-flex align-center mb-2">
                         <MudTextField @bind-Value="_newChecklistTitle" Placeholder="Add item..." Variant="Variant.Outlined"
                                       Margin="Margin.Dense" Immediate="true"
-                                      OnKeyDown="@(async e => { if (e.Key == "Enter") await AddChecklistAsync(); })" />
+                                      OnKeyDown="@(e => { if (e.Key == "Enter") AddChecklist(); })" />
                         <MudButton Class="ml-2" Variant="Variant.Filled" Color="Color.Primary"
-                                   OnClick="AddChecklistAsync">Add</MudButton>
+                                   OnClick="AddChecklist">Add</MudButton>
                     </div>
-                    @foreach (var item in _checklist)
+                    @foreach (var item in Checklist)
                     {
                         <div class="d-flex align-center">
                             <MudCheckBox T="bool" Value="@item.IsCompleted"
-                                         ValueChanged="@(async v => await ToggleChecklistAsync(item, v))" />
+                                         ValueChanged="@(v => ToggleChecklist(item, v))" />
                             <MudText Class="@(item.IsCompleted ? "mud-text-disabled" : "")">@item.Title</MudText>
                             <MudSpacer />
                             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                           OnClick="@(() => DeleteChecklistAsync(item))" />
+                                           OnClick="@(() => DeleteChecklist(item))" />
                         </div>
                     }
-                    @if (_checklist.Count == 0)
+                    @if (Checklist.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">No checklist items yet.</MudText>
                     }
                 </MudExpansionPanel>
-                <MudExpansionPanel Text="@($"Comments ({_comments.Count})")" Expanded="@(!IsNew)">
+                <MudExpansionPanel Text="@($"Comments ({Comments.Count})")" Expanded="@(!IsNew)">
                     <div class="d-flex align-start mb-2">
                         <MudTextField @bind-Value="_newCommentBody" Placeholder="Add a comment..."
                                       Variant="Variant.Outlined" Lines="2" />
                         <MudButton Class="ml-2 mt-1" Variant="Variant.Filled" Color="Color.Primary"
-                                   OnClick="AddCommentAsync">Add</MudButton>
+                                   OnClick="AddComment">Add</MudButton>
                     </div>
-                    @foreach (var c in _comments)
+                    @foreach (var c in Comments)
                     {
                         <MudPaper Class="pa-2 mb-1" Elevation="0" Outlined="true">
                             <div class="d-flex align-start">
                                 <MudText Typo="Typo.body2" Style="flex: 1; white-space: pre-wrap;">@c.Body</MudText>
                                 <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                               OnClick="@(() => DeleteCommentAsync(c))" />
+                                               OnClick="@(() => DeleteComment(c))" />
                             </div>
                         </MudPaper>
                     }
-                    @if (_comments.Count == 0)
+                    @if (Comments.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">No comments yet.</MudText>
                     }
@@ -146,14 +147,33 @@ else
 
     private bool IsNew => Id is null;
     private TaskItemDto? _model;
+    private TaskItemDto? _baseline;
+    private DateTime? _baselineStart;
+    private DateTime? _baselineDue;
     private DateTime? _startDate;
     private DateTime? _dueDate;
     private List<CategoryDto> _categories = new();
-    private List<ChecklistItemDto> _checklist = new();
-    private List<CommentDto> _comments = new();
     private string? _newChecklistTitle;
     private string? _newCommentBody;
     private string? _selectedCategoryName;
+    private IDisposable? _locationChangingRegistration;
+    private bool _bypassDirtyCheck;
+    private bool _childrenDirty;
+
+    // The Updater on the server handles child-collection syncing on Create and Update,
+    // so the UI treats ChecklistItems / Comments as local state attached to the parent
+    // DTO and persists them in the single Save call.
+    private List<ChecklistItemDto> Checklist => _model!.ChecklistItems ??= new();
+    private List<CommentDto> Comments => _model!.Comments ??= new();
+
+    protected override void OnInitialized()
+    {
+        // MudNavLink rendered anchors navigate via the Blazor Router. Without
+        // this hook a click on the top-menu silently discards any in-flight
+        // edits on this page. LocationChanging lets us cancel the nav and
+        // prompt first, then re-issue the navigation if the user confirms.
+        _locationChangingRegistration = Nav.RegisterLocationChangingHandler(OnLocationChangingAsync);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -165,10 +185,10 @@ else
             {
                 Title = string.Empty,
                 Status = TaskItemStatus.Open,
-                Priority = Priority.Medium
+                Priority = Priority.Medium,
+                ChecklistItems = new(),
+                Comments = new()
             };
-            _checklist = new();
-            _comments = new();
             _startDate = null;
             _dueDate = null;
         }
@@ -176,6 +196,7 @@ else
         {
             await LoadTaskAsync(Id!.Value);
         }
+        CaptureBaseline();
     }
 
     private async Task LoadCategoriesAsync()
@@ -200,27 +221,11 @@ else
             return;
         }
         _model = result.Item;
+        _model.ChecklistItems = _model.ChecklistItems?.OrderBy(c => c.SortOrder).ToList() ?? new();
+        _model.Comments ??= new();
         _startDate = _model.StartDate?.LocalDateTime;
         _dueDate = _model.DueDate?.LocalDateTime;
         _selectedCategoryName = _categories.FirstOrDefault(c => c.Id == _model.CategoryId)?.Name;
-        await LoadChildrenAsync(id);
-    }
-
-    private async Task LoadChildrenAsync(Guid taskId)
-    {
-        var checklistTask = Api.SearchChecklistItemsAsync(new SearchRequest<ChecklistItemSearchFilter>
-        {
-            Filter = new ChecklistItemSearchFilter { TaskItemId = taskId },
-            PageSize = 200
-        });
-        var commentsTask = Api.SearchCommentsAsync(new SearchRequest<CommentSearchFilter>
-        {
-            Filter = new CommentSearchFilter { TaskItemId = taskId },
-            PageSize = 200
-        });
-        await Task.WhenAll(checklistTask, commentsTask);
-        _checklist = checklistTask.Result.Data?.OrderBy(c => c.SortOrder).ToList() ?? new();
-        _comments = commentsTask.Result.Data?.ToList() ?? new();
     }
 
     private void OnCategoryChanged(Guid? value)
@@ -251,6 +256,7 @@ else
             {
                 FloatService.ShowSnack("Task created.", Severity.Success);
                 FloatService.NotifyTaskItemsChanged();
+                _bypassDirtyCheck = true;
                 Nav.NavigateTo($"/tasks/{newId}");
             }
         }
@@ -263,6 +269,11 @@ else
             if (resp?.Item is not null)
             {
                 _model = resp.Item;
+                _model.ChecklistItems = _model.ChecklistItems?.OrderBy(c => c.SortOrder).ToList() ?? new();
+                _model.Comments ??= new();
+                _startDate = _model.StartDate?.LocalDateTime;
+                _dueDate = _model.DueDate?.LocalDateTime;
+                CaptureBaseline();
                 FloatService.ShowSnack("Task saved.", Severity.Success);
                 FloatService.NotifyTaskItemsChanged();
             }
@@ -287,71 +298,106 @@ else
         {
             FloatService.ShowSnack("Task deleted.", Severity.Success);
             FloatService.NotifyTaskItemsChanged();
+            _bypassDirtyCheck = true;
             Nav.NavigateTo("/tasks");
         }
     }
 
-    private async Task AddChecklistAsync()
+    private void CaptureBaseline()
     {
-        if (_model?.Id is null || string.IsNullOrWhiteSpace(_newChecklistTitle)) return;
-        var dto = new ChecklistItemDto
+        _baseline = _model is null
+            ? null
+            : _model with { };
+        _baselineStart = _startDate;
+        _baselineDue = _dueDate;
+        _childrenDirty = false;
+    }
+
+    private bool IsDirty()
+    {
+        if (_model is null || _baseline is null) return false;
+        if (!string.IsNullOrWhiteSpace(_newChecklistTitle)) return true;
+        if (!string.IsNullOrWhiteSpace(_newCommentBody)) return true;
+        if (_childrenDirty) return true;
+        return _model.Title != _baseline.Title
+            || _model.Description != _baseline.Description
+            || _model.Status != _baseline.Status
+            || _model.Priority != _baseline.Priority
+            || _model.CategoryId != _baseline.CategoryId
+            || _model.EstimatedEffort != _baseline.EstimatedEffort
+            || _model.ActualEffort != _baseline.ActualEffort
+            || _startDate != _baselineStart
+            || _dueDate != _baselineDue;
+    }
+
+    private async ValueTask OnLocationChangingAsync(LocationChangingContext context)
+    {
+        if (_bypassDirtyCheck || !IsDirty()) return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Discard unsaved changes?",
+            Message = "You have unsaved edits on this task. Leave the page and discard them?",
+            YesText = "Discard",
+            CancelText = "Stay"
+        });
+
+        if (confirm != true)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    public void Dispose()
+    {
+        _locationChangingRegistration?.Dispose();
+    }
+
+    // Children are local-only — the server Updater syncs them from the parent
+    // DTO on the next Save. Newly added items have no Id so the Updater treats
+    // them as inserts; removals drop them from the list and the Updater hard-
+    // deletes the matching rows via RelatedDeleteBehavior.RelationshipAndEntity.
+
+    private void AddChecklist()
+    {
+        if (_model is null || string.IsNullOrWhiteSpace(_newChecklistTitle)) return;
+        Checklist.Add(new ChecklistItemDto
         {
             Title = _newChecklistTitle!,
-            TaskItemId = _model.Id.Value,
-            SortOrder = _checklist.Count
-        };
-        var resp = await FloatService.ExecuteWithProgressAsync(
-            () => Api.CreateChecklistItemAsync(new DefaultRequest<ChecklistItemDto> { Item = dto }),
-            "Failed to add item.");
-        if (resp?.Item is not null)
-        {
-            _checklist.Add(resp.Item);
-            _newChecklistTitle = null;
-        }
+            TaskItemId = _model.Id ?? Guid.Empty,
+            SortOrder = Checklist.Count
+        });
+        _newChecklistTitle = null;
+        _childrenDirty = true;
     }
 
-    private async Task ToggleChecklistAsync(ChecklistItemDto item, bool completed)
+    private void ToggleChecklist(ChecklistItemDto item, bool completed)
     {
-        var updated = item with { IsCompleted = completed };
-        var resp = await FloatService.ExecuteWithProgressAsync(
-            () => Api.UpdateChecklistItemAsync(item.Id!.Value, new DefaultRequest<ChecklistItemDto> { Item = updated }),
-            "Failed to update item.");
-        if (resp?.Item is not null)
-        {
-            var idx = _checklist.FindIndex(c => c.Id == item.Id);
-            if (idx >= 0) _checklist[idx] = resp.Item;
-        }
+        var idx = Checklist.IndexOf(item);
+        if (idx < 0) return;
+        Checklist[idx] = item with { IsCompleted = completed };
+        _childrenDirty = true;
     }
 
-    private async Task DeleteChecklistAsync(ChecklistItemDto item)
+    private void DeleteChecklist(ChecklistItemDto item)
     {
-        var ok = await FloatService.ExecuteWithProgressAsync(
-            () => Api.DeleteChecklistItemAsync(item.Id!.Value), "Failed to delete item.");
-        if (ok) _checklist.RemoveAll(c => c.Id == item.Id);
+        if (Checklist.Remove(item)) _childrenDirty = true;
     }
 
-    private async Task AddCommentAsync()
+    private void AddComment()
     {
-        if (_model?.Id is null || string.IsNullOrWhiteSpace(_newCommentBody)) return;
-        var dto = new CommentDto
+        if (_model is null || string.IsNullOrWhiteSpace(_newCommentBody)) return;
+        Comments.Insert(0, new CommentDto
         {
             Body = _newCommentBody!,
-            TaskItemId = _model.Id.Value
-        };
-        var resp = await FloatService.ExecuteWithProgressAsync(
-            () => Api.CreateCommentAsync(new DefaultRequest<CommentDto> { Item = dto }),
-            "Failed to add comment.");
-        if (resp?.Item is not null)
-        {
-            _comments.Insert(0, resp.Item);
-            _newCommentBody = null;
-        }
+            TaskItemId = _model.Id ?? Guid.Empty
+        });
+        _newCommentBody = null;
+        _childrenDirty = true;
     }
 
-    private async Task DeleteCommentAsync(CommentDto c)
+    private void DeleteComment(CommentDto c)
     {
-        var ok = await FloatService.ExecuteWithProgressAsync(
-            () => Api.DeleteCommentAsync(c.Id!.Value), "Failed to delete comment.");
-        if (ok) _comments.RemoveAll(x => x.Id == c.Id);
+        if (Comments.Remove(c)) _childrenDirty = true;
     }
 }

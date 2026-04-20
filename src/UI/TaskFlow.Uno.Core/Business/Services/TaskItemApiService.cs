@@ -1,10 +1,13 @@
 using System.Net.Http.Json;
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class TaskItemApiService(TaskFlowApiClient client) : ITaskItemApiService
+public class TaskItemApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : ITaskItemApiService
 {
     public async Task<IReadOnlyList<TaskItemModel>> SearchAsync(string? searchTerm = null,
         string? status = null, string? priority = null, Guid? categoryId = null,
@@ -57,19 +60,24 @@ public class TaskItemApiService(TaskFlowApiClient client) : ITaskItemApiService
     {
         var dto = MapToDto(model);
         var result = await client.Api.TaskItems.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess($"Created task \"{created.Title}\".", ct: ct);
+        return created;
     }
 
     public async Task<TaskItemModel> UpdateAsync(TaskItemModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
         var result = await client.Api.TaskItems[model.Id!.Value].PutAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var updated = MapToModel(result!);
+        await notifications.ShowSuccess($"Updated task \"{updated.Title}\".", ct: ct);
+        return updated;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.TaskItems[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Task deleted.", ct: ct);
     }
 
     private async Task<PagedResponse<TaskItemDto>?> SearchCoreAsync(string? searchTerm,
@@ -154,12 +162,12 @@ public class TaskItemApiService(TaskFlowApiClient client) : ITaskItemApiService
         {
             Id = c.Id, Title = c.Title, IsCompleted = c.IsCompleted,
             SortOrder = c.SortOrder, CompletedDate = c.CompletedDate,
-            TaskItemId = c.TaskItemId == Guid.Empty ? null : c.TaskItemId
+            TaskItemId = c.TaskItemId
         }).ToList(),
         Comments = model.Comments?.Select(c => new CommentDto
         {
             Id = c.Id, Body = c.Body,
-            TaskItemId = c.TaskItemId == Guid.Empty ? null : c.TaskItemId
+            TaskItemId = c.TaskItemId
         }).ToList()
     };
 }

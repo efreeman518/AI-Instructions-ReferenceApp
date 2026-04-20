@@ -1,9 +1,12 @@
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class TagApiService(TaskFlowApiClient client) : ITagApiService
+public class TagApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : ITagApiService
 {
     public async Task<IReadOnlyList<TagModel>> SearchAsync(string? searchTerm = null,
         CancellationToken ct = default)
@@ -28,19 +31,24 @@ public class TagApiService(TaskFlowApiClient client) : ITagApiService
     {
         var dto = MapToDto(model);
         var result = await client.Api.Tags.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess($"Created tag \"{created.Name}\".", ct: ct);
+        return created;
     }
 
     public async Task<TagModel> UpdateAsync(TagModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
         var result = await client.Api.Tags[model.Id!.Value].PutAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var updated = MapToModel(result!);
+        await notifications.ShowSuccess($"Updated tag \"{updated.Name}\".", ct: ct);
+        return updated;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Tags[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Tag deleted.", ct: ct);
     }
 
     private static TagModel MapToModel(TagDto dto) => new()

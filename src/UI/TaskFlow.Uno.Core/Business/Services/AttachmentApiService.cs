@@ -1,9 +1,12 @@
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class AttachmentApiService(TaskFlowApiClient client) : IAttachmentApiService
+public class AttachmentApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : IAttachmentApiService
 {
     public async Task<IReadOnlyList<AttachmentModel>> SearchAsync(Guid? ownerId = null,
         string? ownerType = null, CancellationToken ct = default)
@@ -28,12 +31,15 @@ public class AttachmentApiService(TaskFlowApiClient client) : IAttachmentApiServ
     {
         var dto = MapToDto(model);
         var result = await client.Api.Attachments.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess($"Uploaded {created.FileName}.", ct: ct);
+        return created;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Attachments[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Attachment deleted.", ct: ct);
     }
 
     private static AttachmentModel MapToModel(AttachmentDto dto) => new()

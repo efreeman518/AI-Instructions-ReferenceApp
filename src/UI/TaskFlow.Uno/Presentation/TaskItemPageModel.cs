@@ -15,6 +15,11 @@ public partial record TaskItemPageModel
     private IChecklistItemApiService ChecklistItemService { get; }
     private IAttachmentApiService AttachmentService { get; }
     private IMessenger Messenger { get; }
+    private IFormGuard FormGuard { get; }
+
+    // Mutable baseline so post-save equality reflects server-echoed state
+    // without requiring us to reassign the init-only Entity property.
+    private TaskItemModel _baseline;
 
     public TaskItemPageModel(
         TaskItemModel? entity,
@@ -25,7 +30,8 @@ public partial record TaskItemPageModel
         ICommentApiService commentService,
         IChecklistItemApiService checklistItemService,
         IAttachmentApiService attachmentService,
-        IMessenger messenger)
+        IMessenger messenger,
+        IFormGuard formGuard)
     {
         Entity = entity;
         Navigator = navigator;
@@ -36,6 +42,10 @@ public partial record TaskItemPageModel
         ChecklistItemService = checklistItemService;
         AttachmentService = attachmentService;
         Messenger = messenger;
+        FormGuard = formGuard;
+
+        _baseline = entity ?? new TaskItemModel();
+        FormGuard.IsDirtyAsync = ComputeIsDirtyAsync;
 
         Messenger.Register<TaskItemPageModel, TaskFormResetMessage>(this, static (recipient, msg) =>
         {
@@ -125,6 +135,53 @@ public partial record TaskItemPageModel
             await ChecklistItems.UpdateAsync(_ => ImmutableList<ChecklistItemModel>.Empty, noCt);
             await Attachments.UpdateAsync(_ => ImmutableList<AttachmentModel>.Empty, noCt);
         }
+
+        _baseline = Entity ?? new TaskItemModel();
+        FormGuard.IsDirtyAsync = ComputeIsDirtyAsync;
+    }
+
+    // Called by the shell chrome before switching to a sibling route so
+    // unsaved edits aren't silently discarded. Compares current field
+    // state to the baseline snapshot taken on Reset/Save.
+    private async ValueTask<bool> ComputeIsDirtyAsync(CancellationToken ct)
+    {
+        var title = (await Title) ?? string.Empty;
+        var description = (await Description) ?? string.Empty;
+        var priority = (await Priority) ?? "None";
+        var status = (await Status) ?? "Open";
+        var startDate = await StartDate;
+        var dueDate = await DueDate;
+        var categoryId = await SelectedCategoryId;
+        var newComment = (await NewCommentBody) ?? string.Empty;
+        var newChecklist = (await NewChecklistTitle) ?? string.Empty;
+
+        var baseTitle = _baseline.Title ?? string.Empty;
+        var baseDescription = _baseline.Description ?? string.Empty;
+        var basePriority = _baseline.Priority ?? "None";
+        var baseStatus = _baseline.Status ?? "Open";
+
+        var dirty = title != baseTitle
+            || description != baseDescription
+            || priority != basePriority
+            || status != baseStatus
+            || startDate != _baseline.StartDate
+            || dueDate != _baseline.DueDate
+            || categoryId != _baseline.CategoryId
+            || !string.IsNullOrWhiteSpace(newComment)
+            || !string.IsNullOrWhiteSpace(newChecklist);
+
+        Console.WriteLine(
+            $"[TaskItem] dirty={dirty} " +
+            $"title='{title}'/'{baseTitle}' " +
+            $"desc='{description}'/'{baseDescription}' " +
+            $"pri='{priority}'/'{basePriority}' " +
+            $"stat='{status}'/'{baseStatus}' " +
+            $"start='{startDate}'/'{_baseline.StartDate}' " +
+            $"due='{dueDate}'/'{_baseline.DueDate}' " +
+            $"cat='{categoryId}'/'{_baseline.CategoryId}' " +
+            $"newComment='{newComment}' newChk='{newChecklist}'");
+
+        return dirty;
     }
 
     // ── Save (create or update) ──────────────────────────────────
@@ -169,6 +226,9 @@ public partial record TaskItemPageModel
             ? await TaskItemService.CreateAsync(model, ct)
             : await TaskItemService.UpdateAsync(model, ct);
 
+        _baseline = saved ?? model;
+        FormGuard.Clear();
+
         Messenger.Send(new TaskItemsChangedMessage(ResetToFirstPage: wasCreate));
 
         if (wasCreate)
@@ -186,6 +246,7 @@ public partial record TaskItemPageModel
     {
         if (Entity?.Id is null) return;
         await TaskItemService.DeleteAsync(Entity.Id.Value, ct);
+        FormGuard.Clear();
         Messenger.Send(new TaskItemsChangedMessage(ResetToFirstPage: true));
         await Navigator.NavigateBackAsync(this, cancellation: CancellationToken.None);
     }
