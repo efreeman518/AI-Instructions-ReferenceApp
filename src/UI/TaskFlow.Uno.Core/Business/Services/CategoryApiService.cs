@@ -1,9 +1,12 @@
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class CategoryApiService(TaskFlowApiClient client) : ICategoryApiService
+public class CategoryApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : ICategoryApiService
 {
     public async Task<IReadOnlyList<CategoryModel>> SearchAsync(string? searchTerm = null,
         bool? isActive = null, Guid? parentCategoryId = null, CancellationToken ct = default)
@@ -28,19 +31,24 @@ public class CategoryApiService(TaskFlowApiClient client) : ICategoryApiService
     {
         var dto = MapToDto(model);
         var result = await client.Api.Categories.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess($"Created category \"{created.Name}\".", ct: ct);
+        return created;
     }
 
     public async Task<CategoryModel> UpdateAsync(CategoryModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
         var result = await client.Api.Categories[model.Id!.Value].PutAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var updated = MapToModel(result!);
+        await notifications.ShowSuccess($"Updated category \"{updated.Name}\".", ct: ct);
+        return updated;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Categories[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Category deleted.", ct: ct);
     }
 
     private static CategoryModel MapToModel(CategoryDto dto) => new()

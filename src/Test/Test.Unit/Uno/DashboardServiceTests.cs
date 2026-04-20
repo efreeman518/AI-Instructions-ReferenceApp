@@ -1,4 +1,6 @@
+using Moq;
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
@@ -15,7 +17,7 @@ public class DashboardServiceTests
         using var handler = new MockHttpMessageHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://localhost:7200") };
         var apiClient = new TaskFlowApiClient(httpClient);
-        var taskService = new TaskItemApiService(apiClient);
+        var taskService = new TaskItemApiService(apiClient, Mock.Of<INotificationService>());
         var dashboardService = new DashboardService(taskService);
 
         var summary = await dashboardService.GetSummaryAsync();

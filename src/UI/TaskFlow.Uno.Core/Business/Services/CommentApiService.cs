@@ -1,9 +1,12 @@
 using TaskFlow.Uno.Core.Business.Models;
+using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
-public class CommentApiService(TaskFlowApiClient client) : ICommentApiService
+public class CommentApiService(
+    TaskFlowApiClient client,
+    INotificationService notifications) : ICommentApiService
 {
     public async Task<IReadOnlyList<CommentModel>> SearchAsync(Guid? taskItemId = null,
         CancellationToken ct = default)
@@ -28,19 +31,24 @@ public class CommentApiService(TaskFlowApiClient client) : ICommentApiService
     {
         var dto = MapToDto(model);
         var result = await client.Api.Comments.PostAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var created = MapToModel(result!);
+        await notifications.ShowSuccess("Comment added.", ct: ct);
+        return created;
     }
 
     public async Task<CommentModel> UpdateAsync(CommentModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
         var result = await client.Api.Comments[model.Id!.Value].PutAsync(dto, cancellationToken: ct);
-        return MapToModel(result!);
+        var updated = MapToModel(result!);
+        await notifications.ShowSuccess("Comment updated.", ct: ct);
+        return updated;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Comments[id].DeleteAsync(cancellationToken: ct);
+        await notifications.ShowSuccess("Comment deleted.", ct: ct);
     }
 
     private static CommentModel MapToModel(CommentDto dto) => new()
