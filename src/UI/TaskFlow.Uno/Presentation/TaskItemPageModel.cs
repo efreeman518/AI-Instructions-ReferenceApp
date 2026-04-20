@@ -160,7 +160,7 @@ public partial record TaskItemPageModel
         var basePriority = _baseline.Priority ?? "None";
         var baseStatus = _baseline.Status ?? "Open";
 
-        var dirty = title != baseTitle
+        return title != baseTitle
             || description != baseDescription
             || priority != basePriority
             || status != baseStatus
@@ -169,19 +169,6 @@ public partial record TaskItemPageModel
             || categoryId != _baseline.CategoryId
             || !string.IsNullOrWhiteSpace(newComment)
             || !string.IsNullOrWhiteSpace(newChecklist);
-
-        Console.WriteLine(
-            $"[TaskItem] dirty={dirty} " +
-            $"title='{title}'/'{baseTitle}' " +
-            $"desc='{description}'/'{baseDescription}' " +
-            $"pri='{priority}'/'{basePriority}' " +
-            $"stat='{status}'/'{baseStatus}' " +
-            $"start='{startDate}'/'{_baseline.StartDate}' " +
-            $"due='{dueDate}'/'{_baseline.DueDate}' " +
-            $"cat='{categoryId}'/'{_baseline.CategoryId}' " +
-            $"newComment='{newComment}' newChk='{newChecklist}'");
-
-        return dirty;
     }
 
     // ── Save (create or update) ──────────────────────────────────
@@ -316,8 +303,6 @@ public partial record TaskItemPageModel
     public async ValueTask ToggleChecklistItem(ChecklistItemModel item, CancellationToken ct)
     {
         var updated = item with { IsCompleted = !item.IsCompleted };
-        System.Diagnostics.Debug.WriteLine($"[Toggle] in={item.Id}/{item.Title}/{item.IsCompleted} → out={updated.IsCompleted}");
-        Console.WriteLine($"[Toggle] in={item.Id}/{item.Title}/{item.IsCompleted} → out={updated.IsCompleted}");
 
         // Update the in-memory list first so the UI reflects the new state
         // immediately. If the parent task is persisted, send the change to

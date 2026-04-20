@@ -43,6 +43,7 @@ public sealed class ProblemDetailsDelegatingHandler(INotificationService notific
             await notifications.ShowProblem(problem, cancellationToken).ConfigureAwait(false);
         }
 
+        response.Dispose();
         throw new ProblemDetailsException(problem, status);
     }
 }

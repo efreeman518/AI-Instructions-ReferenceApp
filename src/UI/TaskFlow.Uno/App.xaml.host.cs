@@ -2,11 +2,13 @@ using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 using TaskFlow.Uno.Core.Client.Http;
+using TaskFlow.Uno.Infrastructure;
 using TaskFlow.Uno.Presentation;
 using TaskFlow.Uno.Views;
 using Uno.Extensions.Http.Kiota;
@@ -64,12 +66,18 @@ public partial class App : Application
                 .UseSerialization(configure: ConfigureSerialization)
                 .ConfigureServices((context, services) =>
                 {
+                    // Captured here because this callback runs on the UI thread
+                    // during OnLaunched → host build; resolving it lazily from
+                    // DI could surface a background thread.
+                    var uiDispatcher = new DispatcherQueueUiDispatcher(DispatcherQueue.GetForCurrentThread());
+
                     services
                         // StrongReferenceMessenger: MVUX bindables hold models
                         // weakly in some scenarios, so WeakReferenceMessenger
                         // registrations get GC'd and cross-model refresh
                         // messages (TaskItemsChangedMessage) silently drop.
                         .AddSingleton<IMessenger, StrongReferenceMessenger>()
+                        .AddSingleton<IUiDispatcher>(uiDispatcher)
                         .AddSingleton<IBusyTracker, BusyTracker>()
                         .AddSingleton<INotificationService, NotificationService>()
                         .AddSingleton<IFormGuard, FormGuard>()

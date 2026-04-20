@@ -197,6 +197,7 @@ else
             await LoadTaskAsync(Id!.Value);
         }
         CaptureBaseline();
+        _bypassDirtyCheck = false;
     }
 
     private async Task LoadCategoriesAsync()

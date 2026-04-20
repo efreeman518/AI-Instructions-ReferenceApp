@@ -4,12 +4,20 @@ namespace TaskFlow.Uno.Core.Business.Notifications;
 
 public sealed class BusyTracker : IBusyTracker
 {
+    private readonly IUiDispatcher _dispatcher;
     private int _pending;
 
     public int Pending => Volatile.Read(ref _pending);
     public bool IsActive => Pending > 0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public BusyTracker() : this(IUiDispatcher.Inline) { }
+
+    public BusyTracker(IUiDispatcher dispatcher)
+    {
+        _dispatcher = dispatcher;
+    }
 
     public IDisposable Begin()
     {
@@ -26,11 +34,17 @@ public sealed class BusyTracker : IBusyTracker
         if (after == 0) RaiseIsActive();
     }
 
-    private void Raise() =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pending)));
+    private void Raise() => OnUi(() =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Pending))));
 
-    private void RaiseIsActive() =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActive)));
+    private void RaiseIsActive() => OnUi(() =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActive))));
+
+    private void OnUi(Action action)
+    {
+        if (_dispatcher.HasThreadAccess) action();
+        else _dispatcher.Post(action);
+    }
 
     private sealed class Scope(BusyTracker owner) : IDisposable
     {

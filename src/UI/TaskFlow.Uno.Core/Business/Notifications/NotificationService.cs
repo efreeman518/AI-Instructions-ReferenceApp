@@ -9,14 +9,17 @@ public sealed class NotificationService : INotificationService
     private static readonly TimeSpan WarningDismiss = TimeSpan.FromSeconds(6);
 
     private readonly TimeProvider _time;
-    private readonly Lock _gate = new();
+    private readonly IUiDispatcher _dispatcher;
 
     public ObservableCollection<Notification> Items { get; } = [];
 
-    public NotificationService() : this(TimeProvider.System) { }
+    public NotificationService() : this(IUiDispatcher.Inline, TimeProvider.System) { }
 
-    public NotificationService(TimeProvider time)
+    public NotificationService(IUiDispatcher dispatcher) : this(dispatcher, TimeProvider.System) { }
+
+    public NotificationService(IUiDispatcher dispatcher, TimeProvider time)
     {
+        _dispatcher = dispatcher;
         _time = time;
     }
 
@@ -48,24 +51,25 @@ public sealed class NotificationService : INotificationService
 
     public ValueTask Dismiss(Guid id, CancellationToken ct = default)
     {
-        lock (_gate)
+        OnUi(() => DismissCore(id));
+        return default;
+    }
+
+    private void DismissCore(Guid id)
+    {
+        for (var i = 0; i < Items.Count; i++)
         {
-            for (var i = 0; i < Items.Count; i++)
+            if (Items[i].Id == id)
             {
-                if (Items[i].Id == id)
-                {
-                    Items.RemoveAt(i);
-                    break;
-                }
+                Items.RemoveAt(i);
+                break;
             }
         }
-        return default;
     }
 
     private ValueTask Add(Notification n)
     {
-        Notification stored;
-        lock (_gate)
+        OnUi(() =>
         {
             if (n.DedupeKey is { } key)
             {
@@ -75,18 +79,16 @@ public sealed class NotificationService : INotificationService
                     {
                         // Upsert — replace in-place with new content, keep position.
                         Items[i] = n;
-                        return default;
+                        return;
                     }
                 }
             }
             Items.Add(n);
-            stored = n;
-        }
-
-        if (stored.AutoDismissAfter is { } delay)
-        {
-            _ = ScheduleDismiss(stored.Id, delay);
-        }
+            if (n.AutoDismissAfter is { } delay)
+            {
+                _ = ScheduleDismiss(n.Id, delay);
+            }
+        });
         return default;
     }
 
@@ -98,5 +100,11 @@ public sealed class NotificationService : INotificationService
         }
         catch (TaskCanceledException) { return; }
         await Dismiss(id).ConfigureAwait(false);
+    }
+
+    private void OnUi(Action action)
+    {
+        if (_dispatcher.HasThreadAccess) action();
+        else _dispatcher.Post(action);
     }
 }
