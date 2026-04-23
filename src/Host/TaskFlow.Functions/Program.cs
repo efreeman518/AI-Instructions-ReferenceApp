@@ -1,6 +1,5 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TaskFlow.Bootstrapper;
 
@@ -11,7 +10,10 @@ builder.ConfigureFunctionsWebApplication();
 builder.AddServiceDefaults();
 builder.Services
     .RegisterInfrastructureServices(builder.Configuration)
-    .RegisterApplicationServices(builder.Configuration);
+    .RegisterDomainServices(builder.Configuration)
+    .RegisterApplicationServices(builder.Configuration)
+    .RegisterBackgroundServices(builder.Configuration);
 
 var app = builder.Build();
+app.AutoRegisterMessageHandlers();
 await app.RunAsync();

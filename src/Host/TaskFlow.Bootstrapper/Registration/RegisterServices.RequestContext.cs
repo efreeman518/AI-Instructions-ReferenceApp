@@ -2,6 +2,7 @@ using System.Security.Claims;
 using EF.Common.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Bootstrapper;
 
@@ -19,10 +20,15 @@ public static partial class RegisterServices
             if (user?.Identity?.IsAuthenticated != true)
             {
                 return new RequestContext<string, Guid?>(
-                    "system",
                     Guid.NewGuid().ToString(),
+                    "scaffold-user",
                     Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    new List<string>());
+                    new List<string>
+                    {
+                        AppConstants.ROLE_GLOBAL_ADMIN,
+                        AppConstants.ROLE_TENANT_ADMIN,
+                        AppConstants.ROLE_TENANT_MEMBER,
+                    });
             }
 
             var userId = user.FindFirst("oid")?.Value
@@ -40,7 +46,7 @@ public static partial class RegisterServices
                            .Select(c => c.Value)
                            .ToList();
 
-            return new RequestContext<string, Guid?>(userId, correlationId, tenantId, roles);
+            return new RequestContext<string, Guid?>(correlationId, userId, tenantId, roles);
         });
     }
 }

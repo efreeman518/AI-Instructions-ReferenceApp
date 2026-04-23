@@ -5,11 +5,11 @@ using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Messaging;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
+using TaskFlow.Application.Contracts.Events;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
 using TaskFlow.Domain.Model;
-using TaskFlow.Domain.Model.Events;
 using TaskFlow.Domain.Model.ValueObjects;
 using TaskFlow.Domain.Shared.Enums;
 
@@ -22,7 +22,7 @@ internal class TaskItemService(
     ITaskItemRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache,
-    IDomainEventPublisher eventPublisher) : ITaskItemService
+    IIntegrationEventPublisher eventPublisher) : ITaskItemService
 {
     private Guid? RequestTenantId => requestContext.TenantId;
     private IReadOnlyCollection<string> RequestRoles => requestContext.Roles;

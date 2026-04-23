@@ -10,6 +10,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <PackageReference Include="Azure.Data.Tables" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +25,7 @@
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Contracts\TaskFlow.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Storage\TaskFlow.Infrastructure.Storage.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Services\TaskFlow.Application.Services.csproj" />
     <ProjectReference Include="..\..\Host\Aspire\AppHost\AppHost.csproj" />
   </ItemGroup>

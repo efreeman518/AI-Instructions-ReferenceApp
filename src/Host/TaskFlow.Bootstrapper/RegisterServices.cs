@@ -19,6 +19,7 @@ public static partial class RegisterServices
         AddRequestContext(services);
         AddDatabaseServices(services, config);
         AddCachingServices(services, config);
+        AddTableStorageServices(services, config);
         AddBlobStorageServices(services, config);
         AddServiceBusServices(services, config);
         AddCosmosDbServices(services, config);

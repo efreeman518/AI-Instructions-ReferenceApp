@@ -14,6 +14,7 @@ var redis = builder.AddRedis("redis")
 // Azure Storage (Blob) — emulator
 var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
 var blobs = storage.AddBlobs("BlobStorage1");
+var tables = storage.AddTables("TableStorage1");
 
 // Azure Service Bus — emulator
 var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
@@ -37,6 +38,7 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
     .WithReference(redis, connectionName: "Redis1")
+    .WithReference(tables)
     .WithReference(blobs)
     .WithReference(serviceBus)
     .WithReference(cosmos)
@@ -50,6 +52,7 @@ builder.AddProject<Projects.TaskFlow_Scheduler>("taskflowscheduler")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
     .WithReference(redis, connectionName: "Redis1")
+    .WithReference(tables)
     .WithReference(serviceBus)
     .WithReplicas(1)
     .WaitFor(sql);
@@ -60,16 +63,13 @@ var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
     .WaitFor(api);
 
 // Functions host
-builder.AddProject<Projects.TaskFlow_Functions>("taskflowfunctions")
+builder.AddAzureFunctionsProject<Projects.TaskFlow_Functions>("taskflowfunctions")
+    .WithHostStorage(storage)
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
+    .WithReference(tables)
     .WithReference(blobs)
     .WithReference(serviceBus)
-    .WithEnvironment("AzureWebJobsSecretStorageType", "Files")
-    .WithEnvironment(ctx =>
-    {
-        ctx.EnvironmentVariables["AzureWebJobsStorage"] = storage.Resource;
-    })
     .WaitFor(sql)
     .WaitFor(storage);
 
@@ -80,3 +80,5 @@ builder.AddProject<Projects.TaskFlow_Functions>("taskflowfunctions")
 //     .WaitFor(gateway);
 
 await builder.Build().RunAsync();
+
+public partial class Program;

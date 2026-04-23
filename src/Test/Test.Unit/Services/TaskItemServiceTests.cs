@@ -24,7 +24,7 @@ public class TaskItemServiceTests
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
     private readonly Mock<IEntityCacheProvider> _cacheMock = new();
-    private readonly Mock<IDomainEventPublisher> _eventPublisherMock = new();
+    private readonly Mock<IIntegrationEventPublisher> _eventPublisherMock = new();
 
     [TestInitialize]
     public void Setup()

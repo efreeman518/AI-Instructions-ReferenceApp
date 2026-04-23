@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Test.Support\Test.Support.csproj" />
+    <ProjectReference Include="..\..\Application\TaskFlow.Application.MessageHandlers\TaskFlow.Application.MessageHandlers.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Services\TaskFlow.Application.Services.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Mappers\TaskFlow.Application.Mappers.csproj" />
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Model\TaskFlow.Domain.Model.csproj" />

@@ -11,6 +11,7 @@
   },
   "ConnectionStrings": {
     "TaskFlowDbContextTrxn": "Server=(localdb)\\MSSQLLocalDB;Database=TaskFlow;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true",
-    "TaskFlowDbContextQuery": "Server=(localdb)\\MSSQLLocalDB;Database=TaskFlow;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    "TaskFlowDbContextQuery": "Server=(localdb)\\MSSQLLocalDB;Database=TaskFlow;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true",
+    "TableStorage1": "UseDevelopmentStorage=true"
   }
 }

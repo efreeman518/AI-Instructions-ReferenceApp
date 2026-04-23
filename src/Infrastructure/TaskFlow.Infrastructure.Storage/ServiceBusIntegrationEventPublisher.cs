@@ -6,30 +6,30 @@ using TaskFlow.Application.Contracts.Messaging;
 
 namespace TaskFlow.Infrastructure.Storage;
 
-public class ServiceBusDomainEventPublisher : IDomainEventPublisher
+public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
 {
     private readonly ServiceBusClient _client;
-    private readonly ILogger<ServiceBusDomainEventPublisher> _logger;
+    private readonly ILogger<ServiceBusIntegrationEventPublisher> _logger;
     private const string DefaultTopic = "DomainEvents";
 
-    public ServiceBusDomainEventPublisher(
+    public ServiceBusIntegrationEventPublisher(
         IAzureClientFactory<ServiceBusClient> clientFactory,
-        ILogger<ServiceBusDomainEventPublisher> logger)
+        ILogger<ServiceBusIntegrationEventPublisher> logger)
     {
         _client = clientFactory.CreateClient("TaskFlowSBClient");
         _logger = logger;
     }
 
-    public Task PublishAsync<TEvent>(TEvent domainEvent, string? correlationId = null,
+    public Task PublishAsync<TEvent>(TEvent integrationEvent, string? correlationId = null,
         CancellationToken ct = default) where TEvent : class
-        => PublishAsync(domainEvent, DefaultTopic, correlationId, ct);
+        => PublishAsync(integrationEvent, DefaultTopic, correlationId, ct);
 
-    public async Task PublishAsync<TEvent>(TEvent domainEvent, string topicOrQueue,
+    public async Task PublishAsync<TEvent>(TEvent integrationEvent, string topicOrQueue,
         string? correlationId = null, CancellationToken ct = default) where TEvent : class
     {
         await using var sender = _client.CreateSender(topicOrQueue);
 
-        var message = new ServiceBusMessage(JsonSerializer.Serialize(domainEvent))
+        var message = new ServiceBusMessage(JsonSerializer.Serialize(integrationEvent))
         {
             ContentType = "application/json",
             Subject = typeof(TEvent).Name,
