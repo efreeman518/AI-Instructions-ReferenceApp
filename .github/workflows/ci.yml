@@ -79,3 +79,15 @@ jobs:
         with:
           name: test-results
           path: ./TestResults/*.trx
+
+  # TODO: Enable auto-deploy after running bootstrap.ps1 and configuring GitHub secrets/variables.
+  # Remove workflow_dispatch from deploy.yml once this is enabled — manual trigger won't be needed.
+  # deploy:
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   needs: build-and-test
+  #   uses: ./.github/workflows/deploy.yml
+  #   secrets: inherit
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #     packages: write
