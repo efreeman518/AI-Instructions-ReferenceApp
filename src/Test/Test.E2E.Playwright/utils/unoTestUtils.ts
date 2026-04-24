@@ -77,3 +77,11 @@ export async function navigateToTaskList(page: Page) {
   await clickVisibleText(page, "Tasks", "last");
   await expectBodyToContain(page, "Manage and track all your tasks");
 }
+
+// ---------------------------------------------------------------------------
+// Unique test data
+// ---------------------------------------------------------------------------
+
+export function uniqueTitle(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}

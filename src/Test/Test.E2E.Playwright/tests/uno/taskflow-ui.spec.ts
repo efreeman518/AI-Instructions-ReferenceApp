@@ -3,7 +3,7 @@ import {
   clickVisibleText,
   expectBodyToContainAll,
   waitForApp,
-} from "./unoTestUtils";
+} from "../../utils/unoTestUtils";
 
 test.describe("TaskFlow UI — smoke coverage", () => {
   test.beforeEach(async ({ page }) => {

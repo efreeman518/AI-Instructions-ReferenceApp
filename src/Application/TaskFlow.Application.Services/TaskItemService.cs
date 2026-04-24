@@ -96,9 +96,16 @@ internal class TaskItemService(
 
         var resultDto = entity.ToDto();
 
-        await eventPublisher.PublishAsync(
-            new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
-            requestContext.CorrelationId, ct);
+        try
+        {
+            await eventPublisher.PublishAsync(
+                new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
+                requestContext.CorrelationId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to publish TaskItemCreatedEvent for {Id}; entity was saved successfully", entity.Id);
+        }
 
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
@@ -176,9 +183,16 @@ internal class TaskItemService(
 
         if (oldStatus.HasValue)
         {
-            await eventPublisher.PublishAsync(
-                new TaskItemStatusChangedEvent(entity.Id, entity.TenantId, oldStatus.Value, entity.Status),
-                requestContext.CorrelationId, ct);
+            try
+            {
+                await eventPublisher.PublishAsync(
+                    new TaskItemStatusChangedEvent(entity.Id, entity.TenantId, oldStatus.Value, entity.Status),
+                    requestContext.CorrelationId, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to publish TaskItemStatusChangedEvent for {Id}; entity was saved successfully", entity.Id);
+            }
         }
 
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));

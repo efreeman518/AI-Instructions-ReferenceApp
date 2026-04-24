@@ -4,7 +4,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var sqlPassword = builder.AddParameter("sql-password", secret: true);
 var sql = builder.AddSqlServer("sql", sqlPassword, port: 38433)
     .WithLifetime(ContainerLifetime.Persistent)
-    .WithDataVolume("taskflow-sql-data");
+    .WithDataVolume("taskflow-sql-data")
+    .WithImageTag("2025-latest");
 var taskflowDb = sql.AddDatabase("taskflowdb");
 
 var redis = builder.AddRedis("redis")
@@ -12,19 +13,21 @@ var redis = builder.AddRedis("redis")
     .WithDataVolume("taskflow-redis-data");
 
 // Azure Storage (Blob) — emulator
-var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+// Not using ContainerLifetime.Persistent — persistent emulator containers survive Aspire restarts
+// but get stranded on deleted Podman networks, causing netavark "eth2 already exists" errors.
+var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator();
 var blobs = storage.AddBlobs("BlobStorage1");
 var tables = storage.AddTables("TableStorage1");
 
 // Azure Service Bus — emulator
-var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator();
 var domainEventsTopic = serviceBus.AddServiceBusTopic("DomainEvents");
 domainEventsTopic.AddServiceBusSubscription("function-processor");
 serviceBus.AddServiceBusQueue("TaskCommands");
 
-// Azure Cosmos DB — emulator
+// Azure Cosmos DB — emulator (see AzureStorage comment re: Persistent lifetime)
 var cosmos = builder.AddAzureCosmosDB("CosmosDb1")
-    .RunAsEmulator(c => c.WithLifetime(ContainerLifetime.Persistent));
+    .RunAsEmulator();
 
 // AI resources (deployment-only — no emulator available)
 // TODO: [CONFIGURE] Uncomment when Azure AI resources are provisioned

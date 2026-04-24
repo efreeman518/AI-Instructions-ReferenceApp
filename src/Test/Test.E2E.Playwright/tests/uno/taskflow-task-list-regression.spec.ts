@@ -3,7 +3,7 @@ import {
   clickVisibleText,
   expectBodyToContainAll,
   navigateToTaskList,
-} from "./unoTestUtils";
+} from "../../utils/unoTestUtils";
 
 test.describe("TaskFlow UI — task list regression coverage", () => {
   test.beforeEach(async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe("TaskFlow UI — task list regression coverage", () => {
     ]);
   });
 
-  test.fixme("task detail still opens from the list after the layout changes", async ({ page }) => {
+  test("task detail still opens from the list after the layout changes", async ({ page }) => {
     await navigateToTaskList(page);
     await clickVisibleText(page, "Build dashboard UI");
 
