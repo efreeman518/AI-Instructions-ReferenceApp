@@ -1,4 +1,8 @@
 # AI-Instructions-ReferenceApp
-reference app for ai instructions
+Reference app for AI-Instructions-NewProject.
 
+Phase 1 alignment artifacts:
 
+- `domain-specification.yaml`
+- `UBIQUITOUS-LANGUAGE.md`
+- `DESIGN-DECISIONS.md`

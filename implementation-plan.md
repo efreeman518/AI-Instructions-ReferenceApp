@@ -4,8 +4,13 @@
 
 - Domain specification: `domain-specification.yaml` (project root)
 - Resource mapping: `resource-implementation.yaml` (project root)
+- Ubiquitous language: `UBIQUITOUS-LANGUAGE.md`
+- Design decisions: `DESIGN-DECISIONS.md`
 - Mode: full | Testing: comprehensive
+- scaffoldMode: full
+- testingProfile: comprehensive
 - Enabled hosts: API, Gateway, Scheduler, FunctionApp, UnoUI
+- Enabled flags: includeApi, includeGateway, includeFunctionApp, includeScheduler, includeUnoUI, includeIaC, includeAiServices, includeArchitectureTests, includeE2ETests, includeLoadTests, includeBenchmarkTests
 
 ## Vertical Slice Order
 
@@ -178,6 +183,28 @@ Per entity (same order):
 
 All resolved — no outstanding questions.
 
+## Decision Dependency Graph
+
+```mermaid
+flowchart TD
+    D001["D-001: Row-level tenancy"]
+    D002["D-002: Auth providers"]
+    D003["D-003: SQL authoritative store"]
+    D004["D-004: Cosmos task projection"]
+    D006["D-006: Service Bus events"]
+    D007["D-007: TaskItem lifecycle"]
+    D009["D-009: Scheduler jobs"]
+    D012["D-012: Polymorphic attachment ownership"]
+
+    D001 --> D002
+    D001 --> D003
+    D003 --> D004
+    D003 --> D012
+    D007 --> D006
+    D007 --> D009
+    D006 --> D004
+```
+
 ## Decisions Log
 
 | # | Decision | Rationale |
@@ -192,6 +219,46 @@ All resolved — no outstanding questions.
 | 8 | Category self-referencing max 5 levels | Business requirement for organizational hierarchy depth |
 | 9 | Comprehensive testing profile | Reference app demonstrates all test types |
 | 10 | All emulators | No Azure subscription required; clone-and-run via Aspire |
+
+## Tooling & Environment Readiness
+
+CLI tools were preferred before MCP servers where both existed. MCP and documentation lookup were used for project-specific service/library guidance.
+
+### Required CLIs
+
+| Tool | Needed for | Phase | Install | Verified |
+|---|---|---|---|---|
+| `dotnet-ef` | EF migrations | 5a | `dotnet tool install dotnet-ef` | [x] |
+| `azd` | IaC/deployment validation | 5e | `winget install Microsoft.Azd` | [ ] |
+| `func` | Azure Functions local validation | 5d | `npm i -g azure-functions-core-tools@4` | [ ] |
+| `uno-check` | Uno workload validation | 5d | `dotnet tool install -g uno.check` | [ ] |
+
+### EF.Packages Feed Readiness
+
+- `nuget.config` exists and contains `nuget.org`.
+- `nuget.config` uses packageSourceMapping for EF.Packages private-feed isolation.
+- Local restore requires `NUGET_AUTH_TOKEN` or an approved credential provider.
+- `Directory.Packages.props` owns EF.* package versions.
+- Project-level EF.* package references do not carry local `Version` attributes.
+- Validation command: `python .instructions/scripts/validate-ef-packages-feed.py --root . --config-only --require-auth-env`.
+
+### Recommended MCP Servers
+
+| Server | Phases | Why | Available |
+|---|---|---|---|
+| Microsoft Docs MCP | all | .NET, Azure, Aspire, Functions, auth docs | [x] |
+| GitHub MCP | 4-5 | Reference app/source lookup | [x] |
+| Azure MCP | 3, 5c, 5e, 5f, 5g | Azure resource and IaC validation | [ ] |
+| Playwright MCP | 5d, 5e | UI/E2E validation | [ ] |
+
+### Online Resources
+
+| Library/Service | Phase | Resource | URL |
+|---|---|---|---|
+| TickerQ | 5d | Package docs and samples | `https://github.com/Arcenox-co/TickerQ` |
+| FusionCache | 5c | Package docs and samples | `https://github.com/ZiggyCreatures/FusionCache` |
+| Uno Platform | 5d | Official docs | `https://platform.uno/docs/articles/intro.html` |
+| NetArchTest | 5e | GitHub README | `https://github.com/BenMorris/NetArchTest` |
 
 ## Risk / Blockers
 

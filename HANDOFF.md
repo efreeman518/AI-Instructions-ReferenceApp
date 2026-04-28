@@ -15,6 +15,8 @@ Phases 1–5g complete + post-phase hardening + Session A (test hardening + EF m
 ## Phase 1 Outputs
 
 - `domain-specification.yaml` — in project root, validated against `schemas/domain-specification.schema.json`
+- `UBIQUITOUS-LANGUAGE.md` — in project root, shared TaskFlow domain vocabulary and naming guidance
+- `DESIGN-DECISIONS.md` — in project root, TaskFlow decision dependency graph and rationale
 
 ## Phase 2 Outputs
 

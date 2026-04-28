@@ -180,7 +180,9 @@ entities:
       TaskItem and Tag. Enables additional metadata on the association
       (e.g., who tagged it and when).
     isTenantEntity: true
-    properties: []
+    properties:
+      - { name: TaskItemId, kind: identifier, required: true, description: "Task item side of the tag association" }
+      - { name: TagId, kind: identifier, required: true, description: "Tag side of the task association" }
 
 # ---------------------------------------------------------------------------
 # Domain-Level Rules (cross-entity)
