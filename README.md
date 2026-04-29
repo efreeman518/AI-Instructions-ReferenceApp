@@ -4,7 +4,7 @@ Reference implementation for [AI-Instructions-NewProject](https://github.com/efr
 
 ## Description
 
-**TaskFlow** — a production-grade reference app demonstrating AI-assisted development patterns for a multi-tenant task management system. Built with Clean Architecture and Domain-Driven Design, running local with Aspire, deployable to Azure.
+**TaskFlow** - a production-grade reference app demonstrating AI-assisted development patterns for a multi-tenant task management system. Built with Clean Architecture and Domain-Driven Design, running local with Aspire, deployable to Azure.
 
 ## Architecture
 
