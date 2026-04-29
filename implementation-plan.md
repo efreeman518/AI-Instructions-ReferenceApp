@@ -39,7 +39,7 @@ Entities are implemented in dependency order (left-to-right):
 - [ ] Interfaces: ICategoryService, ICategoryRepositoryTrxn, ICategoryRepositoryQuery, ITagService, ITagRepositoryTrxn, ITagRepositoryQuery, ITaskItemService, ITaskItemRepositoryTrxn, ITaskItemRepositoryQuery, ICommentService, ICommentRepositoryTrxn, ICommentRepositoryQuery, IChecklistItemService, IChecklistItemRepositoryTrxn, IChecklistItemRepositoryQuery, IAttachmentService, IAttachmentRepositoryTrxn, IAttachmentRepositoryQuery
 - [ ] DTOs: CategoryDto, TagDto, TaskItemDto, CommentDto, ChecklistItemDto, AttachmentDto + corresponding SearchFilters
 - [ ] Entity shells (properties + constructors, no domain logic)
-- [ ] Test infrastructure (Test.Support with builders, UnitTestBase, InMemoryDbBuilder, DbSupport, CustomApiFactory, test constants)
+- [ ] Test infrastructure (Test.Support with builders, UnitTestBase, InMemoryDbBuilder, DbSupport, test constants; CustomApiFactory under Test.Endpoints initially, scheduled to move to Test.Support)
 - [ ] No-op DI stubs in RegisterServices.cs
 - [ ] **Checkpoint:** `dotnet build` succeeds on full solution including test projects
 
@@ -65,7 +65,7 @@ Per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Atta
 - [ ] Scaffold initial EF migration
 - [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit"` passes
 
-### Phase 5b — App Core (TDD)
+### Phase 5b — App Core + Runtime/Edge (TDD for app/API, tests-after for runtime)
 
 Per entity (same order):
 
@@ -75,16 +75,15 @@ Per entity (same order):
 - [ ] Implement services with caching (FusionCache named instances), domain event publishing, tenant boundary validation — GREEN
 - [ ] Write structure validator tests — RED
 - [ ] Implement structure validators — GREEN
-- [ ] Write endpoint integration tests (200/400/404/409/422, auth policies, contract shapes) — RED
+- [ ] Write endpoint contract tests in `Test.Endpoints` (200/400/404/409/422, auth policies, contract shapes) — RED
 - [ ] Implement minimal API endpoints — GREEN
 - [ ] Implement global exception handler (DbUpdateConcurrencyException → 409, validation → 422, not-found → 404)
 - [ ] Implement domain event handlers (TaskItemCreatedEventHandler, TaskItemStatusChangedEventHandler, CommentAddedEventHandler, AttachmentUploadedEventHandler)
 - [ ] FusionCache integration with Redis backplane (named caches per entity, tag-based invalidation)
 - [ ] Request context factory (IRequestContext<Guid, Guid> from HTTP context)
 - [ ] Bootstrapper DI wiring finalized (RegisterServices.cs)
-- [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes
 
-### Phase 5c — Runtime/Edge (Tests-After)
+Runtime/edge concerns (tests-after, within 5b):
 
 - [ ] Aspire AppHost with all resources:
   - SQL Server (with password parameter, persistent data volume)
@@ -94,6 +93,25 @@ Per entity (same order):
   - Cosmos DB emulator
 - [ ] ServiceDefaults with OpenTelemetry (Activity spans, custom metrics)
 - [ ] Health checks: SQL + Redis (required), `/healthz` (all) + `/readyz` (filtered)
+- [ ] Service Bus message publishing + consumption (outbox pattern for DomainEvents topic)
+- [ ] Blob storage for attachment upload/download (SAS URI generation)
+- [ ] Cosmos DB projection store: denormalized TaskView document
+- [ ] Rate limiting (per-tenant fixed window, per-endpoint sliding window)
+- [ ] CORS (gateway-only)
+- [ ] Security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+- [ ] Resilience patterns (retry + circuit breaker + timeout on external HTTP clients)
+- [ ] Configuration + appsettings (per environment, ValidateOnStart)
+- [ ] Multi-tenant middleware (request context, tenant extraction from claims)
+- [ ] Write infrastructure tests (health checks, config validation, caching behavior)
+- [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes; `dotnet run --project src/Aspire/AppHost` starts and all services healthy
+
+### Phase 5c — Optional Hosts (Tests-After)
+
+- [ ] YARP Gateway:
+  - Route configuration (API forwarding)
+  - User-facing auth (stub mode)
+  - Claim relay via X-Orig-Request header
+  - Service token acquisition (TokenService for downstream API calls)
 - [ ] Scheduler host with TickerQ:
   - OverdueTaskCheck (every 6 hours)
   - RecurringTaskGeneration (daily)
@@ -103,53 +121,32 @@ Per entity (same order):
   - StaleTaskCleanup (timer trigger)
   - ProcessAttachment (blob trigger)
   - TaskApiProxy (HTTP trigger, read-only)
-- [ ] Service Bus message publishing + consumption (outbox pattern for DomainEvents topic)
-- [ ] Blob storage for attachment upload/download (SAS URI generation)
-- [ ] Cosmos DB projection store: denormalized TaskView document (task + comments + checklist + tags + sub-tasks)
-- [ ] Reconciliation job: SQL → Cosmos drift detection
-- [ ] Rate limiting (per-tenant fixed window, per-endpoint sliding window)
-- [ ] CORS (gateway-only)
-- [ ] Security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
-- [ ] Resilience patterns (retry + circuit breaker + timeout on external HTTP clients)
-- [ ] Configuration + appsettings (per environment, ValidateOnStart)
-- [ ] Multi-tenant middleware (request context, tenant extraction from claims)
-- [ ] Write infrastructure tests (health checks, config validation, caching behavior)
-- [ ] **Checkpoint:** `dotnet run --project src/Aspire/AppHost` starts, all services healthy
-
-### Phase 5d — Optional Hosts (Tests-After)
-
-- [ ] YARP Gateway:
-  - Route configuration (API forwarding)
-  - User-facing auth (stub mode)
-  - Claim relay via X-Orig-Request header
-  - Service token acquisition (TokenService for downstream API calls)
-- [ ] Uno UI (WASM) — Full CRUD + Dashboard:
-  - Dashboard page (task summary stats, overdue counts, status breakdown chart, recent activity)
-  - Task list page (filtering/sorting/paging, inline status toggle)
-  - Task create/edit form (full CRUD with validation)
-  - Task detail page (comments CRUD, checklist CRUD with reorder, attachments upload/download/delete, sub-task tree)
-  - Category tree view (self-referencing hierarchy, CRUD)
-  - Tag management page (CRUD, assign/unassign from tasks)
-  - MVUX models for reactive state management
-  - Client-side HTTP services via Refit
+- [ ] Uno UI (WASM) — Full CRUD + Dashboard (dedicated session)
+- [ ] Blazor UI alternative (if enabled)
 - [ ] Write per-host smoke tests
-- [ ] **Checkpoint:** Gateway forwards requests, UI renders and interacts with API
+- [ ] **Checkpoint:** each enabled host starts and responds; per-host gate status recorded in HANDOFF.md
 
-### Phase 5e — Quality Gates + Delivery
+### Phase 5d — Quality + Delivery
 
 - [ ] Architecture tests (NetArchTest):
   - Domain.Model has no dependencies on Infrastructure or Application
   - Application.Services depends only on Application.Contracts + Domain.Model
   - Infrastructure depends on Application.Contracts + Domain.Model
   - API depends on Application.Contracts only (not Application.Services directly)
+- [ ] Workflow E2E tests in `Test.E2E` (multi-endpoint chains via WebApplicationFactory + Testcontainers SQL)
+- [ ] Browser UI tests in `Test.PlaywrightUI` (runs against hosted Aspire AppHost stack, not WebApplicationFactory)
 - [ ] Load tests (NBomber): task CRUD throughput, search latency, p95/p99
 - [ ] Benchmarks (BenchmarkDotNet): search projection, entity mapping, cache hit/miss
-- [ ] E2E tests (Playwright): create task → edit → add comments → complete → verify
 - [ ] Dockerfiles per host (API, Gateway, Scheduler, Functions)
+- [ ] IaC (Bicep) — `infra/main.bicep` plus modules under `infra/modules/`
+- [ ] CI/CD pipelines (`.github/workflows/ci.yml`, `cd.yml`)
+- [ ] Vulnerability audit: `dotnet list package --vulnerable --include-transitive`
 - [ ] Full regression: `dotnet test` (all categories)
-- [ ] **Checkpoint:** full test suite passes, all quality gates green
+- [ ] **Checkpoint:** full test suite passes; `az bicep build infra/main.bicep` succeeds
 
-### Phase 5f — Authentication
+### Phase 5e — Integration (Auth + AI)
+
+**Authentication finalization:**
 
 - [ ] Conditional auth registration (appsettings section present → JWT Bearer; absent → no-op passthrough)
 - [ ] Auth stub → real Entra ID JWT Bearer (config-driven)
@@ -158,9 +155,8 @@ Per entity (same order):
 - [ ] Service-to-service tokens: Gateway → API via client credentials (TokenService)
 - [ ] Claim extraction precedence: oid > NameIdentifier > sub
 - [ ] Update appsettings with Entra configuration sections (commented out for scaffold mode)
-- [ ] **Checkpoint:** authenticated endpoints respond correctly; app still boots in scaffold mode without Entra config
 
-### Phase 5g — AI Integration
+**AI integration:**
 
 - [ ] Infrastructure.AI project with search/agent service interfaces
 - [ ] Azure AI Search:
@@ -177,7 +173,7 @@ Per entity (same order):
 - [ ] Bootstrapper DI registration (lazy-optional: no config → no-op)
 - [ ] API endpoints: /api/search/tasks, /api/agent/chat
 - [ ] Configuration: Foundry endpoint, model deployment names, search index name in appsettings
-- [ ] **Checkpoint:** app boots without AI config (no-op stubs), search + agent work when Azure AI resources configured
+- [ ] **Checkpoint:** authenticated endpoints respond correctly; app boots without AI config (no-op stubs); search + agent work when Azure AI resources configured
 
 ## Open Questions
 
@@ -229,9 +225,9 @@ CLI tools were preferred before MCP servers where both existed. MCP and document
 | Tool | Needed for | Phase | Install | Verified |
 |---|---|---|---|---|
 | `dotnet-ef` | EF migrations | 5a | `dotnet tool install dotnet-ef` | [x] |
-| `azd` | IaC/deployment validation | 5e | `winget install Microsoft.Azd` | [ ] |
-| `func` | Azure Functions local validation | 5d | `npm i -g azure-functions-core-tools@4` | [ ] |
-| `uno-check` | Uno workload validation | 5d | `dotnet tool install -g uno.check` | [ ] |
+| `azd` | IaC/deployment validation | 5d | `winget install Microsoft.Azd` | [ ] |
+| `func` | Azure Functions local validation | 5c | `npm i -g azure-functions-core-tools@4` | [ ] |
+| `uno-check` | Uno workload validation | 5c | `dotnet tool install -g uno.check` | [ ] |
 
 ### EF.Packages Feed Readiness
 
@@ -248,17 +244,17 @@ CLI tools were preferred before MCP servers where both existed. MCP and document
 |---|---|---|---|
 | Microsoft Docs MCP | all | .NET, Azure, Aspire, Functions, auth docs | [x] |
 | GitHub MCP | 4-5 | Reference app/source lookup | [x] |
-| Azure MCP | 3, 5c, 5e, 5f, 5g | Azure resource and IaC validation | [ ] |
-| Playwright MCP | 5d, 5e | UI/E2E validation | [ ] |
+| Azure MCP | 3, 5b, 5d, 5e | Azure resource and IaC validation | [ ] |
+| Playwright MCP | 5c, 5d | UI/E2E validation | [ ] |
 
 ### Online Resources
 
 | Library/Service | Phase | Resource | URL |
 |---|---|---|---|
-| TickerQ | 5d | Package docs and samples | `https://github.com/Arcenox-co/TickerQ` |
-| FusionCache | 5c | Package docs and samples | `https://github.com/ZiggyCreatures/FusionCache` |
-| Uno Platform | 5d | Official docs | `https://platform.uno/docs/articles/intro.html` |
-| NetArchTest | 5e | GitHub README | `https://github.com/BenMorris/NetArchTest` |
+| TickerQ | 5c | Package docs and samples | `https://github.com/Arcenox-co/TickerQ` |
+| FusionCache | 5b | Package docs and samples | `https://github.com/ZiggyCreatures/FusionCache` |
+| Uno Platform | 5c | Official docs | `https://platform.uno/docs/articles/intro.html` |
+| NetArchTest | 5d | GitHub README | `https://github.com/BenMorris/NetArchTest` |
 
 ## Risk / Blockers
 

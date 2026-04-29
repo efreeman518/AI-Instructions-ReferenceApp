@@ -2,7 +2,9 @@
 
 ## Session Summary
 
-Phases 1–5g complete + post-phase hardening + Session A (test hardening + EF migrations) + Session B (infrastructure validation). 30-project clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated. 263 tests green (204 Unit + 12 Architecture + 36 Endpoint + 11 Integration).
+Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening + Session A (test hardening + EF migrations) + Session B (infrastructure validation) + Session D (IaC). Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules.
+
+> Current verified counts and warning/vulnerability summary live in [REFERENCE-STATUS.md](REFERENCE-STATUS.md). HANDOFF prose narrates the session; REFERENCE-STATUS is the current truth.
 
 ## Current State
 
@@ -93,7 +95,7 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 
 ## Phase 5d Outputs
 
-- **YARP Gateway**: YARP reverse proxy with service-discovery destinations (`https+http://taskflowapi`), `PathRemovePrefix` transform, TokenService (stub) for downstream bearer tokens, `X-Orig-Request` claim relay header (Base64 JSON), CORS policy for Uno UI origins, auth stub (Phase 5f replaces)
+- **YARP Gateway**: YARP reverse proxy with service-discovery destinations (`https+http://taskflowapi`), `PathRemovePrefix` transform, TokenService (stub) for downstream bearer tokens, `X-Orig-Request` claim relay header (Base64 JSON), CORS policy for Uno UI origins, auth stub (Phase 5e replaces)
 - **TickerQ Scheduler (v10.2.5)**: 3 `[TickerFunction]` jobs (OverdueTaskCheck, RecurringTaskGeneration, StaleTaskCleanup), BaseTickerQJob with scoped handler dispatch, 3 handler implementations using `ITaskItemService`, EF Core operational store (SQL Server), cron seeding via `ICronTickerManager<CronTickerEntity>`, optional dashboard
 - **Azure Functions (isolated worker v4)**: 4 trigger types — HTTP (health + TaskApiProxy), Timer (StaleTaskCleanup), Blob (ProcessAttachment), ServiceBus topic (ProcessTaskEvent), Bootstrapper DI reuse, `host.json` + `local.settings.json` configured
 - **Packages added**: Yarp.ReverseProxy 2.3.0, Microsoft.Extensions.ServiceDiscovery.Yarp 10.1.0, TickerQ 10.2.5 + EFCore + Dashboard, Azure Functions Worker packages
@@ -131,7 +133,7 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **Solution**: 28 projects in `TaskFlow.slnx` (added Test.Load + Test.Benchmarks)
 - **Gate: `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed (174 Unit + 12 Architecture), 0 failed**
 
-## Phase 5f Outputs
+## Phase 5e Outputs — Authentication Finalization
 
 - **ScaffoldAuthHandler**: Predictable test identity with oid, tenant_id, GlobalAdmin/TenantAdmin/TenantMember roles — all requests succeed in scaffold mode
 - **AuthConfiguration**: Config-driven toggle (`AuthMode` key) — "Scaffold" → ScaffoldAuthHandler, "EntraID" → JWT Bearer with Entra ID validation
@@ -149,7 +151,7 @@ Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → T
 - **appsettings**: AuthMode: "Scaffold" in API (appsettings.json + appsettings.Development.json), CorsSettings in Gateway
 - **Gate: `dotnet build` — 28 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed, 0 failed**
 
-## Phase 5g Outputs
+## Phase 5e Outputs — AI Integration
 
 - **TaskFlow.Infrastructure.AI** (new project): search + agent + tools infrastructure with conditional DI registration
 - **Search**: `ITaskFlowSearchService`, `TaskFlowSearchService` (Azure AI Search: keyword, semantic, vector, hybrid modes), `NoOpSearchService` (stub), `TaskItemSearchDocument`, `TaskItemSearchResult`, `TaskItemSearchIndexDefinition` (HNSW vector profile, semantic config with Title/Description/CategoryName/Status)
@@ -274,7 +276,7 @@ docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Functions/Dockerf
 
 ### Session C: Deployment Readiness
 
-9. **IaC (Bicep/azd)** — Not started. Add `infra/` directory with Bicep modules for SQL, Redis, Service Bus, Storage, Cosmos, App Service/Container Apps. Add `azure.yaml` for `azd` integration. See `skills/iac.md` in instruction repo.
+9. ~~**IaC (Bicep/azd)**~~ — **Implemented.** `infra/` directory contains `main.bicep` plus modules for SQL, Cosmos, Service Bus, Storage, Key Vault, App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, and Cosmos RBAC. Deployment plan documented in [.azure/deployment-plan.md](.azure/deployment-plan.md).
 10. **AI Services Live Validation** — Currently no-op stubs. Requires real Azure Foundry + AI Search resources. Deploy index, test hybrid search, validate agent tool calls. Cannot progress without cloud credentials.
 11. **Uno UI Testing** — Currently mock-only via `MockHttpMessageHandler`. Could add Uno.UITest or Playwright WASM tests for critical user flows (task CRUD, category tree navigation).
 
@@ -286,7 +288,7 @@ docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Functions/Dockerf
 | CI Activation | `NUGET_PAT` GitHub secret needed | Workflows activated, secret must be added |
 | AI Services | Azure Foundry + AI Search cloud resources | Not started |
 | Domain Event Integration | Aspire emulators (Docker) | Projection pipeline tested; full Service Bus→Function→Cosmos needs Aspire AppHost |
-| IaC | No blocker | Not started |
+| IaC | No blocker | Implemented (Bicep modules under `infra/`) |
 
 ## Domain Model Summary
 
