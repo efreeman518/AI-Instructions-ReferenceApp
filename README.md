@@ -4,7 +4,7 @@ Reference implementation for [AI-Instructions-NewProject](https://github.com/efr
 
 ## Description
 
-**TaskFlow** — a production-grade reference app demonstrating AI-assisted development patterns for a multi-tenant task management system. Built with Clean Architecture and Domain-Driven Design, deployed to Azure.
+**TaskFlow** — a production-grade reference app demonstrating AI-assisted development patterns for a multi-tenant task management system. Built with Clean Architecture and Domain-Driven Design, running local with Aspire, deployable to Azure.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ Reference implementation for [AI-Instructions-NewProject](https://github.com/efr
 | Infrastructure | `src/Infrastructure/` | EF Core, Azure AI, Storage, Repos |
 | Host | `src/Host/` | API, Functions, Scheduler, Gateway, Aspire |
 
-**Azure services:** SQL Server, Cosmos DB, Service Bus, Blob Storage, Azure AI Search, Azure OpenAI.
+**Azure services:** SQL Server, Cosmos DB, Service Bus, Blob Storage, Azure AI Search, Microsoft Foundry.
 
 Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bicep (`infra/`).
 
