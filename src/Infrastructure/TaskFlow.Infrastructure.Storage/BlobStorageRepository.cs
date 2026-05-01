@@ -1,5 +1,5 @@
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
+using EF.Storage;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,76 +7,50 @@ using TaskFlow.Application.Contracts.Storage;
 
 namespace TaskFlow.Infrastructure.Storage;
 
-public class BlobStorageRepository : IBlobStorageRepository
+public class BlobStorageRepository(
+    ILogger<BlobStorageRepository> logger,
+    IOptions<BlobStorageSettings> settings,
+    IAzureClientFactory<BlobServiceClient> clientFactory)
+    : BlobRepositoryBase(logger, Options.Create((BlobRepositorySettingsBase)settings.Value), clientFactory),
+      IBlobStorageRepository
 {
-    private readonly BlobServiceClient _client;
-    private readonly ILogger<BlobStorageRepository> _logger;
-
-    public BlobStorageRepository(
-        IAzureClientFactory<BlobServiceClient> clientFactory,
-        IOptions<BlobStorageSettings> settings,
-        ILogger<BlobStorageRepository> logger)
+    private readonly ContainerInfo _container = new()
     {
-        _client = clientFactory.CreateClient("TaskFlowBlobClient");
-        _logger = logger;
-    }
+        ContainerName = settings.Value.ContainerName,
+        CreateContainerIfNotExist = true
+    };
 
-    public async Task UploadAsync(string containerName, string blobName, Stream content,
+    public Task UploadAsync(string containerName, string blobName, Stream content,
         string? contentType = null, IDictionary<string, string>? metadata = null,
-        CancellationToken ct = default)
-    {
-        var container = _client.GetBlobContainerClient(containerName);
-        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: ct);
-
-        var blob = container.GetBlobClient(blobName);
-
-        var options = new BlobUploadOptions();
-        if (contentType is not null)
-        {
-            options.HttpHeaders = new BlobHttpHeaders { ContentType = contentType };
-        }
-        if (metadata is not null)
-        {
-            options.Metadata = metadata;
-        }
-
-        await blob.UploadAsync(content, options, ct);
-        _logger.LogInformation("Uploaded blob {Container}/{BlobName}", containerName, blobName);
-    }
+        CancellationToken ct = default) =>
+        UploadBlobStreamAsync(new ContainerInfo { ContainerName = containerName, CreateContainerIfNotExist = true },
+            blobName, content, contentType, false, metadata, ct);
 
     public async Task<Stream> DownloadAsync(string containerName, string blobName,
-        CancellationToken ct = default)
-    {
-        var container = _client.GetBlobContainerClient(containerName);
-        var blob = container.GetBlobClient(blobName);
+        CancellationToken ct = default) =>
+        await StartDownloadBlobStreamAsync(new ContainerInfo { ContainerName = containerName }, blobName, false, ct);
 
-        var response = await blob.DownloadStreamingAsync(cancellationToken: ct);
-        return response.Value.Content;
-    }
-
-    public async Task DeleteAsync(string containerName, string blobName,
-        CancellationToken ct = default)
-    {
-        var container = _client.GetBlobContainerClient(containerName);
-        var blob = container.GetBlobClient(blobName);
-        await blob.DeleteIfExistsAsync(cancellationToken: ct);
-        _logger.LogInformation("Deleted blob {Container}/{BlobName}", containerName, blobName);
-    }
+    public Task DeleteAsync(string containerName, string blobName,
+        CancellationToken ct = default) =>
+        DeleteBlobAsync(new ContainerInfo { ContainerName = containerName }, blobName, ct);
 
     public async Task<bool> ExistsAsync(string containerName, string blobName,
         CancellationToken ct = default)
     {
-        var container = _client.GetBlobContainerClient(containerName);
-        var blob = container.GetBlobClient(blobName);
-        var response = await blob.ExistsAsync(ct);
-        return response.Value;
+        var info = new ContainerInfo { ContainerName = containerName, CreateContainerIfNotExist = true };
+        var (blobs, _) = await QueryPageBlobsAsync(info, prefix: blobName, cancellationToken: ct);
+        return blobs.Any(b => b.Name == blobName);
     }
 
-    public Task<Uri> GetBlobUriAsync(string containerName, string blobName,
+    public async Task<Uri> GetBlobUriAsync(string containerName, string blobName,
         CancellationToken ct = default)
     {
-        var container = _client.GetBlobContainerClient(containerName);
-        var blob = container.GetBlobClient(blobName);
-        return Task.FromResult(blob.Uri);
+        var sasUri = await GenerateBlobSasUriAsync(
+            new ContainerInfo { ContainerName = containerName },
+            blobName,
+            Azure.Storage.Sas.BlobSasPermissions.Read,
+            DateTimeOffset.UtcNow.AddHours(1),
+            cancellationToken: ct);
+        return sasUri ?? throw new InvalidOperationException($"Could not generate URI for blob {containerName}/{blobName}");
     }
 }

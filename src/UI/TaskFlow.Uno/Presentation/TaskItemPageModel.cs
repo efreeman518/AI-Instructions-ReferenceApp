@@ -308,7 +308,7 @@ public partial record TaskItemPageModel
         // immediately. If the parent task is persisted, send the change to
         // the server afterwards; in create mode the item gets persisted
         // with its current IsCompleted when the parent task is saved.
-        await ChecklistItems.UpdateAsync((IImmutableList<ChecklistItemModel>? list) =>
+        await ChecklistItems.UpdateAsync((IImmutableList<ChecklistItemModel> list) =>
         {
             var source = list ?? (IImmutableList<ChecklistItemModel>)ImmutableList<ChecklistItemModel>.Empty;
             var idx = FindIndex(source, item);

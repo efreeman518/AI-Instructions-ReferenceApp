@@ -235,8 +235,8 @@ public class TaskItemCrudE2ETests
 
         Assert.AreEqual(2, firstPage.Total);
         Assert.AreEqual(2, secondPage.Total);
-        Assert.AreEqual(1, firstPage.Titles.Count);
-        Assert.AreEqual(1, secondPage.Titles.Count);
+        Assert.HasCount(1, firstPage.Titles);
+        Assert.HasCount(1, secondPage.Titles);
 
         var pagedTitles = new[]
         {

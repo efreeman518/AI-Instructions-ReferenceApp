@@ -20,7 +20,7 @@ public class ProblemDetailsDelegatingHandlerTests
         var response = await Invoke(stub, svc);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.AreEqual(0, svc.Items.Count);
+        Assert.IsEmpty(svc.Items);
     }
 
     [TestMethod]
@@ -35,7 +35,7 @@ public class ProblemDetailsDelegatingHandlerTests
         var response = await Invoke(stub, svc);
 
         Assert.AreEqual(HttpStatusCode.InternalServerError, response.StatusCode);
-        Assert.AreEqual(0, svc.Items.Count);
+        Assert.IsEmpty(svc.Items);
     }
 
     [TestMethod]
@@ -49,7 +49,7 @@ public class ProblemDetailsDelegatingHandlerTests
 
         Assert.AreEqual(400, ex.StatusCode);
         Assert.AreEqual("Validation failed", ex.Problem.Title);
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         Assert.AreEqual(NotificationSeverity.Error, svc.Items[0].Severity);
     }
 
@@ -63,7 +63,7 @@ public class ProblemDetailsDelegatingHandlerTests
             await Invoke(stub, svc));
 
         Assert.AreEqual(499, ex.StatusCode);
-        Assert.AreEqual(0, svc.Items.Count);
+        Assert.IsEmpty(svc.Items);
     }
 
     [TestMethod]
@@ -78,7 +78,7 @@ public class ProblemDetailsDelegatingHandlerTests
         var response = await Invoke(stub, svc);
 
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.AreEqual(0, svc.Items.Count);
+        Assert.IsEmpty(svc.Items);
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public class ProblemDetailsDelegatingHandlerTests
             catch (ProblemDetailsException) { }
         }
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
     }
 
     private static async Task<HttpResponseMessage> Invoke(HttpMessageHandler inner, INotificationService notifications)

@@ -12,6 +12,7 @@
     <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="Azure.Data.Tables" />
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>

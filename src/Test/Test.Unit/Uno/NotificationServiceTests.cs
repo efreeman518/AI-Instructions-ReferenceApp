@@ -13,7 +13,7 @@ public class NotificationServiceTests
         var svc = new NotificationService();
         await svc.ShowSuccess("Saved.", "Done");
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         Assert.AreEqual(NotificationSeverity.Success, svc.Items[0].Severity);
         Assert.AreEqual("Saved.", svc.Items[0].Message);
         Assert.AreEqual("Done", svc.Items[0].Title);
@@ -25,7 +25,7 @@ public class NotificationServiceTests
         var svc = new NotificationService();
         await svc.ShowError("Boom");
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         Assert.IsNull(svc.Items[0].AutoDismissAfter);
     }
 
@@ -42,7 +42,7 @@ public class NotificationServiceTests
 
         await svc.ShowProblem(problem);
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         var n = svc.Items[0];
         Assert.AreEqual(NotificationSeverity.Error, n.Severity);
         Assert.AreEqual("Validation failed", n.Title);
@@ -61,7 +61,7 @@ public class NotificationServiceTests
         await svc.ShowProblem(q);
         await svc.ShowProblem(q);
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         Assert.AreEqual("second", svc.Items[0].Message);
     }
 
@@ -77,7 +77,7 @@ public class NotificationServiceTests
 
         await svc.Dismiss(idToRemove);
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
         Assert.AreEqual(idToKeep, svc.Items[0].Id);
     }
 
@@ -89,6 +89,6 @@ public class NotificationServiceTests
 
         await svc.Dismiss(Guid.NewGuid());
 
-        Assert.AreEqual(1, svc.Items.Count);
+        Assert.HasCount(1, svc.Items);
     }
 }

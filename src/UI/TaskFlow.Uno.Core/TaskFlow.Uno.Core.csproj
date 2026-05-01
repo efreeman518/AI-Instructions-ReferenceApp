@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>TaskFlow UI core business logic - models, services, and API client (platform-agnostic)</Description>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup>

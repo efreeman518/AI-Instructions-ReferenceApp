@@ -8,6 +8,7 @@
     <PackageReference Include="MSTest" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="EF.Common.Contracts" />
   </ItemGroup>
 

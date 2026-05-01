@@ -38,7 +38,7 @@ public class ChecklistItemApiServiceTests
         var results = await _service.SearchAsync();
 
         Assert.IsNotEmpty(results);
-        Assert.AreEqual(2, results.Count);
+        Assert.HasCount(2, results);
         Assert.AreEqual("Design mockups", results[0].Title);
         Assert.IsTrue(results[0].IsCompleted);
         Assert.AreEqual("Implement XAML", results[1].Title);

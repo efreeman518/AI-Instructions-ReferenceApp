@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Azure.Data.Tables" />
-    <PackageReference Include="Azure.Storage.Blobs" />
+    <PackageReference Include="EF.Storage" />
+    <PackageReference Include="EF.Table" />
+    <PackageReference Include="EF.Messaging" />
     <PackageReference Include="Azure.Messaging.ServiceBus" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Newtonsoft.Json" />

@@ -7,12 +7,14 @@ using TaskFlow.Application.Contracts.Storage;
 
 namespace TaskFlow.Infrastructure.Storage;
 
+// Uses IAzureClientFactory directly because TableRepositoryBase uses typeof(T).Name as the table name,
+// but audit log requires a configurable table name from settings.
 public class AuditLogRepository(
     IAzureClientFactory<TableServiceClient> clientFactory,
     IOptions<AuditLogStorageSettings> settings,
     ILogger<AuditLogRepository> logger) : IAuditLogRepository
 {
-    private readonly TableServiceClient _client = clientFactory.CreateClient("TaskFlowTableClient");
+    private readonly TableServiceClient _client = clientFactory.CreateClient(settings.Value.TableServiceClientName);
     private readonly AuditLogStorageSettings _settings = settings.Value;
     private readonly ILogger<AuditLogRepository> _logger = logger;
 

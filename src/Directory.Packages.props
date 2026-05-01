@@ -2,7 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup Label="EF.Packages (Private Feed)">
+  <ItemGroup Label="EF.Packages (Private Feed — github.com/efreeman518/EF.Packages)">
+    <!-- Core packages — always available -->
     <PackageVersion Include="EF.Domain" Version="1.0.58" />
     <PackageVersion Include="EF.Domain.Contracts" Version="1.0.58" />
     <PackageVersion Include="EF.Data" Version="1.0.58" />
@@ -15,8 +16,41 @@
     <PackageVersion Include="EF.Cache" Version="1.0.58" />
     <PackageVersion Include="EF.Test.Unit" Version="1.0.58" />
     <PackageVersion Include="EF.Test.Integration" Version="1.0.58" />
+    <!-- Extended packages — add to individual .csproj when needed -->
+    <PackageVersion Include="EF.Auth" Version="1.0.58" />
+    <PackageVersion Include="EF.Messaging" Version="1.0.58" />
+    <PackageVersion Include="EF.Storage" Version="1.0.58" />
+    <PackageVersion Include="EF.Table" Version="1.0.58" />
+    <PackageVersion Include="EF.CosmosDb" Version="1.0.58" />
+    <PackageVersion Include="EF.KeyVault" Version="1.0.58" />
+    <PackageVersion Include="EF.Grpc" Version="1.0.58" />
+    <PackageVersion Include="EF.OpenAI" Version="1.0.58" />
+    <PackageVersion Include="EF.AzureOpenAI" Version="1.0.58" />
+    <PackageVersion Include="EF.MSGraph" Version="1.0.58" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.11.0" />
   </ItemGroup>
+  <!-- Enterprise packages — opt-in; add version from NuGet feed at time of adoption -->
+  <!-- Feed: https://nuget.pkg.github.com/efreeman518/index.json (same EF.* pattern mapping) -->
+  <!--
+  <ItemGroup Label="EF.Packages.Enterprise">
+    <PackageVersion Include="EF.FilterBuilder" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.StateStore.Redis" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Locks.Redis" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Clients.Sql" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Clients.OpenAI" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="x.x.x" />
+    <PackageVersion Include="EF.FlowEngine.Testing" Version="x.x.x" />
+  </ItemGroup>
+  -->
   <ItemGroup Label="Microsoft Entity Framework Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.7" />
@@ -90,12 +124,12 @@
   </ItemGroup>
   <ItemGroup Label="Azure Storage">
     <PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
-    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.12.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.13.1" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="9.3.0" />
   </ItemGroup>
   <ItemGroup Label="Azure Service Bus">
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
     <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="9.3.0" />
   </ItemGroup>
   <ItemGroup Label="Azure Cosmos DB">
