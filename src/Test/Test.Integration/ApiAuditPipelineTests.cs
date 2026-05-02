@@ -17,14 +17,11 @@ public class ApiAuditPipelineTests
     private static readonly Guid ScaffoldTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     [TestMethod]
+    [Timeout(300000)]
     public async Task Given_ApiCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
-        var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
-        await using var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
-
-        using var client = app.CreateHttpClient("taskflowapi", "http");
+        using var client = DatabaseFixture.AspireApp!.CreateHttpClient("taskflowapi", "http");
+        client.Timeout = TimeSpan.FromMinutes(10);
         var auditWindowStartUtc = DateTimeOffset.UtcNow;
         var request = new DefaultRequest<CategoryDto>
         {
@@ -47,7 +44,7 @@ public class ApiAuditPipelineTests
         Assert.AreEqual(ScaffoldTenantId, responseBody.Item.TenantId);
         Assert.AreEqual(request.Item.Name, responseBody.Item.Name);
 
-        var connectionString = await app.GetConnectionStringAsync("TableStorage1");
+        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,

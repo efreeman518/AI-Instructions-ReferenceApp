@@ -17,19 +17,16 @@ public class FunctionAuditPipelineTests
     private static readonly Guid FunctionFallbackTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     [TestMethod]
+    [Timeout(300000)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
-        if (!EnsureAzureFunctionsCoreToolsAvailable())
+        if (!DatabaseFixture.EnsureFuncToolAvailable())
         {
             Assert.Inconclusive("Azure Functions Core Tools ('func') is required to run the end-to-end Functions audit pipeline test.");
         }
 
-        var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
-        await using var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
-
-        using var client = app.CreateHttpClient("taskflowfunctions", "http");
+        using var client = DatabaseFixture.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
+        client.Timeout = TimeSpan.FromMinutes(10);
         var auditWindowStartUtc = DateTimeOffset.UtcNow;
         var request = new
         {
@@ -46,7 +43,7 @@ public class FunctionAuditPipelineTests
         Assert.AreEqual(FunctionFallbackTenantId, responseBody.TenantId);
         Assert.AreEqual(request.Name, responseBody.Name);
 
-        var connectionString = await app.GetConnectionStringAsync("TableStorage1");
+        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,
@@ -163,55 +160,5 @@ public class FunctionAuditPipelineTests
         Assert.Fail(
             $"Expected recent audit entity for partition '{partitionKey}' since '{auditWindowStartUtc:O}'. Recent partition entities: {recentPartitionSummary}. Recent entities across all partitions: {recentGlobalSummary}.");
         throw new InvalidOperationException("Unreachable");
-    }
-
-    private static bool EnsureAzureFunctionsCoreToolsAvailable()
-    {
-        var candidateNames = OperatingSystem.IsWindows()
-            ? new[] { "func.exe", "func.cmd", "func.bat" }
-            : new[] { "func" };
-
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var pathEntries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var directory in pathEntries)
-        {
-            foreach (var candidate in candidateNames)
-            {
-                if (File.Exists(Path.Combine(directory, candidate)))
-                    return true;
-            }
-        }
-
-        if (!OperatingSystem.IsWindows())
-            return false;
-
-        var localFunctionsToolsRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AzureFunctionsTools",
-            "Releases");
-
-        if (!Directory.Exists(localFunctionsToolsRoot))
-            return false;
-
-        var discoveredDirectory = Directory
-            .EnumerateFiles(localFunctionsToolsRoot, "func.exe", SearchOption.AllDirectories)
-            .Select(Path.GetDirectoryName)
-            .Where(directory => !string.IsNullOrWhiteSpace(directory))
-            .Select(directory => directory!)
-            .OrderByDescending(directory => directory.Contains("4.", StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(directory => directory, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault();
-
-        if (discoveredDirectory == null)
-            return false;
-
-        Environment.SetEnvironmentVariable(
-            "PATH",
-            string.IsNullOrWhiteSpace(path)
-                ? discoveredDirectory
-                : string.Join(Path.PathSeparator, [discoveredDirectory, .. pathEntries]));
-
-        return true;
     }
 }

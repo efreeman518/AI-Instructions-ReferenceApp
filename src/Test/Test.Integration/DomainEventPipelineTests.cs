@@ -31,6 +31,7 @@ public class DomainEventPipelineTests
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Timeout(120000)]
     public async Task Given_TaskItemCreated_When_ProjectionRuns_Then_TaskViewProduced()
     {
         // Arrange — real SQL via TestContainers
@@ -77,6 +78,7 @@ public class DomainEventPipelineTests
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Timeout(120000)]
     public async Task Given_TaskItemWithChildren_When_ProjectionRuns_Then_CountsIncluded()
     {
         var connStr = DatabaseFixture.ConnectionString;
@@ -122,6 +124,7 @@ public class DomainEventPipelineTests
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Timeout(120000)]
     public async Task Given_ServiceBusMessageBody_When_Parsed_Then_TaskItemIdExtracted()
     {
         // Proves the Function trigger's message parsing logic works

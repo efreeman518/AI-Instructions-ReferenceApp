@@ -16,6 +16,7 @@ public class MigrationAndRepositoryTests
     private static readonly Guid TenantB = Guid.Parse("00000000-0000-0000-0000-000000000099");
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task Migrations_ApplyCleanly_ToSqlContainer()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -33,6 +34,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task Category_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -66,6 +68,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task TaskItem_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -100,6 +103,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task Tag_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -116,6 +120,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task TaskItem_WithChildren_PersistsCorrectly()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -148,6 +153,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task TaskItemTag_ManyToMany_WorksCorrectly()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -176,6 +182,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task TenantQueryFilter_FiltersByTenant_WhenTenantIdSet()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();
@@ -219,6 +226,7 @@ public class MigrationAndRepositoryTests
     }
 
     [TestMethod]
+    [Timeout(120000)]
     public async Task Attachment_TableAndConstraints_ExistCorrectly()
     {
         await using var db = DatabaseFixture.CreateTrxnContext();

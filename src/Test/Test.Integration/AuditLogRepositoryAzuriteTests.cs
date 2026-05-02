@@ -10,17 +10,14 @@ namespace Test.Integration;
 
 [TestClass]
 [TestCategory("Integration")]
+[DoNotParallelize]
 public class AuditLogRepositoryAzuriteTests
 {
     [TestMethod]
+    [Timeout(300000)]
     public async Task Given_AuditEntry_When_AppendAsyncToAzurite_Then_TableEntityPersistedWithExpectedKeys()
     {
-        var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
-        await using var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
-        await using var app = await builder.BuildAsync();
-        await app.StartAsync();
-
-        var connectionString = await app.GetConnectionStringAsync("TableStorage1");
+        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
         Assert.IsFalse(string.IsNullOrWhiteSpace(connectionString));
 
         var tableName = $"audit{Guid.NewGuid():N}"[..31];

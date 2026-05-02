@@ -22,7 +22,7 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
     public static async Task StartContainerAsync()
     {
         if (_started) return;
-        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
+        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest").Build();
         await _container.StartAsync();
         _connectionString = _container.GetConnectionString();
         _started = true;
