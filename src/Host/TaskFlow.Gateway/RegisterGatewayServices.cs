@@ -46,14 +46,14 @@ public static class RegisterGatewayServices
         }
 
         // Production: Entra External ID JWT Bearer
-        var instance = entraSection["Instance"] ?? "https://login.microsoftonline.com/";
-        var tenantId = entraSection["TenantId"];
+        var instance = GetRequiredValue(entraSection, "Instance");
+        var tenantId = GetRequiredValue(entraSection, "TenantId");
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.Authority = $"{instance.TrimEnd('/')}/{tenantId}/v2.0";
-                options.Audience = entraSection["ClientId"];
+            options.Audience = GetRequiredValue(entraSection, "ClientId");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -110,11 +110,14 @@ public static class RegisterGatewayServices
 
     private static void AddCors(IServiceCollection services, IConfiguration config)
     {
+        var origins = config.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
+        if (origins is null || origins.Length == 0)
+        {
+            throw new InvalidOperationException("CORS is not configured. Set CorsSettings:AllowedOrigins in configuration.");
+        }
+
         services.AddCors(options =>
         {
-            var origins = config.GetSection("CorsSettings:AllowedOrigins").Get<string[]>()
-                       ?? ["https://localhost:5002", "http://localhost:5002"];
-
             options.AddPolicy("UnoUI", policy =>
             {
                 policy.WithOrigins(origins)
@@ -124,4 +127,9 @@ public static class RegisterGatewayServices
             });
         });
     }
+
+    private static string GetRequiredValue(IConfigurationSection section, string key) =>
+        section[key] is { Length: > 0 } value
+            ? value
+            : throw new InvalidOperationException($"Missing configuration value '{section.Path}:{key}'.");
 }

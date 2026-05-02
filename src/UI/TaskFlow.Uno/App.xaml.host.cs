@@ -31,7 +31,8 @@ public partial class App : Application
                 )
                 .UseHttp((context, services) =>
                 {
-                    var gatewayUrl = context.Configuration["GatewayBaseUrl"] ?? "https://localhost:7120";
+                    var gatewayUrl = context.Configuration["GatewayBaseUrl"]
+                        ?? throw new InvalidOperationException("GatewayBaseUrl not configured.");
                     services.AddSingleton<MockHttpMessageHandler>();
                     services.AddTransient<BusyDelegatingHandler>();
                     services.AddTransient<ProblemDetailsDelegatingHandler>();

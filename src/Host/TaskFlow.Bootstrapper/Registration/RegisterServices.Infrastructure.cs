@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using TaskFlow.Application.Contracts.Messaging;
@@ -121,8 +122,16 @@ public static partial class RegisterServices
             return;
         }
 
+        var databaseName = config["Cosmos:TaskViews:DatabaseName"] ?? "taskflow-db";
+        var containerName = config["Cosmos:TaskViews:ContainerName"] ?? "task-views";
+
         services.AddSingleton(_ => new Microsoft.Azure.Cosmos.CosmosClient(connStr));
-        services.AddSingleton<ITaskViewRepository, CosmosTaskViewRepository>();
+        services.AddSingleton<ITaskViewRepository>(sp =>
+            new CosmosTaskViewRepository(
+                sp.GetRequiredService<Microsoft.Azure.Cosmos.CosmosClient>(),
+                sp.GetRequiredService<ILogger<CosmosTaskViewRepository>>(),
+                databaseName,
+                containerName));
     }
 
     private static void AddHealthChecks(IServiceCollection services)

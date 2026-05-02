@@ -11,11 +11,13 @@ public class CosmosTaskViewRepository : ITaskViewRepository
 
     public CosmosTaskViewRepository(
         CosmosClient cosmosClient,
-        ILogger<CosmosTaskViewRepository> logger)
+        ILogger<CosmosTaskViewRepository> logger,
+        string databaseName,
+        string containerName)
     {
         _logger = logger;
-        var database = cosmosClient.GetDatabase("taskflow-db");
-        _container = database.GetContainer("task-views");
+        var database = cosmosClient.GetDatabase(databaseName);
+        _container = database.GetContainer(containerName);
     }
 
     public async Task UpsertAsync(TaskViewDto taskView, CancellationToken ct = default)

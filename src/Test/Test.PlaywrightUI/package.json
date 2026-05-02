@@ -5,6 +5,7 @@
   },
   "scripts": {
     "test": "npx playwright test",
+    "test:full:fast": "npx playwright test --retries=0 --max-failures=4 --timeout=120000",
     "test:blazor": "npx playwright test --project=blazor",
     "test:uno": "npx playwright test --project=uno"
   }

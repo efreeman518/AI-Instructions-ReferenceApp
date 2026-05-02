@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
@@ -47,10 +48,10 @@ public static class CommentEndpoints
 
     private static async Task<IResult> Search(
         [FromServices] ICommentService service,
-        [FromBody] SearchRequest<CommentSearchFilter> request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<CommentSearchFilter>? request,
         CancellationToken ct)
     {
-        var items = await service.SearchAsync(request, ct);
+        var items = await service.SearchAsync(request ?? new SearchRequest<CommentSearchFilter>(), ct);
         return TypedResults.Ok(items);
     }
 

@@ -162,12 +162,12 @@ public class TaskItemApiService(
         {
             Id = c.Id, Title = c.Title, IsCompleted = c.IsCompleted,
             SortOrder = c.SortOrder, CompletedDate = c.CompletedDate,
-            TaskItemId = c.TaskItemId == Guid.Empty ? model.Id : c.TaskItemId
+            TaskItemId = c.TaskItemId == Guid.Empty ? model.Id ?? Guid.Empty : c.TaskItemId
         }).ToList(),
         Comments = model.Comments?.Select(c => new CommentDto
         {
             Id = c.Id, Body = c.Body,
-            TaskItemId = c.TaskItemId == Guid.Empty ? model.Id : c.TaskItemId
+            TaskItemId = c.TaskItemId == Guid.Empty ? model.Id ?? Guid.Empty : c.TaskItemId
         }).ToList()
     };
 }

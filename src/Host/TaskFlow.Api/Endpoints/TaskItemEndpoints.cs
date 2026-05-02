@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
@@ -47,10 +48,10 @@ public static class TaskItemEndpoints
 
     private static async Task<IResult> Search(
         [FromServices] ITaskItemService service,
-        [FromBody] SearchRequest<TaskItemSearchFilter> request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<TaskItemSearchFilter>? request,
         CancellationToken ct)
     {
-        var items = await service.SearchAsync(request, ct);
+        var items = await service.SearchAsync(request ?? new SearchRequest<TaskItemSearchFilter>(), ct);
         return TypedResults.Ok(items);
     }
 

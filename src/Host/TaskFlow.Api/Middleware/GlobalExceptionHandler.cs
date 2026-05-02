@@ -19,14 +19,24 @@ internal sealed class DefaultExceptionHandler(
                 => (StatusCodes.Status403Forbidden, "Forbidden"),
             OperationCanceledException
                 => (499, "Client closed request"),
+            BadHttpRequestException
+                => (StatusCodes.Status400BadRequest, "Bad request"),
             ArgumentException or FormatException
                 => (StatusCodes.Status400BadRequest, "Bad request"),
             _
                 => (StatusCodes.Status500InternalServerError, "Internal server error")
         };
 
-        logger.LogError(exception, "Unhandled exception: {ExceptionType} — {Message}",
-            exception.GetType().Name, exception.Message);
+        // Client disconnections and bad-request exceptions are not server errors;
+        // log them at lower severity to avoid flooding error dashboards.
+        if (exception is OperationCanceledException)
+            logger.LogInformation("Request cancelled by client: {Path}", httpContext.Request.Path);
+        else if (statusCode < 500)
+            logger.LogWarning(exception, "Client error {StatusCode}: {ExceptionType} — {Message}",
+                statusCode, exception.GetType().Name, exception.Message);
+        else
+            logger.LogError(exception, "Unhandled exception: {ExceptionType} — {Message}",
+                exception.GetType().Name, exception.Message);
 
         var problemDetails = new ProblemDetails
         {
@@ -38,8 +48,19 @@ internal sealed class DefaultExceptionHandler(
             Instance = httpContext.Request.Path
         };
 
+        if (httpContext.Response.HasStarted)
+            return true;
+
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
+        try
+        {
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected while writing the error response.
+        }
 
         return true;
     }

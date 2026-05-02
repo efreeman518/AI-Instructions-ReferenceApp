@@ -231,10 +231,30 @@ public class TaskItemsRequestBuilder
 
     public async Task<TaskItemDto?> PostAsync(TaskItemDto dto, CancellationToken cancellationToken = default)
     {
+        NormalizeChildTaskItemIds(dto, dto.Id ?? Guid.Empty);
         var response = await _http.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(cancellationToken);
         return wrapper?.Item;
+    }
+
+    internal static void NormalizeChildTaskItemIds(TaskItemDto dto, Guid fallbackTaskItemId)
+    {
+        if (dto.Comments != null)
+        {
+            foreach (var comment in dto.Comments)
+            {
+                comment.TaskItemId ??= fallbackTaskItemId;
+            }
+        }
+
+        if (dto.ChecklistItems != null)
+        {
+            foreach (var checklistItem in dto.ChecklistItems)
+            {
+                checklistItem.TaskItemId ??= fallbackTaskItemId;
+            }
+        }
     }
 }
 
@@ -266,6 +286,7 @@ public class TaskItemByIdRequestBuilder
 
     public async Task<TaskItemDto?> PutAsync(TaskItemDto dto, CancellationToken cancellationToken = default)
     {
+        TaskItemsRequestBuilder.NormalizeChildTaskItemIds(dto, _id);
         var response = await _http.PutAsJsonAsync($"/api/task-items/{_id}", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(cancellationToken);

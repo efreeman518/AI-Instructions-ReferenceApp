@@ -16,7 +16,7 @@ public static class RegisterApiServices
         AddAuthentication(services, config, startupLogger);
         AddAuthorization(services);
         AddExceptionHandling(services);
-        AddRateLimiting(services);
+        AddRateLimiting(services, config);
         AddOpenApi(services, config);
 
         return services;
@@ -30,14 +30,16 @@ public static class RegisterApiServices
 
     private static void AddCors(IServiceCollection services, IConfiguration config)
     {
+        var allowedOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (allowedOrigins is null || allowedOrigins.Length == 0)
+        {
+            throw new InvalidOperationException("CORS is not configured. Set Cors:AllowedOrigins in configuration.");
+        }
+
         services.AddCors(options =>
         {
             options.AddPolicy("TaskFlowUi", policy =>
-                policy.WithOrigins(
-                        "https://localhost:55551",
-                        "http://localhost:55553",
-                        "https://localhost:7067",
-                        "http://localhost:5188")
+                policy.WithOrigins(allowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod());
         });
@@ -59,8 +61,11 @@ public static class RegisterApiServices
         services.AddProblemDetails();
     }
 
-    private static void AddRateLimiting(IServiceCollection services)
+    private static void AddRateLimiting(IServiceCollection services, IConfiguration config)
     {
+        var permitLimit = config.GetValue<int?>("RateLimiting:PerTenant:PermitLimit") ?? 100;
+        var windowSeconds = config.GetValue<int?>("RateLimiting:PerTenant:WindowSeconds") ?? 60;
+
         services.AddRateLimiter(options =>
         {
             options.AddPolicy("PerTenant", context =>
@@ -68,8 +73,8 @@ public static class RegisterApiServices
                     context.User?.FindFirst("tenant_id")?.Value ?? "anonymous",
                     _ => new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = 100,
-                        Window = TimeSpan.FromMinutes(1)
+                        PermitLimit = permitLimit,
+                        Window = TimeSpan.FromSeconds(windowSeconds)
                     }));
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });

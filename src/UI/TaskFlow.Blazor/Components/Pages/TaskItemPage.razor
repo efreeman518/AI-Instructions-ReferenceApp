@@ -9,7 +9,7 @@
 <PageTitle>@(IsNew ? "New Task" : "Edit Task") - TaskFlow</PageTitle>
 
 <div class="d-flex align-center mb-4">
-    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/tasks"))" />
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => SafeNavigateTo("/tasks"))" />
     <MudText Typo="Typo.h4" Class="ml-2">@(IsNew ? "New Task" : "Edit Task")</MudText>
     <MudSpacer />
     @if (!IsNew)
@@ -218,7 +218,7 @@ else
         if (result?.Item is null)
         {
             FloatService.ShowSnack("Task not found.", Severity.Warning);
-            Nav.NavigateTo("/tasks");
+            SafeNavigateTo("/tasks");
             return;
         }
         _model = result.Item;
@@ -258,7 +258,7 @@ else
                 FloatService.ShowSnack("Task created.", Severity.Success);
                 FloatService.NotifyTaskItemsChanged();
                 _bypassDirtyCheck = true;
-                Nav.NavigateTo($"/tasks/{newId}");
+                SafeNavigateTo($"/tasks/{newId}");
             }
         }
         else
@@ -300,7 +300,23 @@ else
             FloatService.ShowSnack("Task deleted.", Severity.Success);
             FloatService.NotifyTaskItemsChanged();
             _bypassDirtyCheck = true;
-            Nav.NavigateTo("/tasks");
+            SafeNavigateTo("/tasks");
+        }
+    }
+
+    private void SafeNavigateTo(string uri)
+    {
+        try
+        {
+            Nav.NavigateTo(uri);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Browser/client disconnected (common in Playwright teardown).
+        }
+        catch (OperationCanceledException)
+        {
+            // Request/circuit cancelled while navigating.
         }
     }
 

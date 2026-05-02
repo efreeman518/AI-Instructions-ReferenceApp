@@ -1,3 +1,5 @@
+using AppHost;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Testing environment: set by test classes before calling DistributedApplicationTestingBuilder.
@@ -5,8 +7,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 var isTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING") == "true"
     || string.Equals(builder.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 
+// Keep SQL password stable across restarts so persistent SQL volumes remain usable.
+// Tests can still override via Parameters__sql-password.
+var defaultSqlPassword = LocalSqlSettings.SharedSaPassword;
+
 // Infrastructure resources
-var sqlPassword = builder.AddParameter("sql-password", secret: true);
+var sqlPassword = builder.AddParameter("sql-password", defaultSqlPassword, secret: true);
 // In Testing mode: non-persistent, no named volume, random port — ensures fresh container with known password.
 // In dev/prod: persistent with named volume on fixed port.
 var sql = builder.AddSqlServer("sql", sqlPassword, port: isTesting ? null : 38433)

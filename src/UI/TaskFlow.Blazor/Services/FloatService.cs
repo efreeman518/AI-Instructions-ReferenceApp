@@ -43,6 +43,16 @@ public class FloatService
             StateHasChanged?.Invoke();
             return await call();
         }
+        catch (OperationCanceledException)
+        {
+            // Circuit/request cancelled (navigation, tab close, Playwright teardown).
+            return default;
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Client disconnected while awaiting a JS-backed UI update.
+            return default;
+        }
         catch (Exception ex)
         {
             _snackbar.Add(errorMessage ?? ex.Message, Severity.Error);
@@ -63,6 +73,16 @@ public class FloatService
             StateHasChanged?.Invoke();
             await call();
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit/request cancelled (navigation, tab close, Playwright teardown).
+            return false;
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Client disconnected while awaiting a JS-backed UI update.
+            return false;
         }
         catch (Exception ex)
         {

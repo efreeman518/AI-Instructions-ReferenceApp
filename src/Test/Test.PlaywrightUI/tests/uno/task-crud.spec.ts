@@ -12,7 +12,7 @@ import {
  * Full Task CRUD lifecycle exercised through the Uno WASM UI.
  *
  * Prerequisites:
- *   1. Uno WASM app running on https://localhost:55551
+ *   1. Uno WASM app running on https://localhost:7069
  *   2. API running with seed data (Aspire AppHost or standalone)
  *   3. `npx playwright install --with-deps chromium`
  *
@@ -129,7 +129,18 @@ async function goToTaskList(page: Page) {
 /** Navigate to the new task form via "Add Task" sidebar button. */
 async function navigateToNewTask(page: Page) {
   await navigateToTaskList(page);
-  await clickVisibleText(page, "Add Task");
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await clickVisibleText(page, "Add Task", "last");
+    try {
+      await expectBodyToContain(page, "Fill in the details to create a new task", 5_000);
+      return;
+    }
+    catch
+    {
+      await page.waitForTimeout(400);
+    }
+  }
+  await clickVisibleText(page, "Add Task", "last");
   await expectBodyToContain(page, "Fill in the details to create a new task", 10_000);
 }
 
@@ -167,6 +178,8 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
   let sharedContext: BrowserContext;
   let taskTitle: string;
   let updatedTitle: string;
+  let checklistTitle: string;
+  let commentBody: string;
 
   test.beforeAll(async ({ browser }) => {
     sharedContext = await browser.newContext({ ignoreHTTPSErrors: true });
@@ -174,6 +187,8 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     sharedPage.setDefaultTimeout(30_000);
     taskTitle = uniqueTitle("E2E-Uno-Create");
     updatedTitle = uniqueTitle("E2E-Uno-Updated");
+    checklistTitle = uniqueTitle("E2E-Uno-Checklist");
+    commentBody = uniqueTitle("E2E-Uno-Comment");
   });
 
   test.afterAll(async () => {
@@ -189,6 +204,18 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     await fillUnoTextBox(sharedPage, "Title", taskTitle);
     await fillUnoTextBox(sharedPage, "Description", "Automated Playwright E2E test task (Uno)");
     await selectUnoComboBox(sharedPage, "Select priority", "Medium");
+
+    await fillUnoTextBox(sharedPage, "Add checklist item...", checklistTitle);
+    await clickOnScreenElement(sharedPage, "Microsoft.UI.Xaml.Controls.Button", /^Add$/);
+
+    // Comments controls are near the lower portion of the form; scroll first
+    // so coordinate-based clicks reliably target the live textbox/button.
+    await sharedPage.mouse.wheel(0, 700);
+    await sharedPage.waitForTimeout(300);
+    await fillUnoTextBox(sharedPage, "Write a comment...", commentBody);
+    await clickOnScreenElement(sharedPage, "Microsoft.UI.Xaml.Controls.Button", /^Post$/);
+    // Wait for the comment to appear in the buffered list before saving
+    await expectBodyToContain(sharedPage, commentBody, 5_000);
 
     await clickVisibleText(sharedPage, "Save Task");
 
@@ -206,6 +233,10 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     const body = await getBodyText(sharedPage);
     expect(body).toContain(taskTitle);
     expect(body).toContain("Medium");
+
+    await openTaskByTitle(sharedPage, taskTitle);
+    await expectBodyToContain(sharedPage, checklistTitle, 10_000);
+    await expectBodyToContain(sharedPage, commentBody, 10_000);
   });
 
   // ── UPDATE ──────────────────────────────────────────────────────────

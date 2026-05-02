@@ -37,10 +37,10 @@ public static partial class RegisterServices
                     IsFailSafeEnabled = true,
                     FailSafeMaxDuration = TimeSpan.FromMinutes(settings.FailSafeMaxDurationMinutes),
                     FailSafeThrottleDuration = TimeSpan.FromSeconds(settings.FailSafeThrottleDurationSeconds),
-                    JitterMaxDuration = TimeSpan.FromSeconds(10),
-                    FactorySoftTimeout = TimeSpan.FromSeconds(1),
-                    FactoryHardTimeout = TimeSpan.FromSeconds(30),
-                    EagerRefreshThreshold = 0.9f
+                    JitterMaxDuration = TimeSpan.FromSeconds(settings.JitterMaxDurationSeconds),
+                    FactorySoftTimeout = TimeSpan.FromSeconds(settings.FactorySoftTimeoutSeconds),
+                    FactoryHardTimeout = TimeSpan.FromSeconds(settings.FactoryHardTimeoutSeconds),
+                    EagerRefreshThreshold = settings.EagerRefreshThreshold
                 });
 
             var redisConnStr = !string.IsNullOrEmpty(settings.RedisConnectionStringName)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
@@ -47,10 +48,10 @@ public static class ChecklistItemEndpoints
 
     private static async Task<IResult> Search(
         [FromServices] IChecklistItemService service,
-        [FromBody] SearchRequest<ChecklistItemSearchFilter> request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<ChecklistItemSearchFilter>? request,
         CancellationToken ct)
     {
-        var items = await service.SearchAsync(request, ct);
+        var items = await service.SearchAsync(request ?? new SearchRequest<ChecklistItemSearchFilter>(), ct);
         return TypedResults.Ok(items);
     }
 

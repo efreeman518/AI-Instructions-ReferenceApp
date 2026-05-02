@@ -18,10 +18,12 @@ public static partial class RegisterServices
 
         var dbConnectionStringTrxn = config.GetConnectionString("TaskFlowDbContextTrxn") ?? "";
         var dbConnectionStringQuery = config.GetConnectionString("TaskFlowDbContextQuery") ?? "";
+        var maxRetryCount = config.GetValue<int?>("Database:Retry:MaxRetryCount") ?? 5;
+        var maxRetryDelaySeconds = config.GetValue<int?>("Database:Retry:MaxRetryDelaySeconds") ?? 30;
 
         services.AddPooledDbContextFactory<TaskFlowDbContextTrxn>((sp, options) =>
         {
-            ConfigureSqlOptions(options, dbConnectionStringTrxn);
+            ConfigureSqlOptions(options, dbConnectionStringTrxn, maxRetryCount, maxRetryDelaySeconds);
             var auditInterceptor = sp.GetRequiredService<AuditInterceptor<string, Guid?>>();
             options.AddInterceptors(auditInterceptor);
         });
@@ -35,7 +37,7 @@ public static partial class RegisterServices
                 ? dbConnectionStringQuery
                 : dbConnectionStringQuery + ";ApplicationIntent=ReadOnly";
             options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-            ConfigureSqlOptions(options, readOnlyConnStr);
+            ConfigureSqlOptions(options, readOnlyConnStr, maxRetryCount, maxRetryDelaySeconds);
         });
         services.AddScoped<DbContextScopedFactory<TaskFlowDbContextQuery, string, Guid?>>();
         services.AddScoped(sp => sp.GetRequiredService<DbContextScopedFactory<TaskFlowDbContextQuery, string, Guid?>>()
@@ -57,17 +59,23 @@ public static partial class RegisterServices
         services.AddScoped<ITaskItemTagRepositoryQuery, TaskItemTagRepositoryQuery>();
     }
 
-    private static void ConfigureSqlOptions(DbContextOptionsBuilder options, string connectionString)
+    private static void ConfigureSqlOptions(
+        DbContextOptionsBuilder options,
+        string connectionString,
+        int maxRetryCount,
+        int maxRetryDelaySeconds)
     {
         if (string.IsNullOrEmpty(connectionString)) return;
+
+        var maxRetryDelay = TimeSpan.FromSeconds(maxRetryDelaySeconds);
 
         if (connectionString.Contains("database.windows.net"))
         {
             options.UseAzureSql(connectionString, sqlOptions =>
             {
                 sqlOptions.UseCompatibilityLevel(170);
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
             });
         }
         else
@@ -75,8 +83,8 @@ public static partial class RegisterServices
             options.UseSqlServer(connectionString, sqlOptions =>
             {
                 sqlOptions.UseCompatibilityLevel(160);
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
             });
         }
     }

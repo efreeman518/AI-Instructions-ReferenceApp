@@ -1,20 +1,18 @@
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
+using AppHost;
 using TaskFlow.Infrastructure.Data;
-using Testcontainers.MsSql;
 
 namespace Test.Integration;
 
 [TestClass]
 public class DatabaseFixture
 {
-    private static MsSqlContainer _container = null!;
     private static string? _originalSqlPassword;
     private static string? _originalAspireTesting;
     private static string? _originalIncludeFunctions;
     internal static string ConnectionString = null!;
-    internal const string TestSqlPassword = "TaskFlow_Test_2026!";
 
     /// <summary>Shared Aspire app started once for all Aspire-based integration tests.</summary>
     internal static DistributedApplication? AspireApp { get; private set; }
@@ -22,15 +20,9 @@ public class DatabaseFixture
     [AssemblyInitialize]
     public static async Task AssemblyInit(TestContext _)
     {
-        // SQL container
+        // SQL password for Aspire AppHost SQL resource
         _originalSqlPassword = Environment.GetEnvironmentVariable("Parameters__sql-password");
-        Environment.SetEnvironmentVariable("Parameters__sql-password", TestSqlPassword);
-
-        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
-            .Build();
-
-        await _container.StartAsync();
-        ConnectionString = _container.GetConnectionString();
+        Environment.SetEnvironmentVariable("Parameters__sql-password", LocalSqlSettings.SharedSaPassword);
 
         // Shared Aspire environment — started once, reused across all Aspire test classes
         _originalAspireTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING");
@@ -44,6 +36,11 @@ public class DatabaseFixture
         var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostProgramType);
         AspireApp = await builder.BuildAsync();
         await AspireApp.StartAsync();
+
+        var sqlConnectionString = await AspireApp.GetConnectionStringAsync("taskflowdb");
+        ConnectionString = string.IsNullOrWhiteSpace(sqlConnectionString)
+            ? throw new InvalidOperationException("Aspire SQL connection string 'taskflowdb' was not resolved.")
+            : sqlConnectionString;
     }
 
     [AssemblyCleanup]
@@ -54,8 +51,6 @@ public class DatabaseFixture
 
         Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", _originalAspireTesting);
         Environment.SetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS", _originalIncludeFunctions);
-
-        await _container.DisposeAsync();
         Environment.SetEnvironmentVariable("Parameters__sql-password", _originalSqlPassword);
     }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
@@ -54,10 +55,10 @@ public static class AttachmentEndpoints
 
     private static async Task<IResult> Search(
         [FromServices] IAttachmentService service,
-        [FromBody] SearchRequest<AttachmentSearchFilter> request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<AttachmentSearchFilter>? request,
         CancellationToken ct)
     {
-        var items = await service.SearchAsync(request, ct);
+        var items = await service.SearchAsync(request ?? new SearchRequest<AttachmentSearchFilter>(), ct);
         return TypedResults.Ok(items);
     }
 

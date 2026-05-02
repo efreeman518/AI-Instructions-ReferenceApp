@@ -29,11 +29,11 @@ public static class AuthConfiguration
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                var tenantId = section["TenantId"];
-                var instance = section["Instance"] ?? "https://login.microsoftonline.com/";
+                var tenantId = GetRequiredValue(section, "TenantId");
+                var instance = GetRequiredValue(section, "Instance");
 
                 options.Authority = $"{instance.TrimEnd('/')}/{tenantId}/v2.0";
-                options.Audience = section["ClientId"];
+                options.Audience = GetRequiredValue(section, "ClientId");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -47,4 +47,9 @@ public static class AuthConfiguration
 
         return services;
     }
+
+    private static string GetRequiredValue(IConfigurationSection section, string key) =>
+        section[key] is { Length: > 0 } value
+            ? value
+            : throw new InvalidOperationException($"Missing configuration value '{section.Path}:{key}'.");
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
@@ -47,10 +48,10 @@ public static class CategoryEndpoints
 
     private static async Task<IResult> Search(
         [FromServices] ICategoryService service,
-        [FromBody] SearchRequest<CategorySearchFilter> request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<CategorySearchFilter>? request,
         CancellationToken ct)
     {
-        var items = await service.SearchAsync(request, ct);
+        var items = await service.SearchAsync(request ?? new SearchRequest<CategorySearchFilter>(), ct);
         return TypedResults.Ok(items);
     }
 

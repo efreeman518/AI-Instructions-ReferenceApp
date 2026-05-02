@@ -31,10 +31,14 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
   test.describe.configure({ mode: "serial" });
   let taskTitle: string;
   let updatedTitle: string;
+  let checklistTitle: string;
+  let commentBody: string;
 
   test.beforeAll(() => {
     taskTitle = uniqueTitle("E2E-Create");
     updatedTitle = uniqueTitle("E2E-Updated");
+    checklistTitle = uniqueTitle("E2E-Checklist");
+    commentBody = uniqueTitle("E2E-Comment");
   });
 
   test.beforeEach(async ({ page }) => {
@@ -48,6 +52,13 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
 
     await fillTextField(page, "Title", taskTitle);
     await fillTextField(page, "Description", "Automated Playwright E2E test task");
+    await page.getByText(/^Checklist \(0\)$/).click();
+    await page.getByPlaceholder("Add item...").fill(checklistTitle);
+    await page.getByPlaceholder("Add item...").press("Enter");
+
+    await page.getByText(/^Comments \(0\)$/).click();
+    await page.getByPlaceholder("Add a comment...").fill(commentBody);
+    await page.getByRole("button", { name: /^add$/i }).last().click();
     // Status=Open and Priority=Medium are defaults — no need to select them
 
     await clickSave(page);
@@ -55,7 +66,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     // Should redirect back to list or show success
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
-    await expectTaskInTable(page, taskTitle);
+    await expectTaskInTable(page, taskTitle, 20_000);
   });
 
   // ── READ ────────────────────────────────────────────────────────────
@@ -68,6 +79,14 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     const row = page.locator(`.mud-table-body tr:has-text("${taskTitle}")`);
     await expect(row).toContainText("Open");
     await expect(row).toContainText("Medium");
+
+    await clickEditOnRow(page, taskTitle);
+    await expect(page.getByText(checklistTitle)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(commentBody)).toBeVisible({ timeout: 10_000 });
+
+    // Navigate back to list so test 3 starts from a clean state (avoids
+    // the Blazor navigation guard on the still-open edit form).
+    await navigateToTaskList(page);
   });
 
   // ── UPDATE ──────────────────────────────────────────────────────────

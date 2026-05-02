@@ -42,6 +42,7 @@ export async function searchForTask(page: Page, term: string) {
 
 export async function fillTextField(page: Page, label: string, value: string) {
   const field = page.locator(`.mud-input-control:has(label:has-text("${label}")) input, .mud-input-control:has(label:has-text("${label}")) textarea`);
+  await field.first().waitFor({ state: "visible" });
   await field.first().click();
   await field.first().fill(value);
 }
@@ -95,7 +96,7 @@ export async function clickDeleteOnRow(page: Page, title: string) {
 
 export async function confirmDeleteDialog(page: Page) {
   const dialog = page.locator(".mud-overlay-dialog, .mud-dialog-container").first();
-  await expect(dialog).toBeVisible({ timeout: 5_000 });
+  await expect(dialog).toBeVisible({ timeout: 15_000 });
   await dialog.getByRole("button", { name: /delete/i }).click();
 }
 

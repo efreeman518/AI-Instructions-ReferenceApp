@@ -47,7 +47,15 @@ internal class TaskItemService(
             }
             request.Filter.TenantId = RequestTenantId;
         }
-        return await repoQuery.SearchTaskItemsAsync(request, ct);
+        try
+        {
+            return await repoQuery.SearchTaskItemsAsync(request, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("TaskItem search cancelled by client.");
+            return new PagedResponse<TaskItemDto>();
+        }
     }
 
     public async Task<Result<DefaultResponse<TaskItemDto>>> GetAsync(Guid id, CancellationToken ct = default)

@@ -23,7 +23,7 @@ export default defineConfig({
       name: "uno",
       testDir: "./tests/uno",
       use: {
-        baseURL: "https://localhost:55551",
+        baseURL: "https://localhost:7069",
         ignoreHTTPSErrors: true,
         screenshot: "only-on-failure",
         trace: "on-first-retry",
