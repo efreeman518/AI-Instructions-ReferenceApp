@@ -22,7 +22,8 @@ if (!isTesting)
              .WithDataVolume("taskflow-sql-data");
 var taskflowDb = sql.AddDatabase("taskflowdb");
 
-var redis = builder.AddRedis("redis");
+var redis = builder.AddRedis("redis")
+    .WithImageTag("latest");
 if (!isTesting)
     redis = redis.WithLifetime(ContainerLifetime.Persistent)
                  .WithDataVolume("taskflow-redis-data");
