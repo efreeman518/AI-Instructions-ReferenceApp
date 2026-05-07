@@ -65,7 +65,7 @@ Per the consolidated 5-sub-phase taxonomy:
 | 4 — Contract Scaffolding | complete |
 | 5a — Foundation (TDD) | complete |
 | 5b — App Core + Runtime/Edge | complete |
-| 5c — Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI; Blazor pending) |
+| 5c — Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI, Blazor) |
 | 5d — Quality + Delivery | complete (architecture/load/benchmark tests, Dockerfiles, CI/CD, IaC Bicep) |
 | 5e — Integration (Auth + AI) | complete (scaffold mode; live Entra/Foundry deployment-only) |
 
@@ -92,4 +92,3 @@ Validate locally: `az bicep build --file infra/main.bicep`.
 Tracked here so the next instruction-set or reference-app PR knows what's pending:
 
 1. **Vulnerability resolution.** Watch upstream releases of `System.Security.Cryptography.Xml` (high) and `OpenTelemetry.Api` (moderate); bump pinned versions in `Directory.Packages.props` once patches ship.
-2. **Blazor host.** Phase 5c lists Blazor as pending; the project exists in the solution but is not yet wired into the proof map.
