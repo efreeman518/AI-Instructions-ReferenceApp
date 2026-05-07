@@ -85,7 +85,7 @@ The solution references private packages (`EF.*`) from the `efreeman518-github` 
 
 | Secret | Value |
 |--------|-------|
-| `NUGET_PAT` | GitHub PAT with `read:packages` scope |
+| `NUGET_AUTH_TOKEN` | Package read token supplied by the CI secret store |
 
 This secret is used in **three places** during deployment:
 

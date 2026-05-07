@@ -272,7 +272,7 @@ docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Functions/Dockerf
 
 **GitHub secret setup:**
 1. Go to repo → Settings → Secrets and variables → Actions
-2. Add repository secret: Name=`NUGET_PAT`, Value=your GitHub PAT with `read:packages` scope
+2. Add repository secret: Name=`NUGET_AUTH_TOKEN`, Value=package read token from the CI secret store
 
 ### Session C: Deployment Readiness
 

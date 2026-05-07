@@ -1,6 +1,6 @@
 # REFERENCE-STATUS — TaskFlow
 
-Current verified status of the TaskFlow reference application. Used by the proof map ([../AI-Instructions-NewProject/support/taskflow-proof-map.md](../AI-Instructions-NewProject/support/taskflow-proof-map.md)) and consumers who need an authoritative snapshot of build/test/vulnerability state.
+Current verified status of the TaskFlow reference application. Used by the proof map ([../AI-Instructions-Scaffold/support/taskflow-proof-map.md](../AI-Instructions-Scaffold/support/taskflow-proof-map.md)) and consumers who need an authoritative snapshot of build/test/vulnerability state.
 
 > **Update protocol:** when you commit reference-app changes that move build/test counts or vulnerability state, refresh this file in the same commit. HANDOFF.md narrates session history; this file is the current truth.
 
@@ -38,7 +38,7 @@ Node.js Playwright suite. Run `npm install` inside the folder before first use. 
 
 ## Vulnerability Status
 
-Run `dotnet list package --vulnerable --include-transitive` and capture findings here. Severity policy from [../AI-Instructions-NewProject/support/execution-gates.md](../AI-Instructions-NewProject/support/execution-gates.md) § Vulnerability Audit:
+Run `dotnet list package --vulnerable --include-transitive` and capture findings here. Severity policy from [../AI-Instructions-Scaffold/support/execution-gates.md](../AI-Instructions-Scaffold/support/execution-gates.md) § Vulnerability Audit:
 
 - **High/Critical:** must be fixed or recorded with owner + target resolution date
 - **Moderate:** logged here, tracked but not blocking

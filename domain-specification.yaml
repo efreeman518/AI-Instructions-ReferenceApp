@@ -9,7 +9,7 @@
 ProjectName: TaskFlow
 ProjectDescription: >-
   A multi-tenant task management application demonstrating all architectural
-  patterns in the AI-Instructions-NewProject instruction set. TaskFlow covers
+  patterns in the AI-Instructions-Scaffold instruction set. TaskFlow covers
   hierarchical categories, self-referencing sub-tasks, tagging, comments,
   checklists, file attachments, state machines, domain events, caching,
   messaging, AI search, and agent workflows — all running locally via

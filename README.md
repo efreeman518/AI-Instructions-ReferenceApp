@@ -1,6 +1,6 @@
 # AI-Instructions-ReferenceApp
 
-Reference implementation for [AI-Instructions-NewProject](https://github.com/efreeman518/AI-Instructions-NewProject).
+Reference implementation for [AI-Instructions-Scaffold](https://github.com/efreeman518/AI-Instructions-Scaffold).
 
 ## Description
 
