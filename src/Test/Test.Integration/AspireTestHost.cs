@@ -38,7 +38,7 @@ public class AspireTestHost
     [AssemblyInitialize]
     public static async Task AssemblyInit(TestContext _)
     {
-        // AppHost/Program.cs reads these via Environment.GetEnvironmentVariable, so they must be process env vars.
+        // AppHost.cs reads these via Environment.GetEnvironmentVariable, so they must be process env vars.
         _originalAspireTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING");
         _originalIncludeFunctions = Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS");
         Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", "true");
