@@ -1,400 +1,62 @@
 # HANDOFF — TaskFlow Reference App
 
+> **Status: complete.** Phases 1–5e + post-phase hardening sessions are all done. This file is retained as the scaffold-flow resume contract; it is no longer the source of truth for build/test/vulnerability state.
+>
+> - Current verified counts, warnings, and vulnerability table → [REFERENCE-STATUS.md](REFERENCE-STATUS.md).
+> - Per-phase narrative and outputs → `git log` (e.g. `git log --oneline -- HANDOFF.md`); the pre-collapse version is preserved in commit history.
+
 ## Session Summary
 
-Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening + Session A (test hardening + EF migrations) + Session B (infrastructure validation) + Session D (IaC). Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules.
-
-> Current verified counts and warning/vulnerability summary live in [REFERENCE-STATUS.md](REFERENCE-STATUS.md). HANDOFF prose narrates the session; REFERENCE-STATUS is the current truth.
+Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC). Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules.
 
 ## Current State
 
-- **currentPhase:** 5
-- **currentSubPhase:** complete
-- **instructionVersion:** "1.1"
-- **contractsScaffolded:** true
-- **foundationComplete:** true
-
-## Phase 1 Outputs
-
-- `domain-specification.yaml` — in project root, validated against `schemas/domain-specification.schema.json`
-- `UBIQUITOUS-LANGUAGE.md` — in project root, shared TaskFlow domain vocabulary and naming guidance
-- `DESIGN-DECISIONS.md` — in project root, TaskFlow decision dependency graph and rationale
-
-## Phase 2 Outputs
-
-- `resource-implementation.yaml` — in project root, validated against `schemas/resource-implementation.schema.json`
-
-## Phase 3 Outputs
-
-- `implementation-plan.md` — in project root, vertical slice order defined, all questions resolved
-- `dotnet-tools.json` — dotnet-ef 10.0.5 installed
-- Pre-flight: .NET 10.0.104 SDK verified, dotnet-ef installed
-
-## Phase 4 Outputs
-
-- `src/TaskFlow.slnx` — 21 projects in clean-architecture layout
-- Entity shells (7 entities) with NotImplementedException stubs
-- Interfaces: 7 service interfaces, 14 repository interfaces (query + trxn)
-- DTOs + SearchFilters for all entities  
-- Enums: TaskItemStatus, Priority, TaskFeatures (flags), AttachmentOwnerType
-- Value objects: DateRange, RecurrencePattern
-- Domain events: 7 event records implementing IDomainEvent
-- DbContext shells: TaskFlowDbContextTrxn + TaskFlowDbContextQuery
-- No-op service stubs for all services
-- Bootstrapper RegisterServices.cs with no-op wiring
-- Test infrastructure: TestConstants, entity + DTO builders
-- Aspire AppHost + ServiceDefaults
-- All hosts: Api, Scheduler, Gateway, Functions (shells)
-- **Gate: `dotnet build` succeeds — 0 errors**
-
-## Phase 5a Outputs
-
-- All 7 entities implemented with rich domain model (Create, Update, Valid, child management)
-- TaskItem status state machine: Open→InProgress→Completed, Open→Cancelled, InProgress→Blocked, Blocked→InProgress, reopen from Completed/Cancelled
-- Domain rules infrastructure: IRule<T>, RuleBase<T>, RuleExtensions, TaskItemStatusTransitionRule
-- 7 EF configurations (Fluent API): CategoryConfiguration, TagConfiguration, TaskItemConfiguration, CommentConfiguration, ChecklistItemConfiguration, AttachmentConfiguration, TaskItemTagConfiguration
-- DbContextTrxn: DbContextBase<string, Guid?>, schema "taskflow", ApplyConfigurationsFromAssembly
-- DbContextQuery: inherits Trxn (shared model)
-- 14 repositories (7 Query + 7 Trxn) with entity-specific Get/Search methods
-- Repository interfaces extended with entity-specific methods
-- All 7 entity builders activated (With* methods + Build() calling real Create())
-- InMemoryDbBuilder for test infrastructure
-- 75 unit tests: entity tests (create, validate, update, children, status transitions) + rule tests
-- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 75 passed, 0 failed**
-
-### Entity Ordering Used
-Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag
-
-## Phase 5b Outputs
-
-- 7 service implementations with IRequestContext, ITenantBoundaryValidator, IEntityCacheProvider
-- 7 service interfaces with DefaultRequest<T>/DefaultResponse<T> wrappers, PagedResponse<T> (unwrapped)
-- 7 mapper classes (entity ↔ DTO)
-- 7 endpoint files with full CRUD + search
-- App-level types: DefaultRequest<T>, DefaultResponse<T>, AppConstants, ITenantBoundaryValidator, IEntityCacheProvider
-- TenantBoundaryValidator, NoOpEntityCacheProvider implementations
-- TenantId added to all 6 search filter classes
-- 162 unit tests (entity + rule + mapper + service tests) — all green
-- Old service stubs removed (replaced by real implementations)
-- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
-
-## Phase 5c Outputs
-
-- **Aspire AppHost**: persistent SQL (password param, data volume, port 38433), persistent Redis, named connection strings (TaskFlowDbContextTrxn, TaskFlowDbContextQuery, Redis1)
-- **ServiceDefaults**: `/healthz` (liveness), `/readyz` (readiness, "ready" tag)
-- **Database context pooling**: `AddPooledDbContextFactory` + `DbContextScopedFactory` for both Trxn and Query contexts, AuditInterceptor on Trxn, ConnectionNoLockInterceptor, ReadOnly intent on Query
-- **Tenant query filters**: automatic `HasQueryFilter` for all `ITenantEntity<Guid>` entities via `BuildTenantFilter`
-- **Default data types**: decimal(10,4), datetime2 global conventions
-- **FusionCache**: named cache instances from `CacheSettings[]` config, SystemTextJson serializer, Redis L2 + backplane (conditional)
-- **Health check**: SqlHealthCheck (readiness) using `IDbContextFactory`
-- **Middleware**: SecurityHeadersMiddleware (X-Content-Type-Options, X-Frame-Options, Referrer-Policy), CorrelationIdMiddleware (X-Correlation-Id header), GlobalExceptionHandler (409 concurrency, 422 validation, 404 not-found, 403 forbidden, 500 default)
-- **Rate limiting**: per-tenant fixed window (100/min) via `AddRateLimiter`
-- **Configuration**: appsettings.json with ConnectionStrings, CacheSettings, FeatureFlags sections
-- **Packages**: FusionCache 2.6.0, StackExchange.Redis backplane, Microsoft.Extensions.Caching.StackExchangeRedis
-- **Gate: `dotnet build` + `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
-
-## Phase 5d Outputs
-
-- **YARP Gateway**: YARP reverse proxy with service-discovery destinations (`https+http://taskflowapi`), `PathRemovePrefix` transform, TokenService (stub) for downstream bearer tokens, `X-Orig-Request` claim relay header (Base64 JSON), CORS policy for Uno UI origins, auth stub (Phase 5e replaces)
-- **TickerQ Scheduler (v10.2.5)**: 3 `[TickerFunction]` jobs (OverdueTaskCheck, RecurringTaskGeneration, StaleTaskCleanup), BaseTickerQJob with scoped handler dispatch, 3 handler implementations using `ITaskItemService`, EF Core operational store (SQL Server), cron seeding via `ICronTickerManager<CronTickerEntity>`, optional dashboard
-- **Azure Functions (isolated worker v4)**: 4 trigger types — HTTP (health + TaskApiProxy), Timer (StaleTaskCleanup), Blob (ProcessAttachment), ServiceBus topic (ProcessTaskEvent), Bootstrapper DI reuse, `host.json` + `local.settings.json` configured
-- **Packages added**: Yarp.ReverseProxy 2.3.0, Microsoft.Extensions.ServiceDiscovery.Yarp 10.1.0, TickerQ 10.2.5 + EFCore + Dashboard, Azure Functions Worker packages
-- **Gate: `dotnet build` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 162 passed, 0 failed**
-
-## Phase 5d Outputs (Uno UI)
-
-- **TaskFlow.Uno** (WASM): Uno.Sdk/6.5.31, single project targeting `net10.0-browserwasm`, builds clean (0 errors, warnings only)
-- **TaskFlow.Uno.Core**: Platform-agnostic class library with Business models, services, and API client
-- **App.xaml**: `Application` base class with `MaterialToolkitTheme` (Uno.Toolkit.UI.Material)
-- **App.xaml.cs**: `Program.Main` entry point (manual, Uno SDK 6.5.x on .NET 10), `CreateBuilder` + `NavigateAsync<Shell>`
-- **App.xaml.host.cs**: UseToolkitNavigation, UseHttp with AddKiotaClient → Gateway, CustomAuth scaffold, navigation route registration, service DI
-- **Shell**: ExtendedSplashScreen loading container (Chefs pattern)
-- **MVUX Models (9)**: ShellModel, MainModel, DashboardModel, TaskListModel, TaskDetailModel, TaskFormModel, CategoryTreeModel, TagManagementModel, SettingsModel
-- **Business Services (7 interfaces + 7 implementations)**: ITaskItemApiService, ICategoryApiService, ITagApiService, ICommentApiService, IChecklistItemApiService, IAttachmentApiService, IDashboardService — all wrapping Kiota client → Gateway
-- **UI Models (7 records)**: TaskItemModel, CategoryModel, TagModel, CommentModel, ChecklistItemModel, AttachmentModel, DashboardSummary
-- **Views/Pages (7 + Shell)**: Shell (splash), MainPage (NavigationView sidebar with region-based nav), DashboardPage (summary cards, overdue counts, recent activity), TaskListPage (filter/sort/search, inline status toggle), TaskDetailPage (comments CRUD, checklist CRUD, attachments, sub-tasks), TaskFormPage (create/edit with validation), CategoryTreePage (hierarchy CRUD), TagManagementPage (CRUD + color), SettingsPage
-- **Kiota Client Stub**: TaskFlowApiClient with typed request builders mirroring all API endpoints (`/api/task-items`, `/api/categories`, `/api/tags`, `/api/comments`, `/api/checklist-items`, `/api/attachments`)
-- **Mock/Live switch**: `Features:UseMocks` config, `USE_MOCKS` compile constant, `MockHttpMessageHandler` with full canned data
-- **Aspire integration**: AppHost registers `taskflowuno` with `WithReference(gateway).WaitFor(gateway)`
-- **Solution**: 26 projects in `TaskFlow.slnx` (added `/UI/` folder with TaskFlow.Uno + TaskFlow.Uno.Core)
-- **Smoke tests (12)**: MockHttpMessageHandler tests (search/delete/404), TaskItemApiService mapping tests, CategoryApiService tests, DashboardService aggregation test
-- **Packages added**: CommunityToolkit.Mvvm 8.4.0 to Directory.Packages.props
-- **Build notes**: Uno.Sdk 6.5.31 required (6.0.67 bundles Uno.Wasm.Bootstrap 8.0.23 incompatible with .NET 9+); `<TargetFramework />` clears Directory.Build.props singular TFM; `Program.cs` entry point added manually (SDK auto-generation not triggered on .NET 10); global using for `System.Collections.Immutable` in Uno csproj
-- **Gate: `dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj` — 0 errors, `dotnet test --filter "TestCategory=Unit"` — 174 passed, 0 failed**
-
-## Phase 5e Outputs
-
-- **Architecture Tests (12)**: DomainDependencyTests (3 — no deps on Application/Infrastructure/Hosts), ApplicationDependencyTests (4 — Contracts no deps on Infra/Hosts, Services no deps on Infra/Hosts), InfrastructureDependencyTests (2 — Repos no deps on Services/Hosts), ConventionTests (3 — all entities implement ITenantEntity<Guid>, all services implement interface counterpart, all entity properties have private setters)
-- **Dockerfiles (4)**: `TaskFlow.Api/Dockerfile`, `TaskFlow.Gateway/Dockerfile`, `TaskFlow.Scheduler/Dockerfile`, `TaskFlow.Functions/Dockerfile` — all multi-stage (restore → publish → runtime), `mcr.microsoft.com/dotnet/aspnet:10.0` runtime, `NUGET_TOKEN` build arg for private feed, `.dockerignore` at repo root
-- **CI/CD Pipeline**: `.github/workflows/ci.yml` (PR validation: restore → build → Unit + Architecture + Endpoint tests, optional Integration via workflow_dispatch), `.github/workflows/cd.yml` (main push: build → test → docker build/push via matrix + OIDC Azure auth, deploy placeholder per environment)
-- **Load Tests**: `Test/Test.Load/` project with NBomber 6.3.0 + NBomber.Http 6.2.0, TaskItem search throughput + CRUD scenarios, `[TestCategory("Load")]`, `[Ignore]` (manual run only)
-- **Benchmarks**: `Test/Test.Benchmarks/` project with BenchmarkDotNet 0.14.0, entity mapping benchmarks (ToDto, round-trip), console runner
-- **Packages added**: NBomber 6.3.0, NBomber.Http 6.2.0, BenchmarkDotNet 0.14.0 to Directory.Packages.props
-- **Solution**: 28 projects in `TaskFlow.slnx` (added Test.Load + Test.Benchmarks)
-- **Gate: `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed (174 Unit + 12 Architecture), 0 failed**
-
-## Phase 5e Outputs — Authentication Finalization
-
-- **ScaffoldAuthHandler**: Predictable test identity with oid, tenant_id, GlobalAdmin/TenantAdmin/TenantMember roles — all requests succeed in scaffold mode
-- **AuthConfiguration**: Config-driven toggle (`AuthMode` key) — "Scaffold" → ScaffoldAuthHandler, "EntraID" → JWT Bearer with Entra ID validation
-- **AuthorizationPolicies**: 4 policies — GlobalAdmin (role check), TenantMatch (GlobalAdmin bypass OR TenantMember/TenantAdmin + tenant_id claim), TenantAdmin (GlobalAdmin bypass OR TenantAdmin role), StatusTransition (any authenticated tenant role)
-- **GatewayClaimsMiddleware**: Reads X-Orig-Request header (Base64 JSON) forwarded by Gateway, enriches authenticated principal with original user claims (oid, tenant_id, name, roles)
-- **IRequestContext from claims**: Bootstrapper now extracts userId/tenantId/roles from authenticated ClaimsPrincipal via IHttpContextAccessor. Claim precedence: oid > NameIdentifier > sub. Falls back to scaffold defaults for non-HTTP contexts (background jobs, tests).
-- **Gateway auth**: Config-driven JWT Bearer — `EntraExternal` section present → real Entra External ID validation; absent → no-op passthrough (scaffold mode)
-- **Gateway TokenService**: Config-aware with MSAL-ready scaffold (checks `EntraID:ClientCredentials` section, falls back to scaffold stub tokens)
-- **Gateway CORS**: Config-driven AllowedOrigins via `CorsSettings:AllowedOrigins` section
-- **Claim relay**: Gateway X-Orig-Request header now uses oid > NameIdentifier > sub precedence
-- **AppConstants**: Added ROLE_TENANT_ADMIN, ROLE_TENANT_MEMBER constants
-- **API middleware pipeline**: UseAuthentication → GatewayClaimsMiddleware → UseAuthorization (correct order)
-- **Packages added**: Microsoft.AspNetCore.Authentication.JwtBearer 10.0.5, Microsoft.Identity.Web 3.8.3 to Directory.Packages.props; JwtBearer refs in API + Gateway csprojfiles
-- **Bootstrapper**: Added FrameworkReference Microsoft.AspNetCore.App for IHttpContextAccessor access
-- **appsettings**: AuthMode: "Scaffold" in API (appsettings.json + appsettings.Development.json), CorsSettings in Gateway
-- **Gate: `dotnet build` — 28 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 186 passed, 0 failed**
-
-## Phase 5e Outputs — AI Integration
-
-- **TaskFlow.Infrastructure.AI** (new project): search + agent + tools infrastructure with conditional DI registration
-- **Search**: `ITaskFlowSearchService`, `TaskFlowSearchService` (Azure AI Search: keyword, semantic, vector, hybrid modes), `NoOpSearchService` (stub), `TaskItemSearchDocument`, `TaskItemSearchResult`, `TaskItemSearchIndexDefinition` (HNSW vector profile, semantic config with Title/Description/CategoryName/Status)
-- **Agent**: `ITaskAssistantAgent`, `TaskAssistantAgentService` (Microsoft Agent Framework `ChatClientAgent` + OpenAI, embedded system prompt), `NoOpTaskAssistantAgent` (stub), `AgentChatRequest`/`AgentChatResponse` models
-- **Agent tools**: `TaskItemTools` — 5 function tools (`SearchTasks`, `GetTaskDetails`, `CreateTask`, `UpdateTaskStatus`, `SummarizeBacklog`) delegating to `ITaskItemService` and `ITaskFlowSearchService`
-- **System prompt**: `Agents/Prompts/TaskAssistant.system-prompt.txt` — embedded resource, role definition + rules + response format
-- **DI registration**: `AiServiceCollectionExtensions.AddAiServices()` — conditional registration: absent/empty FoundryEndpoint → no-op agent, absent/empty SearchEndpoint → no-op search. App boots without cloud credentials.
-- **API endpoints**: `SearchEndpoints` (`GET /api/search/tasks` — query, mode, maxResults, tenant-scoped), `AgentEndpoints` (`POST /api/agent/chat` — request body + tenant from claims)
-- **Aspire wiring**: AppHost has commented-out `AddAzureOpenAI`/`AddAzureSearch` stubs (deployment-only, no emulator), with `WithReference` comments on API project
-- **Configuration**: `appsettings.json` → `AiServices` section (UseSearch, UseAgents, UseVectorSearch, FoundryEndpoint, AgentModelDeployment, EmbeddingModelDeployment, SearchEndpoint, SearchIndexName) — all disabled/empty by default
-- **Packages added**: Azure.AI.OpenAI 2.1.0, Azure.Identity 1.21.0, Azure.Search.Documents 11.7.0, Microsoft.Agents.AI.OpenAI 1.1.0, Microsoft.Extensions.Options.DataAnnotations 10.0.5, Aspire.Hosting.Azure.CognitiveServices 9.3.0, Aspire.Hosting.Azure.Search 9.3.0
-- **Tests (17 new)**: NoOpSearchServiceTests (3), NoOpTaskAssistantAgentTests (3), TaskItemToolsTests (6), AiServiceRegistrationTests (4 — DI wiring for no-op paths + settings binding)
-- **Gate: `dotnet build` — 29 projects, 0 errors; `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"` — 203 passed (191 Unit + 12 Architecture), 0 failed**
-
-## Post-Phase 5 Hardening
-
-- **TaskFlow.Infrastructure.Storage** (new project): Blob storage, Service Bus, and Cosmos DB infrastructure implementations
-- **Blob Storage**: `IBlobStorageRepository` (Upload/Download/Delete/Exists/GetUri), `BlobStorageRepository` using named `BlobServiceClient` via `IAzureClientFactory`, container auto-create, `BlobStorageSettings` config. `AttachmentService` wired to delete blobs on attachment delete (fire-and-forget with warning log).
-- **Service Bus**: `IDomainEventPublisher` (PublishAsync with topic/queue + correlation ID), `ServiceBusDomainEventPublisher` (JSON-serialized events to "DomainEvents" topic, Subject=EventType), `NoOpDomainEventPublisher` (stub when Service Bus unavailable). `TaskItemService` publishes `TaskItemCreatedEvent` on create and `TaskItemStatusChangedEvent` on status change.
-- **Cosmos DB**: `ITaskViewRepository` + `TaskViewDto` (Upsert/Get/QueryByTenant/Delete), `CosmosTaskViewRepository` (database "taskflow-db", container "task-views", partition key=tenantId), `NoOpTaskViewRepository` (stub). `TaskViewDocument` (Newtonsoft.Json-annotated denormalized read model). `TaskViewProjectionService` + `ITaskViewProjectionService` reads TaskItem and upserts to Cosmos. Read-optimized `TaskViewEndpoints` (GET by id, GET by tenant).
-- **Aspire emulators**: Azure Storage (`AddAzureStorage().RunAsEmulator()` → Blobs), Service Bus (`AddAzureServiceBus().RunAsEmulator()` with topic "DomainEvents"/subscription "function-processor" + queue "TaskCommands"), Cosmos DB (`AddAzureCosmosDB().RunAsEmulator()`). All wired to API; blobs+serviceBus to Functions.
-- **Function triggers updated**: `FunctionServiceBusTrigger` connection changed to "ServiceBus1" (Aspire resource name), now projects into Cosmos via `ITaskViewProjectionService` for TaskItemCreated/StatusChanged events. `FunctionBlobTrigger` connection changed to "BlobStorage1".
-- **Endpoint integration tests** (15 tests, `[TestCategory("Endpoint")]`): `CustomApiFactory` (WebApplicationFactory-based, in-memory DB swap, removes pooled factories/interceptors/hosted services), `TaskItemEndpointTests` (8 tests: CRUD + search + full cycle), `CategoryEndpointTests` (7 tests: CRUD + search + full cycle). `TestDbContextFactory` handles `DbContextBase` required-member bypass via reflection.
-- **Packages added**: Azure.Storage.Blobs 12.24.0, Azure.Messaging.ServiceBus 7.18.4, Microsoft.Azure.Cosmos 3.46.1, Microsoft.Extensions.Azure 1.12.0, Newtonsoft.Json 13.0.3, Aspire.Hosting.Azure.Storage/ServiceBus/CosmosDB 9.3.0, Microsoft.EntityFrameworkCore.InMemory (test), EF.Common.Contracts (test)
-- **Architecture test updated**: service convention test passes (TaskViewProjectionService implements ITaskViewProjectionService)
-- **Gate: `dotnet build` — 30 projects, 0 errors; `dotnet test` — 218 passed (191 Unit + 12 Architecture + 15 Endpoint), 0 failed**
-
-## All Phases Complete
-
-### Project Structure Reference (30 projects)
-```
-src/
-├── Domain/TaskFlow.Domain.Model/
-├── Domain/TaskFlow.Domain.Shared/
-├── Application/TaskFlow.Application.Contracts/
-├── Application/TaskFlow.Application.Mappers/
-├── Application/TaskFlow.Application.Models/
-├── Application/TaskFlow.Application.Services/
-├── Application/TaskFlow.Application.MessageHandlers/
-├── Infrastructure/TaskFlow.Infrastructure.Data/
-├── Infrastructure/TaskFlow.Infrastructure.Repositories/
-├── Infrastructure/TaskFlow.Infrastructure.AI/   (AI Search + Agent Framework, deployment-only)
-├── Infrastructure/TaskFlow.Infrastructure.Storage/ (Blob, Service Bus, Cosmos DB)
-├── Host/TaskFlow.Bootstrapper/
-├── Host/TaskFlow.Api/
-├── Host/TaskFlow.Scheduler/
-├── Host/TaskFlow.Gateway/
-├── Host/TaskFlow.Functions/
-├── Host/Aspire/AppHost/
-├── Host/Aspire/ServiceDefaults/
-├── UI/TaskFlow.Uno/          (Uno.Sdk/6.5.31, net10.0-browserwasm)
-├── UI/TaskFlow.Uno.Core/     (net10.0, testable business logic)
-├── Test/Test.Unit/           (204 tests, TestCategory=Unit)
-├── Test/Test.Architecture/   (12 tests, TestCategory=Architecture)
-├── Test/Test.Endpoints/      (36 tests, TestCategory=Endpoint, WebApplicationFactory)
-├── Test/Test.Integration/    (11 tests, TestCategory=Integration, TestContainers + SQL Server)
-├── Test/Test.Load/           (NBomber, TestCategory=Load, manual run)
-├── Test/Test.Benchmarks/     (BenchmarkDotNet, console runner)
-├── Test/Test.Support/        (builders, InMemoryDbBuilder, TestConstants)
+```yaml
+instructionVersion: "1.1"
+currentPhase: 5
+currentSubPhase: complete
+scaffoldMode: full
+contractsScaffolded: true
+foundationComplete: true
+enabledFeatures:
+  includeGateway: true
+  includeScheduler: true
+  includeFunctionApp: true
+  includeUnoUI: true
+  includeBlazorUI: true
+  includeNotifications: false
+  includeAiServices: true        # scaffold mode (deployment-only, no-op stubs)
+testStatus:
+  unitTests: green
+  endpointTests: green
+  infrastructureTests: green     # Integration + E2E via Testcontainers
+hostGates:
+  scheduler: validated
+  functionApp: validated
+  unoUI: validated
+  blazorUI: validated
+  notifications: not-applicable
 ```
 
-### Build Commands
-```powershell
-cd C:\Users\EbenFreeman\source\repos\AI-Instructions-ReferenceApp\src
-dotnet build TaskFlow.slnx                              # full solution (excludes Uno WASM)
-dotnet build UI/TaskFlow.Uno/TaskFlow.Uno.csproj         # Uno WASM (separate, needs Uno.Sdk)
-dotnet test --filter "TestCategory=Unit"                 # 204 unit tests
-dotnet test --filter "TestCategory=Architecture"         # 12 architecture tests
-dotnet test --filter "TestCategory=Endpoint"             # 36 endpoint tests (WebApplicationFactory)
-dotnet test --filter "TestCategory=Integration"          # 11 integration tests (TestContainers, needs Docker)
-dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"  # combined gate (252)
-dotnet test TaskFlow.slnx                                # all tests (263, Integration needs Docker)
-```
+## Outputs (root of repo)
 
-### Known Constraints
-- Uno WASM (`TaskFlow.Uno.csproj`) builds separately — do NOT include in `dotnet build TaskFlow.slnx` unless the machine has Uno.Sdk resolved
-- Docker builds require Docker Desktop running — verify availability before attempting
-- Load tests (`[Ignore]`) require API host running — manual invocation only
-- AI services (Foundry/AI Search) are deployment-only — no emulator exists. App boots with no-op stubs when `AiServices:FoundryEndpoint` and `AiServices:SearchEndpoint` are empty
-- CI/CD workflows disabled (workflow_dispatch only) — need `NUGET_PAT` secret for private NuGet feed auth
-- Benchmarks are a console app — run via `dotnet run -c Release` not `dotnet test`
-
-## Remaining Work — Post-Phase Hardening Backlog
-
-Ranked by value. Items grouped into sessions of related work.
-
-### Session A: Test Hardening + EF Migrations — COMPLETE
-
-1. ~~**EF Migration Baseline**~~ — Migration `InitialCreate` generated for `TaskFlowDbContextTrxn`. Snapshot verified: all 7 entities, value objects (DateRange, RecurrencePattern), decimal(10,4) convention, taskflow schema. `DesignTimeDbContextFactory` added (`AuditId = "design-time"`, localdb connection). Microsoft.EntityFrameworkCore.Design added to API project.
-2. ~~**Scheduler Job Unit Tests**~~ — 13 new unit tests: OverdueTaskCheckHandlerTests (4), RecurringTaskGenerationHandlerTests (4), StaleTaskCleanupHandlerTests (5). All pass with mocked `ITaskItemService`.
-3. ~~**Integration Tests (TestContainers)**~~ — 8 integration tests with `Testcontainers.MsSql 4.11.0`: migration apply, Category/TaskItem/Tag CRUD, TaskItem with children (Comments, ChecklistItems), TaskItemTag M:M, tenant query filter isolation, Attachment table+constraint verification. `DatabaseFixture` provides assembly-level container lifecycle. **Note:** Attachment entity has dual FK constraints (`FK_Attachments_Comments_OwnerId` + `FK_Attachments_TaskItems_OwnerId`) on the shared `OwnerId` column — both cannot be satisfied simultaneously. This is an EF convention-generated model issue (both Comment and TaskItem have `ICollection<Attachment> Attachments` navigation). Consider fixing in Session B by configuring one FK as shadow/no-action or switching to TPH inheritance.
-4. ~~**Endpoint Test Coverage Expansion**~~ — 20 new endpoint tests: TagEndpointTests (5), CommentEndpointTests (5), ChecklistItemEndpointTests (5), AttachmentEndpointTests (5). TaskView skipped (Cosmos-based, not supported by in-memory DB factory).
-
-**Gate results:** `dotnet build TaskFlow.slnx` — 30 projects, 0 errors. `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"` — 251 passed. `dotnet test --filter "TestCategory=Integration"` — 8 passed.
-
-### Session B: Infrastructure Validation — COMPLETE
-
-1. ~~**Fix Attachment Polymorphic FK Model**~~ — Comment and TaskItem both had `ICollection<Attachment> Attachments` navigation → EF generated dual FK constraints (`FK_Attachments_Comments_OwnerId` + `FK_Attachments_TaskItems_OwnerId`) on shared `OwnerId` column. **Fix:** Removed `ICollection<Attachment> Attachments` from Comment and TaskItem entities; removed `HasMany(e => e.Attachments)` from CommentConfiguration and TaskItemConfiguration; kept AttachmentConfiguration with property-only mapping (composite `OwnerType + OwnerId` index, no FK relationship). Removed `.Include(t => t.Attachments)` from 5 repository query methods. Added `.Include(t => t.Category)` to TaskItemRepositoryQuery/Trxn (was missing, needed by projection). Added `CountByOwnerAsync(ownerType, ownerId)` to `IAttachmentRepositoryQuery` + impl. Updated `TaskViewProjectionService` to use explicit `CountByOwnerAsync` instead of navigation. Migration: regenerated single `InitialCreate` baseline (no FK constraints on Attachments table, composite index retained).
-
-2. ~~**Blob Upload End-to-End**~~ — Added `UploadAsync` to `IAttachmentService` + `AttachmentService`. `POST /api/attachments/upload` endpoint accepts `IFormFile` (multipart), `ownerType`, `ownerId` form fields → calls `IBlobStorageRepository.UploadAsync` → persists Attachment entity with blob URI. Original `POST /api/attachments` (JSON body) retained for metadata-only creates. New endpoint test with `InMemoryBlobStorageRepository` stub. **1 new endpoint test.**
-
-3. ~~**Domain Event Integration Test**~~ — 3 new integration tests: projection pipeline (TaskItem created → `TaskViewProjectionService` → TaskView produced with correct data), TaskItem with children (comment, attachment, checklist → counts verified), Service Bus message parsing (JSON → TaskItemId extraction). Uses real SQL (TestContainers) + `InMemoryTaskViewRepository` (Cosmos stub). Fixed `DomainEventsTopic` config mismatch in Functions `local.settings.json` (`domain-events` → `DomainEvents` to match publisher). **3 new integration tests.**
-
-4. ~~**Docker Smoke Test**~~ — Attempted `docker build -f src/Host/TaskFlow.Api/Dockerfile . ` — fails with NU1301/401 on private NuGet feed (expected without `NUGET_TOKEN`). Dockerfiles are structurally correct. **Requires `NUGET_PAT` token:** `docker build --build-arg NUGET_TOKEN=<PAT> -f src/Host/TaskFlow.Api/Dockerfile -t taskflow-api:dev .` (same for Gateway, Scheduler, Functions).
-
-5. ~~**CI Activation**~~ — `ci.yml`: switched trigger from `workflow_dispatch` to `pull_request` (main, develop). Added `Configure private NuGet feed` step using `secrets.NUGET_PAT`. `cd.yml`: switched trigger from `workflow_dispatch` to `push` (main) + `workflow_dispatch`. Added NuGet feed config step. Standardized secret name to `NUGET_PAT` throughout. **Requires:** add `NUGET_PAT` secret in GitHub repo Settings → Secrets → Actions.
-
-**Gate results:** `dotnet build TaskFlow.slnx` — 30 projects, 0 errors. `dotnet test --filter "TestCategory=Unit|TestCategory=Architecture|TestCategory=Endpoint"` — 252 passed. `dotnet test --filter "TestCategory=Integration"` — 11 passed. Total: 263 tests green.
-
-**Docker build commands** (run from repo root):
-```powershell
-$PAT = "<your-nuget-read-pat>"
-docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Api/Dockerfile -t taskflow-api:dev .
-docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Gateway/Dockerfile -t taskflow-gateway:dev .
-docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Scheduler/Dockerfile -t taskflow-scheduler:dev .
-docker build --build-arg NUGET_TOKEN=$PAT -f src/Host/TaskFlow.Functions/Dockerfile -t taskflow-functions:dev .
-```
-
-**GitHub secret setup:**
-1. Go to repo → Settings → Secrets and variables → Actions
-2. Add repository secret: Name=`NUGET_AUTH_TOKEN`, Value=package read token from the CI secret store
-
-### Session C: Deployment Readiness
-
-9. ~~**IaC (Bicep/azd)**~~ — **Implemented.** `infra/` directory contains `main.bicep` plus modules for SQL, Cosmos, Service Bus, Storage, Key Vault, App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, and Cosmos RBAC. Deployment plan documented in [.azure/deployment-plan.md](.azure/deployment-plan.md).
-10. **AI Services Live Validation** — Currently no-op stubs. Requires real Azure Foundry + AI Search resources. Deploy index, test hybrid search, validate agent tool calls. Cannot progress without cloud credentials.
-11. **Uno UI Testing** — Currently mock-only via `MockHttpMessageHandler`. Could add Uno.UITest or Playwright WASM tests for critical user flows (task CRUD, category tree navigation).
-
-### Dependencies / Blockers
-
-| Item | Blocker | Status |
+| File | Phase | Purpose |
 |---|---|---|
-| Docker Smoke Test | `NUGET_PAT` required for private NuGet feed | Dockerfiles verified, builds blocked on PAT |
-| CI Activation | `NUGET_PAT` GitHub secret needed | Workflows activated, secret must be added |
-| AI Services | Azure Foundry + AI Search cloud resources | Not started |
-| Domain Event Integration | Aspire emulators (Docker) | Projection pipeline tested; full Service Bus→Function→Cosmos needs Aspire AppHost |
-| IaC | No blocker | Implemented (Bicep modules under `infra/`) |
+| `domain-specification.yaml` | 1 | Domain spec (validated against schema) |
+| `UBIQUITOUS-LANGUAGE.md` | 1 | Shared vocabulary |
+| `DESIGN-DECISIONS.md` | 1 | Decision dependency graph |
+| `resource-implementation.yaml` | 2 | Resource definition (validated) |
+| `implementation-plan.md` | 3 | Vertical slice order |
+| `dotnet-tools.json` | 3 | dotnet-ef pinned |
+| `src/TaskFlow.slnx` | 4+ | 32-project clean-architecture solution |
+| `infra/` | 5d | Bicep IaC modules |
+| `.azure/deployment-plan.md` | 5d | Deployment plan |
+| `REFERENCE-STATUS.md` | — | Current verified build/test/vuln snapshot |
 
-## Domain Model Summary
+## Outstanding Follow-Ups
 
-### Entities (7)
+Tracked in [REFERENCE-STATUS.md § Outstanding Follow-Ups](REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
 
-| Entity | Key Patterns |
-|---|---|
-| **Category** | Self-referencing hierarchy (ParentCategoryId), 1:M → TaskItems, max 5 levels |
-| **Tag** | M:M ↔ TaskItems via TaskItemTag join entity, unique name per tenant |
-| **TaskItem** | Root aggregate, self-referencing sub-tasks (ParentTaskItemId, max 3 levels), 1:M → Comments, 1:M → ChecklistItems, M:M ↔ Tags, M:1 → Category, owns DateRange + RecurrencePattern value objects, state machine (Status), flags enum (Features) |
-| **Comment** | 1:M child of TaskItem, cascade delete, polymorphic Attachments |
-| **ChecklistItem** | 1:M child of TaskItem, cascade delete, orderable, completable |
-| **Attachment** | Polymorphic join (OwnerType: TaskItem or Comment), blob storage URI |
-| **TaskItemTag** | Explicit M:M bridge entity (TaskItemId + TagId) |
+## Resume Protocol
 
-### Relationship Patterns Covered
-
-- Self-referencing: Category (hierarchy), TaskItem (sub-tasks)
-- One-to-many: TaskItem → Comments, TaskItem → ChecklistItems, Category → TaskItems
-- Many-to-many: TaskItem ↔ Tag via TaskItemTag
-- Polymorphic join: Attachment → TaskItem or Comment
-- Reference navigation: TaskItem → Category (optional, no ownership)
-- Value objects: DateRange, RecurrencePattern
-
-### State Machine
-
-TaskItem.Status: None → Open → InProgress ↔ Blocked → Completed/Cancelled → Open (reopen)
-Guard: AllChecklistItemsComplete (on InProgress → Completed)
-
-### Domain Events
-
-TaskItemCreated, TaskItemStatusChanged, TaskItemCompleted, TaskItemRescheduled, TaskItemOverdueSuspected (scheduled), CommentAdded, AttachmentUploaded
-
-### Workflows
-
-OverdueTaskEscalation (orchestrator, with compensation), RecurringTaskGeneration (orchestrator)
-
-### AI Capabilities
-
-Search: TaskItem (hybrid — keyword + semantic + vector)
-Agent: TaskAssistant (CRUD + search + summarize via function tools + RAG)
-
-### Cross-Cutting
-
-- Multi-tenant: all entities implement ITenantEntity<Guid>, row-level isolation
-- Auth: EntraID (enterprise), scaffold mode for local dev
-- Policy matrix: StatusTransitionPolicy (role-based transition control)
-
-## Resource Implementation Summary
-
-### Scaffold Config
-- scaffoldMode: full
-- testingProfile: comprehensive
-- functionProfile: full
-- unoProfile: full
-
-### Hosts
-- API (primary REST surface)
-- Gateway (YARP reverse proxy, user auth, claim relay)
-- Scheduler (TickerQ background jobs)
-- Function App (Service Bus, Timer, Blob, HTTP triggers)
-- Uno UI (WASM, full CRUD + dashboard)
-
-### Infrastructure (all emulator mode)
-- SQL Server — all entities, split read/write DbContexts
-- Redis — FusionCache L2, backplane for cache sync
-- Service Bus — domain events (topic), task commands (queue)
-- Azure Storage — blob (attachments), emulator mode
-- Cosmos DB — denormalized TaskView projection store, emulator mode
-
-### External Dependency Modes
-| Dependency | Mode |
-|---|---|
-| SQL | emulator |
-| Redis | emulator |
-| Service Bus | emulator |
-| Key Vault | lazy-optional |
-| Blob Storage | emulator |
-| Cosmos DB | emulator |
-| AI Services | deployment-only |
-
-### AI Services (deployment-only, no-op stubs for local)
-- Foundry: gpt-4o (agent reasoning), text-embedding-3-small (embeddings)
-- Search: AzureAISearch, taskitems-index (hybrid: keyword + semantic + vector)
-- Agent: TaskAssistant (ChatClientAgent, function tools, RAG)
-
-### Messaging
-- Service Bus topic: DomainEvents (at-least-once, outbox enabled)
-- Service Bus queue: TaskCommands (at-least-once)
-
-### Scheduled Jobs
-- OverdueTaskCheck (every 6 hours)
-- RecurringTaskGeneration (daily)
-- StaleTaskCleanup (weekly)
-
-### Functions
-- ProcessTaskEvent (Service Bus topic trigger)
-- StaleTaskCleanup (timer trigger)
-- ProcessAttachment (blob trigger)
-- TaskApiProxy (HTTP trigger)
-
-## Target Framework
-
-.NET 10 — all packages at latest versions
-
-## Residual Environment Notes
-
-- No MCP servers required for Phase 1
-- Python (pyyaml + jsonschema) used for schema validation
+To start a new scaffold session against this repo, the next AI session loads `START-AI.md` (from the sister scaffold install) + this file. Because all phases are complete, a new session should treat this as a maintenance run: update `REFERENCE-STATUS.md` after any change that moves build/test/vulnerability state, and commit in the same commit.

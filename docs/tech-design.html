@@ -93,7 +93,7 @@
   <tr><td>AI</td><td>Azure AI Search + Azure OpenAI (stubs)</td></tr>
   <tr><td>Auth</td><td>Microsoft Entra ID (External) / Scaffold mode</td></tr>
   <tr><td>Observability</td><td>OpenTelemetry (OTLP), Aspire Dashboard</td></tr>
-  <tr><td>Testing</td><td>MSTest &amp; TestContainers, NetArchTest, WebApplicationFactory, BenchmarkDotNet, NBomber</td></tr>
+  <tr><td>Testing</td><td>MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, BenchmarkDotNet, NBomber, Playwright</td></tr>
 </table>
 
 <h3>Design Principles</h3>
@@ -1505,25 +1505,320 @@
 
 <h3>12.2 Test Projects</h3>
 <table>
-  <tr><th>Project</th><th>Coverage</th></tr>
-  <tr><td><strong>Test.Unit</strong></td><td>Domain entity logic, DTO mappers, service success/failure/conflict paths, in-memory SQLite repo CRUD, Uno API service mappers</td></tr>
-  <tr><td><strong>Test.Endpoints</strong></td><td>Endpoint HTTP cycles (200/201/400/404/409/422) via <code>WebApplicationFactory</code> + in-memory providers</td></tr>
-  <tr><td><strong>Test.Architecture</strong></td><td>Layer dependency rules, <code>ITenantEntity&lt;Guid&gt;</code> on all entities, interface conventions, private setters</td></tr>
-  <tr><td><strong>Test.Integration</strong></td><td>EF migrations, real repository CRUD, paging, integration events → Service Bus → projections (TestContainers SQL Server)</td></tr>
-  <tr><td><strong>Test.E2E</strong></td><td>Full-stack end-to-end via <code>WebApplicationFactory</code> + <code>TestContainers.MsSql</code></td></tr>
-  <tr><td><strong>Test.Load</strong></td><td>NBomber: task search throughput, CRUD scenarios (manual run)</td></tr>
-  <tr><td><strong>Test.Benchmarks</strong></td><td>BenchmarkDotNet: entity mapping perf, search projection perf (console runner)</td></tr>
+  <tr><th>Project</th><th>Purpose</th><th>Value</th><th>Primary Tools</th></tr>
+  <tr>
+    <td><strong>Test.Unit</strong></td>
+    <td>Pure-CPU verification of domain logic, DTO ↔ entity mapping, application service success / failure / conflict paths, in-memory repository CRUD, and Uno API-service mappers.</td>
+    <td>Fastest feedback loop — millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched.</td>
+    <td>MSTest, <strong>Moq</strong>, EF Core InMemory provider</td>
+  </tr>
+  <tr>
+    <td><strong>Test.Endpoints</strong></td>
+    <td>Drives every HTTP endpoint through the full ASP.NET Core pipeline (middleware → endpoint → service → repo) and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes.</td>
+    <td>Confirms wire contract without paying for real infrastructure. The whole API surface boots in under a second and runs against an isolated EF InMemory database per factory instance.</td>
+    <td>MSTest, <code>Microsoft.AspNetCore.Mvc.Testing</code> (<strong>WebApplicationFactory</strong>), EF Core InMemory</td>
+  </tr>
+  <tr>
+    <td><strong>Test.Architecture</strong></td>
+    <td>Asserts compile-time layering and naming rules: Domain has zero outward references; <code>Application.Services</code> cannot reference Infrastructure or Hosts; every tenant entity implements <code>ITenantEntity&lt;Guid&gt;</code>; services have matching <code>I*</code> interfaces; entity setters are private.</td>
+    <td>Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with <code>dotnet test</code>, and travel with the code instead of living in a wiki.</td>
+    <td>MSTest, <strong>NetArchTest.Rules</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Test.Integration</strong></td>
+    <td>End-to-end verification of cross-service workflows by booting the full <strong>Aspire AppHost</strong> in-process: SQL Server, Service Bus emulator, Azure Table Storage, and (when <code>func.exe</code> is on PATH) Azure Functions. Covers EF migrations, repository CRUD with paging, the audit pipeline (interceptor → channel → table storage), and domain-event flow (API publish → Service Bus → Function projection → audit row).</td>
+    <td>Highest-fidelity tests that still run on a developer laptop. Because Aspire wires the same resources used by <code>dotnet run</code>, behavior matches the local dev experience and the cloud deployment.</td>
+    <td>MSTest, <strong>Aspire.Hosting.Testing</strong> (<code>DistributedApplicationTestingBuilder</code>), Testcontainers.MsSql, <code>Azure.Data.Tables</code></td>
+  </tr>
+  <tr>
+    <td><strong>Test.E2E</strong></td>
+    <td>Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container — cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs.</td>
+    <td>Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Trades the InMemory shortcut for real RDBMS semantics without paying for the rest of the Aspire graph.</td>
+    <td>MSTest, WebApplicationFactory, <strong>Testcontainers.MsSql</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Test.Load</strong></td>
+    <td>NBomber HTTP scenarios — task-search throughput and CRUD generation — with assertions on success rate (≥ 95 %) and P99 latency (&lt; 2 s).</td>
+    <td>Catches pre-prod throughput regressions and gives a reproducible perf baseline. Tests are <code>[Ignore]</code>'d by default (manual run) so they never gate CI on infra availability.</td>
+    <td>MSTest, <strong>NBomber</strong>, NBomber.Http</td>
+  </tr>
+  <tr>
+    <td><strong>Test.Benchmarks</strong></td>
+    <td>BenchmarkDotNet console runner exercising hot-path mappers (<code>ToDto</code>, <code>ToEntity</code>) with <code>[MemoryDiagnoser]</code> for allocation tracking.</td>
+    <td>Quantifies the cost of mapping changes — guards against silent allocation regressions when DTOs are extended.</td>
+    <td><strong>BenchmarkDotNet</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Test.Support</strong></td>
+    <td>Reusable test infrastructure: <code>WebApplicationFactoryBase&lt;TProgram, TTrxn, TQuery&gt;</code>, fluent entity builders (<code>CategoryBuilder</code>, <code>TaskItemBuilder</code>, <code>CommentBuilder</code>, <code>TagBuilder</code>), shared constants.</td>
+    <td>Removes ~100 lines of duplicated DI-rewiring boilerplate from every WebApplicationFactory test project. Builders give tests intent-revealing fixture data.</td>
+    <td><code>Microsoft.AspNetCore.Mvc.Testing</code>, EF Core InMemory</td>
+  </tr>
+  <tr>
+    <td><strong>Test.PlaywrightUI</strong></td>
+    <td>Browser-driven UI tests against the running Blazor (<code>https://localhost:7201</code>) and Uno WASM (<code>https://localhost:7069</code>) frontends — full CRUD lifecycle (create → edit → delete), dashboard smoke, regression scenarios.</td>
+    <td>The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss.</td>
+    <td><strong>Playwright</strong> (TypeScript, <code>@playwright/test</code>)</td>
+  </tr>
 </table>
 
-<h3>12.3 Running Tests</h3>
-<pre><code># All unit + architecture tests
+<h3>12.3 Testing Tools</h3>
+<table>
+  <tr><th>Tool</th><th>Role</th><th>What It Provides</th></tr>
+  <tr>
+    <td><strong>MSTest</strong></td>
+    <td>Test runner (Microsoft)</td>
+    <td><code>[TestClass] / [TestMethod] / [TestCategory]</code>, <code>Assert.*</code>, parallelization (<code>MSTestParallelize{Assembly,TestClasses}</code>), <code>[AssemblyInitialize]</code> / <code>[AssemblyCleanup]</code> for shared fixtures.</td>
+  </tr>
+  <tr>
+    <td><strong>Moq</strong></td>
+    <td>Mocking framework</td>
+    <td>Lambda-based fakes for service interfaces (<code>Mock&lt;IFoo&gt;</code>); used in <code>Test.Unit</code> to isolate services from repositories and external clients.</td>
+  </tr>
+  <tr>
+    <td><strong>NetArchTest.Rules</strong></td>
+    <td>Architecture assertion DSL</td>
+    <td>Fluent rules over reflected assemblies — <code>Types.InAssembly(asm).ShouldNot().HaveDependencyOnAny(...).GetResult()</code>. Failure surfaces the offending types. Run as ordinary MSTest cases.</td>
+  </tr>
+  <tr>
+    <td><strong>BenchmarkDotNet</strong></td>
+    <td>Micro-benchmark harness</td>
+    <td>Warmup / iteration control, statistical noise rejection, <code>[MemoryDiagnoser]</code> for GC allocations, console summary tables. Run as <code>dotnet run -c Release --project src/Test/Test.Benchmarks</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>NBomber + NBomber.Http</strong></td>
+    <td>Load-test framework</td>
+    <td><code>Scenario.Create(...)</code>, <code>Simulation.Inject(rate, interval, during)</code> for arrival-rate load, percentile assertions on latency / success. HTTP helpers for request building.</td>
+  </tr>
+  <tr>
+    <td><code>Microsoft.AspNetCore.Mvc.Testing</code></td>
+    <td>In-process API host (<strong>WebApplicationFactory</strong>)</td>
+    <td>Boots <code>Program.cs</code> against a <code>TestServer</code> — full DI, middleware, routing, model binding — without Kestrel. Returns an <code>HttpClient</code> and exposes the <code>IServiceCollection</code> for test-time service replacement.</td>
+  </tr>
+  <tr>
+    <td><strong>Testcontainers</strong> (<code>Testcontainers.MsSql</code>)</td>
+    <td>Ephemeral Docker containers</td>
+    <td>Spawns SQL Server 2025 in a throwaway container per fixture; tests use the real engine with no manual install. Disposes the container automatically.</td>
+  </tr>
+  <tr>
+    <td><strong>Aspire.Hosting.Testing</strong></td>
+    <td>AppHost in-process orchestration</td>
+    <td><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> boots the whole resource graph (SQL, Service Bus, Storage, Functions) in one call. <code>app.GetConnectionStringAsync(...)</code> and <code>app.CreateHttpClient(...)</code> return wired clients.</td>
+  </tr>
+  <tr>
+    <td><strong>Playwright</strong> (<code>@playwright/test</code>)</td>
+    <td>Cross-browser automation</td>
+    <td>Headless Chrome / Firefox / WebKit, auto-waiting locators, <code>screenshot: "only-on-failure"</code>, <code>trace: "on-first-retry"</code>. Driven from a TypeScript <code>playwright.config.ts</code>.</td>
+  </tr>
+</table>
+
+<h3>12.4 Test.Support — <code>WebApplicationFactoryBase</code></h3>
+<p><code>Test.Support</code> centralizes the WebApplicationFactory plumbing that would otherwise be re-implemented in every HTTP test project. The base class is generic over the host program and both DbContexts:</p>
+<pre><code>public abstract class WebApplicationFactoryBase&lt;TProgram, TTrxnContext, TQueryContext&gt;
+    : WebApplicationFactory&lt;TProgram&gt;
+    where TProgram : class
+    where TTrxnContext : DbContextBase&lt;string, Guid?&gt;
+    where TQueryContext : DbContextBase&lt;string, Guid?&gt;
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+        builder.ConfigureServices(services =&gt;
+        {
+            services.RemoveAll&lt;IHostedService&gt;();
+            RemoveStandardEfInfrastructure(services);   // pooled context, audit + nolock interceptors,
+                                                        // scoped factory, IDbContextFactory
+            RemoveAppSpecificServices(services);        // overridable hook
+            var trxnOptions  = BuildTrxnOptions();      // abstract — subclass picks the DB
+            var queryOptions = BuildQueryOptions();
+            services.AddScoped(_ =&gt; CreateContext&lt;TTrxnContext&gt;(trxnOptions));
+            services.AddScoped(_ =&gt; CreateContext&lt;TQueryContext&gt;(queryOptions));
+            services.AddSingleton&lt;IDbContextFactory&lt;TTrxnContext&gt;&gt;(new TestDbContextFactory&lt;TTrxnContext&gt;(trxnOptions));
+            services.AddSingleton&lt;IDbContextFactory&lt;TQueryContext&gt;&gt;(new TestDbContextFactory&lt;TQueryContext&gt;(queryOptions));
+        });
+    }
+    protected abstract DbContextOptions BuildTrxnOptions();
+    protected abstract DbContextOptions BuildQueryOptions();
+}</code></pre>
+
+<table>
+  <tr><th>Concern</th><th>How it's handled</th></tr>
+  <tr><td><strong>Hosted services</strong></td><td>All <code>IHostedService</code> registrations stripped — tests never start TickerQ jobs, Service Bus listeners, or background workers by accident.</td></tr>
+  <tr><td><strong>Pooled DbContext</strong></td><td>Removed via <code>RemoveDescriptorsByImplPartialName("DbContextPool")</code> so test contexts get the lifetime the test wants.</td></tr>
+  <tr><td><strong>Audit + ConnectionNoLock interceptors</strong></td><td>Removed — audit is asserted in dedicated integration tests, not on every endpoint cycle.</td></tr>
+  <tr><td><strong>DbContext construction</strong></td><td><code>TestDbContextFactory&lt;T&gt;</code> builds contexts via reflection, side-stepping <code>required</code> members on <code>DbContextBase</code>.</td></tr>
+  <tr><td><strong>DB choice</strong></td><td>Subclass overrides <code>BuildTrxnOptions()</code> / <code>BuildQueryOptions()</code> — <code>UseInMemoryDatabase(...)</code> for endpoint contract tests, <code>UseSqlServer(connString)</code> for E2E.</td></tr>
+</table>
+
+<p>Concrete subclasses are tiny:</p>
+<pre><code>// Test.Endpoints — fast, in-memory
+public sealed class CustomApiFactory
+    : WebApplicationFactoryBase&lt;Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery&gt;
+{
+    private readonly string _dbName = $"TestDb_{Guid.NewGuid()}";
+    protected override DbContextOptions BuildTrxnOptions()  =&gt;
+        new DbContextOptionsBuilder&lt;TaskFlowDbContextTrxn&gt;().UseInMemoryDatabase(_dbName).Options;
+    protected override DbContextOptions BuildQueryOptions() =&gt;
+        new DbContextOptionsBuilder&lt;TaskFlowDbContextQuery&gt;().UseInMemoryDatabase(_dbName).Options;
+}
+
+// Test.E2E — real SQL via Testcontainers
+public sealed class SqlApiFactory
+    : WebApplicationFactoryBase&lt;Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery&gt;
+{
+    public static async Task StartContainerAsync() { /* MsSqlBuilder(...).StartAsync() once per assembly */ }
+    protected override DbContextOptions BuildTrxnOptions()  =&gt;
+        new DbContextOptionsBuilder&lt;TaskFlowDbContextTrxn&gt;().UseSqlServer(_connectionString).Options;
+    protected override DbContextOptions BuildQueryOptions() =&gt;
+        new DbContextOptionsBuilder&lt;TaskFlowDbContextQuery&gt;().UseSqlServer(_connectionString).Options;
+}</code></pre>
+
+<div class="callout"><strong>Why a base class:</strong> every HTTP test project (Endpoints, E2E) needs the same surgical DI rewiring. Centralising it means a fix for an interceptor or pooled-context bug applies to all suites at once — and new test projects only need to choose a database backend.</div>
+
+<h4><code>WebApplicationFactory</code> itself</h4>
+<p><code>Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory&lt;TProgram&gt;</code> boots the application's <code>Program.cs</code> against an in-memory <code>TestServer</code>. The full ASP.NET Core pipeline runs (auth, middleware, routing, endpoint binding, exception handling, ProblemDetails) but no socket is opened — calls go through <code>factory.CreateClient()</code>, an <code>HttpClient</code> wired to the <code>TestServer</code>. The factory exposes <code>ConfigureWebHost(...)</code> so tests can replace services in the same DI container the host uses, which is how this codebase swaps SQL Server for InMemory or container-backed SQL.</p>
+
+<h3>12.5 Choosing the Right Host: WebApplicationFactory vs Testcontainers vs Aspire.Hosting.Testing</h3>
+<p>The three approaches are complementary, not competing — pick by the boundary you want to test:</p>
+<table>
+  <tr>
+    <th>Aspect</th>
+    <th>WebApplicationFactory</th>
+    <th>Testcontainers</th>
+    <th>Aspire.Hosting.Testing</th>
+  </tr>
+  <tr>
+    <td><strong>What it boots</strong></td>
+    <td>One ASP.NET Core app in-process</td>
+    <td>One Docker container per resource (SQL, Redis, etc.)</td>
+    <td>The whole <code>AppHost</code> graph in-process — every service + every backing resource Aspire knows about</td>
+  </tr>
+  <tr>
+    <td><strong>Networking</strong></td>
+    <td>None (TestServer)</td>
+    <td>Real TCP via Docker</td>
+    <td>Real TCP between Aspire-managed services</td>
+  </tr>
+  <tr>
+    <td><strong>Process model</strong></td>
+    <td>Single test process</td>
+    <td>Test process + N Docker containers</td>
+    <td>Test process + Aspire orchestrator + N containers / emulators</td>
+  </tr>
+  <tr>
+    <td><strong>Startup cost</strong></td>
+    <td>&lt; 1 s</td>
+    <td>Seconds (container pull / start)</td>
+    <td>Tens of seconds (whole graph)</td>
+  </tr>
+  <tr>
+    <td><strong>DI override</strong></td>
+    <td>Trivial — same <code>IServiceCollection</code></td>
+    <td>N/A (configure container, then connection-string into your code)</td>
+    <td>Limited — you get connection strings &amp; HTTP clients; you don't reach inside other services</td>
+  </tr>
+  <tr>
+    <td><strong>Test isolation</strong></td>
+    <td>Per-factory instance</td>
+    <td>Per-fixture container</td>
+    <td>Shared via <code>[AssemblyInitialize]</code> (one Aspire app per test assembly)</td>
+  </tr>
+  <tr>
+    <td><strong>Used in this repo</strong></td>
+    <td><code>Test.Endpoints</code>, <code>Test.E2E</code> (composed with Testcontainers)</td>
+    <td><code>Test.E2E</code> (<code>SqlApiFactory</code>)</td>
+    <td><code>Test.Integration</code> (<code>DatabaseFixture</code>)</td>
+  </tr>
+</table>
+
+<p><strong>When to reach for which:</strong></p>
+<ul>
+  <li><strong>WebApplicationFactory</strong> — endpoint contract tests, ProblemDetails shapes, auth / authz routing, anything where the API is the system under test and the database layer can be substituted.</li>
+  <li><strong>Testcontainers</strong> — workflows that depend on real RDBMS semantics (FK cascades, optimistic concurrency, EF projection plans) but only need <em>one</em> backing service.</li>
+  <li><strong>Aspire.Hosting.Testing</strong> — multi-service workflows: API publishes a domain event → Service Bus → Function consumes → Cosmos projection → Azure Table audit row appears. No other tool wires that graph for you with a one-liner.</li>
+</ul>
+
+<p><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> reflectively loads the AppHost's <code>Program</code> type and invokes its <code>Main</code> against a builder configured for testing. The resulting <code>DistributedApplication</code> exposes <code>GetConnectionStringAsync(name)</code> and <code>CreateHttpClient(serviceName)</code> to talk to any resource — including ones gated behind environment flags (e.g., <code>TASKFLOW_INCLUDE_FUNCTIONS=true</code> in <code>DatabaseFixture</code> to include the Functions host only when <code>func.exe</code> is present on the developer's PATH).</p>
+
+<h3>12.6 Test.PlaywrightUI</h3>
+<p>A standalone TypeScript Playwright project that drives the <strong>running</strong> UI and API in a real browser. It is <em>not</em> <code>dotnet test</code>-orchestrated — it lives outside the .NET solution and runs via <code>npm</code>.</p>
+
+<h4>Project layout</h4>
+<pre><code>Test.PlaywrightUI/
+├── package.json              # @playwright/test ^1.59.1
+├── playwright.config.ts      # Two projects: 'blazor' and 'uno'
+├── tests/
+│   ├── blazor/task-crud.spec.ts
+│   └── uno/
+│       ├── task-crud.spec.ts
+│       ├── taskflow-task-list-regression.spec.ts
+│       └── taskflow-ui.spec.ts
+└── utils/
+    ├── blazorTestUtils.ts    # MudBlazor-aware helpers (.mud-table, .mud-dialog, ...)
+    └── unoTestUtils.ts</code></pre>
+
+<p><strong>Two browser projects</strong>, configured in <code>playwright.config.ts</code>:</p>
+<table>
+  <tr><th>Project</th><th><code>baseURL</code></th><th>Tests against</th></tr>
+  <tr><td><code>blazor</code></td><td><code>https://localhost:7201</code></td><td>Blazor MudBlazor app</td></tr>
+  <tr><td><code>uno</code></td><td><code>https://localhost:7069</code></td><td>Uno Platform WASM app</td></tr>
+</table>
+<p>Both projects use Desktop Chrome, ignore HTTPS errors (self-signed dev cert), capture screenshots on failure, and record traces on first retry. <code>workers: 1</code> and <code>mode: "serial"</code> in spec files keep state-dependent CRUD steps in order.</p>
+
+<div class="callout"><strong>Prerequisites — Playwright drives a real browser, so the full vertical slice must be running before you run the suite:</strong>
+<ol>
+  <li><strong>API</strong> — <code>dotnet run --project src/Host/Aspire/AppHost</code> boots SQL, Service Bus, Storage, the API, the Gateway, and seed data.</li>
+  <li><strong>UI</strong> — depending on the project being tested:
+    <ul>
+      <li>Blazor at <code>https://localhost:7201</code> (<code>dotnet run --project src/UI/TaskFlow.Blazor</code>)</li>
+      <li>Uno WASM at <code>https://localhost:7069</code> (run separately — Uno SDK constraint)</li>
+    </ul>
+  </li>
+  <li><strong>Browsers</strong> — <code>npx playwright install --with-deps chromium</code> (one-time).</li>
+</ol>
+</div>
+
+<h4>Running</h4>
+<pre><code>cd src/Test/Test.PlaywrightUI
+npm install
+npm run test:blazor          # Blazor project only
+npm run test:uno             # Uno project only
+npm run test                 # Both
+npm run test:full:fast       # No retries, max 4 failures, 120 s timeout — for local triage</code></pre>
+
+<h4>How a test reads</h4>
+<p><code>blazorTestUtils.ts</code> encodes MudBlazor's selectors so specs stay readable:</p>
+<pre><code>await waitForApp(page);                              // GET /tasks, wait for heading
+await navigateToNewTask(page);                       // click "New Task" → wait for editor
+await fillTextField(page, "Title", uniqueTitle("E2E-Create"));
+await selectOption(page, "Status", "In Progress");   // MudSelect popover dance
+await clickSave(page);
+await expectSnackbar(page, "saved");                 // .mud-snackbar
+await expectTaskInTable(page, taskTitle);            // .mud-table-body</code></pre>
+
+<p><strong>What this catches.</strong> Server-side suites cannot observe binding errors, missing <code>@onclick</code> wiring, broken MudDialog renders, Uno XAML resource errors, or the dialog-confirm-then-API-call sequence. Playwright drives the entire stack the user touches — UI, Gateway, API, database — so any broken link in that chain surfaces as a failed step with a screenshot and trace.</p>
+
+<h3>12.7 Running Tests</h3>
+<pre><code># Unit + architecture (fast, no infrastructure)
 dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"
 
-# Integration tests (requires running infra)
+# Endpoint contract tests (in-memory DB, no Docker)
+dotnet test src/Test/Test.Endpoints
+
+# E2E tests (Docker required — Testcontainers SQL)
+dotnet test src/Test/Test.E2E
+
+# Integration tests (boots Aspire AppHost — Docker + emulators)
 dotnet test --filter "TestCategory=Integration"
 
-# All tests
-dotnet test</code></pre>
+# Load tests (manual — needs API host running on localhost:5000)
+dotnet test --filter "TestCategory=Load"
+
+# Benchmarks (Release build, console runner)
+dotnet run -c Release --project src/Test/Test.Benchmarks
+
+# UI E2E (requires Blazor and/or Uno running, plus API + seed data)
+cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 
 <!-- ============================================================ -->
 <!-- SECTION 13: UI ARCHITECTURE -->
