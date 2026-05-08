@@ -9,6 +9,12 @@ using TaskFlow.Scheduler.Handlers;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Scheduler.Handlers.StaleTaskCleanupHandler"/>: queries with
+/// <c>Status == Cancelled</c>, only counts tasks whose <c>DueDate</c> is older than 90 days, and
+/// tolerates null DueDate / null Data.
+/// Pure-unit tier (Moq only): no scheduler host.
+/// </summary>
 [TestClass]
 public class StaleTaskCleanupHandlerTests
 {

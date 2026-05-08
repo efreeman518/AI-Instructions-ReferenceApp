@@ -6,6 +6,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>AttachmentApiService</c> against the in-memory <c>MockHttpMessageHandler</c>: search,
+/// get, create, and delete map the Kiota response shape to the Uno <c>AttachmentModel</c> correctly.
+/// Pure-unit tier: a real <c>HttpClient</c> is used but no real server — the mock handler short-circuits.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

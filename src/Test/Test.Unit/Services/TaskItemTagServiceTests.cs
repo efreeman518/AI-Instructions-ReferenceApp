@@ -13,6 +13,11 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.TaskItemTagService"/> orchestration over the
+/// many-to-many bridge entity with mocked dependencies: create/get/delete and idempotent delete.
+/// Pure-unit tier (Moq only).
+/// </summary>
 [TestClass]
 public class TaskItemTagServiceTests
 {

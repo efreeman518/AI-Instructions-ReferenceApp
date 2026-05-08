@@ -2,6 +2,12 @@ using NetArchTest.Rules;
 
 namespace Test.Architecture;
 
+/// <summary>
+/// NetArchTest rules ensuring Infrastructure.Repositories does not depend on Application.Services or any
+/// Host project — Infrastructure is allowed to know Application.Contracts but never the implementations
+/// or hosts that compose them.
+/// Pure-unit tier (NetArchTest only): static assembly checks; no DI, no I/O.
+/// </summary>
 [TestClass]
 [TestCategory("Architecture")]
 public class InfrastructureDependencyTests : BaseTest

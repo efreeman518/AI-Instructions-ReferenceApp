@@ -7,6 +7,11 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.Endpoints;
 
+/// <summary>
+/// HTTP contract tests for <c>/api/comments</c> CRUD; each test seeds a parent TaskItem first.
+/// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): contract-level
+/// coverage — status codes, envelope shape, and 404 paths.
+/// </summary>
 [TestClass]
 public class CommentEndpointTests
 {

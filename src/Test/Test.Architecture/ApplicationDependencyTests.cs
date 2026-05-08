@@ -2,6 +2,13 @@ using NetArchTest.Rules;
 
 namespace Test.Architecture;
 
+/// <summary>
+/// NetArchTest rules guarding the Application layer's outbound dependencies — Application.Contracts and
+/// Application.Services must not reference Infrastructure (EF, repositories) or any Host project.
+/// Pure-unit tier (NetArchTest only): runs on loaded <see cref="System.Reflection.Assembly"/> metadata
+/// with no DI, I/O, or test host. A heavier tier would not exercise more of the rule — these are static
+/// architectural invariants.
+/// </summary>
 [TestClass]
 [TestCategory("Architecture")]
 public class ApplicationDependencyTests : BaseTest

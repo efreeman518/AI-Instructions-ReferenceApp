@@ -6,6 +6,14 @@ using TaskFlow.Application.Models;
 
 namespace Test.Endpoints;
 
+/// <summary>
+/// HTTP contract tests for <c>/api/tags</c> CRUD: status codes, response envelopes, and 404 on
+/// non-existent ids.
+/// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): exercises routing,
+/// model binding, ProblemDetails shape and middleware against the real ASP.NET Core pipeline.
+/// A pure-unit tier would miss the wire format and HTTP semantics; SQL tier is unnecessary because no
+/// concurrency or projection-plan behavior is asserted.
+/// </summary>
 [TestClass]
 public class TagEndpointTests
 {

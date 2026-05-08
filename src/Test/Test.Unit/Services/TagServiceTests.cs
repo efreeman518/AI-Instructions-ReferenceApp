@@ -13,6 +13,12 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.TagService"/> orchestration with mocked
+/// repositories, request context, tenant-boundary validator, and cache: CRUD success/failure paths and
+/// idempotent delete.
+/// Pure-unit tier (Moq only): no real EF — service contract is the SUT.
+/// </summary>
 [TestClass]
 public class TagServiceTests
 {

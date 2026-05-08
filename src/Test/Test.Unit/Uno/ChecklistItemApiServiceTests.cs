@@ -6,6 +6,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>ChecklistItemApiService</c> against <c>MockHttpMessageHandler</c>: search returns
+/// items with sort order preserved, get/create/update/delete map correctly to the Uno model.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler — no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

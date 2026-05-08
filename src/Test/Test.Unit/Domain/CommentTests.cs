@@ -3,6 +3,11 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.Comment"/> aggregate's factory and update rules:
+/// required body and TaskItemId, and null-update preservation of the original body.
+/// Pure-unit tier: POCO behavior only.
+/// </summary>
 [TestClass]
 public class CommentTests
 {

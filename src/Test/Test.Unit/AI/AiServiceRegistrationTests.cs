@@ -6,6 +6,12 @@ using TaskFlow.Infrastructure.AI.Search;
 
 namespace Test.Unit.AI;
 
+/// <summary>
+/// Validates <c>AddAiServices</c> DI wiring against an in-memory <see cref="Microsoft.Extensions.Configuration.IConfiguration"/>:
+/// without endpoints, the No-Op search and agent implementations are registered; settings bind to
+/// <c>TaskFlowAiSettings</c>.
+/// Pure-unit tier (in-memory ServiceCollection): no Azure client, no real endpoint.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 public class AiServiceRegistrationTests

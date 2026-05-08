@@ -1005,7 +1005,7 @@ The three approaches are complementary, not competing — pick by the boundary y
 | **Startup cost** | < 1 s | Seconds (container pull / start) | Tens of seconds (whole graph) |
 | **DI override** | Trivial — same `IServiceCollection` | N/A (configure container, then connection-string into your code) | Limited — you get connection strings & HTTP clients; you don't reach inside other services |
 | **Test isolation** | Per-factory instance | Per-fixture container | Shared via `[AssemblyInitialize]` (one Aspire app per test assembly) |
-| **Used in this repo** | `Test.Endpoints`, `Test.E2E` (composed with Testcontainers) | `Test.E2E` (`SqlApiFactory`) | `Test.Integration` (`DatabaseFixture`) |
+| **Used in this repo** | `Test.Endpoints`, `Test.E2E` (composed with Testcontainers) | `Test.E2E` (`SqlApiFactory`) | `Test.Integration` (`AspireTestHost`) |
 
 **When to reach for which:**
 
@@ -1013,7 +1013,17 @@ The three approaches are complementary, not competing — pick by the boundary y
 - **Testcontainers** — workflows that depend on real RDBMS semantics (FK cascades, optimistic concurrency, EF projection plans) but only need *one* backing service.
 - **Aspire.Hosting.Testing** — multi-service workflows: API publishes a domain event → Service Bus → Function consumes → Cosmos projection → Azure Table audit row appears. No other tool wires that graph for you with a one-liner.
 
-`DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))` reflectively loads the AppHost's `Program` type and invokes its `Main` against a builder configured for testing. The resulting `DistributedApplication` exposes `GetConnectionStringAsync(name)` and `CreateHttpClient(serviceName)` to talk to any resource — including ones gated behind environment flags (e.g., `TASKFLOW_INCLUDE_FUNCTIONS=true` in `DatabaseFixture` to include the Functions host only when `func.exe` is present on the developer's PATH).
+`DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))` reflectively loads the AppHost's `Program` type and invokes its `Main` against a builder configured for testing. The resulting `DistributedApplication` exposes `GetConnectionStringAsync(name)` and `CreateHttpClient(serviceName)` to talk to any resource — including ones gated behind environment flags (e.g., `TASKFLOW_INCLUDE_FUNCTIONS=true` in `AspireTestHost` to include the Functions host only when `func.exe` is present on the developer's PATH).
+
+**Aspire test-host best practices** — `AspireTestHost` codifies the canonical recipe from `learn.microsoft.com/dotnet/aspire/testing`:
+
+- Bound every async Aspire call with `.WaitAsync(DefaultTimeout, ct)` (build, start, `GetConnectionStringAsync`, `WaitForResourceHealthyAsync`) so a hung container or stuck DCP step fails fast instead of hanging the run.
+- Gate test work on `app.ResourceNotifications.WaitForResourceHealthyAsync(name, ct)` — a resource reaching `Running` does not mean it accepts connections (SQL warm-up, Functions cold-start, Azurite first request).
+- Pass parameters via `configureBuilder: (appOptions, hostSettings) => hostSettings.Configuration["Parameters:sql-password"] = ...` instead of mutating process env vars; the AppHost picks them up through normal `IConfiguration` binding.
+- Set `appOptions.DisableDashboard = true` (default in the testing builder, but explicit beats implicit).
+- Quiet framework chatter with `builder.Services.AddLogging(l => { l.SetMinimumLevel(Information); l.AddFilter("Microsoft.AspNetCore", Warning); l.AddFilter("Aspire.", Warning); })`.
+
+**Aspire tier by reuse** — `Test.Integration` also hosts three classes that only need a single backing service (`MigrationAndRepositoryTests`, `DomainEventPipelineTests`, `AuditLogRepositoryAzuriteTests`). Per the comparison above they would qualify for Testcontainers, but the project piggybacks them on `AspireTestHost`'s shared SQL/Azurite resources rather than starting a parallel Testcontainers stack — saving the second container per assembly. Class-level `<summary>` blocks call this out on each so the choice doesn't read as drift.
 
 ### 12.6 Test.PlaywrightUI
 

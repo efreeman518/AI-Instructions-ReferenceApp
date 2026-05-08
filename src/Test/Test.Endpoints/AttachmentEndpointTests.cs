@@ -9,6 +9,12 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.Endpoints;
 
+/// <summary>
+/// HTTP contract tests for <c>/api/attachments</c> CRUD plus the multipart upload endpoint, which is
+/// covered using an in-memory <c>IBlobStorageRepository</c> swapped in via <c>WithWebHostBuilder</c>.
+/// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): covers routing,
+/// envelope shape, and multipart binding without an Azurite container.
+/// </summary>
 [TestClass]
 public class AttachmentEndpointTests
 {

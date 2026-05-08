@@ -7,6 +7,12 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.Endpoints;
 
+/// <summary>
+/// HTTP contract tests for <c>/api/checklist-items</c> CRUD; each test seeds a parent TaskItem via the
+/// real API surface to satisfy the foreign-key relation.
+/// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): contract-level
+/// coverage of routing, status codes, and envelope shape — not FK cascade semantics.
+/// </summary>
 [TestClass]
 public class ChecklistItemEndpointTests
 {

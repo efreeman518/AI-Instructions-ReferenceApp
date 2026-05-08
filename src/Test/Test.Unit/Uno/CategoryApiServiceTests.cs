@@ -6,6 +6,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>CategoryApiService</c> against <c>MockHttpMessageHandler</c>: search and create map
+/// the mock payload to the Uno <c>CategoryModel</c>.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler — no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

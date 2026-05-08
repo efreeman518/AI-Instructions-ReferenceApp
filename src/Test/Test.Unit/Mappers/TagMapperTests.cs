@@ -6,6 +6,10 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Mappers;
 
+/// <summary>
+/// Validates <c>TagMapper</c> entity ↔ DTO mapping for name, color, and the failure result on empty input.
+/// Pure-unit tier: static extension over POCOs.
+/// </summary>
 [TestClass]
 public class TagMapperTests
 {

@@ -6,6 +6,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>DashboardService.GetSummaryAsync</c> aggregates the mocked task data (totals by status,
+/// overdue count, recent activity) when wired over the in-process <c>MockHttpMessageHandler</c>.
+/// Pure-unit tier: in-memory composition; no real server, no real DB.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

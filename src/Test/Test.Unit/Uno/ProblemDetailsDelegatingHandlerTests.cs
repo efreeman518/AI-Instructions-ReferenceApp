@@ -6,6 +6,12 @@ using TaskFlow.Uno.Core.Client.Http;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>ProblemDetailsDelegatingHandler</c>: passes successes through, ignores non-problem-json
+/// errors, throws <c>ProblemDetailsException</c> + notifies on <c>application/problem+json</c>, suppresses
+/// notification for status 499, ignores malformed problem JSON, and dedupes concurrent duplicates.
+/// Pure-unit tier: stub <see cref="System.Net.Http.HttpMessageHandler"/>; no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

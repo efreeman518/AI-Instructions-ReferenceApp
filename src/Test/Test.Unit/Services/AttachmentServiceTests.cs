@@ -14,6 +14,12 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.AttachmentService"/> orchestration with mocked
+/// dependencies: CRUD success/failure paths plus search projection. Polymorphic owner-id behavior is
+/// preserved via DTO shape but not persisted here.
+/// Pure-unit tier (Moq only).
+/// </summary>
 [TestClass]
 public class AttachmentServiceTests
 {

@@ -13,9 +13,13 @@ using TaskFlow.Infrastructure.Repositories;
 namespace Test.Integration;
 
 /// <summary>
-/// Proves the domain event pipeline works end-to-end:
-/// TaskItem created → TaskViewProjectionService → TaskView document produced.
-/// Service Bus → Function trigger is verified via smoke test (see HANDOFF.md).
+/// Validates the domain-event projection pipeline: a TaskItem persisted to SQL is read by
+/// <c>TaskViewProjectionService</c> through the query-side repositories and emitted as a TaskView
+/// document with correct counts (comments, attachments, checklist totals/completed).
+/// Aspire tier by reuse: only SQL is exercised here (the Service Bus → Function → projection hop is
+/// covered separately in <c>FunctionAuditPipelineTests</c>), but the test piggybacks on the shared
+/// <c>AspireTestHost</c> SQL container rather than starting its own. The TaskView store is in-memory
+/// (<c>InMemoryTaskViewRepository</c>) — real Cosmos behavior is out of scope for this test.
 /// </summary>
 [TestClass]
 public class DomainEventPipelineTests
@@ -25,7 +29,7 @@ public class DomainEventPipelineTests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
     }
 
@@ -35,8 +39,8 @@ public class DomainEventPipelineTests
     public async Task Given_TaskItemCreated_When_ProjectionRuns_Then_TaskViewProduced()
     {
         // Arrange — real SQL via TestContainers
-        var connStr = DatabaseFixture.ConnectionString;
-        var ctx = DatabaseFixture.CreateTrxnContext(connStr);
+        var connStr = AspireTestHost.ConnectionString;
+        var ctx = DbContextFactory.CreateTrxnContext(connStr);
 
         var category = Category.Create(TenantId, "Work").Value!;
         ctx.Categories.Add(category);
@@ -50,7 +54,7 @@ public class DomainEventPipelineTests
         await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
         // Create a query context for the repo
-        var queryCtx = DatabaseFixture.CreateQueryContext(connStr);
+        var queryCtx = DbContextFactory.CreateQueryContext(connStr);
         var taskItemRepo = new TaskItemRepositoryQuery(queryCtx);
         var attachmentRepo = new AttachmentRepositoryQuery(queryCtx);
 
@@ -81,8 +85,8 @@ public class DomainEventPipelineTests
     [Timeout(120000)]
     public async Task Given_TaskItemWithChildren_When_ProjectionRuns_Then_CountsIncluded()
     {
-        var connStr = DatabaseFixture.ConnectionString;
-        var ctx = DatabaseFixture.CreateTrxnContext(connStr);
+        var connStr = AspireTestHost.ConnectionString;
+        var ctx = DbContextFactory.CreateTrxnContext(connStr);
 
         var taskResult = TaskItem.Create(TenantId, "Task With Children");
         var task = taskResult.Value!;
@@ -104,7 +108,7 @@ public class DomainEventPipelineTests
 
         await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
-        var queryCtx = DatabaseFixture.CreateQueryContext(connStr);
+        var queryCtx = DbContextFactory.CreateQueryContext(connStr);
         var taskViewRepo = new InMemoryTaskViewRepository();
         var projectionService = new TaskViewProjectionService(
             new TaskItemRepositoryQuery(queryCtx),

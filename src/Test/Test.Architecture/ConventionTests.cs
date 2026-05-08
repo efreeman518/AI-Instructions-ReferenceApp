@@ -3,6 +3,12 @@ using EF.Domain.Contracts;
 
 namespace Test.Architecture;
 
+/// <summary>
+/// Reflection-based convention checks: every domain entity implements <c>ITenantEntity&lt;Guid&gt;</c>,
+/// every <c>*Service</c> implementation has a matching <c>I*Service</c> interface, and entity properties
+/// (excluding <c>TenantId</c>) have private setters to enforce encapsulation.
+/// Pure-unit tier (NetArchTest/reflection only): inspects loaded type metadata; no runtime, no infra.
+/// </summary>
 [TestClass]
 [TestCategory("Architecture")]
 public class ConventionTests : BaseTest

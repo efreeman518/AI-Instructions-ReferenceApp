@@ -13,6 +13,13 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.CategoryService"/> orchestration logic with
+/// fully-mocked dependencies (repositories, request context, tenant-boundary validator, cache):
+/// CRUD success/failure paths, idempotent delete, and search-result passthrough.
+/// Pure-unit tier (Moq only): the service contract is exercised in isolation; SQL semantics are covered
+/// by the E2E and Integration tiers separately.
+/// </summary>
 [TestClass]
 public class CategoryServiceTests
 {

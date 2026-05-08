@@ -10,6 +10,12 @@ using Test.Support;
 
 namespace Test.Unit.AI;
 
+/// <summary>
+/// Validates the agent function-call wrappers in <c>TaskItemTools</c> (search, get details, create,
+/// summarize backlog) format their output strings correctly and surface invalid id / not-found cases
+/// as user-facing messages.
+/// Pure-unit tier (Moq only): the underlying service and search are substituted; tool plumbing is the SUT.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 public class TaskItemToolsTests

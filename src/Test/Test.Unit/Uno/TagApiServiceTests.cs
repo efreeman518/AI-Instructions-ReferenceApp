@@ -6,6 +6,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>TagApiService</c> against <c>MockHttpMessageHandler</c>: CRUD methods map Kiota payloads
+/// to the Uno <c>TagModel</c>.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler — no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

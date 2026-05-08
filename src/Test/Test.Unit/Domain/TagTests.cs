@@ -3,6 +3,11 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.Tag"/> aggregate's factory and update rules including
+/// color preservation and tenant-id guards.
+/// Pure-unit tier: POCO behavior only.
+/// </summary>
 [TestClass]
 public class TagTests
 {

@@ -10,6 +10,15 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.E2E;
 
+/// <summary>
+/// Multi-endpoint workflow tests over the full HTTP→Endpoint→Service→EF→SQL stack: TaskItem/Category/Tag
+/// CRUD round-trips, server-side paged search across distinct pages, and child-aggregate (Comment,
+/// ChecklistItem) lifecycles.
+/// SQL tier (WebApplicationFactory + Testcontainers SQL via <c>SqlApiFactory</c>): real SQL is required
+/// for paging plans, FK constraints applied by EF migrations, and projection behavior — InMemory
+/// (Test.Endpoints tier) would silently mask these. The Aspire tier is unnecessary because only one
+/// backing service (SQL) participates.
+/// </summary>
 [TestClass]
 [TestCategory("E2E")]
 public class TaskItemCrudE2ETests

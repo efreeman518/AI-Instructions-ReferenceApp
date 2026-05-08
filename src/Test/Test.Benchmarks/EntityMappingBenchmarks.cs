@@ -5,6 +5,12 @@ using Test.Support.Builders;
 
 namespace Test.Benchmarks;
 
+/// <summary>
+/// BenchmarkDotNet micro-benchmarks for entity ↔ DTO mapper hot paths (Category, TaskItem, Tag, Comment
+/// ToDto plus full round-trips). Memory diagnoser enabled, 3 warm-ups + 10 iterations.
+/// Benchmark tier (BenchmarkDotNet only) — runs from <c>Program.Main</c> via <c>BenchmarkSwitcher</c>;
+/// not part of the MSTest run. The other tiers cannot produce reliable allocation/duration figures.
+/// </summary>
 [MemoryDiagnoser]
 [SimpleJob(warmupCount: 3, iterationCount: 10)]
 public class EntityMappingBenchmarks

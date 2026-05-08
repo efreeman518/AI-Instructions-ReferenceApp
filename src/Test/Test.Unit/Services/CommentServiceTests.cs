@@ -13,6 +13,11 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.CommentService"/> orchestration with mocked
+/// dependencies: CRUD success/failure paths and idempotent delete.
+/// Pure-unit tier (Moq only).
+/// </summary>
 [TestClass]
 public class CommentServiceTests
 {

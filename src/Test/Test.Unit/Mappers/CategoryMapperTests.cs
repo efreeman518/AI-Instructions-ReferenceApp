@@ -6,6 +6,12 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Mappers;
 
+/// <summary>
+/// Validates <c>CategoryMapper</c> entity ↔ DTO round-trips: every property is preserved,
+/// <c>ParentCategoryId</c> survives mapping, and invalid DTO input is surfaced as a <c>DomainResult</c>
+/// failure rather than throwing.
+/// Pure-unit tier: static extension methods over POCOs — no DbContext, no DI.
+/// </summary>
 [TestClass]
 public class CategoryMapperTests
 {

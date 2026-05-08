@@ -13,6 +13,11 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Application.Services.ChecklistItemService"/> orchestration with mocked
+/// dependencies: CRUD success/failure paths and the IsCompleted flag flow on update.
+/// Pure-unit tier (Moq only).
+/// </summary>
 [TestClass]
 public class ChecklistItemServiceTests
 {

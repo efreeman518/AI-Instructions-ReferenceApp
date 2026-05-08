@@ -8,6 +8,12 @@ using TaskFlow.Scheduler.Handlers;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Scheduler.Handlers.RecurringTaskGenerationHandler"/>: filters tasks
+/// with a non-empty <c>RecurrenceFrequency</c>, treats null/empty frequency as non-recurring, and
+/// tolerates a null Data response.
+/// Pure-unit tier (Moq only): no scheduler host or timer.
+/// </summary>
 [TestClass]
 public class RecurringTaskGenerationHandlerTests
 {

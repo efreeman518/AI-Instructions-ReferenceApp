@@ -4,6 +4,12 @@ using TaskFlow.Uno.Core.Client.Http;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>BusyDelegatingHandler</c> increments <c>BusyTracker.Pending</c> while a request is
+/// in-flight, decrements after success, and decrements after the inner handler throws.
+/// Pure-unit tier: a stub <see cref="System.Net.Http.HttpMessageHandler"/> short-circuits the pipeline —
+/// no real socket, no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

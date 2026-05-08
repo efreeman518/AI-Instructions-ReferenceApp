@@ -8,6 +8,14 @@ using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
+/// <summary>
+/// Validates <c>AuditLogRepository.AppendAsync</c> against real Azurite Table Storage: partition key,
+/// row key shape (<c>..._{Id:N}</c>), and round-trip of audit metadata.
+/// Aspire tier by reuse: only Azurite is exercised — no API, no Function — but the test piggybacks on
+/// the shared <c>AspireTestHost</c> <c>TableStorage1</c> resource instead of starting its own Azurite
+/// container. A dedicated Testcontainers Azurite fixture would also work; reusing Aspire avoids a second
+/// container per test run.
+/// </summary>
 [TestClass]
 [TestCategory("Integration")]
 [DoNotParallelize]
@@ -17,7 +25,13 @@ public class AuditLogRepositoryAzuriteTests
     [Timeout(300000)]
     public async Task Given_AuditEntry_When_AppendAsyncToAzurite_Then_TableEntityPersistedWithExpectedKeys()
     {
-        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
+        var ct = CancellationToken.None;
+
+        await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
+
+        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
+            .AsTask()
+            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
         Assert.IsFalse(string.IsNullOrWhiteSpace(connectionString));
 
         var tableName = $"audit{Guid.NewGuid():N}"[..31];
@@ -48,7 +62,7 @@ public class AuditLogRepositoryAzuriteTests
 
         try
         {
-            await repository.AppendAsync(entry, CancellationToken.None);
+            await repository.AppendAsync(entry, ct);
 
             var tableClient = tableServiceClient.GetTableClient(tableName);
             var persisted = await ReadSingleEntityAsync(tableClient, tenantId.ToString());

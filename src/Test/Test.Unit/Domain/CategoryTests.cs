@@ -3,6 +3,11 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.Category"/> aggregate's factory and update rules,
+/// including parent-category wiring and tenant-id guards.
+/// Pure-unit tier: instantiates the entity directly — no EF, no DI, no test host.
+/// </summary>
 [TestClass]
 public class CategoryTests
 {

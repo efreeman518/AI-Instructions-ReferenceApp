@@ -9,6 +9,14 @@ using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
+/// <summary>
+/// End-to-end audit pipeline test for the Functions host: POST /api/categories on the
+/// <c>taskflowfunctions</c> resource → Function request handling → audit middleware → Azurite Table
+/// Storage row, with a polling read-back.
+/// Aspire tier (Aspire.Hosting.Testing) — required because the Functions host has the longest cold-start
+/// of any resource and the test depends on both <c>taskflowfunctions</c> and <c>TableStorage1</c>. Skips
+/// inconclusive when Azure Functions Core Tools (<c>func</c>) is not installed.
+/// </summary>
 [TestClass]
 [TestCategory("Integration")]
 [DoNotParallelize]
@@ -20,12 +28,18 @@ public class FunctionAuditPipelineTests
     [Timeout(300000)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
-        if (!DatabaseFixture.EnsureFuncToolAvailable())
+        if (!AspireTestHost.EnsureFuncToolAvailable())
         {
             Assert.Inconclusive("Azure Functions Core Tools ('func') is required to run the end-to-end Functions audit pipeline test.");
         }
 
-        using var client = DatabaseFixture.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
+        var ct = CancellationToken.None;
+
+        // Functions host has the longest cold-start of any resource — wait for health before issuing requests.
+        await AspireTestHost.WaitForResourceHealthyAsync("taskflowfunctions", ct);
+        await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
+
+        using var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
         client.Timeout = TimeSpan.FromMinutes(10);
         var auditWindowStartUtc = DateTimeOffset.UtcNow;
         var request = new
@@ -34,8 +48,8 @@ public class FunctionAuditPipelineTests
             Description = "Integration-created category"
         };
 
-        using var response = await PostCreateCategoryWithRetryAsync(client, request, CancellationToken.None);
-        var responseBody = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: CancellationToken.None);
+        using var response = await PostCreateCategoryWithRetryAsync(client, request, ct);
+        var responseBody = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: ct);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         Assert.IsNotNull(responseBody);
@@ -43,13 +57,15 @@ public class FunctionAuditPipelineTests
         Assert.AreEqual(FunctionFallbackTenantId, responseBody.TenantId);
         Assert.AreEqual(request.Name, responseBody.Name);
 
-        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
+        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
+            .AsTask()
+            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,
             FunctionFallbackTenantId.ToString(),
             auditWindowStartUtc,
-            CancellationToken.None);
+            ct);
 
         Assert.IsNotNull(auditEntity);
         Assert.AreEqual(FunctionFallbackTenantId.ToString(), auditEntity.PartitionKey);

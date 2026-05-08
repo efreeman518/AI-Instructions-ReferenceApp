@@ -2,6 +2,12 @@ using TaskFlow.Uno.Core.Business.Notifications;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>NotificationService</c> behavior: ShowSuccess/ShowError/ShowProblem append the right
+/// severity, errors persist (no auto-dismiss), problems are deduped by status+title, and Dismiss is a
+/// no-op for unknown ids.
+/// Pure-unit tier: stateful in-memory service.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

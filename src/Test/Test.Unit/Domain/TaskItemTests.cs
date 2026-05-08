@@ -4,6 +4,13 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.TaskItem"/> aggregate: factory guards, status-transition
+/// state machine (Open → InProgress → Completed → reopen), and the <c>Status</c> ↔ <c>CompletedDate</c>
+/// derived invariant.
+/// Pure-unit tier: invokes the aggregate directly — the state machine is decided in-memory, so a heavier
+/// tier would not exercise additional behavior.
+/// </summary>
 [TestClass]
 public class TaskItemTests
 {

@@ -3,6 +3,12 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.TaskItemTag"/> bridge entity's factory rules — both
+/// foreign-key sides (TaskItemId, TagId) and TenantId must be non-empty.
+/// Pure-unit tier: factory inspection only; the many-to-many join is exercised via real SQL in
+/// <c>MigrationAndRepositoryTests</c>.
+/// </summary>
 [TestClass]
 public class TaskItemTagTests
 {

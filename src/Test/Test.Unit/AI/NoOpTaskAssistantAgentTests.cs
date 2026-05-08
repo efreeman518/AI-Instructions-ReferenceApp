@@ -3,6 +3,11 @@ using TaskFlow.Infrastructure.AI.Agents;
 
 namespace Test.Unit.AI;
 
+/// <summary>
+/// Validates the No-Op fallback <c>NoOpTaskAssistantAgent</c>: chat returns an unconfigured response,
+/// preserves caller-supplied <c>ConversationId</c>, and otherwise generates a Guid-based id.
+/// Pure-unit tier: direct instantiation, <c>NullLogger</c>.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 public class NoOpTaskAssistantAgentTests

@@ -7,6 +7,11 @@ using Test.Support.Builders;
 
 namespace Test.Unit.Mappers;
 
+/// <summary>
+/// Validates <c>AttachmentMapper</c> entity ↔ DTO mapping including polymorphic owner fields
+/// (OwnerType, OwnerId) and failure surfacing for invalid DTO input.
+/// Pure-unit tier: static mapping extensions only.
+/// </summary>
 [TestClass]
 public class AttachmentMapperTests
 {

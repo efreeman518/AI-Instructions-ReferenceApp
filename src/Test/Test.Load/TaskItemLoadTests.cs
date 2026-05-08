@@ -5,6 +5,13 @@ using NBomber.Http.CSharp;
 
 namespace Test.Load;
 
+/// <summary>
+/// NBomber load scenarios against the TaskItem search and CRUD endpoints, asserting success-rate and
+/// P99-latency baselines (95% / under 2000ms for search; 90% for create).
+/// Load tier (NBomber): both methods are <c>[Ignore]</c>'d for CI and require a manually-running API host
+/// at <c>http://localhost:5000</c>. Faster tiers (Endpoint/E2E) cannot reproduce the concurrent-load
+/// behavior these baselines guard.
+/// </summary>
 [TestClass]
 [TestCategory("Load")]
 public class TaskItemLoadTests

@@ -6,6 +6,12 @@ using TaskFlow.Application.Models;
 
 namespace Test.Endpoints;
 
+/// <summary>
+/// HTTP contract tests for <c>/api/categories</c> CRUD plus search and a full create→read→update→delete
+/// round-trip.
+/// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): verifies status codes,
+/// envelope shape, and search projection over the Categories endpoint without spinning a real SQL container.
+/// </summary>
 [TestClass]
 public class CategoryEndpointTests
 {

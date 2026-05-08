@@ -2,6 +2,13 @@ using NetArchTest.Rules;
 
 namespace Test.Architecture;
 
+/// <summary>
+/// NetArchTest rules pinning the Domain.Model assembly as a leaf dependency: it must not reference
+/// Application (Contracts/Services/Mappers/Models/MessageHandlers), Infrastructure, EF Core, or any
+/// Host project.
+/// Pure-unit tier (NetArchTest only): assembly-metadata inspection, no infra. Anything heavier is wasted —
+/// these are pure dependency-direction assertions.
+/// </summary>
 [TestClass]
 [TestCategory("Architecture")]
 public class DomainDependencyTests : BaseTest

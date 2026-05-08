@@ -8,6 +8,15 @@ using Test.Support.Builders;
 
 namespace Test.Integration;
 
+/// <summary>
+/// Validates EF migrations apply cleanly against real SQL Server and that core repository operations
+/// (CRUD, includes, many-to-many bridges, the tenant query filter, polymorphic-attachment indexing) work
+/// against the migrated schema.
+/// Aspire tier by reuse: the test only needs SQL, but it piggybacks on the shared <c>AspireTestHost</c>
+/// SQL container (via <c>DbContextFactory</c>) instead of standing up a separate Testcontainers SQL —
+/// avoiding two SQL containers per test run. A standalone Test.E2E-style <c>SqlApiFactory</c> fixture
+/// would also work; the Aspire fixture is reused for cost.
+/// </summary>
 [TestClass]
 [TestCategory("Integration")]
 public class MigrationAndRepositoryTests
@@ -19,7 +28,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task Migrations_ApplyCleanly_ToSqlContainer()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         Assert.IsTrue(await db.Database.CanConnectAsync());
@@ -37,7 +46,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task Category_CrudOperations_WorkAgainstRealSql()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         // Create
@@ -71,7 +80,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task TaskItem_CrudOperations_WorkAgainstRealSql()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         // Create
@@ -106,7 +115,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task Tag_CrudOperations_WorkAgainstRealSql()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         var tag = new TagBuilder().WithName("IntegrationTag").WithColor("#00FF00").Build();
@@ -123,7 +132,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task TaskItem_WithChildren_PersistsCorrectly()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         // Create parent task
@@ -156,7 +165,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task TaskItemTag_ManyToMany_WorksCorrectly()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         var task = new TaskItemBuilder().WithTitle("Tagged Task").Build();
@@ -185,7 +194,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task TenantQueryFilter_FiltersByTenant_WhenTenantIdSet()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         // Insert categories for two different tenants
@@ -229,7 +238,7 @@ public class MigrationAndRepositoryTests
     [Timeout(120000)]
     public async Task Attachment_TableAndConstraints_ExistCorrectly()
     {
-        await using var db = DatabaseFixture.CreateTrxnContext();
+        await using var db = DbContextFactory.CreateTrxnContext();
         await db.Database.MigrateAsync();
 
         // Verify Attachments table exists with expected columns

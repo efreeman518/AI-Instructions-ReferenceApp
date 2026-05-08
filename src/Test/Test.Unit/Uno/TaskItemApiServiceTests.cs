@@ -9,6 +9,11 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates <c>TaskItemApiService</c> against <c>MockHttpMessageHandler</c> plus a capturing handler
+/// that asserts child collections emit non-null <c>taskItemId</c> values when posting a new TaskItem.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock/capture handlers — no real server.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]

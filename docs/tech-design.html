@@ -1727,7 +1727,7 @@ public sealed class SqlApiFactory
     <td><strong>Used in this repo</strong></td>
     <td><code>Test.Endpoints</code>, <code>Test.E2E</code> (composed with Testcontainers)</td>
     <td><code>Test.E2E</code> (<code>SqlApiFactory</code>)</td>
-    <td><code>Test.Integration</code> (<code>DatabaseFixture</code>)</td>
+    <td><code>Test.Integration</code> (<code>AspireTestHost</code>)</td>
   </tr>
 </table>
 
@@ -1738,7 +1738,18 @@ public sealed class SqlApiFactory
   <li><strong>Aspire.Hosting.Testing</strong> — multi-service workflows: API publishes a domain event → Service Bus → Function consumes → Cosmos projection → Azure Table audit row appears. No other tool wires that graph for you with a one-liner.</li>
 </ul>
 
-<p><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> reflectively loads the AppHost's <code>Program</code> type and invokes its <code>Main</code> against a builder configured for testing. The resulting <code>DistributedApplication</code> exposes <code>GetConnectionStringAsync(name)</code> and <code>CreateHttpClient(serviceName)</code> to talk to any resource — including ones gated behind environment flags (e.g., <code>TASKFLOW_INCLUDE_FUNCTIONS=true</code> in <code>DatabaseFixture</code> to include the Functions host only when <code>func.exe</code> is present on the developer's PATH).</p>
+<p><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> reflectively loads the AppHost's <code>Program</code> type and invokes its <code>Main</code> against a builder configured for testing. The resulting <code>DistributedApplication</code> exposes <code>GetConnectionStringAsync(name)</code> and <code>CreateHttpClient(serviceName)</code> to talk to any resource — including ones gated behind environment flags (e.g., <code>TASKFLOW_INCLUDE_FUNCTIONS=true</code> in <code>AspireTestHost</code> to include the Functions host only when <code>func.exe</code> is present on the developer's PATH).</p>
+
+<p><strong>Aspire test-host best practices</strong> — <code>AspireTestHost</code> codifies the canonical recipe from <code>learn.microsoft.com/dotnet/aspire/testing</code>:</p>
+<ul>
+  <li>Bound every async Aspire call with <code>.WaitAsync(DefaultTimeout, ct)</code> (build, start, <code>GetConnectionStringAsync</code>, <code>WaitForResourceHealthyAsync</code>) so a hung container or stuck DCP step fails fast instead of hanging the run.</li>
+  <li>Gate test work on <code>app.ResourceNotifications.WaitForResourceHealthyAsync(name, ct)</code> — a resource reaching <code>Running</code> does not mean it accepts connections (SQL warm-up, Functions cold-start, Azurite first request).</li>
+  <li>Pass parameters via <code>configureBuilder: (appOptions, hostSettings) =&gt; hostSettings.Configuration["Parameters:sql-password"] = ...</code> instead of mutating process env vars; the AppHost picks them up through normal <code>IConfiguration</code> binding.</li>
+  <li>Set <code>appOptions.DisableDashboard = true</code> (default in the testing builder, but explicit beats implicit).</li>
+  <li>Quiet framework chatter with <code>builder.Services.AddLogging(l =&gt; { l.SetMinimumLevel(Information); l.AddFilter("Microsoft.AspNetCore", Warning); l.AddFilter("Aspire.", Warning); })</code>.</li>
+</ul>
+
+<p><strong>Aspire tier by reuse</strong> — <code>Test.Integration</code> also hosts three classes that only need a single backing service (<code>MigrationAndRepositoryTests</code>, <code>DomainEventPipelineTests</code>, <code>AuditLogRepositoryAzuriteTests</code>). Per the comparison above they would qualify for Testcontainers, but the project piggybacks them on <code>AspireTestHost</code>'s shared SQL/Azurite resources rather than starting a parallel Testcontainers stack — saving the second container per assembly. Class-level <code>&lt;summary&gt;</code> blocks call this out on each so the choice doesn't read as drift.</p>
 
 <h3>12.6 Test.PlaywrightUI</h3>
 <p>A standalone TypeScript Playwright project that drives the <strong>running</strong> UI and API in a real browser. It is <em>not</em> <code>dotnet test</code>-orchestrated — it lives outside the .NET solution and runs via <code>npm</code>.</p>

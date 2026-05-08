@@ -4,6 +4,13 @@ using Test.Support;
 
 namespace Test.Unit.Domain;
 
+/// <summary>
+/// Validates the <see cref="TaskFlow.Domain.Model.Attachment"/> aggregate's factory and update rules:
+/// required fields (file name, size, tenant), success/failure shape of <c>DomainResult</c>, and that
+/// nullable update parameters preserve original values.
+/// Pure-unit tier (no infra, no test host): the entity is a POCO — adding a DbContext or web factory would
+/// not exercise additional behavior and would slow the feedback loop.
+/// </summary>
 [TestClass]
 public class AttachmentTests
 {

@@ -9,6 +9,12 @@ using TaskFlow.Scheduler.Handlers;
 
 namespace Test.Unit.Services;
 
+/// <summary>
+/// Validates <see cref="TaskFlow.Scheduler.Handlers.OverdueTaskCheckHandler"/>: it queries
+/// <c>ITaskItemService</c> with the overdue filter, tolerates null Data and empty results, and
+/// internally filters out Completed/Cancelled tasks.
+/// Pure-unit tier (Moq only): the handler is the SUT; no scheduler host needed.
+/// </summary>
 [TestClass]
 public class OverdueTaskCheckHandlerTests
 {

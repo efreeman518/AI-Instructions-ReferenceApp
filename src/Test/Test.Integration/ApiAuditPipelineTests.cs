@@ -9,6 +9,14 @@ using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
+/// <summary>
+/// End-to-end audit pipeline test for the API: POST /api/categories → API request handling →
+/// audit middleware → Azurite Table Storage row, with a polling read-back to confirm the persisted entity.
+/// Aspire tier (Aspire.Hosting.Testing) — required because two Aspire resources participate
+/// (<c>taskflowapi</c> for the request, <c>TableStorage1</c> for verification), and both must be Healthy
+/// before the test can run. The polling helper tolerates eventual consistency between request completion
+/// and table visibility.
+/// </summary>
 [TestClass]
 [TestCategory("Integration")]
 [DoNotParallelize]
@@ -20,7 +28,13 @@ public class ApiAuditPipelineTests
     [Timeout(300000)]
     public async Task Given_ApiCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
-        using var client = DatabaseFixture.AspireApp!.CreateHttpClient("taskflowapi", "http");
+        var ct = CancellationToken.None;
+
+        // Resources can be Running before they're actually serving requests — wait for the health check.
+        await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
+        await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
+
+        using var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowapi", "http");
         client.Timeout = TimeSpan.FromMinutes(10);
         var auditWindowStartUtc = DateTimeOffset.UtcNow;
         var request = new DefaultRequest<CategoryDto>
@@ -34,8 +48,8 @@ public class ApiAuditPipelineTests
             }
         };
 
-        using var response = await PostCreateCategoryWithRetryAsync(client, request, CancellationToken.None);
-        var responseBody = await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>(cancellationToken: CancellationToken.None);
+        using var response = await PostCreateCategoryWithRetryAsync(client, request, ct);
+        var responseBody = await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>(cancellationToken: ct);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         Assert.IsNotNull(responseBody);
@@ -44,13 +58,15 @@ public class ApiAuditPipelineTests
         Assert.AreEqual(ScaffoldTenantId, responseBody.Item.TenantId);
         Assert.AreEqual(request.Item.Name, responseBody.Item.Name);
 
-        var connectionString = await DatabaseFixture.AspireApp!.GetConnectionStringAsync("TableStorage1");
+        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
+            .AsTask()
+            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,
             ScaffoldTenantId.ToString(),
             auditWindowStartUtc,
-            CancellationToken.None);
+            ct);
 
         Assert.IsNotNull(auditEntity);
         Assert.AreEqual(ScaffoldTenantId.ToString(), auditEntity.PartitionKey);

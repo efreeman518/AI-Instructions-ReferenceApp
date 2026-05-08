@@ -5,6 +5,13 @@ using TaskFlow.Uno.Core.Client;
 
 namespace Test.Unit.Uno;
 
+/// <summary>
+/// Validates the Kiota-generated <c>TaskFlowApiClient</c> outgoing payload shape: child collections
+/// (Comments, ChecklistItems) always emit a non-null <c>taskItemId</c> on POST and reuse the route id on
+/// PUT, even when the caller leaves them empty.
+/// Pure-unit tier: a capturing <see cref="System.Net.Http.HttpMessageHandler"/> records the JSON body
+/// without ever opening a socket — payload-shape regression coverage for client serialization rules.
+/// </summary>
 [TestClass]
 [TestCategory("Unit")]
 [TestCategory("Uno")]
