@@ -2,7 +2,7 @@
 
 > **Status: complete.** Phases 1–5e + post-phase hardening sessions are all done. This file is retained as the scaffold-flow resume contract; it is no longer the source of truth for build/test/vulnerability state.
 >
-> - Current verified counts, warnings, and vulnerability table → [REFERENCE-STATUS.md](REFERENCE-STATUS.md).
+> - Current verified counts, warnings, and vulnerability table → [REFERENCE-STATUS.md](.scaffold/REFERENCE-STATUS.md).
 > - Per-phase narrative and outputs → `git log` (e.g. `git log --oneline -- HANDOFF.md`); the pre-collapse version is preserved in commit history.
 
 ## Session Summary
@@ -38,25 +38,27 @@ hostGates:
   notifications: not-applicable
 ```
 
-## Outputs (root of repo)
+## Outputs
 
 | File | Phase | Purpose |
 |---|---|---|
-| `domain-specification.yaml` | 1 | Domain spec (validated against schema) |
-| `UBIQUITOUS-LANGUAGE.md` | 1 | Shared vocabulary |
-| `DESIGN-DECISIONS.md` | 1 | Decision dependency graph |
-| `resource-implementation.yaml` | 2 | Resource definition (validated) |
-| `implementation-plan.md` | 3 | Vertical slice order |
-| `dotnet-tools.json` | 3 | dotnet-ef pinned |
+| `.scaffold/domain-specification.yaml` | 1 | Domain spec (validated against schema) |
+| `.scaffold/UBIQUITOUS-LANGUAGE.md` | 1 | Shared vocabulary |
+| `.scaffold/DESIGN-DECISIONS.md` | 1 | Decision dependency graph |
+| `.scaffold/resource-implementation.yaml` | 2 | Resource definition (validated) |
+| `.scaffold/implementation-plan.md` | 3 | Vertical slice order |
+| `.scaffold/INSTRUCTION-GAPS.md` | — | Recorded gaps for the maintenance repo |
+| `.scaffold/REFERENCE-STATUS.md` | — | Current verified build/test/vuln snapshot |
+| `dotnet-tools.json` | 3 | dotnet-ef pinned (project root) |
 | `src/TaskFlow.slnx` | 4+ | 32-project clean-architecture solution |
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
-| `REFERENCE-STATUS.md` | — | Current verified build/test/vuln snapshot |
+| `HANDOFF.md` | — | This file. Stays at project root as the session resume contract. |
 
 ## Outstanding Follow-Ups
 
-Tracked in [REFERENCE-STATUS.md § Outstanding Follow-Ups](REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
+Tracked in [REFERENCE-STATUS.md § Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
 
 ## Resume Protocol
 
-To start a new scaffold session against this repo, the next AI session loads `START-AI.md` (from the sister scaffold install) + this file. Because all phases are complete, a new session should treat this as a maintenance run: update `REFERENCE-STATUS.md` after any change that moves build/test/vulnerability state, and commit in the same commit.
+To start a new scaffold session against this repo, the next AI session loads `START-AI.md` (from the sister scaffold install) + this file. Because all phases are complete, a new session should treat this as a maintenance run: update `.scaffold/REFERENCE-STATUS.md` after any change that moves build/test/vulnerability state, and commit in the same commit.

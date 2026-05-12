@@ -106,4 +106,4 @@ Files changed in `AI-Instructions-ReferenceApp/`:
 
 Verification: `dotnet build src/TaskFlow.slnx` clean (0 errors, vuln warnings only); `dotnet test Test.Unit --filter TestCategory=Unit` 255 passing (was 245 → +10 from new parity coverage and parametrised cases); `dotnet test Test.Endpoints` 36 passing.
 
-`REFERENCE-STATUS.md` test count line will need to bump from 245 → 255 in the same commit that lands these template edits.
+`.scaffold/REFERENCE-STATUS.md` test count line will need to bump from 245 → 255 in the same commit that lands these template edits.

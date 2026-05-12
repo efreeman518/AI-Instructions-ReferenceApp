@@ -19,10 +19,10 @@ Reference implementation for [AI-Instructions-Scaffold](https://github.com/efree
 
 Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bicep (`infra/`).
 
-**Detailed docs:** [tech-design.md](docs/tech-design.md) · [DESIGN-DECISIONS.md](DESIGN-DECISIONS.md) · [UBIQUITOUS-LANGUAGE.md](UBIQUITOUS-LANGUAGE.md)
+**Detailed docs:** [tech-design.md](docs/tech-design.md) · [DESIGN-DECISIONS.md](.scaffold/DESIGN-DECISIONS.md) · [UBIQUITOUS-LANGUAGE.md](.scaffold/UBIQUITOUS-LANGUAGE.md)
 
 ## Phase 1 Alignment Artifacts
 
-- `domain-specification.yaml`
-- `UBIQUITOUS-LANGUAGE.md`
-- `DESIGN-DECISIONS.md`
+- `.scaffold/domain-specification.yaml`
+- `.scaffold/UBIQUITOUS-LANGUAGE.md`
+- `.scaffold/DESIGN-DECISIONS.md`

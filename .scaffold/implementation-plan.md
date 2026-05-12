@@ -2,10 +2,10 @@
 
 ## Inputs Summary
 
-- Domain specification: `domain-specification.yaml` (project root)
-- Resource mapping: `resource-implementation.yaml` (project root)
-- Ubiquitous language: `UBIQUITOUS-LANGUAGE.md`
-- Design decisions: `DESIGN-DECISIONS.md`
+- Domain specification: `.scaffold/domain-specification.yaml`
+- Resource mapping: `.scaffold/resource-implementation.yaml`
+- Ubiquitous language: `.scaffold/UBIQUITOUS-LANGUAGE.md`
+- Design decisions: `.scaffold/DESIGN-DECISIONS.md`
 - Mode: full | Testing: comprehensive
 - scaffoldMode: full
 - testingProfile: comprehensive
