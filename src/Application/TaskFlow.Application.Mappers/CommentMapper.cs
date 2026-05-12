@@ -7,18 +7,7 @@ namespace TaskFlow.Application.Mappers;
 
 public static class CommentMapper
 {
-    public static CommentDto ToDto(this Comment entity) => new()
-    {
-        Id = entity.Id,
-        TenantId = entity.TenantId,
-        Body = entity.Body,
-        TaskItemId = entity.TaskItemId
-    };
-
-    public static DomainResult<Comment> ToEntity(this CommentDto dto, Guid tenantId)
-        => Comment.Create(tenantId, dto.TaskItemId, dto.Body);
-
-    public static readonly Expression<Func<Comment, CommentDto>> ProjectorSearch =
+    public static readonly Expression<Func<Comment, CommentDto>> Projection =
         entity => new CommentDto
         {
             Id = entity.Id,
@@ -26,4 +15,11 @@ public static class CommentMapper
             Body = entity.Body,
             TaskItemId = entity.TaskItemId
         };
+
+    private static readonly Func<Comment, CommentDto> Compiled = Projection.Compile();
+
+    public static CommentDto ToDto(this Comment entity) => Compiled(entity);
+
+    public static DomainResult<Comment> ToEntity(this CommentDto dto, Guid tenantId)
+        => Comment.Create(tenantId, dto.TaskItemId, dto.Body);
 }

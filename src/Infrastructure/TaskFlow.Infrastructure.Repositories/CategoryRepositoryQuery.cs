@@ -63,7 +63,7 @@ public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.TenantId == filter.TenantId.Value);
         }
 
-        (var data, var total) = await q.QueryPageProjectionAsync(CategoryMapper.ProjectorSearch,
+        (var data, var total) = await q.QueryPageProjectionAsync(CategoryMapper.Projection,
             pageSize: request.PageSize, pageIndex: Math.Max(1, request.PageIndex),
             includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
             cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);

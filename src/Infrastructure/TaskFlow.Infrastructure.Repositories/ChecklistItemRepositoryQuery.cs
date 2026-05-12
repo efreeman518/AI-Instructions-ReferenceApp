@@ -53,7 +53,7 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.TenantId == filter.TenantId.Value);
         }
 
-        (var data, var total) = await q.QueryPageProjectionAsync(ChecklistItemMapper.ProjectorSearch,
+        (var data, var total) = await q.QueryPageProjectionAsync(ChecklistItemMapper.Projection,
             pageSize: request.PageSize, pageIndex: Math.Max(1, request.PageIndex),
             includeTotal: true, splitQueryOptions: SplitQueryThresholdOptions.Default,
             cancellationToken: ct).ConfigureAwait(ConfigureAwaitOptions.None);

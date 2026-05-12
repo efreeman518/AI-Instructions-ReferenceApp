@@ -7,22 +7,7 @@ namespace TaskFlow.Application.Mappers;
 
 public static class AttachmentMapper
 {
-    public static AttachmentDto ToDto(this Attachment entity) => new()
-    {
-        Id = entity.Id,
-        TenantId = entity.TenantId,
-        FileName = entity.FileName,
-        ContentType = entity.ContentType,
-        FileSizeBytes = entity.FileSizeBytes,
-        StorageUri = entity.StorageUri,
-        OwnerType = entity.OwnerType,
-        OwnerId = entity.OwnerId
-    };
-
-    public static DomainResult<Attachment> ToEntity(this AttachmentDto dto, Guid tenantId)
-        => Attachment.Create(tenantId, dto.FileName, dto.ContentType, dto.FileSizeBytes, dto.StorageUri, dto.OwnerType, dto.OwnerId);
-
-    public static readonly Expression<Func<Attachment, AttachmentDto>> ProjectorSearch =
+    public static readonly Expression<Func<Attachment, AttachmentDto>> Projection =
         entity => new AttachmentDto
         {
             Id = entity.Id,
@@ -34,4 +19,11 @@ public static class AttachmentMapper
             OwnerType = entity.OwnerType,
             OwnerId = entity.OwnerId
         };
+
+    private static readonly Func<Attachment, AttachmentDto> Compiled = Projection.Compile();
+
+    public static AttachmentDto ToDto(this Attachment entity) => Compiled(entity);
+
+    public static DomainResult<Attachment> ToEntity(this AttachmentDto dto, Guid tenantId)
+        => Attachment.Create(tenantId, dto.FileName, dto.ContentType, dto.FileSizeBytes, dto.StorageUri, dto.OwnerType, dto.OwnerId);
 }

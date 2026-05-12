@@ -7,18 +7,7 @@ namespace TaskFlow.Application.Mappers;
 
 public static class TagMapper
 {
-    public static TagDto ToDto(this Tag entity) => new()
-    {
-        Id = entity.Id,
-        TenantId = entity.TenantId,
-        Name = entity.Name,
-        Color = entity.Color
-    };
-
-    public static DomainResult<Tag> ToEntity(this TagDto dto, Guid tenantId)
-        => Tag.Create(tenantId, dto.Name, dto.Color);
-
-    public static readonly Expression<Func<Tag, TagDto>> ProjectorSearch =
+    public static readonly Expression<Func<Tag, TagDto>> Projection =
         entity => new TagDto
         {
             Id = entity.Id,
@@ -26,4 +15,11 @@ public static class TagMapper
             Name = entity.Name,
             Color = entity.Color
         };
+
+    private static readonly Func<Tag, TagDto> Compiled = Projection.Compile();
+
+    public static TagDto ToDto(this Tag entity) => Compiled(entity);
+
+    public static DomainResult<Tag> ToEntity(this TagDto dto, Guid tenantId)
+        => Tag.Create(tenantId, dto.Name, dto.Color);
 }
