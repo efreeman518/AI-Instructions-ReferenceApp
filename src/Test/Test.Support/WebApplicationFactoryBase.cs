@@ -36,6 +36,7 @@ public abstract class WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryCo
             services.RemoveAll<IHostedService>();
 
             RemoveStandardEfInfrastructure(services);
+            RemoveStartupTasks(services);
             RemoveAppSpecificServices(services);
 
             var trxnOptions = BuildTrxnOptions();
@@ -77,6 +78,13 @@ public abstract class WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryCo
         WebApplicationFactoryHelpers.RemoveDescriptorsByServiceType(services, typeof(DbContextScopedFactory<TQueryContext, string, Guid?>));
         WebApplicationFactoryHelpers.RemoveDescriptorsByImplPartialName(services, "DbContextPool");
     }
+
+    private static void RemoveStartupTasks(IServiceCollection services)
+    {
+        WebApplicationFactoryHelpers.RemoveDescriptorsByServiceTypeFullName(
+            services,
+            "TaskFlow.Bootstrapper.IStartupTask");
+    }
 }
 
 /// <summary>Test-mode <see cref="IDbContextFactory{TContext}"/> that creates contexts via reflection,
@@ -108,6 +116,12 @@ public static class WebApplicationFactoryHelpers
         foreach (var d in services.Where(d =>
             d.ImplementationType?.FullName?.Contains(partialName) == true
             || d.ServiceType.FullName?.Contains(partialName) == true).ToList())
+            services.Remove(d);
+    }
+
+    public static void RemoveDescriptorsByServiceTypeFullName(IServiceCollection services, string fullName)
+    {
+        foreach (var d in services.Where(d => d.ServiceType.FullName == fullName).ToList())
             services.Remove(d);
     }
 }
