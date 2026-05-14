@@ -1,0 +1,143 @@
+{
+  "id": "ai-task-triage",
+  "version": "1.0.0",
+  "label": "AI Task Triage + Critical Approval Saga",
+  "status": "Active",
+  "intent": "Classify a newly created TaskItem via AI; route Critical priority through a 2-of-3 human quorum with saga compensation on reject.",
+  "enableCompensation": true,
+  "globalOnFailureNodeId": "n-faulted",
+  "entryNodeId": "n-classify",
+  "paramsSchema": "{\"required\":[\"tenantId\",\"taskId\",\"description\"],\"properties\":{\"tenantId\":{\"type\":\"string\"},\"taskId\":{\"type\":\"string\"},\"description\":{\"type\":\"string\",\"minLength\":1}}}",
+  "nodes": {
+    "n-classify": {
+      "id": "n-classify",
+      "type": "agent",
+      "label": "AI classification",
+      "intent": "Ask the agent to classify the task and propose priority + category.",
+      "config": {
+        "clientRef": "ai-agent",
+        "promptTemplate": "You are triaging a TaskItem. Description: {{$.params.description}}. Output JSON with fields suggestedPriority (None|Low|Medium|High|Critical), suggestedCategory (free text), confidence (0-1).",
+        "promptVersion": "triage-v1",
+        "outputSchema": "{\"type\":\"object\",\"required\":[\"suggestedPriority\",\"confidence\"],\"properties\":{\"suggestedPriority\":{\"type\":\"string\",\"enum\":[\"None\",\"Low\",\"Medium\",\"High\",\"Critical\"]},\"suggestedCategory\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}}}",
+        "idempotencyKey": "$.params.taskId + '-triage'"
+      },
+      "storeAs": "triage",
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-priority-switch" },
+        { "on": ["Error"], "nextNodeId": "n-faulted" }
+      ]
+    },
+    "n-priority-switch": {
+      "id": "n-priority-switch",
+      "type": "decision",
+      "label": "Route by suggested priority",
+      "intent": "Critical suggestions require quorum approval; everything else applies directly.",
+      "config": { "target": "$.context.triage.suggestedPriority" },
+      "edges": [
+        { "label": "Critical", "on": ["Match"], "when": "Context[\"triage\"][\"suggestedPriority\"].ToString() == \"Critical\"", "nextNodeId": "n-quorum-approval" },
+        { "label": "Default",  "on": ["Match"], "nextNodeId": "n-apply-priority" }
+      ]
+    },
+    "n-quorum-approval": {
+      "id": "n-quorum-approval",
+      "type": "human",
+      "label": "Critical priority quorum",
+      "intent": "Require approval from 2 of 3 reviewers within 24h; escalate to finance-team on timeout.",
+      "config": {
+        "title": "Approve Critical priority for task {{$.params.taskId}}",
+        "assignedTo": "role:triage-reviewer",
+        "channel": "Internal",
+        "quorum": 2,
+        "formSchema": "{\"properties\":{\"decision\":{\"type\":\"string\",\"enum\":[\"approved\",\"rejected\"]},\"notes\":{\"type\":\"string\"}},\"required\":[\"decision\"]}",
+        "visibleContext": ["$.params", "$.context.triage"],
+        "dueIn": "P1D",
+        "escalation": { "after": "PT12H", "reassignTo": "role:triage-escalation" }
+      },
+      "edges": [
+        { "label": "Approved", "on": ["Match"], "when": "Context[\"_humanTaskResponse\"][\"decision\"].ToString() == \"approved\"", "nextNodeId": "n-apply-priority" },
+        { "label": "Rejected", "on": ["Match"], "when": "Context[\"_humanTaskResponse\"][\"decision\"].ToString() == \"rejected\"", "nextNodeId": "n-compensate-reject" }
+      ]
+    },
+    "n-apply-priority": {
+      "id": "n-apply-priority",
+      "type": "integration",
+      "label": "PATCH task priority",
+      "intent": "Apply the suggested priority to the TaskItem via the public API.",
+      "compensationNodeId": "n-revert-priority",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "PATCH",
+        "path": "/api/taskitems/{{$.params.taskId}}",
+        "body": { "Priority": "$.context.triage.suggestedPriority" },
+        "idempotencyKey": "$.params.taskId + '-apply-priority'"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-publish-event" },
+        { "on": ["Error"], "nextNodeId": "n-faulted" }
+      ]
+    },
+    "n-publish-event": {
+      "id": "n-publish-event",
+      "type": "message",
+      "label": "Publish triage-applied event",
+      "intent": "Emit an integration event so downstream subscribers learn about the triage decision.",
+      "config": {
+        "clientRef": "integration-events",
+        "subject": "taskitem.triaged",
+        "body": { "taskId": "$.params.taskId", "priority": "$.context.triage.suggestedPriority" },
+        "idempotencyKey": "$.params.taskId + '-triage-event'"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-output-ok" }
+      ]
+    },
+    "n-compensate-reject": {
+      "id": "n-compensate-reject",
+      "type": "integration",
+      "label": "Compensation: post rejection comment",
+      "intent": "On quorum rejection, post a comment explaining why the priority was not elevated.",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "POST",
+        "path": "/api/taskitems/{{$.params.taskId}}/comments",
+        "body": { "Text": "Critical-priority elevation rejected by quorum reviewers." },
+        "idempotencyKey": "$.params.taskId + '-reject-comment'"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-output-rejected" },
+        { "on": ["Error"], "nextNodeId": "n-faulted" }
+      ]
+    },
+    "n-revert-priority": {
+      "id": "n-revert-priority",
+      "type": "integration",
+      "label": "Compensation: revert priority",
+      "intent": "Compensation step invoked by the saga walker when downstream nodes fault after apply-priority succeeded.",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "PATCH",
+        "path": "/api/taskitems/{{$.params.taskId}}",
+        "body": { "Priority": "Medium" },
+        "idempotencyKey": "$.params.taskId + '-revert-priority'"
+      }
+    },
+    "n-output-ok": {
+      "id": "n-output-ok",
+      "type": "output",
+      "label": "Triage applied",
+      "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "applied", "priority": "$.context.triage.suggestedPriority" } }
+    },
+    "n-output-rejected": {
+      "id": "n-output-rejected",
+      "type": "output",
+      "label": "Triage rejected",
+      "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "rejected" } }
+    },
+    "n-faulted": {
+      "id": "n-faulted",
+      "type": "output",
+      "label": "Faulted",
+      "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "faulted" } }
+    }
+  }
+}

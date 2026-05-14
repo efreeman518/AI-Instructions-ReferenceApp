@@ -43,6 +43,13 @@ public static partial class RegisterServices
         services.AddScoped(sp => sp.GetRequiredService<DbContextScopedFactory<TaskFlowDbContextQuery, string, Guid?>>()
             .CreateDbContext());
 
+        // FlowEngine DbContext — same SQL Server connection, separate schema + migration history.
+        // Inherits FlowEngineOutboxDbContext to enable atomic state+outbox saves.
+        services.AddPooledDbContextFactory<TaskFlowFlowEngineDbContext>((sp, options) =>
+        {
+            ConfigureFlowEngineSqlOptions(options, dbConnectionStringTrxn, maxRetryCount, maxRetryDelaySeconds);
+        });
+
         services.AddScoped<ICategoryRepositoryTrxn, CategoryRepositoryTrxn>();
         services.AddScoped<ICategoryRepositoryQuery, CategoryRepositoryQuery>();
         services.AddScoped<ITagRepositoryTrxn, TagRepositoryTrxn>();
@@ -85,6 +92,44 @@ public static partial class RegisterServices
                 sqlOptions.UseCompatibilityLevel(160);
                 sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+            });
+        }
+    }
+
+    // FlowEngine variant: isolates migration history to a dedicated table so it does not
+    // collide with the application's __EFMigrationsHistory.
+    private static void ConfigureFlowEngineSqlOptions(
+        DbContextOptionsBuilder options,
+        string connectionString,
+        int maxRetryCount,
+        int maxRetryDelaySeconds)
+    {
+        if (string.IsNullOrEmpty(connectionString)) return;
+
+        var maxRetryDelay = TimeSpan.FromSeconds(maxRetryDelaySeconds);
+
+        if (connectionString.Contains("database.windows.net"))
+        {
+            options.UseAzureSql(connectionString, sqlOptions =>
+            {
+                sqlOptions.UseCompatibilityLevel(170);
+                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.MigrationsHistoryTable(
+                    TaskFlowFlowEngineDbContext.MigrationHistoryTable,
+                    TaskFlowFlowEngineDbContext.SchemaName);
+            });
+        }
+        else
+        {
+            options.UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.UseCompatibilityLevel(160);
+                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.MigrationsHistoryTable(
+                    TaskFlowFlowEngineDbContext.MigrationHistoryTable,
+                    TaskFlowFlowEngineDbContext.SchemaName);
             });
         }
     }

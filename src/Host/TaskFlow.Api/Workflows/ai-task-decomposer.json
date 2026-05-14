@@ -1,0 +1,110 @@
+{
+  "id": "ai-task-decomposer",
+  "version": "1.0.0",
+  "label": "AI Task Decomposer",
+  "status": "Active",
+  "intent": "Use the agent to decompose a long TaskItem into subtasks; optionally human-sanity-check; loop-create each child via the public API.",
+  "entryNodeId": "n-propose-subtasks",
+  "paramsSchema": "{\"required\":[\"tenantId\",\"taskId\",\"description\"],\"properties\":{\"tenantId\":{\"type\":\"string\"},\"taskId\":{\"type\":\"string\"},\"description\":{\"type\":\"string\",\"minLength\":1},\"requireApproval\":{\"type\":\"boolean\"}}}",
+  "nodes": {
+    "n-propose-subtasks": {
+      "id": "n-propose-subtasks",
+      "type": "agent",
+      "label": "Agent proposes subtasks",
+      "intent": "Ask the agent to break the task description into a list of actionable subtasks.",
+      "config": {
+        "clientRef": "ai-agent",
+        "promptTemplate": "Decompose this task into actionable subtasks. Description: {{$.params.description}}. Output JSON: {\"subtasks\":[{\"title\":\"...\",\"estimateHours\":<number>}]}",
+        "promptVersion": "decompose-v1",
+        "outputSchema": "{\"type\":\"object\",\"required\":[\"subtasks\"],\"properties\":{\"subtasks\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"object\",\"required\":[\"title\"],\"properties\":{\"title\":{\"type\":\"string\",\"minLength\":1},\"estimateHours\":{\"type\":\"number\",\"minimum\":0}}}}}}",
+        "idempotencyKey": "$.params.taskId + '-decompose'"
+      },
+      "storeAs": "proposal",
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-approval-gate" },
+        { "on": ["Error"], "nextNodeId": "n-output-failed" }
+      ]
+    },
+    "n-approval-gate": {
+      "id": "n-approval-gate",
+      "type": "decision",
+      "label": "Approval required?",
+      "intent": "Skip human review unless params.requireApproval == true.",
+      "config": { "target": "$.params.requireApproval" },
+      "edges": [
+        { "label": "Approval required", "on": ["Match"], "when": "(bool)(Params[\"requireApproval\"] ?? false)", "nextNodeId": "n-human-review" },
+        { "label": "Auto-accept",        "on": ["Match"], "nextNodeId": "n-create-subtasks" }
+      ]
+    },
+    "n-human-review": {
+      "id": "n-human-review",
+      "type": "human",
+      "label": "Sanity-check proposed subtasks",
+      "intent": "Single-approver review of the agent's proposal before any subtasks are created.",
+      "config": {
+        "title": "Review proposed subtasks for {{$.params.taskId}}",
+        "assignedTo": "role:task-owner",
+        "channel": "Internal",
+        "quorum": 1,
+        "formSchema": "{\"properties\":{\"decision\":{\"type\":\"string\",\"enum\":[\"accept\",\"reject\"]}},\"required\":[\"decision\"]}",
+        "visibleContext": ["$.context.proposal"],
+        "dueIn": "P1D"
+      },
+      "edges": [
+        { "label": "Accept", "on": ["Match"], "when": "Context[\"_humanTaskResponse\"][\"decision\"].ToString() == \"accept\"", "nextNodeId": "n-create-subtasks" },
+        { "label": "Reject", "on": ["Match"], "when": "Context[\"_humanTaskResponse\"][\"decision\"].ToString() == \"reject\"", "nextNodeId": "n-output-rejected" }
+      ]
+    },
+    "n-create-subtasks": {
+      "id": "n-create-subtasks",
+      "type": "loop",
+      "label": "Create each subtask",
+      "intent": "Iterate the proposed subtask list and create a child TaskItem per entry via the public API.",
+      "config": {
+        "items": "$.context.proposal.subtasks",
+        "mode": "sequential",
+        "bodyEntryNodeId": "n-loop-create-one"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-publish-decomposed" },
+        { "on": ["Error"], "nextNodeId": "n-output-failed" }
+      ]
+    },
+    "n-loop-create-one": {
+      "id": "n-loop-create-one",
+      "type": "integration",
+      "label": "POST /api/taskitems",
+      "intent": "Create a single child TaskItem for the current loop iteration.",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "POST",
+        "path": "/api/taskitems",
+        "body": {
+          "ParentTaskItemId": "$.params.taskId",
+          "TenantId": "$.params.tenantId",
+          "Title": "$.context._loopItem.title",
+          "EstimatedHours": "$.context._loopItem.estimateHours"
+        },
+        "idempotencyKey": "$.params.taskId + '-subtask-' + $.context._loopIndex"
+      }
+    },
+    "n-publish-decomposed": {
+      "id": "n-publish-decomposed",
+      "type": "message",
+      "label": "Publish decomposed event",
+      "intent": "Emit an integration event so downstream subscribers can react to the decomposition.",
+      "config": {
+        "clientRef": "integration-events",
+        "subject": "taskitem.decomposed",
+        "body": { "taskId": "$.params.taskId", "subtaskCount": "$.context.proposal.subtasks.Count" },
+        "idempotencyKey": "$.params.taskId + '-decomposed-event'"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-output-ok" }
+      ]
+    },
+    "n-output-ok":       { "id": "n-output-ok",       "type": "output", "label": "Decomposed",  "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "decomposed" } } },
+    "n-output-rejected": { "id": "n-output-rejected", "type": "output", "label": "Rejected",    "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "rejected" } } },
+    "n-output-failed":   { "id": "n-output-failed",   "type": "output", "label": "Failed",      "config": { "outputMapping": { "taskId": "$.params.taskId", "decision": "failed" } } }
+  }
+}

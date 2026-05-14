@@ -1,0 +1,160 @@
+{
+  "id": "compliance-check",
+  "version": "1.0.0",
+  "label": "Recurring Compliance Check",
+  "status": "Active",
+  "intent": "Find tasks tagged 'compliance' that are due within 7 days; for each, fetch evidence, summarize via agent, route to human review when expired.",
+  "entryNodeId": "n-query-due",
+  "paramsSchema": "{\"required\":[\"tenantId\"],\"properties\":{\"tenantId\":{\"type\":\"string\"},\"windowDays\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":90}}}",
+  "nodes": {
+    "n-query-due": {
+      "id": "n-query-due",
+      "type": "query",
+      "label": "Query compliance tasks due soon",
+      "intent": "FilterBuilder query against TaskItem for tag=compliance AND DueDate < now+windowDays AND Status != Completed.",
+      "config": {
+        "clientRef": "taskflow-query",
+        "set": "TaskItem",
+        "filterSet": {
+          "operator": "AND",
+          "filters": [
+            { "propertyPath": "Tags", "operation": "contains", "testValue": "compliance" },
+            { "propertyPath": "Status", "operation": "ne", "testValue": "Completed" }
+          ]
+        },
+        "take": 50
+      },
+      "storeAs": "dueTasks",
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-loop-each" },
+        { "on": ["Error"], "nextNodeId": "n-output-failed" }
+      ]
+    },
+    "n-loop-each": {
+      "id": "n-loop-each",
+      "type": "loop",
+      "label": "Process each due task",
+      "intent": "Parallel fan-out over the query results with bounded concurrency.",
+      "config": {
+        "items": "$.context.dueTasks",
+        "mode": "parallel",
+        "maxConcurrency": 5,
+        "bodyEntryNodeId": "n-fetch-evidence"
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-summary-event" },
+        { "on": ["Error"], "nextNodeId": "n-output-failed" }
+      ]
+    },
+    "n-fetch-evidence": {
+      "id": "n-fetch-evidence",
+      "type": "document",
+      "label": "Fetch evidence blob",
+      "intent": "Read the most recent attachment for the current task from blob storage.",
+      "config": {
+        "clientRef": "blob-docs",
+        "operation": "read",
+        "key": "compliance/{{$.context._loopItem.Id}}/latest.pdf"
+      },
+      "storeAs": "evidence",
+      "edges": [
+        { "on": ["Match"],   "nextNodeId": "n-extract" },
+        { "on": ["NoMatch"], "nextNodeId": "n-decide" },
+        { "on": ["Error"],   "nextNodeId": "n-decide" }
+      ]
+    },
+    "n-extract": {
+      "id": "n-extract",
+      "type": "agent",
+      "label": "Agent extracts expiration",
+      "intent": "Ask the agent to extract an expiration date and produce a compact classification.",
+      "config": {
+        "clientRef": "ai-agent",
+        "promptTemplate": "Read the evidence for task {{$.context._loopItem.Title}}. Return JSON: {\"status\":\"expired|expiringSoon|ok\",\"summary\":\"<text>\"}. Evidence excerpt: {{$.context.evidence.summary}}",
+        "promptVersion": "compliance-extract-v1",
+        "outputSchema": "{\"type\":\"object\",\"required\":[\"status\"],\"properties\":{\"status\":{\"type\":\"string\",\"enum\":[\"expired\",\"expiringSoon\",\"ok\"]},\"summary\":{\"type\":\"string\"}}}",
+        "idempotencyKey": "$.context._loopItem.Id + '-compliance-extract'"
+      },
+      "storeAs": "complianceFinding",
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-decide" },
+        { "on": ["Error"], "nextNodeId": "n-decide" }
+      ]
+    },
+    "n-decide": {
+      "id": "n-decide",
+      "type": "decision",
+      "label": "Route by compliance status",
+      "intent": "Expired → escalate to human review. Expiring soon → reminder comment. OK → no action.",
+      "config": { "target": "$.context.complianceFinding.status" },
+      "edges": [
+        { "label": "Expired",       "on": ["Match"], "when": "Context.ContainsKey(\"complianceFinding\") && Context[\"complianceFinding\"][\"status\"].ToString() == \"expired\"",       "nextNodeId": "n-escalate" },
+        { "label": "ExpiringSoon",  "on": ["Match"], "when": "Context.ContainsKey(\"complianceFinding\") && Context[\"complianceFinding\"][\"status\"].ToString() == \"expiringSoon\"", "nextNodeId": "n-remind" },
+        { "label": "Default",       "on": ["Match"], "nextNodeId": "n-ok" }
+      ]
+    },
+    "n-escalate": {
+      "id": "n-escalate",
+      "type": "human",
+      "label": "Human review of expired evidence",
+      "intent": "Compliance officer reviews and signs off; 48h SLA with escalation.",
+      "config": {
+        "title": "Expired compliance evidence: {{$.context._loopItem.Title}}",
+        "assignedTo": "role:compliance-officer",
+        "channel": "Internal",
+        "quorum": 1,
+        "formSchema": "{\"properties\":{\"decision\":{\"type\":\"string\",\"enum\":[\"resolved\",\"escalate\"]},\"notes\":{\"type\":\"string\"}},\"required\":[\"decision\"]}",
+        "visibleContext": ["$.context._loopItem", "$.context.complianceFinding"],
+        "dueIn": "P2D",
+        "escalation": { "after": "P1D", "reassignTo": "role:compliance-lead" }
+      },
+      "edges": [
+        { "on": ["Match"], "nextNodeId": "n-mark-resolved" }
+      ]
+    },
+    "n-mark-resolved": {
+      "id": "n-mark-resolved",
+      "type": "integration",
+      "label": "Mark task resolved",
+      "intent": "Post a follow-up comment and tag the task as compliance-reviewed.",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "POST",
+        "path": "/api/taskitems/{{$.context._loopItem.Id}}/comments",
+        "body": { "Text": "Compliance review complete: {{$.context._humanTaskResponse.notes}}" },
+        "idempotencyKey": "$.context._loopItem.Id + '-compliance-resolved'"
+      },
+      "edges": [ { "on": ["Match"], "nextNodeId": "n-ok" }, { "on": ["Error"], "nextNodeId": "n-ok" } ]
+    },
+    "n-remind": {
+      "id": "n-remind",
+      "type": "integration",
+      "label": "Post reminder comment",
+      "intent": "For tasks expiring soon, attach a reminder comment via the public API.",
+      "config": {
+        "clientRef": "taskflow-api",
+        "method": "POST",
+        "path": "/api/taskitems/{{$.context._loopItem.Id}}/comments",
+        "body": { "Text": "Compliance evidence is expiring soon — please refresh." },
+        "idempotencyKey": "$.context._loopItem.Id + '-compliance-reminder'"
+      },
+      "edges": [ { "on": ["Match"], "nextNodeId": "n-ok" }, { "on": ["Error"], "nextNodeId": "n-ok" } ]
+    },
+    "n-ok": { "id": "n-ok", "type": "checkpoint", "label": "Loop iteration done" },
+    "n-summary-event": {
+      "id": "n-summary-event",
+      "type": "message",
+      "label": "Publish compliance summary",
+      "intent": "Emit an aggregate summary event after the parallel loop finishes.",
+      "config": {
+        "clientRef": "integration-events",
+        "subject": "compliance.swept",
+        "body": { "tenantId": "$.params.tenantId", "scannedCount": "$.context.dueTasks.Count" },
+        "idempotencyKey": "$.engine.instanceId + '-compliance-summary'"
+      },
+      "edges": [ { "on": ["Match"], "nextNodeId": "n-output-ok" } ]
+    },
+    "n-output-ok":     { "id": "n-output-ok",     "type": "output", "label": "Done",   "config": { "outputMapping": { "tenantId": "$.params.tenantId", "decision": "swept" } } },
+    "n-output-failed": { "id": "n-output-failed", "type": "output", "label": "Failed", "config": { "outputMapping": { "tenantId": "$.params.tenantId", "decision": "failed" } } }
+  }
+}

@@ -19,6 +19,17 @@
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Azure.Storage.Blobs" />
     <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="EF.FlowEngine" />
+    <PackageReference Include="EF.FlowEngine.StateStore.Sql" />
+    <PackageReference Include="EF.FlowEngine.Locks.Sql" />
+    <PackageReference Include="EF.FlowEngine.WorkflowRegistry.Sql" />
+    <PackageReference Include="EF.FlowEngine.HumanTaskStore.Sql" />
+    <PackageReference Include="EF.FlowEngine.Outbox.Sql" />
+    <PackageReference Include="EF.FlowEngine.Clients.Http" />
+    <PackageReference Include="EF.FlowEngine.Clients.ServiceBus" />
+    <PackageReference Include="EF.FlowEngine.Clients.OpenAI" />
+    <PackageReference Include="EF.FlowEngine.AdminApi" />
+    <PackageReference Include="Azure.AI.OpenAI" />
   </ItemGroup>
 
   <ItemGroup>

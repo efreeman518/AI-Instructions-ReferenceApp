@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using EF.FlowEngine.Dashboard;
 using MudBlazor;
 using MudBlazor.Services;
 using Refit;
@@ -42,6 +43,12 @@ builder.Services
     })
     // No auth handler yet — gateway dev mode accepts unauthenticated requests.
     .AddStandardResilienceHandler();
+
+// FlowEngine Dashboard — talks to TaskFlow.Api's MapFlowEngineAdmin via the gateway.
+// Pages contributed by the package are picked up via Routes.razor's AdditionalAssemblies.
+var flowEngineAdminBaseUrl = builder.Configuration["FlowEngine:AdminApiBaseUrl"]
+    ?? new Uri(new Uri(gatewayBaseUrl), "/api/flowengine/").ToString();
+builder.Services.AddFlowEngineDashboard(adminApiBaseUrl: flowEngineAdminBaseUrl);
 
 var app = builder.Build();
 

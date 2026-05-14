@@ -35,3 +35,21 @@ public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskF
         return new TaskFlowDbContextQuery(optionsBuilder.Options) { AuditId = "DesignTimeAuditId", TenantId = Guid.NewGuid() };
     }
 }
+
+[ExcludeFromCodeCoverage]
+public class DesignTimeDbContextFactoryFlowEngine : IDesignTimeDbContextFactory<TaskFlowFlowEngineDbContext>
+{
+    public TaskFlowFlowEngineDbContext CreateDbContext(string[] args)
+    {
+        string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
+        if (string.IsNullOrEmpty(connString))
+            throw new InvalidOperationException("The connection string was not set in the 'EFCORETOOLSDB' environment variable.");
+
+        var optionsBuilder = new DbContextOptionsBuilder<TaskFlowFlowEngineDbContext>();
+        optionsBuilder.UseSqlServer(connString, sql =>
+            sql.MigrationsHistoryTable(
+                TaskFlowFlowEngineDbContext.MigrationHistoryTable,
+                TaskFlowFlowEngineDbContext.SchemaName));
+        return new TaskFlowFlowEngineDbContext(optionsBuilder.Options);
+    }
+}

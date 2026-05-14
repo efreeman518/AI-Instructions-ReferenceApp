@@ -36,6 +36,7 @@
     <Project Path="Test/Test.Support/Test.Support.csproj" />
     <Project Path="Test/Test.Unit/Test.Unit.csproj" />
     <Project Path="Test/Test.Integration/Test.Integration.csproj" />
+    <Project Path="Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj" />
     <Project Path="Test/Test.Endpoints/Test.Endpoints.csproj" />
     <Project Path="Test/Test.Architecture/Test.Architecture.csproj" />
     <Project Path="Test/Test.Load/Test.Load.csproj" />

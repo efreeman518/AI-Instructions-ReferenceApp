@@ -41,6 +41,8 @@ public static partial class RegisterServices
     {
         AddApplicationServices(services);
         services.AddAiServices(config);
+        // FlowEngine registered after AI so the agent client can resolve AzureOpenAIClient.
+        AddFlowEngineServices(services, config);
         return services;
     }
 
@@ -54,6 +56,7 @@ public static partial class RegisterServices
     private static void AddStartupTasks(IServiceCollection services)
     {
         services.AddScoped<IStartupTask, ApplyEFMigrationsStartup>();
+        services.AddScoped<IStartupTask, ApplyFlowEngineMigrationsStartup>();
         services.AddScoped<IStartupTask, WarmupDependencies>();
     }
 

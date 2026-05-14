@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using TaskFlow.Api.Auth;
 using TaskFlow.Api.Middleware;
+using TaskFlow.Api.Workflows;
+using TaskFlow.Bootstrapper;
 
 namespace TaskFlow.Api;
 
@@ -18,6 +20,9 @@ public static class RegisterApiServices
         AddExceptionHandling(services);
         AddRateLimiting(services, config);
         AddOpenApi(services, config);
+
+        // Seed workflow JSON definitions into the FlowEngine registry after migrations apply.
+        services.AddScoped<IStartupTask, WorkflowSeedStartupTask>();
 
         return services;
     }

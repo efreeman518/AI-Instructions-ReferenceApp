@@ -1,3 +1,4 @@
+using EF.FlowEngine.AdminApi;
 using Scalar.AspNetCore;
 using TaskFlow.Api.Endpoints;
 using TaskFlow.Api.Middleware;
@@ -53,6 +54,10 @@ public static class WebApplicationBuilderExtensions
 
         // API endpoint groups
         SetupApiEndpoints(app);
+
+        // FlowEngine admin API — instance/registry/circuit-breaker/human-task operations.
+        // Fronted by YARP gateway; consumed by EF.FlowEngine.Dashboard hosted in TaskFlow.Blazor.
+        app.MapFlowEngineAdmin(prefix: "/api/flowengine");
 
         return app;
     }

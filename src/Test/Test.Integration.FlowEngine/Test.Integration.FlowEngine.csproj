@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="EF.FlowEngine" />
+    <PackageReference Include="EF.FlowEngine.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Host\TaskFlow.Api\Workflows\*.json" Link="Workflows\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
