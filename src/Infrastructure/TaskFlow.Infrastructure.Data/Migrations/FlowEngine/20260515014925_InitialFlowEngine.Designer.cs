@@ -12,7 +12,7 @@ using TaskFlow.Infrastructure.Data;
 namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
 {
     [DbContext(typeof(TaskFlowFlowEngineDbContext))]
-    [Migration("20260513212546_InitialFlowEngine")]
+    [Migration("20260515014925_InitialFlowEngine")]
     partial class InitialFlowEngine
     {
         /// <inheritdoc />
@@ -25,6 +25,32 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("EF.FlowEngine.CircuitBreaker.Sql.FlowEngineCircuitBreakerRow", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("FailureCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FailureTimestampsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("OpenUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("OpenUntil");
+
+                    b.ToTable("CircuitBreakers", "flowengine");
+                });
 
             modelBuilder.Entity("EF.FlowEngine.Outbox.Sql.FlowEngineOutboxRow", b =>
                 {

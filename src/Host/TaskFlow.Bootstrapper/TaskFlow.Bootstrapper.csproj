@@ -25,6 +25,7 @@
     <PackageReference Include="EF.FlowEngine.WorkflowRegistry.Sql" />
     <PackageReference Include="EF.FlowEngine.HumanTaskStore.Sql" />
     <PackageReference Include="EF.FlowEngine.Outbox.Sql" />
+    <PackageReference Include="EF.FlowEngine.CircuitBreaker.Sql" />
     <PackageReference Include="EF.FlowEngine.Clients.Http" />
     <PackageReference Include="EF.FlowEngine.Clients.ServiceBus" />
     <PackageReference Include="EF.FlowEngine.Clients.OpenAI" />

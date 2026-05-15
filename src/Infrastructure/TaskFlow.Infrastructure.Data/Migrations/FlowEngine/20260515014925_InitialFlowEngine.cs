@@ -30,6 +30,22 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
                 });
 
             migrationBuilder.CreateTable(
+                name: "CircuitBreakers",
+                schema: "flowengine",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    OpenUntil = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    FailureCount = table.Column<int>(type: "int", nullable: false),
+                    FailureTimestampsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CircuitBreakers", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Executions",
                 schema: "flowengine",
                 columns: table => new
@@ -115,6 +131,12 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
                 column: "ParentInstanceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CircuitBreakers_OpenUntil",
+                schema: "flowengine",
+                table: "CircuitBreakers",
+                column: "OpenUntil");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Executions_EventName_CorrelationKey",
                 schema: "flowengine",
                 table: "Executions",
@@ -174,6 +196,10 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
         {
             migrationBuilder.DropTable(
                 name: "ChildSignals",
+                schema: "flowengine");
+
+            migrationBuilder.DropTable(
+                name: "CircuitBreakers",
                 schema: "flowengine");
 
             migrationBuilder.DropTable(

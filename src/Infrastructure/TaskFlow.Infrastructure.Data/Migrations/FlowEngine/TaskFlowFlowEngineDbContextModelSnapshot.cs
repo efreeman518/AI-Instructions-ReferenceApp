@@ -23,6 +23,32 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("EF.FlowEngine.CircuitBreaker.Sql.FlowEngineCircuitBreakerRow", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("FailureCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FailureTimestampsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("OpenUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("OpenUntil");
+
+                    b.ToTable("CircuitBreakers", "flowengine");
+                });
+
             modelBuilder.Entity("EF.FlowEngine.Outbox.Sql.FlowEngineOutboxRow", b =>
                 {
                     b.Property<Guid>("EntryId")

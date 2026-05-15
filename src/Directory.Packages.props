@@ -30,20 +30,20 @@
     <PackageVersion Include="Testcontainers.MsSql" Version="4.11.0" />
   </ItemGroup>
   <ItemGroup Label="EF.Packages.Enterprise (Private Feed)">
-    <PackageVersion Include="EF.FilterBuilder" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Clients.OpenAI" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.98" />
-    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.98" />
+    <PackageVersion Include="EF.FilterBuilder" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Clients.OpenAI" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.104" />
+    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.104" />
   </ItemGroup>
   <ItemGroup Label="Microsoft Entity Framework Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
@@ -142,7 +142,7 @@
     <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.2" />
   </ItemGroup>
   <ItemGroup Label="AI Services">
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.5.0-beta.1" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Search.Documents" Version="12.0.0" />
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.4.0" />

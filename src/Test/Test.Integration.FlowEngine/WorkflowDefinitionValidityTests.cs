@@ -1,6 +1,5 @@
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using EF.FlowEngine.Definition;
 using EF.FlowEngine.Impl;
@@ -27,21 +26,16 @@ public class WorkflowDefinitionValidityTests
         ["compliance-check.json",    ComplianceId,  "1.0.0"],
     ];
 
-    // Must match WorkflowSeedStartupTask.JsonOpts — both need JsonStringEnumConverter so that
-    // `"status": "Active"` (and other DefinitionStatus / DecisionOutcome values) deserialize.
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() },
-    };
+    // Canonical options for FlowEngine workflow JSON — camelCase, string-named enums with
+    // integer fallback. Both the seeding service and WorkflowDefinitionBuilder.FromJson use
+    // this same instance; reusing it here keeps the test serializer in lock-step with runtime.
+    private static readonly JsonSerializerOptions JsonOpts = WorkflowDefinitionJsonOptions.Default;
 
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
     public void Each_Workflow_Json_Deserializes(string fileName, string expectedId, string expectedVersion)
     {
-        // Mirrors WorkflowSeedStartupTask: JsonSerializer.Deserialize, not WorkflowDefinitionBuilder.FromJson
-        // (the latter returned an empty definition on every input — separately logged in the gap doc).
         var def = JsonSerializer.Deserialize<WorkflowDefinition>(ReadWorkflowFile(fileName), JsonOpts)!;
 
         Assert.AreEqual(expectedId, def.Id, "Workflow Id mismatch");
@@ -72,10 +66,9 @@ public class WorkflowDefinitionValidityTests
         var registry = new InMemoryWorkflowRegistry();
         await registry.SaveAsync(def);
 
-        // SaveAsync preserves the status on the deserialized definition. Our JSON ships with
-        // status=Active, so the explicit transition is a no-op; mirror WorkflowSeedStartupTask's
-        // idempotent pattern (swallow Active→Active) so the test is robust if we ever flip the
-        // JSON to ship as Draft.
+        // Our JSON ships with status=Active, so the explicit transition is a no-op; mirror
+        // the seeding service's idempotent pattern (swallow Active→Active) so the test is
+        // robust if we ever flip the JSON to ship as Draft.
         try
         {
             await registry.TransitionStatusAsync(id, version, DefinitionStatus.Active);
@@ -89,16 +82,17 @@ public class WorkflowDefinitionValidityTests
     }
 
     [TestMethod]
+    [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
-    public void WorkflowDefinitionBuilder_FromJson_Documented_Bug()
+    public void WorkflowDefinitionBuilder_FromJson_Round_Trips(string fileName, string expectedId, string expectedVersion)
     {
-        // Documents that WorkflowDefinitionBuilder.FromJson(json).Build() does NOT populate
-        // a definition from JSON — it returns a blank shell. The README implies it does.
-        // See FLOWENGINE-INTEGRATION-GAP.md #21. Use JsonSerializer.Deserialize<WorkflowDefinition>.
-        var def = WorkflowDefinitionBuilder.FromJson(ReadWorkflowFile("ai-task-triage.json")).Build();
+        // v1.0.104: WorkflowDefinitionBuilder.FromJson now uses WorkflowDefinitionJsonOptions.Default
+        // and fails fast on shape mismatch. The blank-shell bug previously documented here is fixed.
+        var def = WorkflowDefinitionBuilder.FromJson(ReadWorkflowFile(fileName)).Build();
 
-        Assert.AreEqual(string.Empty, def.Id, "If this passes, FromJson now deserializes — remove this test and switch other tests back to the builder.");
-        Assert.AreEqual(0, def.Nodes.Count, "If this passes, FromJson now deserializes — remove this test.");
+        Assert.AreEqual(expectedId, def.Id, "Builder.FromJson should now hydrate Id");
+        Assert.AreEqual(expectedVersion, def.Version, "Builder.FromJson should now hydrate Version");
+        Assert.IsTrue(def.Nodes.Count > 0, "Builder.FromJson should now hydrate Nodes");
     }
 
     [TestMethod]

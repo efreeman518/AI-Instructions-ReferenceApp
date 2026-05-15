@@ -4,8 +4,6 @@ using EF.FlowEngine.AdminApi;
 using EF.FlowEngine.Clients.Http;
 using EF.FlowEngine.Clients.OpenAI;
 using EF.FlowEngine.Clients.ServiceBus;
-using EF.FlowEngine.Executors;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Infrastructure.AI;
@@ -15,8 +13,9 @@ namespace TaskFlow.Bootstrapper;
 
 public static partial class RegisterServices
 {
-    // FlowEngine wiring — engine runtime + node executors + connector clients.
-    // Engine state lives in TaskFlowFlowEngineDbContext (separate schema, shared SQL connection).
+    // FlowEngine v1.0.104 wiring — engine runtime + connector clients + JSON workflow seeding.
+    // The 19 built-in node executors are auto-registered by AddFlowEngine() in this version.
+    // Engine state + outbox live in TaskFlowFlowEngineDbContext (separate schema, shared SQL connection).
     // The Dashboard + Designer live in TaskFlow.Blazor and call into MapFlowEngineAdmin via the gateway.
     private static void AddFlowEngineServices(IServiceCollection services, IConfiguration config)
     {
@@ -31,35 +30,13 @@ public static partial class RegisterServices
             .UseLockProviderSql<TaskFlowFlowEngineDbContext>()
             .UseWorkflowRegistrySql<TaskFlowFlowEngineDbContext>()
             .UseHumanTaskStoreSql<TaskFlowFlowEngineDbContext>()
-            .UseOutboxSql<TaskFlowFlowEngineDbContext>();
+            .UseOutboxSql<TaskFlowFlowEngineDbContext>()
+            .UseCircuitBreakerSql<TaskFlowFlowEngineDbContext>();
 
-        AddBuiltInNodeExecutors(fe);
         AddTaskFlowConnectorClients(fe, services, config);
+        AddWorkflowJsonSeeding(fe);
 
         services.AddFlowEngineAdminPolicies();
-    }
-
-    private static void AddBuiltInNodeExecutors(FlowEngineBuilder fe)
-    {
-        fe.AddNodeExecutor<FilterNodeExecutor>()
-          .AddNodeExecutor<DecisionNodeExecutor>()
-          .AddNodeExecutor<StoreNodeExecutor>()
-          .AddNodeExecutor<ComputeNodeExecutor>()
-          .AddNodeExecutor<TransformNodeExecutor>()
-          .AddNodeExecutor<IntegrationNodeExecutor>()
-          .AddNodeExecutor<FetchNodeExecutor>()
-          .AddNodeExecutor<QueryNodeExecutor>()
-          .AddNodeExecutor<AgentNodeExecutor>()
-          .AddNodeExecutor<MessageNodeExecutor>()
-          .AddNodeExecutor<LoopNodeExecutor>()
-          .AddNodeExecutor<WorkflowNodeExecutor>()
-          .AddNodeExecutor<ParallelNodeExecutor>()
-          .AddNodeExecutor<HumanNodeExecutor>()
-          .AddNodeExecutor<WaitNodeExecutor>()
-          .AddNodeExecutor<TimerNodeExecutor>()
-          .AddNodeExecutor<OutputNodeExecutor>()
-          .AddNodeExecutor<CheckpointNodeExecutor>()
-          .AddNodeExecutor<DocumentNodeExecutor>();
     }
 
     private static void AddTaskFlowConnectorClients(
@@ -85,19 +62,33 @@ public static partial class RegisterServices
             fe.AddServiceBusClient("integration-events", sbConnStr, topic);
         }
 
-        // Agent client — only when Azure OpenAI is configured (matches existing AI service gating).
+        // Azure OpenAI agent client — v1.0.104 introduces AddAzureOpenAIAgentClient,
+        // which takes the AzureOpenAIClient factory + deployment/model names directly
+        // instead of an Microsoft.Extensions.AI.IChatClient adapter.
         var foundryEndpoint = config[$"{TaskFlowAiSettings.ConfigSectionName}:FoundryEndpoint"];
         var chatDeployment = config[$"{TaskFlowAiSettings.ConfigSectionName}:ChatDeployment"] ?? "gpt-4o";
         if (!string.IsNullOrWhiteSpace(foundryEndpoint))
         {
-            fe.AddOpenAIAgentClient(
+            fe.AddAzureOpenAIAgentClient(
                 clientRef: "ai-agent",
-                chatClientFactory: sp =>
-                {
-                    var azureClient = sp.GetRequiredService<AzureOpenAIClient>();
-                    return azureClient.GetChatClient(chatDeployment).AsIChatClient();
-                },
+                azureClientFactory: sp => sp.GetRequiredService<AzureOpenAIClient>(),
+                deploymentName: chatDeployment,
                 modelName: chatDeployment);
         }
+    }
+
+    // JSON workflow definitions live in TaskFlow.Api/Workflows/. The seeding service is a
+    // hosted service that runs once at startup, skipping the directory if it does not exist
+    // (e.g. when this assembly is loaded by TaskFlow.Functions or TaskFlow.Scheduler).
+    // Replaces the bespoke WorkflowSeedStartupTask in pre-1.0.104 versions.
+    private static void AddWorkflowJsonSeeding(FlowEngineBuilder fe)
+    {
+        fe.AddWorkflowJsonSeeding(opts =>
+        {
+            opts.Directory = "Workflows";
+            opts.SearchPattern = "*.json";
+            opts.ActivateOnSeed = true;
+            opts.OverwriteExistingVersion = false;
+        });
     }
 }
