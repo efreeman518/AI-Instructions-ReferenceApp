@@ -1,7 +1,7 @@
 # TaskFlow — Technical Design Document
 
 > **Audience**: Developers onboarding to the project  
-> **Last updated**: April 2026
+> **Last updated**: May 2026
 
 ---
 
@@ -20,6 +20,7 @@
 11. [Audit Strategy](#11-audit-strategy)
 12. [Testing Strategy](#12-testing-strategy)
 13. [UI Architecture](#13-ui-architecture)
+14. [Workflow Orchestration (FlowEngine)](#14-workflow-orchestration-flowengine)
 
 ---
 
@@ -42,6 +43,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 | **Read Model** | Azure Cosmos DB (denormalized projections) |
 | **File Storage** | Azure Blob Storage |
 | **AI** | Azure AI Search + Azure OpenAI (stubs) |
+| **Workflow Orchestration** | EF.FlowEngine 1.0.104 — SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
 | **Auth** | Microsoft Entra ID (External) / Scaffold mode |
 | **Observability** | OpenTelemetry (OTLP), Aspire Dashboard |
 | **Testing** | MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, BenchmarkDotNet, NBomber, Playwright |
@@ -222,10 +224,10 @@ block-beta
 |-------|----------|---------------|---------------|
 | **UI** | TaskFlow.Uno, TaskFlow.Blazor | User interfaces — Uno MVUX + Kiota; Blazor MudBlazor + Refit | Application.Models (shared contract) |
 | **Host** | Api, Gateway, Functions, Scheduler | HTTP pipeline, function triggers, config | Bootstrapper |
-| **Bootstrapper** | TaskFlow.Bootstrapper | DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests) | Application, Infrastructure |
-| **Application** | Services, Contracts, Models, Mappers, MessageHandlers | Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions | Domain |
+| **Bootstrapper** | TaskFlow.Bootstrapper | DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (`RegisterServices.FlowEngine.cs`) and FE-migration startup task. | Application, Infrastructure |
+| **Application** | Services, Contracts, Models, Mappers, MessageHandlers | Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions. `MessageHandlers` also defines `IWorkflowTrigger` for invoking FlowEngine workflows from domain events. | Domain |
 | **Domain** | Domain.Model, Domain.Shared | Entities, aggregates, value objects, enums, marker interfaces | Nothing (no outward deps) |
-| **Infrastructure** | Repositories, Data, Storage, AI | EF Core, Azure SDK implementations of Application.Contracts interfaces | Application.Contracts, Domain |
+| **Infrastructure** | Repositories, Data, Storage, AI | EF Core, Azure SDK implementations of Application.Contracts interfaces. `Data` also owns the FlowEngine state DbContext (`TaskFlowFlowEngineDbContext`) and its migrations. | Application.Contracts, Domain |
 
 ### Dependency Rules (Architecture-Test Enforced)
 
@@ -299,11 +301,11 @@ graph TB
 | Service | Project | Purpose | Key Dependencies |
 |---------|---------|---------|-----------------|
 | **API Gateway** | `TaskFlow.Gateway` | Auth boundary, YARP reverse proxy, claims injection | API |
-| **TaskFlow API** | `TaskFlow.Api` | Core business logic, CRUD, integration events | SQL, Redis, Cosmos, Service Bus, Blob |
+| **TaskFlow API** | `TaskFlow.Api` | Core business logic, CRUD, integration events, FlowEngine admin REST (`/api/flowengine/*`), workflow JSON seeding | SQL, Redis, Cosmos, Service Bus, Blob, FlowEngine state DB |
 | **Azure Functions** | `TaskFlow.Functions` | Async event processing, blob processing, timer cleanup | SQL, Cosmos, Service Bus, Blob |
 | **Task Scheduler** | `TaskFlow.Scheduler` | Cron jobs via TickerQ (overdue checks, recurring tasks, cleanup) | SQL, Redis, Service Bus |
 | **Uno WASM App** | `TaskFlow.Uno` | Cross-platform UI (browser + desktop + mobile) — Uno Platform MVUX | Gateway |
-| **Blazor App** | `TaskFlow.Blazor` | Interactive Server UI — MudBlazor, Refit client, full CRUD | Gateway, Application.Models, Domain.Shared |
+| **Blazor App** | `TaskFlow.Blazor` | Interactive Server UI — MudBlazor, Refit client, full CRUD; also hosts the FlowEngine Dashboard + Designer pages (routes contributed by `EF.FlowEngine.Dashboard` via `AdditionalAssemblies`) | Gateway → API + FlowEngine admin |
 
 ---
 
@@ -566,6 +568,7 @@ sequenceDiagram
 | `POST` | `/api/agent/chat` | AI agent chat endpoint |
 | `GET` | `/api/task-views` | Cosmos DB denormalized views (`?tenantId=...&pageSize=20`) |
 | `GET` | `/api/task-views/{id}` | Single task view (`?tenantId=...`) |
+| `*` | `/api/flowengine/*` | FlowEngine admin API — instances, registry, circuit-breakers, human tasks. Mounted via `MapFlowEngineAdmin(prefix: "/api/flowengine")`; see [§14 Workflow Orchestration](#14-workflow-orchestration-flowengine) |
 | `GET` | `/health` | Health check |
 | `GET` | `/alive` | Liveness probe |
 
@@ -705,10 +708,19 @@ graph TB
 **Start locally**:
 ```bash
 dotnet run --project src/Aspire/AppHost
-# Uno WASM runs separately (Uno.Sdk constraint)
+# Uno WASM and Blazor (with FlowEngine Dashboard) run separately
 ```
 
 **Service dependencies**: API waits for SQL + Redis. Gateway waits for API. Functions wait for SQL + Storage.
+
+**Startup tasks (Development / Aspire only)**: on first boot the API runs two `IStartupTask` implementations from `TaskFlow.Bootstrapper`:
+
+1. `ApplyEFMigrationsStartup` — applies app-schema migrations against `TaskFlowDbContextTrxn`.
+2. `ApplyFlowEngineMigrationsStartup` — applies the FlowEngine `flowengine` schema migrations against `TaskFlowFlowEngineDbContext` (separate migration history table `__EFMigrationsHistory_FlowEngine`).
+
+Both are gated on `ASPNETCORE_ENVIRONMENT=Development` or an Aspire signal and log-and-continue on failure so a missing local DB does not block boot. In production migrations run via the deployment pipeline, not at startup.
+
+After migrations apply, the FlowEngine workflow-seeding hosted service (`AddWorkflowJsonSeeding`) walks `TaskFlow.Api/Workflows/*.json` and upserts each definition into the registry (idempotent — skips existing versions). See [§14.3](#143-shipped-workflows) for the three workflows shipped.
 
 ### 9.2 Cloud Deployment (Azure)
 
@@ -794,6 +806,21 @@ Locally at `http://localhost:17179`:
 - Distributed traces (request → service → database)
 - Metrics (throughput, latency, errors)
 
+### 10.5 FlowEngine Dashboard
+
+Hosted inside `TaskFlow.Blazor` via `AddFlowEngineDashboard(adminApiBaseUrl: ...)`. Provides a separate, workflow-centric observability surface that complements the Aspire dashboard:
+
+| Page | Purpose |
+|------|---------|
+| `/workflows/registry` | Active / draft workflow definitions, versions, status |
+| `/workflows/new` | Visual designer canvas (`Z.Blazor.Diagrams`) — drag-drop node editing, JSON import/export |
+| `/workflows/run` | Manual instance start (pick a workflow, paste params, fire) |
+| `/instances` | Running / suspended / completed / faulted instances; click-through to history |
+| `/human-tasks` | Open human tasks, claim/approve/reject UI |
+| `/circuit-breakers` | Per-key breaker state (closed / half-open / open) |
+
+The dashboard talks to the API over HTTPS via the gateway (`/api/flowengine/*`). Page routes are contributed by the `EF.FlowEngine.Dashboard` assembly through `Routes.razor`'s `AdditionalAssemblies`.
+
 ---
 
 ## 11. Audit Strategy
@@ -848,6 +875,8 @@ sequenceDiagram
 ### 11.4 Fallback
 
 When Azure Table Storage is unavailable (e.g., local dev without emulator), the DI container registers `NoOpAuditLogRepository`, which silently discards audit entries.
+
+> **FlowEngine outbox is a separate concern.** The `AuditInterceptor` audits **application** entities (TaskItem, Comment, etc.) and writes to Azure Table Storage. FlowEngine has its own outbox (`flowengine.Outbox`) that stages `message` / `integration` / `agent` side effects produced by workflow nodes; it is persisted by the **same** `SaveChangesAsync` that writes the workflow execution row (atomic save+enqueue — see [§14.4](#144-state-isolation--atomic-outbox)). The two outboxes do not overlap: app-side mutations go through the audit pipeline; workflow-side mutations go through the FE outbox.
 
 ### 11.5 Key Source Files
 
@@ -905,6 +934,7 @@ graph TB
 | **Test.Benchmarks** | BenchmarkDotNet console runner exercising hot-path mappers (`ToDto`, `ToEntity`) with `[MemoryDiagnoser]` for allocation tracking. | Quantifies the cost of mapping changes — guards against silent allocation regressions when DTOs are extended. | **BenchmarkDotNet** |
 | **Test.Support** | Reusable test infrastructure: `WebApplicationFactoryBase<TProgram, TTrxn, TQuery>`, fluent entity builders (`CategoryBuilder`, `TaskItemBuilder`, `CommentBuilder`, `TagBuilder`), shared constants. | Removes ~100 lines of duplicated DI-rewiring boilerplate from every WebApplicationFactory test project. Builders give tests intent-revealing fixture data. | `Microsoft.AspNetCore.Mvc.Testing`, EF Core InMemory |
 | **Test.PlaywrightUI** | Browser-driven UI tests against the running Blazor (`https://localhost:7201`) and Uno WASM (`https://localhost:7069`) frontends — full CRUD lifecycle (create → edit → delete), dashboard smoke, regression scenarios. | The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss. | **Playwright** (TypeScript, `@playwright/test`) |
+| **Test.Integration.FlowEngine** | Workflow-definition validity tier for every JSON file shipped under `TaskFlow.Api/Workflows/`. Asserts JSON → `WorkflowDefinition` deserialization, `WorkflowDefinitionValidator.ValidateAndThrow` passes (unknown node types, dangling edges, malformed schemas), in-memory `IWorkflowRegistry` round-trip preserves node count + status, `WorkflowDefinitionBuilder.FromJson` hydrates id/version/nodes, and the copy-on-build glob does not silently drop files. | Catches authoring mistakes that would otherwise only surface at first-instance-start in dev. Runs without any Aspire stack or Docker — uses `EF.FlowEngine.Testing`'s in-memory registry. Fast (sub-second) and is the first line of defense on every PR that touches a workflow JSON. | MSTest, **EF.FlowEngine.Testing** (`InMemoryWorkflowRegistry`) |
 
 ### 12.3 Testing Tools
 
@@ -1238,6 +1268,218 @@ The YARP Gateway acts as a **Backend-for-Frontend (BFF)**:
 - Acquires service-to-service tokens for downstream API calls
 - Injects `X-Orig-Request` with user claims for the API
 - CORS configured for UI origins
+
+---
+
+## 14. Workflow Orchestration (FlowEngine)
+
+TaskFlow embeds **EF.FlowEngine 1.0.104** as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements — does not replace — the existing CRUD API, domain events, and TickerQ scheduler:
+
+- **Domain events + Service Bus + Functions** still own per-event side effects (Cosmos projection, AI search indexing, blob processing).
+- **TickerQ scheduler** still owns timer-driven cron jobs (overdue checks, recurring task generation, stale cleanup).
+- **FlowEngine** owns multi-step, stateful, branching workflows that need to wait — for an AI agent, for a human approval, for a downstream call — and resume on the same instance across process restarts.
+
+### 14.1 Why FlowEngine
+
+| Capability | What it gives the reference app |
+|---|---|
+| **Stateful suspend/resume** | A workflow waiting on a 24-hour human approval survives API restarts, deploys, and scale-out. |
+| **AI agent nodes** | `agent` node type wraps Azure OpenAI with output-schema validation, retry, idempotency keys, prompt versioning. |
+| **Human task nodes** | `human` node type produces durable records (assignee role, due date, quorum, escalation) consumed by the dashboard's human-task UI. |
+| **Saga compensation** | `compensationNodeId` on a node provides an inverse action invoked when a later node in the same instance faults. |
+| **Atomic outbox** | `message` / `integration` / `agent` side effects are staged in the same `SaveChangesAsync` that persists workflow state — no torn-write between state save and external dispatch. |
+| **Circuit breaker** | Per-key durable breaker state survives replicas/restarts so a single instance failing doesn't reset the breaker for the others. |
+| **Admin API + Dashboard** | Out-of-box REST + Blazor UI for registry / instances / human tasks / breakers — operators don't have to build their own. |
+
+### 14.2 Packages and Layer Placement
+
+All 13 FlowEngine packages are pinned at the same version in `Directory.Packages.props`:
+
+| Package | Project that references it | Purpose |
+|---|---|---|
+| `EF.FlowEngine` | Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine | Core runtime: engine, executor pipeline, definition model, built-in node executors (auto-registered in 1.0.104). |
+| `EF.FlowEngine.StateStore.Sql` | Infrastructure.Data | `IFlowEngineStateDbContext` mixin + `SqlExecutionStateStore`. |
+| `EF.FlowEngine.Locks.Sql` | Bootstrapper | SQL-backed distributed lock provider for engine sweeps + leases. |
+| `EF.FlowEngine.WorkflowRegistry.Sql` | Bootstrapper, Infrastructure.Data | `IWorkflowRegistry` over SQL. |
+| `EF.FlowEngine.HumanTaskStore.Sql` | Bootstrapper, Infrastructure.Data | Human-task durable queue. |
+| `EF.FlowEngine.Outbox.Sql` | Bootstrapper, Infrastructure.Data | `IFlowEngineOutboxDbContext` mixin — atomic state+outbox save. |
+| `EF.FlowEngine.CircuitBreaker.Sql` | Bootstrapper, Infrastructure.Data | `IFlowEngineCircuitBreakerDbContext` mixin — durable breaker state. |
+| `EF.FlowEngine.Clients.Http` | Bootstrapper | Resilient HTTP client for `integration` nodes. |
+| `EF.FlowEngine.Clients.ServiceBus` | Bootstrapper | Service Bus client for `message` nodes. |
+| `EF.FlowEngine.Clients.OpenAI` | Bootstrapper | Azure OpenAI client for `agent` nodes. |
+| `EF.FlowEngine.AdminApi` | Bootstrapper, TaskFlow.Api | REST endpoints under `/api/flowengine/*` + auth policies. |
+| `EF.FlowEngine.Dashboard` | TaskFlow.Blazor | Blazor pages (registry, designer, run, instances, human tasks, breakers). |
+| `EF.FlowEngine.Testing` | Test.Integration.FlowEngine | In-memory registry and helpers for fast unit/integration tests. |
+
+Registration entry point: `RegisterServices.FlowEngine.cs` (`TaskFlow.Bootstrapper`), called from `RegisterApplicationServices()` after the AI services. The DI surface composes engine + state + locks + registry + human-task + outbox + circuit-breaker + connector clients + JSON seeding + admin policies in a single fluent chain.
+
+### 14.3 Shipped Workflows
+
+Three workflow JSONs ship under `TaskFlow.Api/Workflows/` and are seeded at startup by the FlowEngine hosted seeding service:
+
+```mermaid
+graph LR
+    subgraph triage["ai-task-triage (1.0.0)"]
+        T1["n-classify<br/>(agent)"] --> T2["n-priority-switch<br/>(decision)"]
+        T2 -->|"Critical"| T3["n-quorum-approval<br/>(human, 2-of-3, 24h)"]
+        T2 -->|"Default"| T4["n-apply-priority<br/>(integration → PATCH)"]
+        T3 -->|"Approved"| T4
+        T3 -->|"Rejected"| T5["n-compensate-reject<br/>(integration → comment)"]
+        T4 --> T6["n-publish-event<br/>(message)"]
+    end
+```
+
+```mermaid
+graph LR
+    subgraph decomposer["ai-task-decomposer (1.0.0)"]
+        D1["n-propose-subtasks<br/>(agent)"] --> D2["n-approval-gate<br/>(decision)"]
+        D2 -->|"requireApproval"| D3["n-human-review<br/>(human, 1, 24h)"]
+        D2 -->|"auto-accept"| D4["n-create-subtasks<br/>(loop → POST)"]
+        D3 --> D4
+        D4 --> D5["n-publish-decomposed<br/>(message)"]
+    end
+```
+
+```mermaid
+graph LR
+    subgraph compliance["compliance-check (1.0.0)"]
+        C1["n-query-due<br/>(query: tag=compliance, due&lt;windowDays)"] --> C2["n-loop-each<br/>(parallel, max 5)"]
+        C2 --> C3["n-fetch-evidence<br/>(document)"]
+        C3 --> C4["n-extract<br/>(agent)"]
+        C4 --> C5["n-decide<br/>(decision)"]
+        C5 -->|"expired"| C6["n-escalate<br/>(human, compliance-officer, 48h)"]
+        C5 -->|"due-soon"| C7["n-remind<br/>(message comment)"]
+    end
+```
+
+| Workflow | Trigger | Params | Notable patterns |
+|---|---|---|---|
+| **ai-task-triage** | Manual today; intended to fire on `TaskItemCreatedEvent` via `IWorkflowTrigger` (see §14.6) | `tenantId`, `taskId`, `description` (required) | 2-of-3 human quorum, 12 h escalation, saga `compensationNodeId` revert on downstream fault, idempotency keys on every side-effect node |
+| **ai-task-decomposer** | Manual / dashboard | `tenantId`, `taskId`, `description`, `requireApproval` (optional) | Conditional human review, sequential `loop` to create N children via API |
+| **compliance-check** | Manual / dashboard / future cron via TickerQ | `tenantId`, `windowDays` (default 7) | Parallel `loop` with bounded concurrency (max 5), `query` node using FilterBuilder, `document` node for evidence retrieval |
+
+All three are validated at every build by `Test.Integration.FlowEngine` (see §12.2).
+
+### 14.4 State Isolation & Atomic Outbox
+
+FlowEngine state lives in a **separate `flowengine` schema on the same SQL Server connection**, owned by `TaskFlowFlowEngineDbContext` (sealed, in `Infrastructure.Data`). This is **Variant A** of the deployment-layout decision (same DB, separate schema):
+
+```mermaid
+graph TB
+    subgraph sql["SQL Server (single instance, single connection string)"]
+        subgraph app["dbo schema"]
+            A1[("TaskItems")]
+            A2[("Categories, Tags, ...")]
+            A3[("__EFMigrationsHistory")]
+        end
+        subgraph fe["flowengine schema"]
+            F1[("Workflows")]
+            F2[("Executions")]
+            F3[("HumanTasks")]
+            F4[("ChildSignals")]
+            F5[("Outbox")]
+            F6[("CircuitBreakers")]
+            F7[("__EFMigrationsHistory_FlowEngine")]
+        end
+    end
+
+    TRX["TaskFlowDbContextTrxn"] --> app
+    QRY["TaskFlowDbContextQuery"] --> app
+    FECTX["TaskFlowFlowEngineDbContext<br/>(IFlowEngineStateDbContext<br/>+ IFlowEngineOutboxDbContext<br/>+ IFlowEngineCircuitBreakerDbContext)"] --> fe
+
+    style app fill:#0078d4,stroke:#005a9e,color:#fff
+    style fe fill:#8e44ad,stroke:#6c3483,color:#fff
+```
+
+**Why a separate DbContext rather than mixing FlowEngine entities into the existing transactional context:**
+
+- TaskFlow's primary DbContext (`TaskFlowDbContextTrxn`) inherits from `EF.Data.DbContextBase<TUser,TKey>` for the audit interceptor. FlowEngine's mixin contexts (`FlowEngineOutboxDbContext`, etc.) are abstract bases — multi-inheritance is impossible.
+- FlowEngine's interface-composition pattern (`IFlowEngineStateDbContext` + `IFlowEngineOutboxDbContext` + `IFlowEngineCircuitBreakerDbContext`) lets a single fresh DbContext declare all three roles without subclass conflict. `TaskFlowFlowEngineDbContext` is that DbContext.
+- Separate migration history (`__EFMigrationsHistory_FlowEngine`, configured in `ConfigureFlowEngineSqlOptions`) keeps the two schemas evolvable independently.
+
+**Atomic outbox is preserved.** Because state, outbox, and circuit-breaker tables all live in `TaskFlowFlowEngineDbContext`, FlowEngine's `SqlExecutionStateStore.SaveWithOutboxAsync` writes the workflow execution row and the outbox rows in a single `SaveChangesAsync`. There is no window where a node's external side effect is committed without the state advance, or vice versa. This is the gain over Variant B/C (separate DB) and is the reason Variant A was selected — see [DESIGN-DECISIONS.md D-016](../.scaffold/DESIGN-DECISIONS.md).
+
+### 14.5 Connector Wiring
+
+Three connector clients are registered in `AddTaskFlowConnectorClients`:
+
+| `clientRef` | Type | Wiring |
+|---|---|---|
+| `taskflow-api` | Resilient HTTP | Base URL = `FlowEngine:TaskFlowApiBaseUrl` ?? `Gateway:BaseUrl`. Self-call — workflows mutate TaskItems through the public API to preserve auth, validation, audit, and event publishing. Used by `n-apply-priority`, `n-compensate-reject`, `n-create-subtasks`, `n-revert-priority`. |
+| `integration-events` | Service Bus | Connection from `ServiceBus1`; topic from `FlowEngine:ServiceBusTopic` (default `taskflow-integration-events`). Registers only when the connection string is present. Used by `n-publish-event`, `n-publish-decomposed`. |
+| `ai-agent` | Azure OpenAI | Resolves the existing DI-registered `AzureOpenAIClient` from `Infrastructure.AI` via factory lambda; reads `TaskFlowAiSettings:ChatDeployment` (default `gpt-4o`) and `:FoundryEndpoint`. Registers only when `FoundryEndpoint` is set. Used by `n-classify`, `n-propose-subtasks`, `n-extract`. |
+
+The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate the OpenAI client; it borrows the one already registered in `Infrastructure.AI.AddAiServices()`. When `FoundryEndpoint` is absent the `agent` nodes will not register and any workflow with an `agent` step will fault on `n-classify` — that's the expected scaffold-mode posture.
+
+### 14.6 Workflow Triggering
+
+`Application.MessageHandlers.WorkflowTriggerHandler` implements `IWorkflowTrigger` with a single method `OnTaskItemCreatedAsync(TaskItemCreatedEvent)` that calls `engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })`.
+
+> **It is intentionally not wired to `IInternalMessageBus` today.** `TaskItemCreatedEvent` is an integration event traveling over Service Bus, not an in-process `IMessage`. The class exists as a one-line addition wherever the event is raised — typically in `TaskItemService` after `eventPublisher.PublishAsync`, or in a custom Service Bus subscriber inside `TaskFlow.Functions`. For the reference-app demo, manual invocation via the dashboard's `/workflows/run` page is sufficient.
+
+Wiring options when a downstream consumer wants automatic triggering:
+
+1. **Service Bus subscriber in `TaskFlow.Functions`** — add a topic subscription, deserialize `TaskItemCreatedEvent`, call `IWorkflowTrigger.OnTaskItemCreatedAsync`. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.
+2. **Inline call in `TaskItemService`** — DI-resolve `IWorkflowTrigger`, call after `eventPublisher.PublishAsync`. Simpler but ties the request thread to engine startup.
+3. **TickerQ job for `compliance-check`** — a cron-triggered scheduler job that calls `engine.StartBackgroundAsync` with the `compliance-check` workflow id and a fresh `windowDays` param.
+
+### 14.7 Admin API and Auth
+
+`MapFlowEngineAdmin(prefix: "/api/flowengine")` (called in `WebApplicationBuilderExtensions.cs`) mounts the REST surface from `EF.FlowEngine.AdminApi`:
+
+| Route group | Purpose |
+|---|---|
+| `/api/flowengine/workflows` | Workflow registry CRUD (list, get, transition Draft↔Active↔Retired) |
+| `/api/flowengine/instances` | Instance list/get/start/cancel/replay; history projection |
+| `/api/flowengine/human-tasks` | Human-task list, claim, complete, reject |
+| `/api/flowengine/circuit-breakers` | Inspect breaker state per key; manual reset |
+
+Authentication and authorization use the same pipeline as the rest of the API (`Bearer` + tenant-match policies in production; scaffold mode locally). `AddFlowEngineAdminPolicies()` registers the policy names used by the package's endpoint metadata. The gateway forwards the user's `Authorization` header through to the API; the Blazor Dashboard calls the gateway, not the API directly, so user identity travels end-to-end without bespoke header forwarding.
+
+### 14.8 Operational Notes
+
+- **First-instance-start gotcha.** If a workflow JSON references a `clientRef` that hasn't been registered (e.g. `ai-agent` when `FoundryEndpoint` is unset), the failure surfaces on the first instance start, not at boot. The `Test.Integration.FlowEngine` suite validates definition shape but cannot validate connector registration — that requires a live AppHost. Confirm via the demo verification checklist in §14.9.
+- **Sweep cadence.** Engine options: `SweepInterval=30s`, `SweepBatchSize=50`, `DefaultLeaseDuration=30s`, `LeaseRenewalInterval=13s`. Tuned for the reference app's load profile; production deployments should profile against expected concurrent-instance counts.
+- **Replicas.** The SQL lock provider lets multiple API replicas safely share the engine; only one replica leases an instance at a time. The Dashboard does not lease anything — it's pure read-side over the admin API.
+- **Backpressure.** Outbox publishing runs on a background drain; if Service Bus is unavailable the outbox grows. Monitor `flowengine.Outbox` row count in the dashboard / a metric.
+
+### 14.9 Demo Verification
+
+With the Aspire AppHost running, the gateway URL visible in the Aspire dashboard:
+
+```bash
+GW="https://localhost:<gateway-port>"
+
+# 1. Verify seeding ran — three workflows present, status Active
+curl -sk "$GW/api/flowengine/workflows" | jq '.[] | { id, version, status }'
+
+# 2. Verify the instance list is reachable
+curl -sk "$GW/api/flowengine/instances?Status=Running" | jq '. | length'
+
+# 3. Start a manual triage run
+curl -sk -X POST "$GW/api/flowengine/instances/start" -H "Content-Type: application/json" -d '{
+  "workflowId": "ai-task-triage",
+  "params": {
+    "tenantId":    "11111111-1111-1111-1111-111111111111",
+    "taskId":      "22222222-2222-2222-2222-222222222222",
+    "description": "Sample triage task for the demo run"
+  },
+  "tenantId": "11111111-1111-1111-1111-111111111111"
+}' | jq
+
+# 4. Inspect instance state
+INSTANCE_ID="<paste from step 3>"
+curl -sk "$GW/api/flowengine/instances/$INSTANCE_ID" | jq '{ status, history }'
+```
+
+Browser verification (Blazor + Dashboard, run separately from AppHost):
+
+1. `https://<blazor-host>/workflows/registry` — three workflows Active.
+2. `/workflows/new` — drag a few tiles; Import JSON of `ai-task-triage.json` and confirm parse.
+3. `/workflows/run` — pick `ai-task-triage`, paste params, fire; see it appear under `/instances`.
+4. `/human-tasks` — only populated once an instance reaches a `human` node (the Critical branch of triage, or the optional review in decomposer). Requires `FoundryEndpoint` configured for the upstream `agent` step to succeed.
+
+**Without `FoundryEndpoint` configured**, the `n-classify` agent step will fault and the instance will land at `n-faulted` immediately — that's the expected no-AI scaffold posture and matches the reference app's "no-op stub" pattern.
 
 ---
 

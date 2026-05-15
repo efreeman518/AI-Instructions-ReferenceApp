@@ -111,9 +111,40 @@ This file records the shared domain language used by the TaskFlow reference app.
 | Azure AI Search | Hybrid/vector task search. | index, search, embed, retrieve. |
 | Azure OpenAI | Task assistant agent backing model. | chat, tool, summarize, ground. |
 
+## Orchestration Vocabulary (FlowEngine)
+
+Terms used by the workflow orchestration layer. These are FlowEngine-runtime concepts, not domain aggregates — they sit alongside the task-management domain rather than inside it.
+
+| Term | Type | Meaning | Code/Naming Guidance |
+|---|---|---|---|
+| `Workflow` | concept | A declarative graph of nodes + edges defining an orchestration. Use as the umbrella noun in prose. | Don't use `Workflow` as a code identifier — collides with the runtime concept. Use `WorkflowDefinition` for the persisted shape. |
+| `WorkflowDefinition` | entity | A versioned JSON document describing a workflow (id, version, status, entry node, nodes, edges, params schema). | `EF.FlowEngine.Definition.WorkflowDefinition`. Lives in `flowengine.Workflows`. |
+| `ExecutionInstance` | entity | One running or completed invocation of a workflow definition. Carries `Status`, `CorrelationId`, `Context`, `Deadline`, `Version`. | Persisted in `flowengine.Executions`. Reference by `InstanceId`. |
+| `Node` | concept | A single step in a workflow — one of 19 built-in types (`agent`, `decision`, `human`, `integration`, `loop`, `message`, `output`, `query`, `document`, ...). | Refer to specific types by their `type` string; custom executors implement `INodeExecutor<TInputs,TOutputs>`. |
+| `NodeExecutor` | service | The runtime handler for one node type. | All 19 built-ins auto-registered by `AddFlowEngine()` in 1.0.104+. |
+| `Edge` | concept | A typed transition from one node to another, optionally guarded by a `when` expression and labeled with an outcome (`Match`, `Error`, custom). | Multiple edges from one node = branching; first satisfied `when` wins. |
+| `IFlowClient` / `clientRef` | service | A typed external integration target referenced by a node's `config.clientRef`. | TaskFlow registers three: `taskflow-api` (HTTP), `integration-events` (ServiceBus), `ai-agent` (Azure OpenAI). |
+| `HumanTask` | entity | A pending human approval/review produced by a `human` node. Holds `AssignedTo` (role string), `Status`, `FormData`, `DueAt`, `EscalationAt`. | Persisted in `flowengine.HumanTasks`. Surfaced in the dashboard's `/human-tasks` page. |
+| `Quorum` | pattern | Human-task config requiring N-of-M approvers before the node completes. | Used by `ai-task-triage`'s critical-priority branch (2-of-3). |
+| `Compensation` | pattern | An inverse node executed when a later node in the same instance faults. | Declared as `compensationNodeId` on a side-effect node (e.g. revert PATCH on saga failure). |
+| `Outbox` (FlowEngine) | concern | Staging rows for `message` / `integration` / `agent` side effects, persisted by the same `SaveChangesAsync` that advances workflow state. | `flowengine.Outbox`. Distinct from app-side `AuditInterceptor` (see tech-design §11.4). |
+| `CircuitBreaker` (FlowEngine) | concern | Per-key durable breaker state for connector calls; shared across replicas. | `flowengine.CircuitBreakers`. |
+| `IWorkflowTrigger` | service | TaskFlow-side interface for invoking workflows from domain events. | `Application.MessageHandlers.WorkflowTriggerHandler`. Not auto-fired today — see §14.6. |
+
+### Rejected Synonyms (Orchestration)
+
+| Rejected Term | Use Instead | Reason |
+|---|---|---|
+| `Workflow` (as code identifier) | `WorkflowDefinition` | Avoid collision with the runtime concept; reserve unqualified `Workflow` for prose. |
+| `Job` | `ExecutionInstance` | "Job" collides with TickerQ scheduled jobs; FlowEngine instances are not cron-triggered. |
+| `Step` | `Node` | FlowEngine's own vocabulary; consistent with the JSON schema. |
+| `Task` (FlowEngine) | `HumanTask` for human approvals, `Node` for engine steps | Prevents triple collision with `System.Threading.Tasks.Task` and `TaskItem`. |
+
 ## Naming Notes
 
 - Use `TaskItem` everywhere source-level naming needs the aggregate; do not shorten it to `Task`.
 - Use `Attachment` for metadata and blob reference. Do not model file bytes on the domain entity.
 - Use integration event records in `Application.Contracts.Events`; do not publish domain namespace events over transport.
 - Use `OwnerType` and `OwnerId` for polymorphic attachment ownership; do not add EF navigation collections to owners.
+- Use `WorkflowDefinition` for the persisted FlowEngine document; reserve unqualified `Workflow` for prose, never as a C# type name.
+- Use `HumanTask` (not `Task`) for FlowEngine human-approval records — collides with both `System.Threading.Tasks.Task` and `TaskItem`.

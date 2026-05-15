@@ -68,7 +68,9 @@
   <li><a href="#audit-strategy">Audit Strategy</a></li>
   <li><a href="#testing">Testing Strategy</a></li>
   <li><a href="#ui">UI Architecture</a></li>
+  <li><a href="#flowengine">Workflow Orchestration (FlowEngine)</a></li>
 </ol>
+<p class="subtitle" style="margin-top:1rem;margin-bottom:0">Last updated: May 2026</p>
 </div>
 
 <!-- ============================================================ -->
@@ -91,6 +93,7 @@
   <tr><td>Read Model</td><td>Azure Cosmos DB (denormalized projections)</td></tr>
   <tr><td>File Storage</td><td>Azure Blob Storage</td></tr>
   <tr><td>AI</td><td>Azure AI Search + Azure OpenAI (stubs)</td></tr>
+  <tr><td>Workflow Orchestration</td><td>EF.FlowEngine 1.0.104 — SQL state store, outbox, circuit breaker, admin API, Blazor dashboard</td></tr>
   <tr><td>Auth</td><td>Microsoft Entra ID (External) / Scaffold mode</td></tr>
   <tr><td>Observability</td><td>OpenTelemetry (OTLP), Aspire Dashboard</td></tr>
   <tr><td>Testing</td><td>MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, BenchmarkDotNet, NBomber, Playwright</td></tr>
@@ -453,10 +456,10 @@
   <tr><th>Layer</th><th>Projects</th><th>Responsibility</th><th>May Reference</th></tr>
   <tr><td><strong style="color:#bc8cff">UI</strong></td><td>TaskFlow.Uno, TaskFlow.Blazor</td><td>User interfaces — Uno MVUX + Kiota; Blazor MudBlazor + Refit</td><td>Application.Models (shared contract)</td></tr>
   <tr><td><strong style="color:#58a6ff">Host</strong></td><td>Api, Gateway, Functions, Scheduler</td><td>HTTP pipeline, function triggers, config</td><td>Bootstrapper</td></tr>
-  <tr><td><strong style="color:#d29922">Bootstrapper</strong></td><td>TaskFlow.Bootstrapper</td><td>DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests)</td><td>Application, Infrastructure</td></tr>
-  <tr><td><strong style="color:#3fb950">Application</strong></td><td>Services, Contracts, Models, Mappers, MessageHandlers</td><td>Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions</td><td>Domain</td></tr>
+  <tr><td><strong style="color:#d29922">Bootstrapper</strong></td><td>TaskFlow.Bootstrapper</td><td>DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (<code>RegisterServices.FlowEngine.cs</code>) and the FE-migration startup task.</td><td>Application, Infrastructure</td></tr>
+  <tr><td><strong style="color:#3fb950">Application</strong></td><td>Services, Contracts, Models, Mappers, MessageHandlers</td><td>Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions. <code>MessageHandlers</code> also defines <code>IWorkflowTrigger</code> for invoking FlowEngine workflows from domain events.</td><td>Domain</td></tr>
   <tr><td style="color:#f85149"><strong>Domain</strong></td><td>Domain.Model, Domain.Shared</td><td>Entities, aggregates, value objects, enums, marker interfaces</td><td>Nothing (zero outward deps)</td></tr>
-  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces</td><td>Application.Contracts, Domain</td></tr>
+  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces. <code>Data</code> also owns the FlowEngine state DbContext (<code>TaskFlowFlowEngineDbContext</code>) and its migrations.</td><td>Application.Contracts, Domain</td></tr>
 </table>
 
 <h3>Dependency Rules (Architecture-Test Enforced)</h3>
@@ -576,11 +579,11 @@
 <table>
   <tr><th>Service</th><th>Project</th><th>Purpose</th><th>Key Dependencies</th></tr>
   <tr><td>API Gateway</td><td><code>TaskFlow.Gateway</code></td><td>Auth boundary, YARP reverse proxy, claims injection</td><td>API</td></tr>
-  <tr><td>TaskFlow API</td><td><code>TaskFlow.Api</code></td><td>Core business logic, CRUD, integration events</td><td>SQL, Redis, Cosmos, Service Bus, Blob</td></tr>
+  <tr><td>TaskFlow API</td><td><code>TaskFlow.Api</code></td><td>Core business logic, CRUD, integration events, FlowEngine admin REST (<code>/api/flowengine/*</code>), workflow JSON seeding</td><td>SQL, Redis, Cosmos, Service Bus, Blob, FlowEngine state DB</td></tr>
   <tr><td>Azure Functions</td><td><code>TaskFlow.Functions</code></td><td>Async event processing, blob processing, timer cleanup</td><td>SQL, Cosmos, Service Bus, Blob</td></tr>
   <tr><td>Task Scheduler</td><td><code>TaskFlow.Scheduler</code></td><td>Cron jobs via TickerQ (overdue checks, recurring tasks, cleanup)</td><td>SQL, Redis, Service Bus</td></tr>
   <tr><td>Uno WASM App</td><td><code>TaskFlow.Uno</code></td><td>Cross-platform UI (browser + desktop + mobile) — Uno Platform MVUX</td><td>Gateway</td></tr>
-  <tr><td>Blazor App</td><td><code>TaskFlow.Blazor</code></td><td>Interactive Server UI — MudBlazor, Refit client, full CRUD</td><td>Gateway, Application.Models, Domain.Shared</td></tr>
+  <tr><td>Blazor App</td><td><code>TaskFlow.Blazor</code></td><td>Interactive Server UI — MudBlazor, Refit client, full CRUD; also hosts the FlowEngine Dashboard + Designer pages (routes contributed by <code>EF.FlowEngine.Dashboard</code> via <code>AdditionalAssemblies</code>)</td><td>Gateway → API + FlowEngine admin</td></tr>
 </table>
 
 <!-- ============================================================ -->
@@ -1022,6 +1025,7 @@
   <tr><td><code>POST</code></td><td><code>/api/agent/chat</code></td><td>AI agent chat endpoint</td></tr>
   <tr><td><code>GET</code></td><td><code>/api/task-views</code></td><td>Cosmos DB denormalized views (<code>?tenantId=...&amp;pageSize=20</code>)</td></tr>
   <tr><td><code>GET</code></td><td><code>/api/task-views/{id}</code></td><td>Single task view</td></tr>
+  <tr><td><code>*</code></td><td><code>/api/flowengine/*</code></td><td>FlowEngine admin API — instances, registry, circuit-breakers, human tasks. Mounted via <code>MapFlowEngineAdmin(prefix: "/api/flowengine")</code>; see <a href="#flowengine">§14 Workflow Orchestration</a></td></tr>
   <tr><td><code>GET</code></td><td><code>/health</code></td><td>Health check</td></tr>
   <tr><td><code>GET</code></td><td><code>/alive</code></td><td>Liveness probe</td></tr>
 </table>
@@ -1192,8 +1196,16 @@
 </svg>
 </div>
 <pre><code>dotnet run --project src/Aspire/AppHost
-# Uno WASM runs separately (Uno.Sdk constraint)</code></pre>
+# Uno WASM and Blazor (with FlowEngine Dashboard) run separately</code></pre>
 <p><strong>Service dependencies</strong>: API waits for SQL + Redis. Gateway waits for API. Functions wait for SQL + Storage.</p>
+
+<p><strong>Startup tasks (Development / Aspire only)</strong>: on first boot the API runs two <code>IStartupTask</code> implementations from <code>TaskFlow.Bootstrapper</code>:</p>
+<ol>
+  <li><code>ApplyEFMigrationsStartup</code> — applies app-schema migrations against <code>TaskFlowDbContextTrxn</code>.</li>
+  <li><code>ApplyFlowEngineMigrationsStartup</code> — applies the FlowEngine <code>flowengine</code> schema migrations against <code>TaskFlowFlowEngineDbContext</code> (separate migration history table <code>__EFMigrationsHistory_FlowEngine</code>).</li>
+</ol>
+<p>Both are gated on <code>ASPNETCORE_ENVIRONMENT=Development</code> or an Aspire signal and log-and-continue on failure so a missing local DB does not block boot. In production migrations run via the deployment pipeline, not at startup.</p>
+<p>After migrations apply, the FlowEngine workflow-seeding hosted service (<code>AddWorkflowJsonSeeding</code>) walks <code>TaskFlow.Api/Workflows/*.json</code> and upserts each definition into the registry (idempotent — skips existing versions). See <a href="#flowengine">§14.3</a> for the three workflows shipped.</p>
 
 <h3>9.2 Cloud Deployment (Azure)</h3>
 <div class="diagram-container">
@@ -1315,6 +1327,19 @@
 <h3>10.4 Aspire Dashboard</h3>
 <p>Locally at <code>http://localhost:17179</code>: Resource graph, structured logs, distributed traces, metrics (throughput, latency, errors).</p>
 
+<h3>10.5 FlowEngine Dashboard</h3>
+<p>Hosted inside <code>TaskFlow.Blazor</code> via <code>AddFlowEngineDashboard(adminApiBaseUrl: ...)</code>. Provides a separate, workflow-centric observability surface that complements the Aspire dashboard:</p>
+<table>
+  <tr><th>Page</th><th>Purpose</th></tr>
+  <tr><td><code>/workflows/registry</code></td><td>Active / draft workflow definitions, versions, status</td></tr>
+  <tr><td><code>/workflows/new</code></td><td>Visual designer canvas (<code>Z.Blazor.Diagrams</code>) — drag-drop node editing, JSON import/export</td></tr>
+  <tr><td><code>/workflows/run</code></td><td>Manual instance start (pick a workflow, paste params, fire)</td></tr>
+  <tr><td><code>/instances</code></td><td>Running / suspended / completed / faulted instances; click-through to history</td></tr>
+  <tr><td><code>/human-tasks</code></td><td>Open human tasks, claim/approve/reject UI</td></tr>
+  <tr><td><code>/circuit-breakers</code></td><td>Per-key breaker state (closed / half-open / open)</td></tr>
+</table>
+<p>The dashboard talks to the API over HTTPS via the gateway (<code>/api/flowengine/*</code>). Page routes are contributed by the <code>EF.FlowEngine.Dashboard</code> assembly through <code>Routes.razor</code>'s <code>AdditionalAssemblies</code>.</p>
+
 <!-- ============================================================ -->
 <!-- SECTION 11: AUDIT STRATEGY -->
 <!-- ============================================================ -->
@@ -1435,6 +1460,7 @@
 
 <h3>11.4 Fallback</h3>
 <p>When Azure Table Storage is unavailable (e.g., local dev without emulator), the DI container registers <code>NoOpAuditLogRepository</code>, which silently discards audit entries.</p>
+<div class="callout"><strong>FlowEngine outbox is a separate concern.</strong> The <code>AuditInterceptor</code> audits <strong>application</strong> entities (TaskItem, Comment, etc.) and writes to Azure Table Storage. FlowEngine has its own outbox (<code>flowengine.Outbox</code>) that stages <code>message</code> / <code>integration</code> / <code>agent</code> side effects produced by workflow nodes; it is persisted by the <strong>same</strong> <code>SaveChangesAsync</code> that writes the workflow execution row (atomic save+enqueue — see <a href="#flowengine">§14.4</a>). The two outboxes do not overlap: app-side mutations go through the audit pipeline; workflow-side mutations go through the FE outbox.</div>
 
 <h3>11.5 Key Source Files</h3>
 <table>
@@ -1559,6 +1585,12 @@
     <td>Browser-driven UI tests against the running Blazor (<code>https://localhost:7201</code>) and Uno WASM (<code>https://localhost:7069</code>) frontends — full CRUD lifecycle (create → edit → delete), dashboard smoke, regression scenarios.</td>
     <td>The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss.</td>
     <td><strong>Playwright</strong> (TypeScript, <code>@playwright/test</code>)</td>
+  </tr>
+  <tr>
+    <td><strong>Test.Integration.FlowEngine</strong></td>
+    <td>Workflow-definition validity tier for every JSON file shipped under <code>TaskFlow.Api/Workflows/</code>. Asserts JSON → <code>WorkflowDefinition</code> deserialization, <code>WorkflowDefinitionValidator.ValidateAndThrow</code> passes (unknown node types, dangling edges, malformed schemas), in-memory <code>IWorkflowRegistry</code> round-trip preserves node count + status, <code>WorkflowDefinitionBuilder.FromJson</code> hydrates id/version/nodes, and the copy-on-build glob does not silently drop files.</td>
+    <td>Catches authoring mistakes that would otherwise only surface at first-instance-start in dev. Runs without any Aspire stack or Docker — uses <code>EF.FlowEngine.Testing</code>'s in-memory registry. Fast (sub-second) and is the first line of defense on every PR that touches a workflow JSON.</td>
+    <td>MSTest, <strong>EF.FlowEngine.Testing</strong> (<code>InMemoryWorkflowRegistry</code>)</td>
   </tr>
 </table>
 
@@ -2027,6 +2059,324 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
   <li>Injects <code>X-Orig-Request</code> with user claims for the API</li>
   <li>CORS configured for UI origins</li>
 </ul>
+
+<!-- ============================================================ -->
+<!-- SECTION 14: WORKFLOW ORCHESTRATION (FLOWENGINE) -->
+<!-- ============================================================ -->
+<h2 id="flowengine">14. Workflow Orchestration (FlowEngine)</h2>
+
+<p>TaskFlow embeds <strong>EF.FlowEngine 1.0.104</strong> as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements — does not replace — the existing CRUD API, domain events, and TickerQ scheduler:</p>
+<ul>
+  <li><strong>Domain events + Service Bus + Functions</strong> still own per-event side effects (Cosmos projection, AI search indexing, blob processing).</li>
+  <li><strong>TickerQ scheduler</strong> still owns timer-driven cron jobs (overdue checks, recurring task generation, stale cleanup).</li>
+  <li><strong>FlowEngine</strong> owns multi-step, stateful, branching workflows that need to wait — for an AI agent, for a human approval, for a downstream call — and resume on the same instance across process restarts.</li>
+</ul>
+
+<h3>14.1 Why FlowEngine</h3>
+<table>
+  <tr><th>Capability</th><th>What it gives the reference app</th></tr>
+  <tr><td><strong>Stateful suspend/resume</strong></td><td>A workflow waiting on a 24-hour human approval survives API restarts, deploys, and scale-out.</td></tr>
+  <tr><td><strong>AI agent nodes</strong></td><td><code>agent</code> node type wraps Azure OpenAI with output-schema validation, retry, idempotency keys, prompt versioning.</td></tr>
+  <tr><td><strong>Human task nodes</strong></td><td><code>human</code> node type produces durable records (assignee role, due date, quorum, escalation) consumed by the dashboard's human-task UI.</td></tr>
+  <tr><td><strong>Saga compensation</strong></td><td><code>compensationNodeId</code> on a node provides an inverse action invoked when a later node in the same instance faults.</td></tr>
+  <tr><td><strong>Atomic outbox</strong></td><td><code>message</code> / <code>integration</code> / <code>agent</code> side effects are staged in the same <code>SaveChangesAsync</code> that persists workflow state — no torn-write between state save and external dispatch.</td></tr>
+  <tr><td><strong>Circuit breaker</strong></td><td>Per-key durable breaker state survives replicas/restarts so a single instance failing doesn't reset the breaker for the others.</td></tr>
+  <tr><td><strong>Admin API + Dashboard</strong></td><td>Out-of-box REST + Blazor UI for registry / instances / human tasks / breakers — operators don't have to build their own.</td></tr>
+</table>
+
+<h3>14.2 Packages and Layer Placement</h3>
+<p>All 13 FlowEngine packages are pinned at the same version in <code>Directory.Packages.props</code>:</p>
+<table>
+  <tr><th>Package</th><th>Project</th><th>Purpose</th></tr>
+  <tr><td><code>EF.FlowEngine</code></td><td>Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine</td><td>Core runtime: engine, executor pipeline, definition model, built-in node executors (auto-registered in 1.0.104).</td></tr>
+  <tr><td><code>EF.FlowEngine.StateStore.Sql</code></td><td>Infrastructure.Data</td><td><code>IFlowEngineStateDbContext</code> mixin + <code>SqlExecutionStateStore</code>.</td></tr>
+  <tr><td><code>EF.FlowEngine.Locks.Sql</code></td><td>Bootstrapper</td><td>SQL-backed distributed lock provider for engine sweeps + leases.</td></tr>
+  <tr><td><code>EF.FlowEngine.WorkflowRegistry.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td><code>IWorkflowRegistry</code> over SQL.</td></tr>
+  <tr><td><code>EF.FlowEngine.HumanTaskStore.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td>Human-task durable queue.</td></tr>
+  <tr><td><code>EF.FlowEngine.Outbox.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td><code>IFlowEngineOutboxDbContext</code> mixin — atomic state+outbox save.</td></tr>
+  <tr><td><code>EF.FlowEngine.CircuitBreaker.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td><code>IFlowEngineCircuitBreakerDbContext</code> mixin — durable breaker state.</td></tr>
+  <tr><td><code>EF.FlowEngine.Clients.Http</code></td><td>Bootstrapper</td><td>Resilient HTTP client for <code>integration</code> nodes.</td></tr>
+  <tr><td><code>EF.FlowEngine.Clients.ServiceBus</code></td><td>Bootstrapper</td><td>Service Bus client for <code>message</code> nodes.</td></tr>
+  <tr><td><code>EF.FlowEngine.Clients.OpenAI</code></td><td>Bootstrapper</td><td>Azure OpenAI client for <code>agent</code> nodes.</td></tr>
+  <tr><td><code>EF.FlowEngine.AdminApi</code></td><td>Bootstrapper, TaskFlow.Api</td><td>REST endpoints under <code>/api/flowengine/*</code> + auth policies.</td></tr>
+  <tr><td><code>EF.FlowEngine.Dashboard</code></td><td>TaskFlow.Blazor</td><td>Blazor pages (registry, designer, run, instances, human tasks, breakers).</td></tr>
+  <tr><td><code>EF.FlowEngine.Testing</code></td><td>Test.Integration.FlowEngine</td><td>In-memory registry and helpers for fast unit/integration tests.</td></tr>
+</table>
+<p>Registration entry point: <code>RegisterServices.FlowEngine.cs</code> (<code>TaskFlow.Bootstrapper</code>), called from <code>RegisterApplicationServices()</code> after the AI services. The DI surface composes engine + state + locks + registry + human-task + outbox + circuit-breaker + connector clients + JSON seeding + admin policies in a single fluent chain.</p>
+
+<h3>14.3 Shipped Workflows</h3>
+<p>Three workflow JSONs ship under <code>TaskFlow.Api/Workflows/</code> and are seeded at startup by the FlowEngine hosted seeding service:</p>
+
+<div class="diagram-container">
+<svg viewBox="0 0 980 700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowFE" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#8b949e"/>
+    </marker>
+  </defs>
+
+  <!-- Workflow 1: ai-task-triage -->
+  <rect x="10" y="10" width="960" height="220" rx="10" fill="rgba(88,166,255,0.05)" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="25" y="35" fill="#58a6ff" font-size="13" font-weight="700">ai-task-triage (1.0.0)</text>
+  <text x="25" y="52" fill="#8b949e" font-size="10">Classify a new TaskItem via AI; Critical priority routes through 2-of-3 human quorum with saga compensation on reject.</text>
+
+  <rect x="30" y="80" width="120" height="44" rx="6" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+  <text x="90" y="100" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-classify</text>
+  <text x="90" y="115" text-anchor="middle" fill="#8b949e" font-size="9">agent</text>
+
+  <rect x="180" y="80" width="120" height="44" rx="6" fill="rgba(210,153,34,0.15)" stroke="#d29922"/>
+  <text x="240" y="100" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-priority-switch</text>
+  <text x="240" y="115" text-anchor="middle" fill="#8b949e" font-size="9">decision</text>
+
+  <rect x="330" y="40" width="120" height="44" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff"/>
+  <text x="390" y="60" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-quorum-approval</text>
+  <text x="390" y="75" text-anchor="middle" fill="#8b949e" font-size="9">human · 2-of-3 · 24h</text>
+
+  <rect x="490" y="80" width="120" height="44" rx="6" fill="rgba(240,136,62,0.15)" stroke="#f0883e"/>
+  <text x="550" y="100" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-apply-priority</text>
+  <text x="550" y="115" text-anchor="middle" fill="#8b949e" font-size="9">integration · PATCH</text>
+
+  <rect x="640" y="80" width="120" height="44" rx="6" fill="rgba(247,120,186,0.15)" stroke="#f778ba"/>
+  <text x="700" y="100" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-publish-event</text>
+  <text x="700" y="115" text-anchor="middle" fill="#8b949e" font-size="9">message</text>
+
+  <rect x="330" y="155" width="140" height="44" rx="6" fill="rgba(248,81,73,0.15)" stroke="#f85149"/>
+  <text x="400" y="175" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-compensate-reject</text>
+  <text x="400" y="190" text-anchor="middle" fill="#8b949e" font-size="9">integration · comment</text>
+
+  <line x1="150" y1="102" x2="180" y2="102" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="300" y1="92" x2="330" y2="62" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="305" y="68" fill="#8b949e" font-size="8">Critical</text>
+  <line x1="300" y1="112" x2="490" y2="102" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="380" y="120" fill="#8b949e" font-size="8">Default</text>
+  <line x1="450" y1="62" x2="490" y2="92" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="463" y="65" fill="#3fb950" font-size="8">Approved</text>
+  <line x1="450" y1="80" x2="400" y2="155" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="395" y="135" fill="#f85149" font-size="8">Rejected</text>
+  <line x1="610" y1="102" x2="640" y2="102" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+
+  <!-- Workflow 2: ai-task-decomposer -->
+  <rect x="10" y="245" width="960" height="190" rx="10" fill="rgba(63,185,80,0.05)" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="25" y="270" fill="#3fb950" font-size="13" font-weight="700">ai-task-decomposer (1.0.0)</text>
+  <text x="25" y="287" fill="#8b949e" font-size="10">Use the agent to break a long task into subtasks; optional human review; loop-create each child via API.</text>
+
+  <rect x="30" y="310" width="140" height="44" rx="6" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+  <text x="100" y="330" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-propose-subtasks</text>
+  <text x="100" y="345" text-anchor="middle" fill="#8b949e" font-size="9">agent</text>
+
+  <rect x="200" y="310" width="120" height="44" rx="6" fill="rgba(210,153,34,0.15)" stroke="#d29922"/>
+  <text x="260" y="330" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-approval-gate</text>
+  <text x="260" y="345" text-anchor="middle" fill="#8b949e" font-size="9">decision</text>
+
+  <rect x="350" y="365" width="120" height="44" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff"/>
+  <text x="410" y="385" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-human-review</text>
+  <text x="410" y="400" text-anchor="middle" fill="#8b949e" font-size="9">human · 1 · 24h</text>
+
+  <rect x="500" y="310" width="120" height="44" rx="6" fill="rgba(240,136,62,0.15)" stroke="#f0883e"/>
+  <text x="560" y="330" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-create-subtasks</text>
+  <text x="560" y="345" text-anchor="middle" fill="#8b949e" font-size="9">loop · POST</text>
+
+  <rect x="650" y="310" width="130" height="44" rx="6" fill="rgba(247,120,186,0.15)" stroke="#f778ba"/>
+  <text x="715" y="330" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-publish-decomposed</text>
+  <text x="715" y="345" text-anchor="middle" fill="#8b949e" font-size="9">message</text>
+
+  <line x1="170" y1="332" x2="200" y2="332" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="320" y1="345" x2="350" y2="380" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="320" y="370" fill="#8b949e" font-size="8">requireApproval</text>
+  <line x1="320" y1="322" x2="500" y2="322" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="395" y="318" fill="#8b949e" font-size="8">auto-accept</text>
+  <line x1="470" y1="380" x2="500" y2="345" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="620" y1="332" x2="650" y2="332" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+
+  <!-- Workflow 3: compliance-check -->
+  <rect x="10" y="450" width="960" height="240" rx="10" fill="rgba(247,120,186,0.05)" stroke="#f778ba" stroke-width="1.5"/>
+  <text x="25" y="475" fill="#f778ba" font-size="13" font-weight="700">compliance-check (1.0.0)</text>
+  <text x="25" y="492" fill="#8b949e" font-size="10">Find tasks tagged 'compliance' due within N days; for each, fetch evidence, summarize via agent, route to human when expired.</text>
+
+  <rect x="30" y="515" width="140" height="44" rx="6" fill="rgba(121,192,255,0.15)" stroke="#79c0ff"/>
+  <text x="100" y="535" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-query-due</text>
+  <text x="100" y="550" text-anchor="middle" fill="#8b949e" font-size="9">query · FilterBuilder</text>
+
+  <rect x="200" y="515" width="120" height="44" rx="6" fill="rgba(240,136,62,0.15)" stroke="#f0883e"/>
+  <text x="260" y="535" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-loop-each</text>
+  <text x="260" y="550" text-anchor="middle" fill="#8b949e" font-size="9">loop · parallel max 5</text>
+
+  <rect x="350" y="515" width="120" height="44" rx="6" fill="rgba(121,192,255,0.15)" stroke="#79c0ff"/>
+  <text x="410" y="535" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-fetch-evidence</text>
+  <text x="410" y="550" text-anchor="middle" fill="#8b949e" font-size="9">document</text>
+
+  <rect x="500" y="515" width="120" height="44" rx="6" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+  <text x="560" y="535" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-extract</text>
+  <text x="560" y="550" text-anchor="middle" fill="#8b949e" font-size="9">agent</text>
+
+  <rect x="650" y="515" width="100" height="44" rx="6" fill="rgba(210,153,34,0.15)" stroke="#d29922"/>
+  <text x="700" y="535" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-decide</text>
+  <text x="700" y="550" text-anchor="middle" fill="#8b949e" font-size="9">decision</text>
+
+  <rect x="780" y="475" width="160" height="44" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff"/>
+  <text x="860" y="495" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-escalate</text>
+  <text x="860" y="510" text-anchor="middle" fill="#8b949e" font-size="9">human · compliance-officer · 48h</text>
+
+  <rect x="780" y="555" width="160" height="44" rx="6" fill="rgba(247,120,186,0.15)" stroke="#f778ba"/>
+  <text x="860" y="575" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">n-remind</text>
+  <text x="860" y="590" text-anchor="middle" fill="#8b949e" font-size="9">message · comment</text>
+
+  <line x1="170" y1="537" x2="200" y2="537" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="320" y1="537" x2="350" y2="537" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="470" y1="537" x2="500" y2="537" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="620" y1="537" x2="650" y2="537" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <line x1="750" y1="525" x2="780" y2="497" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="745" y="515" fill="#f85149" font-size="8">expired</text>
+  <line x1="750" y1="549" x2="780" y2="577" stroke="#8b949e" marker-end="url(#arrowFE)"/>
+  <text x="745" y="569" fill="#3fb950" font-size="8">due-soon</text>
+</svg>
+</div>
+
+<table>
+  <tr><th>Workflow</th><th>Trigger</th><th>Params</th><th>Notable patterns</th></tr>
+  <tr><td><strong>ai-task-triage</strong></td><td>Manual today; intended to fire on <code>TaskItemCreatedEvent</code> via <code>IWorkflowTrigger</code> (see §14.6)</td><td><code>tenantId</code>, <code>taskId</code>, <code>description</code> (required)</td><td>2-of-3 human quorum, 12 h escalation, saga <code>compensationNodeId</code> revert on downstream fault, idempotency keys on every side-effect node</td></tr>
+  <tr><td><strong>ai-task-decomposer</strong></td><td>Manual / dashboard</td><td><code>tenantId</code>, <code>taskId</code>, <code>description</code>, <code>requireApproval</code> (optional)</td><td>Conditional human review, sequential <code>loop</code> to create N children via API</td></tr>
+  <tr><td><strong>compliance-check</strong></td><td>Manual / dashboard / future cron via TickerQ</td><td><code>tenantId</code>, <code>windowDays</code> (default 7)</td><td>Parallel <code>loop</code> with bounded concurrency (max 5), <code>query</code> node using FilterBuilder, <code>document</code> node for evidence retrieval</td></tr>
+</table>
+<p>All three are validated at every build by <code>Test.Integration.FlowEngine</code> (see §12.2).</p>
+
+<h3>14.4 State Isolation &amp; Atomic Outbox</h3>
+<p>FlowEngine state lives in a <strong>separate <code>flowengine</code> schema on the same SQL Server connection</strong>, owned by <code>TaskFlowFlowEngineDbContext</code> (sealed, in <code>Infrastructure.Data</code>). This is <strong>Variant A</strong> of the deployment-layout decision (same DB, separate schema):</p>
+
+<div class="diagram-container">
+<svg viewBox="0 0 880 430" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <!-- SQL Server boundary -->
+  <rect x="20" y="20" width="840" height="280" rx="12" fill="none" stroke="#58a6ff" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="40" y="42" fill="#58a6ff" font-size="13" font-weight="700">SQL Server (single instance, single connection string)</text>
+
+  <!-- dbo schema -->
+  <rect x="40" y="60" width="380" height="220" rx="10" fill="rgba(88,166,255,0.05)" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="55" y="82" fill="#58a6ff" font-size="12" font-weight="700">dbo schema</text>
+  <rect x="60" y="100" width="160" height="36" rx="6" fill="rgba(88,166,255,0.15)" stroke="#58a6ff" stroke-width="1"/>
+  <text x="140" y="123" text-anchor="middle" fill="#e6edf3" font-size="11">TaskItems</text>
+  <rect x="60" y="146" width="160" height="36" rx="6" fill="rgba(88,166,255,0.15)" stroke="#58a6ff" stroke-width="1"/>
+  <text x="140" y="169" text-anchor="middle" fill="#e6edf3" font-size="11">Categories, Tags, ...</text>
+  <rect x="60" y="192" width="280" height="36" rx="6" fill="rgba(88,166,255,0.15)" stroke="#58a6ff" stroke-width="1"/>
+  <text x="200" y="215" text-anchor="middle" fill="#e6edf3" font-size="11">__EFMigrationsHistory</text>
+
+  <!-- flowengine schema -->
+  <rect x="460" y="60" width="380" height="220" rx="10" fill="rgba(188,140,255,0.06)" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="475" y="82" fill="#bc8cff" font-size="12" font-weight="700">flowengine schema</text>
+  <rect x="480" y="100" width="100" height="32" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="530" y="120" text-anchor="middle" fill="#e6edf3" font-size="11">Workflows</text>
+  <rect x="590" y="100" width="100" height="32" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="640" y="120" text-anchor="middle" fill="#e6edf3" font-size="11">Executions</text>
+  <rect x="700" y="100" width="120" height="32" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="760" y="120" text-anchor="middle" fill="#e6edf3" font-size="11">HumanTasks</text>
+  <rect x="480" y="140" width="100" height="32" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="530" y="160" text-anchor="middle" fill="#e6edf3" font-size="11">ChildSignals</text>
+  <rect x="590" y="140" width="100" height="32" rx="6" fill="rgba(240,136,62,0.18)" stroke="#f0883e" stroke-width="1"/>
+  <text x="640" y="160" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">Outbox</text>
+  <rect x="700" y="140" width="120" height="32" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="760" y="160" text-anchor="middle" fill="#e6edf3" font-size="11">CircuitBreakers</text>
+  <rect x="480" y="192" width="340" height="36" rx="6" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1"/>
+  <text x="650" y="215" text-anchor="middle" fill="#e6edf3" font-size="11">__EFMigrationsHistory_FlowEngine</text>
+
+  <!-- DbContexts -->
+  <rect x="40" y="320" width="180" height="60" rx="8" fill="rgba(88,166,255,0.12)" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="130" y="345" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">TaskFlowDbContextTrxn</text>
+  <text x="130" y="362" text-anchor="middle" fill="#8b949e" font-size="9">audit interceptor base</text>
+  <rect x="240" y="320" width="180" height="60" rx="8" fill="rgba(88,166,255,0.12)" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="330" y="345" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">TaskFlowDbContextQuery</text>
+  <text x="330" y="362" text-anchor="middle" fill="#8b949e" font-size="9">no-tracking</text>
+
+  <rect x="460" y="315" width="380" height="80" rx="8" fill="rgba(188,140,255,0.12)" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="650" y="338" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="700">TaskFlowFlowEngineDbContext</text>
+  <text x="650" y="355" text-anchor="middle" fill="#8b949e" font-size="9">IFlowEngineStateDbContext</text>
+  <text x="650" y="370" text-anchor="middle" fill="#8b949e" font-size="9">+ IFlowEngineOutboxDbContext</text>
+  <text x="650" y="385" text-anchor="middle" fill="#8b949e" font-size="9">+ IFlowEngineCircuitBreakerDbContext</text>
+
+  <line x1="130" y1="320" x2="130" y2="280" stroke="#58a6ff" stroke-width="1" marker-end="url(#arrowFE)"/>
+  <line x1="330" y1="320" x2="330" y2="280" stroke="#58a6ff" stroke-width="1" marker-end="url(#arrowFE)"/>
+  <line x1="650" y1="315" x2="650" y2="280" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#arrowFE)"/>
+</svg>
+</div>
+
+<p><strong>Why a separate DbContext rather than mixing FlowEngine entities into the existing transactional context:</strong></p>
+<ul>
+  <li>TaskFlow's primary DbContext (<code>TaskFlowDbContextTrxn</code>) inherits from <code>EF.Data.DbContextBase&lt;TUser,TKey&gt;</code> for the audit interceptor. FlowEngine's mixin contexts (<code>FlowEngineOutboxDbContext</code>, etc.) are abstract bases — multi-inheritance is impossible.</li>
+  <li>FlowEngine's interface-composition pattern (<code>IFlowEngineStateDbContext</code> + <code>IFlowEngineOutboxDbContext</code> + <code>IFlowEngineCircuitBreakerDbContext</code>) lets a single fresh DbContext declare all three roles without subclass conflict. <code>TaskFlowFlowEngineDbContext</code> is that DbContext.</li>
+  <li>Separate migration history (<code>__EFMigrationsHistory_FlowEngine</code>, configured in <code>ConfigureFlowEngineSqlOptions</code>) keeps the two schemas evolvable independently.</li>
+</ul>
+
+<div class="callout"><strong>Atomic outbox is preserved.</strong> Because state, outbox, and circuit-breaker tables all live in <code>TaskFlowFlowEngineDbContext</code>, FlowEngine's <code>SqlExecutionStateStore.SaveWithOutboxAsync</code> writes the workflow execution row and the outbox rows in a single <code>SaveChangesAsync</code>. There is no window where a node's external side effect is committed without the state advance, or vice versa. This is the gain over Variant B/C (separate DB) and is the reason Variant A was selected — see <a href="../.scaffold/DESIGN-DECISIONS.md">DESIGN-DECISIONS.md D-016</a>.</div>
+
+<h3>14.5 Connector Wiring</h3>
+<p>Three connector clients are registered in <code>AddTaskFlowConnectorClients</code>:</p>
+<table>
+  <tr><th><code>clientRef</code></th><th>Type</th><th>Wiring</th></tr>
+  <tr><td><code>taskflow-api</code></td><td>Resilient HTTP</td><td>Base URL = <code>FlowEngine:TaskFlowApiBaseUrl</code> ?? <code>Gateway:BaseUrl</code>. Self-call — workflows mutate TaskItems through the public API to preserve auth, validation, audit, and event publishing. Used by <code>n-apply-priority</code>, <code>n-compensate-reject</code>, <code>n-create-subtasks</code>, <code>n-revert-priority</code>.</td></tr>
+  <tr><td><code>integration-events</code></td><td>Service Bus</td><td>Connection from <code>ServiceBus1</code>; topic from <code>FlowEngine:ServiceBusTopic</code> (default <code>taskflow-integration-events</code>). Registers only when the connection string is present. Used by <code>n-publish-event</code>, <code>n-publish-decomposed</code>.</td></tr>
+  <tr><td><code>ai-agent</code></td><td>Azure OpenAI</td><td>Resolves the existing DI-registered <code>AzureOpenAIClient</code> from <code>Infrastructure.AI</code> via factory lambda; reads <code>TaskFlowAiSettings:ChatDeployment</code> (default <code>gpt-4o</code>) and <code>:FoundryEndpoint</code>. Registers only when <code>FoundryEndpoint</code> is set. Used by <code>n-classify</code>, <code>n-propose-subtasks</code>, <code>n-extract</code>.</td></tr>
+</table>
+<p>The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate the OpenAI client; it borrows the one already registered in <code>Infrastructure.AI.AddAiServices()</code>. When <code>FoundryEndpoint</code> is absent the <code>agent</code> nodes will not register and any workflow with an <code>agent</code> step will fault on <code>n-classify</code> — that's the expected scaffold-mode posture.</p>
+
+<h3>14.6 Workflow Triggering</h3>
+<p><code>Application.MessageHandlers.WorkflowTriggerHandler</code> implements <code>IWorkflowTrigger</code> with a single method <code>OnTaskItemCreatedAsync(TaskItemCreatedEvent)</code> that calls <code>engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })</code>.</p>
+<div class="callout"><strong>It is intentionally not wired to <code>IInternalMessageBus</code> today.</strong> <code>TaskItemCreatedEvent</code> is an integration event traveling over Service Bus, not an in-process <code>IMessage</code>. The class exists as a one-line addition wherever the event is raised — typically in <code>TaskItemService</code> after <code>eventPublisher.PublishAsync</code>, or in a custom Service Bus subscriber inside <code>TaskFlow.Functions</code>. For the reference-app demo, manual invocation via the dashboard's <code>/workflows/run</code> page is sufficient.</div>
+<p>Wiring options when a downstream consumer wants automatic triggering:</p>
+<ol>
+  <li><strong>Service Bus subscriber in <code>TaskFlow.Functions</code></strong> — add a topic subscription, deserialize <code>TaskItemCreatedEvent</code>, call <code>IWorkflowTrigger.OnTaskItemCreatedAsync</code>. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.</li>
+  <li><strong>Inline call in <code>TaskItemService</code></strong> — DI-resolve <code>IWorkflowTrigger</code>, call after <code>eventPublisher.PublishAsync</code>. Simpler but ties the request thread to engine startup.</li>
+  <li><strong>TickerQ job for <code>compliance-check</code></strong> — a cron-triggered scheduler job that calls <code>engine.StartBackgroundAsync</code> with the <code>compliance-check</code> workflow id and a fresh <code>windowDays</code> param.</li>
+</ol>
+
+<h3>14.7 Admin API and Auth</h3>
+<p><code>MapFlowEngineAdmin(prefix: "/api/flowengine")</code> (called in <code>WebApplicationBuilderExtensions.cs</code>) mounts the REST surface from <code>EF.FlowEngine.AdminApi</code>:</p>
+<table>
+  <tr><th>Route group</th><th>Purpose</th></tr>
+  <tr><td><code>/api/flowengine/workflows</code></td><td>Workflow registry CRUD (list, get, transition Draft↔Active↔Retired)</td></tr>
+  <tr><td><code>/api/flowengine/instances</code></td><td>Instance list/get/start/cancel/replay; history projection</td></tr>
+  <tr><td><code>/api/flowengine/human-tasks</code></td><td>Human-task list, claim, complete, reject</td></tr>
+  <tr><td><code>/api/flowengine/circuit-breakers</code></td><td>Inspect breaker state per key; manual reset</td></tr>
+</table>
+<p>Authentication and authorization use the same pipeline as the rest of the API (<code>Bearer</code> + tenant-match policies in production; scaffold mode locally). <code>AddFlowEngineAdminPolicies()</code> registers the policy names used by the package's endpoint metadata. The gateway forwards the user's <code>Authorization</code> header through to the API; the Blazor Dashboard calls the gateway, not the API directly, so user identity travels end-to-end without bespoke header forwarding.</p>
+
+<h3>14.8 Operational Notes</h3>
+<ul>
+  <li><strong>First-instance-start gotcha.</strong> If a workflow JSON references a <code>clientRef</code> that hasn't been registered (e.g. <code>ai-agent</code> when <code>FoundryEndpoint</code> is unset), the failure surfaces on the first instance start, not at boot. The <code>Test.Integration.FlowEngine</code> suite validates definition shape but cannot validate connector registration — that requires a live AppHost. Confirm via the demo verification checklist in §14.9.</li>
+  <li><strong>Sweep cadence.</strong> Engine options: <code>SweepInterval=30s</code>, <code>SweepBatchSize=50</code>, <code>DefaultLeaseDuration=30s</code>, <code>LeaseRenewalInterval=13s</code>. Tuned for the reference app's load profile; production deployments should profile against expected concurrent-instance counts.</li>
+  <li><strong>Replicas.</strong> The SQL lock provider lets multiple API replicas safely share the engine; only one replica leases an instance at a time. The Dashboard does not lease anything — it's pure read-side over the admin API.</li>
+  <li><strong>Backpressure.</strong> Outbox publishing runs on a background drain; if Service Bus is unavailable the outbox grows. Monitor <code>flowengine.Outbox</code> row count in the dashboard / a metric.</li>
+</ul>
+
+<h3>14.9 Demo Verification</h3>
+<p>With the Aspire AppHost running, the gateway URL visible in the Aspire dashboard:</p>
+<pre><code>GW="https://localhost:&lt;gateway-port&gt;"
+
+# 1. Verify seeding ran — three workflows present, status Active
+curl -sk "$GW/api/flowengine/workflows" | jq '.[] | { id, version, status }'
+
+# 2. Verify the instance list is reachable
+curl -sk "$GW/api/flowengine/instances?Status=Running" | jq '. | length'
+
+# 3. Start a manual triage run
+curl -sk -X POST "$GW/api/flowengine/instances/start" -H "Content-Type: application/json" -d '{
+  "workflowId": "ai-task-triage",
+  "params": {
+    "tenantId":    "11111111-1111-1111-1111-111111111111",
+    "taskId":      "22222222-2222-2222-2222-222222222222",
+    "description": "Sample triage task for the demo run"
+  },
+  "tenantId": "11111111-1111-1111-1111-111111111111"
+}' | jq
+
+# 4. Inspect instance state
+INSTANCE_ID="&lt;paste from step 3&gt;"
+curl -sk "$GW/api/flowengine/instances/$INSTANCE_ID" | jq '{ status, history }'</code></pre>
+<p>Browser verification (Blazor + Dashboard, run separately from AppHost):</p>
+<ol>
+  <li><code>https://&lt;blazor-host&gt;/workflows/registry</code> — three workflows Active.</li>
+  <li><code>/workflows/new</code> — drag a few tiles; Import JSON of <code>ai-task-triage.json</code> and confirm parse.</li>
+  <li><code>/workflows/run</code> — pick <code>ai-task-triage</code>, paste params, fire; see it appear under <code>/instances</code>.</li>
+  <li><code>/human-tasks</code> — only populated once an instance reaches a <code>human</code> node (the Critical branch of triage, or the optional review in decomposer). Requires <code>FoundryEndpoint</code> configured for the upstream <code>agent</code> step to succeed.</li>
+</ol>
+<p><strong>Without <code>FoundryEndpoint</code> configured</strong>, the <code>n-classify</code> agent step will fault and the instance will land at <code>n-faulted</code> immediately — that's the expected no-AI scaffold posture and matches the reference app's "no-op stub" pattern.</p>
 
 <!-- ============================================================ -->
 <!-- APPENDIX -->

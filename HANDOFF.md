@@ -7,7 +7,7 @@
 
 ## Session Summary
 
-Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC). Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules.
+Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC) + FlowEngine workflow orchestration integration. Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules, plus **EF.FlowEngine 1.0.104** (separate `flowengine` schema in same SQL DB, three shipped workflows under `TaskFlow.Api/Workflows/`, Blazor-hosted Dashboard + Designer, admin API at `/api/flowengine/*`, agent nodes wired to existing Azure OpenAI client, `IWorkflowTrigger` for domain-event invocation).
 
 ## Current State
 
@@ -26,15 +26,17 @@ enabledFeatures:
   includeBlazorUI: true
   includeNotifications: false
   includeAiServices: true        # scaffold mode (deployment-only, no-op stubs)
+  includeFlowEngine: true        # 1.0.104; agent nodes require FoundryEndpoint config
 testStatus:
   unitTests: green
   endpointTests: green
   infrastructureTests: green     # Integration + E2E via Testcontainers
+  flowEngineTests: green         # Test.Integration.FlowEngine — 13 workflow-validity cases
 hostGates:
   scheduler: validated
   functionApp: validated
   unoUI: validated
-  blazorUI: validated
+  blazorUI: validated            # also hosts FlowEngine Dashboard + Designer
   notifications: not-applicable
 ```
 
@@ -54,6 +56,8 @@ hostGates:
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
 | `HANDOFF.md` | — | This file. Stays at project root as the session resume contract. |
+| `src/Host/TaskFlow.Api/Workflows/*.json` | 5e+ | Three FlowEngine workflow definitions (`ai-task-triage`, `ai-task-decomposer`, `compliance-check`) — seeded at startup, validated on every build via Test.Integration.FlowEngine. |
+| `src/Infrastructure/TaskFlow.Infrastructure.Data/Migrations/FlowEngine/` | 5e+ | FlowEngine schema migration (`flowengine` schema, separate migration history). |
 
 ## Outstanding Follow-Ups
 
