@@ -1,6 +1,8 @@
-namespace TaskFlow.Api.Middleware;
+namespace EF.AspNetCore.Security;
 
-public class SecurityHeadersMiddleware(RequestDelegate next)
+using Microsoft.AspNetCore.Http;
+
+public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
     {

@@ -5,6 +5,7 @@ using Aspire.Hosting.Testing;
 using Azure;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
+using EF.Test.Integration.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
@@ -60,9 +61,10 @@ public class ApiAuditPipelineTests
         Assert.AreEqual(ScaffoldTenantId, responseBody.Item.TenantId);
         Assert.AreEqual(request.Item.Name, responseBody.Item.Name);
 
-        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
-            .AsTask()
-            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
+        var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
+            "TableStorage1",
+            AspireTestHost.DefaultTimeout,
+            ct);
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,

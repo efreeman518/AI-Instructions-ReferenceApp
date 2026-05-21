@@ -1,9 +1,10 @@
+using EF.Test.Integration.EntityFramework;
+using EF.Test.Integration.Testcontainers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Infrastructure.Data;
 using Test.Support;
-using Testcontainers.MsSql;
 
 namespace Test.E2E;
 
@@ -14,9 +15,7 @@ namespace Test.E2E;
 /// </summary>
 public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery>
 {
-    private static MsSqlContainer _container = null!;
-    private static string _connectionString = null!;
-    private static bool _started;
+    private static readonly MsSqlContainerFixture Sql = new();
 
     private readonly string _applicationStyle;
 
@@ -29,18 +28,12 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
 
     public static async Task StartContainerAsync()
     {
-        if (_started) return;
-        _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest").Build();
-        await _container.StartAsync();
-        _connectionString = _container.GetConnectionString();
-        _started = true;
+        await Sql.StartAsync();
     }
 
     public static async Task StopContainerAsync()
     {
-        if (!_started) return;
-        await _container.DisposeAsync();
-        _started = false;
+        await Sql.DisposeAsync();
     }
 
     protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
@@ -52,8 +45,8 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
     }
 
     protected override DbContextOptions BuildTrxnOptions() =>
-        new DbContextOptionsBuilder<TaskFlowDbContextTrxn>().UseSqlServer(_connectionString).Options;
+        DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextTrxn>(Sql.ConnectionString);
 
     protected override DbContextOptions BuildQueryOptions() =>
-        new DbContextOptionsBuilder<TaskFlowDbContextQuery>().UseSqlServer(_connectionString).Options;
+        DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextQuery>(Sql.ConnectionString);
 }

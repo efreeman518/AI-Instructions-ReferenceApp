@@ -5,7 +5,6 @@ using System.Threading.RateLimiting;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using TaskFlow.Gateway.HealthChecks;
 using Yarp.ReverseProxy.Transforms;
@@ -142,7 +141,6 @@ public static class RegisterGatewayServices
         services.AddHttpClient(nameof(AggregateGatewayHealthCheck));
 
         services.AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live", "memory"])
             .AddCheck<AggregateGatewayHealthCheck>("taskflow-api", tags: ["full", "extservice"]);
     }
 

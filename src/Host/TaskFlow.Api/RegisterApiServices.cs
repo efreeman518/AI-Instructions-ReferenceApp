@@ -1,7 +1,8 @@
-using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using Asp.Versioning;
+using EF.AspNetCore.Correlation;
+using EF.AspNetCore.ProblemDetails;
+using EF.AspNetCore.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics;
 using TaskFlow.Api.Auth;
@@ -20,10 +21,9 @@ public static class RegisterApiServices
         AddAuthentication(services, config, startupLogger);
         AddAuthorization(services);
         AddExceptionHandling(services);
-        AddCorrelationTracking(services);
+        services.AddCorrelationHeaderPropagation();
         AddRateLimiting(services, config);
-        AddApiVersioning(services);
-        AddOpenApi(services, config);
+        AddVersionedOpenApi(services, config);
 
         // Workflow JSON seeding is now configured in the bootstrapper via
         // FlowEngineBuilder.AddWorkflowJsonSeeding (EF.FlowEngine v1.0.104+).
@@ -74,22 +74,7 @@ public static class RegisterApiServices
         services.AddProblemDetails(options =>
         {
             options.CustomizeProblemDetails = context =>
-            {
-                context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
-                context.ProblemDetails.Extensions.TryAdd("traceId", context.HttpContext.TraceIdentifier);
-
-                var activity = Activity.Current;
-                if (!string.IsNullOrWhiteSpace(activity?.Id))
-                    context.ProblemDetails.Extensions.TryAdd("activityId", activity.Id);
-            };
-        });
-    }
-
-    private static void AddCorrelationTracking(IServiceCollection services)
-    {
-        services.AddHeaderPropagation(options =>
-        {
-            options.Headers.Add(CorrelationIdMiddleware.HeaderName);
+                ProblemDetailsMetadata.ApplyRequestMetadata(context.ProblemDetails, context.HttpContext);
         });
     }
 
@@ -167,46 +152,22 @@ public static class RegisterApiServices
         });
     }
 
-    private static IApiVersioningBuilder AddApiVersioning(IServiceCollection services)
+    private static void AddVersionedOpenApi(IServiceCollection services, IConfiguration config)
     {
-        return services.AddApiVersioning(options =>
+        services.AddEfVersionedOpenApi(options =>
         {
-            options.DefaultApiVersion = ApiContract.DefaultVersion;
-            options.AssumeDefaultVersionWhenUnspecified = false;
-            options.ReportApiVersions = true;
-            options.ApiVersionReader = new UrlSegmentApiVersionReader();
-        })
-        .AddApiExplorer(options =>
-        {
-            options.GroupNameFormat = ApiContract.ApiExplorerGroupNameFormat;
-            options.SubstituteApiVersionInUrl = true;
-        });
-    }
+            options.Title = ApiContract.Title;
+            options.Description = ApiContract.Description;
+            options.ApiExplorerGroupNameFormat = ApiContract.ApiExplorerGroupNameFormat;
+            options.EnableOpenApi = config.GetValue<bool>("OpenApiSettings:Enable", true);
 
-    private static void AddOpenApi(
-        IServiceCollection services,
-        IConfiguration config)
-    {
-        if (!config.GetValue<bool>("OpenApiSettings:Enable", true)) return;
-
-        foreach (var apiDocument in ApiContract.SupportedDocuments)
-        {
-            services.AddOpenApi(apiDocument.GroupName, options =>
+            foreach (var apiDocument in ApiContract.SupportedDocuments)
             {
-                options.ShouldInclude = apiDescription =>
-                    string.Equals(apiDescription.GroupName, apiDocument.GroupName, StringComparison.OrdinalIgnoreCase);
-
-                options.AddDocumentTransformer((document, context, ct) =>
+                options.Documents.Add(new ApiVersionDocument(apiDocument.Version, apiDocument.GroupName)
                 {
-                    document.Info = new()
-                    {
-                        Title = ApiContract.Title,
-                        Version = apiDocument.DisplayName,
-                        Description = ApiContract.Description
-                    };
-                    return Task.CompletedTask;
+                    DisplayName = apiDocument.DisplayName
                 });
-            });
-        }
+            }
+        });
     }
 }

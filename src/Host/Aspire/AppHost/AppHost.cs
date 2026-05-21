@@ -69,7 +69,8 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     // .WithReference(openai)
     // .WithReference(search)
     .WaitFor(sql)
-    .WaitFor(redis);
+    .WaitFor(redis)
+    .WaitFor(serviceBus);
 
 if (isTesting)
 {
@@ -91,7 +92,8 @@ if (!isTesting)
         .WithReference(tables)
         .WithReference(serviceBus)
         .WithReplicas(1)
-        .WaitFor(sql);
+        .WaitFor(sql)
+        .WaitFor(serviceBus);
 
     if (!string.IsNullOrWhiteSpace(applicationStyle))
     {
@@ -115,7 +117,8 @@ if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS
         .WithReference(blobs)
         .WithReference(serviceBus)
         .WaitFor(sql)
-        .WaitFor(storage);
+        .WaitFor(storage)
+        .WaitFor(serviceBus);
 
     if (!string.IsNullOrWhiteSpace(applicationStyle))
     {

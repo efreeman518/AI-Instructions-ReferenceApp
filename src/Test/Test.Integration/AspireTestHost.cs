@@ -1,8 +1,11 @@
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using AppHost;
+using EF.Test.Integration.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using EnvironmentVariableScope = EF.Test.Integration.Environment.EnvironmentVariableScope;
+using FunctionsCoreToolsDiscovery = EF.Test.Integration.Environment.FunctionsCoreToolsDiscovery;
 
 namespace Test.Integration;
 
@@ -28,8 +31,7 @@ public class AspireTestHost
     /// <summary>Cleanup deadline. StopAsync should return promptly; the bound prevents a stuck shutdown.</summary>
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
 
-    private static string? _originalAspireTesting;
-    private static string? _originalIncludeFunctions;
+    private static EnvironmentVariableScope? _environment;
     internal static string ConnectionString = null!;
 
     /// <summary>Shared Aspire app started once for all Aspire-based integration tests.</summary>
@@ -39,11 +41,11 @@ public class AspireTestHost
     public static async Task AssemblyInit(TestContext _)
     {
         // AppHost.cs reads these via Environment.GetEnvironmentVariable, so they must be process env vars.
-        _originalAspireTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING");
-        _originalIncludeFunctions = Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS");
-        Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", "true");
+        _environment = new EnvironmentVariableScope()
+            .Set("TASKFLOW_ASPIRE_TESTING", "true");
+
         if (EnsureFuncToolAvailable())
-            Environment.SetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS", "true");
+            _environment.Set("TASKFLOW_INCLUDE_FUNCTIONS", "true");
 
         var ct = CancellationToken.None;
 
@@ -80,16 +82,9 @@ public class AspireTestHost
 
         // Container reaching the Running state does not mean SQL is accepting connections — wait for the health check.
         // Without this, the first test using ConnectionString races SQL warm-up.
-        await AspireApp.ResourceNotifications.WaitForResourceHealthyAsync("taskflowdb", ct)
-            .WaitAsync(DefaultTimeout, ct);
+        await AspireApp.WaitForResourceHealthyAsync("taskflowdb", DefaultTimeout, ct);
 
-        // GetConnectionStringAsync returns ValueTask; convert to Task to apply WaitAsync.
-        var sqlConnectionString = await AspireApp.GetConnectionStringAsync("taskflowdb", ct)
-            .AsTask()
-            .WaitAsync(DefaultTimeout, ct);
-        ConnectionString = string.IsNullOrWhiteSpace(sqlConnectionString)
-            ? throw new InvalidOperationException("Aspire SQL connection string 'taskflowdb' was not resolved.")
-            : sqlConnectionString;
+        ConnectionString = await AspireApp.GetRequiredConnectionStringAsync("taskflowdb", DefaultTimeout, ct);
     }
 
     [AssemblyCleanup]
@@ -108,8 +103,8 @@ public class AspireTestHost
             await AspireApp.DisposeAsync();
         }
 
-        Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", _originalAspireTesting);
-        Environment.SetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS", _originalIncludeFunctions);
+        _environment?.Dispose();
+        _environment = null;
     }
 
     /// <summary>
@@ -122,9 +117,7 @@ public class AspireTestHost
         if (AspireApp is null)
             throw new InvalidOperationException("AspireApp is not initialized.");
 
-        return AspireApp.ResourceNotifications
-            .WaitForResourceHealthyAsync(resourceName, cancellationToken)
-            .WaitAsync(DefaultTimeout, cancellationToken);
+        return AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
     }
 
     /// <summary>
@@ -133,47 +126,6 @@ public class AspireTestHost
     /// </summary>
     internal static bool EnsureFuncToolAvailable()
     {
-        var candidateNames = OperatingSystem.IsWindows()
-            ? new[] { "func.exe", "func.cmd", "func.bat" }
-            : new[] { "func" };
-
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var pathEntries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var directory in pathEntries)
-            foreach (var candidate in candidateNames)
-                if (File.Exists(Path.Combine(directory, candidate)))
-                    return true;
-
-        if (!OperatingSystem.IsWindows())
-            return false;
-
-        var localFunctionsToolsRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AzureFunctionsTools",
-            "Releases");
-
-        if (!Directory.Exists(localFunctionsToolsRoot))
-            return false;
-
-        var discoveredDirectory = Directory
-            .EnumerateFiles(localFunctionsToolsRoot, "func.exe", SearchOption.AllDirectories)
-            .Select(Path.GetDirectoryName)
-            .Where(directory => !string.IsNullOrWhiteSpace(directory))
-            .Select(directory => directory!)
-            .OrderByDescending(directory => directory.Contains("4.", StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(directory => directory, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault();
-
-        if (discoveredDirectory == null)
-            return false;
-
-        Environment.SetEnvironmentVariable(
-            "PATH",
-            string.IsNullOrWhiteSpace(path)
-                ? discoveredDirectory
-                : string.Join(Path.PathSeparator, [discoveredDirectory, .. pathEntries]));
-
-        return true;
+        return FunctionsCoreToolsDiscovery.EnsureFuncToolAvailable();
     }
 }

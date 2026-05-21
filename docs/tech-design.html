@@ -426,7 +426,7 @@
   <text x="350" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Storage (Blob)</text>
   <text x="460" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Storage (Cosmos)</text>
   <text x="590" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">AI (Search, OpenAI)</text>
-  <text x="730" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Data + EF.CQRS</text>
+  <text x="730" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Data + packages</text>
 
   <!-- Dependency arrows -->
   <!-- Host → Bootstrapper -->
@@ -463,7 +463,7 @@
   <tr><td><strong style="color:#d29922">Bootstrapper</strong></td><td>TaskFlow.Bootstrapper</td><td>DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (<code>RegisterServices.FlowEngine.cs</code>) and the FE-migration startup task.</td><td>Application, Infrastructure</td></tr>
   <tr><td><strong style="color:#3fb950">Application</strong></td><td>Services, Cqrs, Contracts, Models, Mappers, MessageHandlers</td><td>Use-case implementation for the selected style, validation, DTO mapping, tenant enforcement, integration event definitions. <code>MessageHandlers</code> also defines <code>IWorkflowTrigger</code> for invoking FlowEngine workflows from domain events.</td><td>Domain</td></tr>
   <tr><td style="color:#f85149"><strong>Domain</strong></td><td>Domain.Model, Domain.Shared</td><td>Entities, aggregates, value objects, enums, marker interfaces</td><td>Nothing (zero outward deps)</td></tr>
-  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI, EF.CQRS</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces. <code>EF.CQRS</code> is a separately packaged CQRS helper candidate under Infrastructure for now. <code>Data</code> also owns the FlowEngine state DbContext (<code>TaskFlowFlowEngineDbContext</code>) and its migrations.</td><td>Application.Contracts, Domain</td></tr>
+  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI, EF.CQRS, EF.AspNetCore.Reference, EF.Test.Integration</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces. <code>EF.CQRS</code>, <code>EF.AspNetCore.Reference</code>, and <code>EF.Test.Integration</code> are separately packaged helper candidates under Infrastructure for now. <code>Data</code> also owns the FlowEngine state DbContext (<code>TaskFlowFlowEngineDbContext</code>) and its migrations.</td><td>Application.Contracts, Domain</td></tr>
 </table>
 
 <h3>Application Style Switch</h3>
@@ -478,6 +478,7 @@
 </table>
 <p><code>TaskFlow.Api</code> contains two endpoint sets. Service endpoints inject <code>I*Service</code>. CQRS endpoints inject the exact <code>IRequestHandler&lt;TRequest,TResponse&gt;</code> needed by that route, construct a command/query record, and call <code>HandleAsync</code> directly. The avoided patterns are central request dispatchers, request buses, and generic <code>Send()</code> entrypoints. The reason is traceability: each route exposes the exact request and handler registration it uses, so tests and code review can follow the use case without hidden runtime routing.</p>
 <p><code>src/Infrastructure/EF.CQRS</code> is intentionally isolated as the package candidate. It provides <code>ICommand</code>, <code>IQuery</code>, <code>IRequestHandler</code>, request validators, validation/logging decorators, and <code>AddDecoratedRequestHandler(...)</code> DI helpers. The project has no TaskFlow business logic.</p>
+<p><code>src/Infrastructure/EF.AspNetCore.Reference</code> is temporarily renamed so the reference app can still consume the existing <code>EF.AspNetCore</code> feed package. It hosts reusable ASP.NET Core conventions: versioned API/OpenAPI registration, versioned route-group helpers, correlation ID middleware, security headers, and ProblemDetails metadata. <code>src/Infrastructure/EF.Test.Integration</code> hosts reusable integration-test conventions: WebApplicationFactory EF rewiring, SQL Testcontainers fixtures, Aspire health/connection-string helpers, and scoped environment-variable handling.</p>
 
 <h3>Service vs CQRS Tradeoffs</h3>
 <table>
@@ -1603,14 +1604,14 @@
   <tr>
     <td><strong>Test.Integration</strong></td>
     <td>End-to-end verification of cross-service workflows by booting the full <strong>Aspire AppHost</strong> in-process: SQL Server, Service Bus emulator, Azure Table Storage, and (when <code>func.exe</code> is on PATH) Azure Functions. Covers EF migrations, repository CRUD with paging, the audit pipeline (interceptor → channel → table storage), and domain-event flow (API publish → Service Bus → Function projection → audit row).</td>
-    <td>Highest-fidelity tests that still run on a developer laptop. Because Aspire wires the same resources used by <code>dotnet run</code>, behavior matches the local dev experience and the cloud deployment.</td>
-    <td>MSTest, <strong>Aspire.Hosting.Testing</strong> (<code>DistributedApplicationTestingBuilder</code>), Testcontainers.MsSql, <code>Azure.Data.Tables</code></td>
+    <td>Highest-fidelity tests that still run on a developer laptop. Shared Aspire health, connection-string, and environment-scope helpers come from <code>EF.Test.Integration</code>, keeping the assembly fixture focused on TaskFlow-specific AppHost setup.</td>
+    <td>MSTest, <strong>Aspire.Hosting.Testing</strong> (<code>DistributedApplicationTestingBuilder</code>), <code>EF.Test.Integration</code>, <code>Azure.Data.Tables</code></td>
   </tr>
   <tr>
     <td><strong>Test.E2E</strong></td>
     <td>Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container in both application styles. These cover cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs.</td>
-    <td>Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Proves service and CQRS modes preserve the same user-facing behavior over the real RDBMS.</td>
-    <td>MSTest, WebApplicationFactory, <strong>Testcontainers.MsSql</strong></td>
+    <td>Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). The SQL container fixture and options factory come from <code>EF.Test.Integration</code>, so E2E tests only choose the application style and database backend.</td>
+    <td>MSTest, WebApplicationFactory, <code>EF.Test.Integration</code></td>
   </tr>
   <tr>
     <td><strong>Test.Load</strong></td>
@@ -1626,9 +1627,9 @@
   </tr>
   <tr>
     <td><strong>Test.Support</strong></td>
-    <td>Reusable test infrastructure: <code>WebApplicationFactoryBase&lt;TProgram, TTrxn, TQuery&gt;</code>, fluent entity builders (<code>CategoryBuilder</code>, <code>TaskItemBuilder</code>, <code>CommentBuilder</code>, <code>TagBuilder</code>), shared constants.</td>
-    <td>Removes ~100 lines of duplicated DI-rewiring boilerplate from every WebApplicationFactory test project. Builders give tests intent-revealing fixture data.</td>
-    <td><code>Microsoft.AspNetCore.Mvc.Testing</code>, EF Core InMemory</td>
+    <td>TaskFlow-specific test infrastructure: a thin <code>WebApplicationFactoryBase&lt;TProgram, TTrxn, TQuery&gt;</code> adapter over <code>EF.Test.Integration</code>, fluent entity builders (<code>CategoryBuilder</code>, <code>TaskItemBuilder</code>, <code>CommentBuilder</code>, <code>TagBuilder</code>), shared constants.</td>
+    <td>Shared DI-rewiring boilerplate lives in the package candidate; Test.Support keeps only TaskFlow-specific startup-task removal and fixture data.</td>
+    <td><code>EF.Test.Integration</code>, EF Core InMemory</td>
   </tr>
   <tr>
     <td><strong>Test.PlaywrightUI</strong></td>
@@ -1698,42 +1699,24 @@
   </tr>
 </table>
 
-<h3>12.4 Test.Support — <code>WebApplicationFactoryBase</code></h3>
-<p><code>Test.Support</code> centralizes the WebApplicationFactory plumbing that would otherwise be re-implemented in every HTTP test project. The base class is generic over the host program and both DbContexts:</p>
+<h3>12.4 Test.Support and <code>EF.Test.Integration</code></h3>
+<p><code>EF.Test.Integration</code> centralizes the reusable WebApplicationFactory plumbing that would otherwise be re-implemented in every HTTP test project. <code>Test.Support</code> keeps a TaskFlow-specific adapter so tests do not need to know the package project's startup-task convention:</p>
 <pre><code>public abstract class WebApplicationFactoryBase&lt;TProgram, TTrxnContext, TQueryContext&gt;
-    : WebApplicationFactory&lt;TProgram&gt;
+    : EfWebApplicationFactoryBase&lt;TProgram, TTrxnContext, TQueryContext&gt;
     where TProgram : class
     where TTrxnContext : DbContextBase&lt;string, Guid?&gt;
     where TQueryContext : DbContextBase&lt;string, Guid?&gt;
 {
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Development");
-        builder.ConfigureServices(services =&gt;
-        {
-            services.RemoveAll&lt;IHostedService&gt;();
-            RemoveStandardEfInfrastructure(services);   // pooled context, audit + nolock interceptors,
-                                                        // scoped factory, IDbContextFactory
-            RemoveAppSpecificServices(services);        // overridable hook
-            var trxnOptions  = BuildTrxnOptions();      // abstract — subclass picks the DB
-            var queryOptions = BuildQueryOptions();
-            services.AddScoped(_ =&gt; CreateContext&lt;TTrxnContext&gt;(trxnOptions));
-            services.AddScoped(_ =&gt; CreateContext&lt;TQueryContext&gt;(queryOptions));
-            services.AddSingleton&lt;IDbContextFactory&lt;TTrxnContext&gt;&gt;(new TestDbContextFactory&lt;TTrxnContext&gt;(trxnOptions));
-            services.AddSingleton&lt;IDbContextFactory&lt;TQueryContext&gt;&gt;(new TestDbContextFactory&lt;TQueryContext&gt;(queryOptions));
-        });
-    }
-    protected abstract DbContextOptions BuildTrxnOptions();
-    protected abstract DbContextOptions BuildQueryOptions();
+    protected override string? StartupTaskServiceTypeFullName =&gt; "TaskFlow.Bootstrapper.IStartupTask";
 }</code></pre>
 
 <table>
   <tr><th>Concern</th><th>How it's handled</th></tr>
-  <tr><td><strong>Hosted services</strong></td><td>All <code>IHostedService</code> registrations stripped — tests never start TickerQ jobs, Service Bus listeners, or background workers by accident.</td></tr>
-  <tr><td><strong>Pooled DbContext</strong></td><td>Removed via <code>RemoveDescriptorsByImplPartialName("DbContextPool")</code> so test contexts get the lifetime the test wants.</td></tr>
-  <tr><td><strong>Audit + ConnectionNoLock interceptors</strong></td><td>Removed — audit is asserted in dedicated integration tests, not on every endpoint cycle.</td></tr>
-  <tr><td><strong>DbContext construction</strong></td><td><code>TestDbContextFactory&lt;T&gt;</code> builds contexts via reflection, side-stepping <code>required</code> members on <code>DbContextBase</code>.</td></tr>
-  <tr><td><strong>DB choice</strong></td><td>Subclass overrides <code>BuildTrxnOptions()</code> / <code>BuildQueryOptions()</code> — <code>UseInMemoryDatabase(...)</code> for endpoint contract tests, <code>UseSqlServer(connString)</code> for E2E.</td></tr>
+  <tr><td><strong>Hosted services</strong></td><td><code>EF.Test.Integration</code> strips <code>IHostedService</code> registrations so tests never start TickerQ jobs, Service Bus listeners, or background workers by accident.</td></tr>
+  <tr><td><strong>Startup tasks</strong></td><td><code>Test.Support</code> sets the TaskFlow startup-task service type to remove migrations/seeding startup tasks from WebApplicationFactory hosts.</td></tr>
+  <tr><td><strong>Pooled DbContext</strong></td><td><code>EF.Test.Integration</code> removes pooled context descriptors, scoped factories, <code>IDbContextFactory</code>, audit interceptors, and connection no-lock interceptors.</td></tr>
+  <tr><td><strong>DbContext construction</strong></td><td><code>EfTestDbContextFactory&lt;T&gt;</code> builds contexts via reflection, side-stepping <code>required</code> members on <code>DbContextBase</code>.</td></tr>
+  <tr><td><strong>DB choice</strong></td><td>Subclass overrides <code>BuildTrxnOptions()</code> / <code>BuildQueryOptions()</code>; <code>DbContextOptionsFactory</code> provides InMemory and SQL Server helpers.</td></tr>
 </table>
 
 <p>Concrete subclasses are tiny:</p>
@@ -1748,18 +1731,21 @@ public sealed class CustomApiFactory
         new DbContextOptionsBuilder&lt;TaskFlowDbContextQuery&gt;().UseInMemoryDatabase(_dbName).Options;
 }
 
-// Test.E2E — real SQL via Testcontainers
+// Test.E2E - real SQL via EF.Test.Integration
 public sealed class SqlApiFactory
     : WebApplicationFactoryBase&lt;Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery&gt;
 {
-    public static async Task StartContainerAsync() { /* MsSqlBuilder(...).StartAsync() once per assembly */ }
+    private static readonly MsSqlContainerFixture Sql = new();
+
+    public static Task StartContainerAsync() =&gt; Sql.StartAsync();
+
     protected override DbContextOptions BuildTrxnOptions()  =&gt;
-        new DbContextOptionsBuilder&lt;TaskFlowDbContextTrxn&gt;().UseSqlServer(_connectionString).Options;
+        DbContextOptionsFactory.BuildSqlServerOptions&lt;TaskFlowDbContextTrxn&gt;(Sql.ConnectionString);
     protected override DbContextOptions BuildQueryOptions() =&gt;
-        new DbContextOptionsBuilder&lt;TaskFlowDbContextQuery&gt;().UseSqlServer(_connectionString).Options;
+        DbContextOptionsFactory.BuildSqlServerOptions&lt;TaskFlowDbContextQuery&gt;(Sql.ConnectionString);
 }</code></pre>
 
-<div class="callout"><strong>Why a base class:</strong> every HTTP test project (Endpoints, E2E) needs the same surgical DI rewiring. Centralising it means a fix for an interceptor or pooled-context bug applies to all suites at once — and new test projects only need to choose a database backend.</div>
+<div class="callout"><strong>Why a package candidate:</strong> every HTTP test project (Endpoints, E2E) needs the same surgical DI rewiring. Centralising it in <code>EF.Test.Integration</code> means a fix for an interceptor or pooled-context bug applies to all suites and can be reused by other solutions.</div>
 
 <h4><code>WebApplicationFactory</code> itself</h4>
 <p><code>Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory&lt;TProgram&gt;</code> boots the application's <code>Program.cs</code> against an in-memory <code>TestServer</code>. The full ASP.NET Core pipeline runs (auth, middleware, routing, endpoint binding, exception handling, ProblemDetails) but no socket is opened — calls go through <code>factory.CreateClient()</code>, an <code>HttpClient</code> wired to the <code>TestServer</code>. The factory exposes <code>ConfigureWebHost(...)</code> so tests can replace services in the same DI container the host uses, which is how this codebase swaps SQL Server for InMemory or container-backed SQL.</p>

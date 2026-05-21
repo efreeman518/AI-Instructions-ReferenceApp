@@ -1,10 +1,11 @@
-using Asp.Versioning;
+using EF.AspNetCore.Correlation;
+using EF.AspNetCore.Security;
+using EF.AspNetCore.Versioning;
 using EF.FlowEngine.AdminApi;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using TaskFlow.Api.Endpoints;
 using TaskFlow.Api.Endpoints.Cqrs;
-using TaskFlow.Api.Middleware;
 using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api;
@@ -18,10 +19,10 @@ public static class WebApplicationBuilderExtensions
         _problemDetailsIncludeStackTrace = app.Environment.IsDevelopment() || app.Environment.IsStaging();
 
         // 1. Security headers
-        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseBasicSecurityHeaders();
 
         // 2. Correlation tracking
-        app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseCorrelationId();
         app.UseHeaderPropagation();
 
         // 3. Exception handler (before routing)
@@ -95,17 +96,15 @@ public static class WebApplicationBuilderExtensions
 
     private static void SetupApiEndpoints(WebApplication app)
     {
-        var versionSetBuilder = app.NewApiVersionSet()
-            .ReportApiVersions();
+        var apiDocuments = ApiContract.SupportedDocuments
+            .Select(apiDocument => new ApiVersionDocument(apiDocument.Version, apiDocument.GroupName)
+            {
+                DisplayName = apiDocument.DisplayName
+            })
+            .ToArray();
 
-        foreach (var apiDocument in ApiContract.SupportedDocuments)
-            versionSetBuilder.HasApiVersion(apiDocument.Version);
-
-        var versionSet = versionSetBuilder.Build();
-
-        var api = app.MapGroup(ApiContract.VersionedRoutePrefix)
-            .WithApiVersionSet(versionSet)
-            .MapToApiVersion(ApiContract.DefaultVersion)
+        var versionSet = app.BuildApiVersionSet(apiDocuments);
+        var api = app.MapVersionedApiGroup(ApiContract.VersionedRoutePrefix, versionSet, ApiContract.DefaultVersion)
             .RequireRateLimiting("PerTenant");
 
         var style = ApplicationStyleResolver.Resolve(app.Configuration[ApplicationStyleResolver.ConfigKey]);
