@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using TaskFlow.Gateway;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,11 +20,25 @@ app.UseExceptionHandler(appBuilder =>
     }));
 
 app.UseCors("UnoUI");
+app.UseHeaderPropagation();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultEndpoints();
-app.MapGet("/", () => "TaskFlow Gateway");
+app.MapHealthChecks("/health/full", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("full")
+})
+.AllowAnonymous()
+.RequireRateLimiting("HealthFull");
+
+app.MapGet("/alive", () => Results.Ok("Alive"))
+    .AllowAnonymous()
+    .RequireRateLimiting("HealthMemory");
+
+app.MapGet("/", () => "TaskFlow Gateway")
+    .AllowAnonymous();
 
 app.MapReverseProxy();
 

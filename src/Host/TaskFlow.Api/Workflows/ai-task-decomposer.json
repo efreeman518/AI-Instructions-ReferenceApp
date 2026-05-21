@@ -73,12 +73,12 @@
     "n-loop-create-one": {
       "id": "n-loop-create-one",
       "type": "integration",
-      "label": "POST /api/taskitems",
+      "label": "POST /api/v1/task-items",
       "intent": "Create a single child TaskItem for the current loop iteration.",
       "config": {
         "clientRef": "taskflow-api",
         "method": "POST",
-        "path": "/api/taskitems",
+        "path": "/api/v1/task-items",
         "body": {
           "ParentTaskItemId": "$.params.taskId",
           "TenantId": "$.params.tenantId",

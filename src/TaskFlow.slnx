@@ -8,11 +8,15 @@
     <Project Path="Application/TaskFlow.Application.Models/TaskFlow.Application.Models.csproj" />
     <Project Path="Application/TaskFlow.Application.Mappers/TaskFlow.Application.Mappers.csproj" />
     <Project Path="Application/TaskFlow.Application.Services/TaskFlow.Application.Services.csproj" />
+    <Project Path="Application/TaskFlow.Application.Cqrs/TaskFlow.Application.Cqrs.csproj" />
     <Project Path="Application/TaskFlow.Application.MessageHandlers/TaskFlow.Application.MessageHandlers.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Data/TaskFlow.Infrastructure.Data.csproj" />
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Repositories/TaskFlow.Infrastructure.Repositories.csproj" />
+    <Project Path="Infrastructure/EF.AspNetCore.Reference/EF.AspNetCore.Reference.csproj" />
+    <Project Path="Infrastructure/EF.CQRS/EF.CQRS.csproj" />
+    <Project Path="Infrastructure/EF.Test.Integration/EF.Test.Integration.csproj" />
     <Project Path="Infrastructure/TaskFlow.Infrastructure.AI/TaskFlow.Infrastructure.AI.csproj" />
     <Project Path="Infrastructure/TaskFlow.Infrastructure.Storage/TaskFlow.Infrastructure.Storage.csproj" />
   </Folder>

@@ -16,7 +16,7 @@ public static class TaskItemEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/task-items").WithTags("TaskItems");
+        var g = group.MapGroup("/task-items").WithTags("TaskItems");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<TaskItemDto>>(StatusCodes.Status200OK)

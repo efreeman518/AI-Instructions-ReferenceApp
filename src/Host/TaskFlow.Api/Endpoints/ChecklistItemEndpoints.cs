@@ -16,7 +16,7 @@ public static class ChecklistItemEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/checklist-items").WithTags("ChecklistItems");
+        var g = group.MapGroup("/checklist-items").WithTags("ChecklistItems");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<ChecklistItemDto>>(StatusCodes.Status200OK)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +18,13 @@ internal sealed class DefaultExceptionHandler(
                 => (StatusCodes.Status409Conflict, "Concurrency conflict"),
             UnauthorizedAccessException
                 => (StatusCodes.Status403Forbidden, "Forbidden"),
+            KeyNotFoundException
+                => (StatusCodes.Status404NotFound, "Not found"),
             OperationCanceledException
                 => (499, "Client closed request"),
             BadHttpRequestException
                 => (StatusCodes.Status400BadRequest, "Bad request"),
-            ArgumentException or FormatException
+            ArgumentException or FormatException or InvalidOperationException
                 => (StatusCodes.Status400BadRequest, "Bad request"),
             _
                 => (StatusCodes.Status500InternalServerError, "Internal server error")
@@ -45,8 +48,13 @@ internal sealed class DefaultExceptionHandler(
             Detail = environment.IsDevelopment() || environment.IsStaging()
                 ? exception.ToString()
                 : exception.Message,
-            Instance = httpContext.Request.Path
+            Instance = $"{httpContext.Request.Method} {httpContext.Request.Path}"
         };
+
+        problemDetails.Extensions.TryAdd("traceId", httpContext.TraceIdentifier);
+        var activity = Activity.Current;
+        if (!string.IsNullOrWhiteSpace(activity?.Id))
+            problemDetails.Extensions.TryAdd("activityId", activity.Id);
 
         if (httpContext.Response.HasStarted)
             return true;

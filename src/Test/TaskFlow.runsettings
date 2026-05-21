@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <TASKFLOW_APPLICATION_STYLE>Service</TASKFLOW_APPLICATION_STYLE>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

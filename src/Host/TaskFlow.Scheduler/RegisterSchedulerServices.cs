@@ -1,5 +1,9 @@
+using System.Text.RegularExpressions;
 using TaskFlow.Scheduler.Abstractions;
 using TaskFlow.Scheduler.Handlers;
+using TaskFlow.Scheduler.Infrastructure;
+using TaskFlow.Scheduler.Jobs;
+using TaskFlow.Scheduler.Telemetry;
 using TickerQ.DependencyInjection;
 using TickerQ.Dashboard.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
@@ -19,6 +23,10 @@ public static class RegisterSchedulerServices
         services.AddScoped<OverdueTaskCheckHandler>();
         services.AddScoped<RecurringTaskGenerationHandler>();
         services.AddScoped<StaleTaskCleanupHandler>();
+        services.AddScoped<TaskMaintenanceJobs>();
+        services.AddSingleton<SchedulingMetrics>();
+        services.AddHealthChecks()
+            .AddCheck<SchedulerHealthCheck>("scheduler", tags: ["ready", "memory"]);
 
         return services;
     }
@@ -26,9 +34,22 @@ public static class RegisterSchedulerServices
     public static IHostApplicationBuilder AddTickerQConfig(this IHostApplicationBuilder builder)
     {
         var config = builder.Configuration;
+        var maxConcurrency = config.GetValue("Scheduling:MaxConcurrency", Math.Max(1, Environment.ProcessorCount));
+        var pollIntervalSeconds = config.GetValue("Scheduling:PollIntervalSeconds", 30);
 
         builder.Services.AddTickerQ(options =>
         {
+            options.SetExceptionHandler<TaskFlowSchedulerExceptionHandler>();
+
+            options.ConfigureScheduler(scheduler =>
+            {
+                scheduler.MaxConcurrency = maxConcurrency;
+                scheduler.SchedulerTimeZone = TimeZoneInfo.Utc;
+                scheduler.IdleWorkerTimeOut = TimeSpan.FromMinutes(2);
+                scheduler.FallbackIntervalChecker = TimeSpan.FromSeconds(pollIntervalSeconds);
+                scheduler.NodeIdentifier = Environment.MachineName;
+            });
+
             var usePersistence = config.GetValue("Scheduling:UsePersistence", true);
             if (usePersistence)
             {
@@ -39,8 +60,12 @@ public static class RegisterSchedulerServices
                     {
                         efOptions.UseTickerQDbContext<TickerQDbContext>(dbOptions =>
                         {
-                            dbOptions.UseSqlServer(connStr);
-                        });
+                            dbOptions.UseSqlServer(connStr, sqlOptions =>
+                            {
+                                sqlOptions.EnableRetryOnFailure(3, TimeSpan.FromSeconds(10), null);
+                                sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "Scheduler");
+                            });
+                        }, schema: "Scheduler");
                     });
                 }
             }
@@ -48,11 +73,65 @@ public static class RegisterSchedulerServices
             var enableDashboard = config.GetValue("Scheduling:EnableDashboard", false);
             if (enableDashboard)
             {
-                options.AddDashboard();
+                options.AddDashboard(dashboard =>
+                {
+                    dashboard.SetBasePath(config["Scheduling:Dashboard:BasePath"] ?? "/scheduler");
+
+                    var username = config["Scheduling:Dashboard:Username"];
+                    var password = config["Scheduling:Dashboard:Password"];
+                    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                        throw new InvalidOperationException(
+                            "TickerQ dashboard requires Scheduling:Dashboard:Username and Scheduling:Dashboard:Password.");
+
+                    dashboard.WithBasicAuth(username, password);
+                    dashboard.WithSessionTimeout(config.GetValue("Scheduling:Dashboard:SessionTimeoutMinutes", 60));
+                });
             }
         });
 
         return builder;
+    }
+
+    public static async Task ConfigureTickerQDatabase(this WebApplication app)
+    {
+        var config = app.Configuration;
+        var logger = app.Logger;
+        var usePersistence = config.GetValue("Scheduling:UsePersistence", true);
+        var connectionString = config.GetConnectionString("TaskFlowDbContextTrxn");
+        if (!usePersistence || string.IsNullOrWhiteSpace(connectionString))
+        {
+            logger.LogInformation("TickerQ running without a persisted operational store.");
+            return;
+        }
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetService<TickerQDbContext>();
+        if (db is null)
+        {
+            logger.LogWarning("TickerQ DbContext not registered; operational-store validation skipped.");
+            return;
+        }
+
+        var canConnect = await db.Database.CanConnectAsync();
+        if (!canConnect)
+            throw new InvalidOperationException("Cannot connect to the TickerQ operational store database.");
+
+        var schemaExists = await VerifyTickerQSchemaAsync(db, logger);
+        var autoCreate = config.GetValue("Scheduling:AutoCreateSchema", true);
+        if (!schemaExists && !autoCreate)
+        {
+            throw new InvalidOperationException(
+                "TickerQ schema does not exist. Run a deployment script or set Scheduling:AutoCreateSchema=true for local startup.");
+        }
+
+        if (!schemaExists)
+        {
+            logger.LogInformation("TickerQ schema not found; creating operational-store schema.");
+            await ExecuteCreateScriptAsync(db);
+        }
+
+        if (config.GetValue("Scheduling:GenerateDeploymentScript", false))
+            await GenerateDeploymentScriptAsync(db, logger);
     }
 
     public static async Task SeedCronJobs(this WebApplication app)
@@ -94,5 +173,46 @@ public static class RegisterSchedulerServices
         {
             app.Logger.LogWarning(ex, "Cron seeding skipped — ICronTickerManager not registered (in-memory mode)");
         }
+    }
+
+    private static async Task<bool> VerifyTickerQSchemaAsync(TickerQDbContext db, ILogger logger)
+    {
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT TOP 1 1 FROM [Scheduler].[TimeTickers]");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "TickerQ schema verification failed.");
+            return false;
+        }
+    }
+
+    private static async Task ExecuteCreateScriptAsync(TickerQDbContext db)
+    {
+        var script = db.Database.GenerateCreateScript();
+        var batches = Regex.Split(script, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)
+            .Where(batch => !string.IsNullOrWhiteSpace(batch));
+
+        foreach (var batch in batches)
+        {
+            await db.Database.ExecuteSqlRawAsync(batch);
+        }
+    }
+
+    private static async Task GenerateDeploymentScriptAsync(TickerQDbContext db, ILogger logger)
+    {
+        var scriptPath = Path.Combine(AppContext.BaseDirectory, "TickerQ_Deployment.sql");
+        var script = $"""
+            -- TickerQ Database Deployment Script
+            -- Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
+            -- Schema: [Scheduler]
+
+            {db.Database.GenerateCreateScript()}
+            """;
+
+        await File.WriteAllTextAsync(scriptPath, script);
+        logger.LogInformation("TickerQ deployment script generated at {ScriptPath}", scriptPath);
     }
 }

@@ -16,7 +16,7 @@ public static class TagEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/tags").WithTags("Tags");
+        var g = group.MapGroup("/tags").WithTags("Tags");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<TagDto>>(StatusCodes.Status200OK)

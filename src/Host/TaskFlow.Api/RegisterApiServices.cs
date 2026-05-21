@@ -1,5 +1,10 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using EF.AspNetCore.Correlation;
+using EF.AspNetCore.ProblemDetails;
+using EF.AspNetCore.Versioning;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Diagnostics;
 using TaskFlow.Api.Auth;
 using TaskFlow.Api.Middleware;
 
@@ -16,8 +21,9 @@ public static class RegisterApiServices
         AddAuthentication(services, config, startupLogger);
         AddAuthorization(services);
         AddExceptionHandling(services);
+        services.AddCorrelationHeaderPropagation();
         AddRateLimiting(services, config);
-        AddOpenApi(services, config);
+        AddVersionedOpenApi(services, config);
 
         // Workflow JSON seeding is now configured in the bootstrapper via
         // FlowEngineBuilder.AddWorkflowJsonSeeding (EF.FlowEngine v1.0.104+).
@@ -52,6 +58,9 @@ public static class RegisterApiServices
     private static void AddAuthentication(IServiceCollection services, IConfiguration config, ILogger logger)
     {
         services.AddTaskFlowAuth(config);
+        services.Configure<GatewayClaimsTransformSettings>(
+            config.GetSection(GatewayClaimsTransformSettings.ConfigSectionName));
+        services.AddTransient<IClaimsTransformation, GatewayClaimsTransformer>();
     }
 
     private static void AddAuthorization(IServiceCollection services)
@@ -62,44 +71,103 @@ public static class RegisterApiServices
     private static void AddExceptionHandling(IServiceCollection services)
     {
         services.AddExceptionHandler<DefaultExceptionHandler>();
-        services.AddProblemDetails();
+        services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = context =>
+                ProblemDetailsMetadata.ApplyRequestMetadata(context.ProblemDetails, context.HttpContext);
+        });
     }
 
     private static void AddRateLimiting(IServiceCollection services, IConfiguration config)
     {
         var permitLimit = config.GetValue<int?>("RateLimiting:PerTenant:PermitLimit") ?? 100;
         var windowSeconds = config.GetValue<int?>("RateLimiting:PerTenant:WindowSeconds") ?? 60;
+        var healthMemoryPermitLimit = config.GetValue<int?>("RateLimiting:Health:MemoryPermitLimit") ?? 30;
+        var healthDbPermitLimit = config.GetValue<int?>("RateLimiting:Health:DbPermitLimit") ?? 6;
+        var healthFullPermitLimit = config.GetValue<int?>("RateLimiting:Health:FullPermitLimit") ?? 3;
 
         services.AddRateLimiter(options =>
         {
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/health")
+                    || context.Request.Path.StartsWithSegments("/alive")
+                    || context.Request.Path.StartsWithSegments("/healthz")
+                    || context.Request.Path.StartsWithSegments("/readyz"))
+                    return RateLimitPartition.GetNoLimiter("health");
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    context.User?.FindFirst("tenant_id")?.Value
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "anonymous",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = TimeSpan.FromSeconds(windowSeconds),
+                        QueueLimit = 0
+                    });
+            });
+
             options.AddPolicy("PerTenant", context =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     context.User?.FindFirst("tenant_id")?.Value ?? "anonymous",
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = permitLimit,
-                        Window = TimeSpan.FromSeconds(windowSeconds)
+                        Window = TimeSpan.FromSeconds(windowSeconds),
+                        QueueLimit = 0
                     }));
+
+            options.AddPolicy("HealthMemory", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = healthMemoryPermitLimit,
+                    Window = TimeSpan.FromSeconds(10),
+                    QueueLimit = 5,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                }));
+
+            options.AddPolicy("HealthDb", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = healthDbPermitLimit,
+                    Window = TimeSpan.FromSeconds(10),
+                    QueueLimit = 2,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                }));
+
+            options.AddPolicy("HealthFull", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = healthFullPermitLimit,
+                    Window = TimeSpan.FromSeconds(30),
+                    QueueLimit = 1,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                }));
+
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
     }
 
-    private static void AddOpenApi(IServiceCollection services, IConfiguration config)
+    private static void AddVersionedOpenApi(IServiceCollection services, IConfiguration config)
     {
-        if (!config.GetValue<bool>("OpenApiSettings:Enable", true)) return;
-
-        services.AddOpenApi(options =>
+        services.AddEfVersionedOpenApi(options =>
         {
-            options.AddDocumentTransformer((document, context, ct) =>
+            options.Title = ApiContract.Title;
+            options.Description = ApiContract.Description;
+            options.ApiExplorerGroupNameFormat = ApiContract.ApiExplorerGroupNameFormat;
+            options.EnableOpenApi = config.GetValue<bool>("OpenApiSettings:Enable", true);
+
+            foreach (var apiDocument in ApiContract.SupportedDocuments)
             {
-                document.Info = new()
+                options.Documents.Add(new ApiVersionDocument(apiDocument.Version, apiDocument.GroupName)
                 {
-                    Title = "TaskFlow API",
-                    Version = "v1",
-                    Description = "Multi-tenant TaskFlow API"
-                };
-                return Task.CompletedTask;
-            });
+                    DisplayName = apiDocument.DisplayName
+                });
+            }
         });
     }
 }

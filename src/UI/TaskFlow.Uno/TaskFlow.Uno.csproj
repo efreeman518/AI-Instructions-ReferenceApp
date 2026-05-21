@@ -43,6 +43,8 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 
   <ItemGroup>

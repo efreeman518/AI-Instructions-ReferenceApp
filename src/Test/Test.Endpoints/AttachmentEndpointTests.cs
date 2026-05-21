@@ -10,7 +10,7 @@ using TaskFlow.Domain.Shared.Enums;
 namespace Test.Endpoints;
 
 /// <summary>
-/// HTTP contract tests for <c>/api/attachments</c> CRUD plus the multipart upload endpoint, which is
+/// HTTP contract tests for <c>/api/v1/attachments</c> CRUD plus the multipart upload endpoint, which is
 /// covered using an in-memory <c>IBlobStorageRepository</c> swapped in via <c>WithWebHostBuilder</c>.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): covers routing,
 /// envelope shape, and multipart binding without an Azurite container.
@@ -36,7 +36,7 @@ public class AttachmentEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForAttachment", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
         return created!.Id!.Value;
     }
@@ -57,7 +57,7 @@ public class AttachmentEndpointTests
             OwnerId = taskId
         };
 
-        var response = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
@@ -80,10 +80,10 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
-        var response = await client.GetAsync($"/api/attachments/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/attachments/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
@@ -97,7 +97,7 @@ public class AttachmentEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/attachments/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/attachments/{Guid.NewGuid()}");
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -117,7 +117,7 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
         var updateDto = new AttachmentDto
@@ -130,7 +130,7 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var response = await client.PutAsJsonAsync($"/api/attachments/{created.Id}", new DefaultRequest<AttachmentDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/attachments/{created.Id}", new DefaultRequest<AttachmentDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
@@ -152,14 +152,14 @@ public class AttachmentEndpointTests
             OwnerType = AttachmentOwnerType.TaskItem,
             OwnerId = taskId
         };
-        var createResponse = await client.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/attachments", new DefaultRequest<AttachmentDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;
 
-        var response = await client.DeleteAsync($"/api/attachments/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/attachments/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-        var getResponse = await client.GetAsync($"/api/attachments/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/attachments/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
@@ -186,7 +186,7 @@ public class AttachmentEndpointTests
         content.Add(new StringContent(((int)AttachmentOwnerType.TaskItem).ToString()), "ownerType");
         content.Add(new StringContent(taskId.ToString()), "ownerId");
 
-        var response = await client.PostAsync("/api/attachments/upload", content);
+        var response = await client.PostAsync("/api/v1/attachments/upload", content);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(_jsonOptions))!.Item;

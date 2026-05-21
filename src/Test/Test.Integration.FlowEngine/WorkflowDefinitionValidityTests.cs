@@ -59,6 +59,22 @@ public class WorkflowDefinitionValidityTests
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
+    public void Each_Workflow_Node_Has_Explicit_Config_For_SqlRegistrySerialization(string fileName, string _id, string _version)
+    {
+        using var document = JsonDocument.Parse(ReadWorkflowFile(fileName));
+        var nodes = document.RootElement.GetProperty("nodes");
+
+        foreach (var node in nodes.EnumerateObject())
+        {
+            Assert.IsTrue(
+                node.Value.TryGetProperty("config", out _),
+                $"{fileName}:{node.Name} must include explicit config, use {{}} when empty.");
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllWorkflows))]
+    [TestCategory("Integration")]
     public async Task Each_Workflow_Round_Trips_Through_InMemoryRegistry(string fileName, string id, string version)
     {
         var def = JsonSerializer.Deserialize<WorkflowDefinition>(ReadWorkflowFile(fileName), JsonOpts)!;

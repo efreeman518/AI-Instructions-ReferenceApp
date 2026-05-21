@@ -67,7 +67,7 @@
       "config": {
         "clientRef": "taskflow-api",
         "method": "PATCH",
-        "path": "/api/taskitems/{{$.params.taskId}}",
+        "path": "/api/v1/task-items/{{$.params.taskId}}",
         "body": { "Priority": "$.context.triage.suggestedPriority" },
         "idempotencyKey": "$.params.taskId + '-apply-priority'"
       },
@@ -99,7 +99,7 @@
       "config": {
         "clientRef": "taskflow-api",
         "method": "POST",
-        "path": "/api/taskitems/{{$.params.taskId}}/comments",
+        "path": "/api/v1/task-items/{{$.params.taskId}}/comments",
         "body": { "Text": "Critical-priority elevation rejected by quorum reviewers." },
         "idempotencyKey": "$.params.taskId + '-reject-comment'"
       },
@@ -116,7 +116,7 @@
       "config": {
         "clientRef": "taskflow-api",
         "method": "PATCH",
-        "path": "/api/taskitems/{{$.params.taskId}}",
+        "path": "/api/v1/task-items/{{$.params.taskId}}",
         "body": { "Priority": "Medium" },
         "idempotencyKey": "$.params.taskId + '-revert-priority'"
       }

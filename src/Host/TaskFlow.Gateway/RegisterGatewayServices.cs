@@ -1,10 +1,12 @@
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using TaskFlow.Gateway.HealthChecks;
 using Yarp.ReverseProxy.Transforms;
 
 namespace TaskFlow.Gateway;
@@ -16,9 +18,12 @@ public static class RegisterGatewayServices
     {
         services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         services.AddSingleton<TokenService>();
+        services.AddHeaderPropagation(options => options.Headers.Add("X-Correlation-Id"));
         AddAuthentication(services, config);
         AddReverseProxy(services, config);
         AddCors(services, config);
+        AddHealthChecks(services, config);
+        AddRateLimiting(services, config);
         return services;
     }
 
@@ -125,6 +130,50 @@ public static class RegisterGatewayServices
                     .AllowAnyHeader()
                     .AllowCredentials();
             });
+        });
+    }
+
+    private static void AddHealthChecks(IServiceCollection services, IConfiguration config)
+    {
+        services.Configure<AggregateHealthCheckSettings>(
+            config.GetSection(AggregateHealthCheckSettings.ConfigSectionName));
+
+        services.AddHttpClient(nameof(AggregateGatewayHealthCheck));
+
+        services.AddHealthChecks()
+            .AddCheck<AggregateGatewayHealthCheck>("taskflow-api", tags: ["full", "extservice"]);
+    }
+
+    private static void AddRateLimiting(IServiceCollection services, IConfiguration config)
+    {
+        var memoryPermitLimit = config.GetValue<int?>("RateLimiting:Health:MemoryPermitLimit") ?? 30;
+        var fullPermitLimit = config.GetValue<int?>("RateLimiting:Health:FullPermitLimit") ?? 3;
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy("HealthMemory", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = memoryPermitLimit,
+                        Window = TimeSpan.FromSeconds(10),
+                        QueueLimit = 5,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    }));
+
+            options.AddPolicy("HealthFull", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = fullPermitLimit,
+                        Window = TimeSpan.FromSeconds(30),
+                        QueueLimit = 1,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    }));
         });
     }
 

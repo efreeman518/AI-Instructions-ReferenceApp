@@ -7,7 +7,7 @@ using TaskFlow.Application.Models;
 namespace Test.Endpoints;
 
 /// <summary>
-/// HTTP contract tests for <c>/api/tags</c> CRUD: status codes, response envelopes, and 404 on
+/// HTTP contract tests for <c>/api/v1/tags</c> CRUD: status codes, response envelopes, and 404 on
 /// non-existent ids.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): exercises routing,
 /// model binding, ProblemDetails shape and middleware against the real ASP.NET Core pipeline.
@@ -34,7 +34,7 @@ public class TagEndpointTests
         using var client = CreateClient();
         var dto = new TagDto { Name = "Urgent", Color = "#FF0000" };
 
-        var response = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
@@ -49,10 +49,10 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "GetTag", Color = "#00FF00" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
-        var response = await client.GetAsync($"/api/tags/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/tags/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
@@ -66,7 +66,7 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/tags/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/tags/{Guid.NewGuid()}");
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -77,11 +77,11 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "BeforeTag", Color = "#111111" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
         var updateDto = new TagDto { Id = created!.Id, Name = "AfterTag", Color = "#222222" };
-        var response = await client.PutAsJsonAsync($"/api/tags/{created.Id}", new DefaultRequest<TagDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/tags/{created.Id}", new DefaultRequest<TagDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
@@ -94,14 +94,14 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "ToDeleteTag", Color = "#333333" };
-        var createResponse = await client.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
 
-        var response = await client.DeleteAsync($"/api/tags/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/tags/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-        var getResponse = await client.GetAsync($"/api/tags/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/tags/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 }

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>EF.AspNetCore.Reference</AssemblyName>
+    <RootNamespace>EF.AspNetCore</RootNamespace>
+    <PackageId>EF.AspNetCore.Reference</PackageId>
+    <Version>0.1.0-alpha</Version>
+    <Authors>EF</Authors>
+    <Description>Temporary reference-app extraction of reusable ASP.NET Core conventions for versioned Minimal APIs, OpenAPI documents, correlation IDs, security headers, and ProblemDetails metadata.</Description>
+    <PackageTags>aspnetcore;minimal-api;openapi;api-versioning;problem-details;correlation</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

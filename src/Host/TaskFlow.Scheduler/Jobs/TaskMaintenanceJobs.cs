@@ -1,12 +1,16 @@
 using TickerQ.Utilities.Base;
 using TaskFlow.Scheduler.Handlers;
+using TaskFlow.Scheduler.Telemetry;
 
 namespace TaskFlow.Scheduler.Jobs;
 
 public class TaskMaintenanceJobs : BaseTickerQJob
 {
-    public TaskMaintenanceJobs(IServiceScopeFactory scopeFactory, ILogger<TaskMaintenanceJobs> logger)
-        : base(scopeFactory, logger) { }
+    public TaskMaintenanceJobs(
+        IServiceScopeFactory scopeFactory,
+        ILogger<TaskMaintenanceJobs> logger,
+        SchedulingMetrics metrics)
+        : base(scopeFactory, logger, metrics) { }
 
     [TickerFunction("OverdueTaskCheck")]
     public async Task OverdueTaskCheckAsync(TickerFunctionContext context, CancellationToken ct)

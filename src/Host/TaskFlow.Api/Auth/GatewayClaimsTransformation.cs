@@ -1,85 +1,105 @@
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 
 namespace TaskFlow.Api.Auth;
 
-/// <summary>
-/// Middleware that reads X-Orig-Request header forwarded by the Gateway and enriches
-/// the authenticated principal with the original user claims.
-/// </summary>
-public sealed class GatewayClaimsMiddleware
+public sealed class GatewayClaimsTransformSettings
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<GatewayClaimsMiddleware> _logger;
+    public const string ConfigSectionName = "GatewayClaimsTransform";
 
-    public GatewayClaimsMiddleware(RequestDelegate next, ILogger<GatewayClaimsMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+    public string HeaderName { get; set; } = "X-Orig-Request";
+    public string GatewayAppId { get; set; } = "";
+    public bool RequireTrustedGateway { get; set; } = true;
+}
 
-    public async Task InvokeAsync(HttpContext context)
+/// <summary>
+/// Rehydrates original user claims forwarded by the trusted gateway after the API validates the service token.
+/// </summary>
+public sealed class GatewayClaimsTransformer(
+    ILogger<GatewayClaimsTransformer> logger,
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<GatewayClaimsTransformSettings> options) : IClaimsTransformation
+{
+    private readonly GatewayClaimsTransformSettings _settings = options.Value;
+
+    public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
-        var header = context.Request.Headers["X-Orig-Request"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(header) && context.User.Identity?.IsAuthenticated == true)
+        if (principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated)
+            return Task.FromResult(principal);
+
+        if (!IsTrustedGatewayCaller(principal))
+            return Task.FromResult(principal);
+
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext is null || !httpContext.Request.Headers.TryGetValue(_settings.HeaderName, out var values))
+            return Task.FromResult(principal);
+
+        var header = values.FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(header))
+            return Task.FromResult(principal);
+
+        ForwardedClaims? forwardedClaims = null;
+        try
         {
-            try
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(header));
+            forwardedClaims = JsonSerializer.Deserialize<ForwardedClaims>(json);
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            logger.LogWarning(ex, "Failed to parse forwarded gateway claims from {HeaderName}", _settings.HeaderName);
+        }
+
+        if (forwardedClaims is null)
+            return Task.FromResult(principal);
+
+        var newIdentity = identity.Clone();
+
+        AddClaimIfMissing(newIdentity, "oid", forwardedClaims.Sub);
+        AddClaimIfMissing(newIdentity, ClaimTypes.NameIdentifier, forwardedClaims.Sub);
+        AddClaimIfMissing(newIdentity, "tenant_id", forwardedClaims.TenantId);
+        AddClaimIfMissing(newIdentity, ClaimTypes.Name, forwardedClaims.Name);
+
+        if (forwardedClaims.Roles is { Length: > 0 })
+        {
+            foreach (var role in forwardedClaims.Roles)
             {
-                var json = Encoding.UTF8.GetString(Convert.FromBase64String(header));
-                var claims = JsonSerializer.Deserialize<ForwardedClaims>(json);
-
-                if (claims is not null)
-                {
-                    var identity = context.User.Identity as ClaimsIdentity ?? new ClaimsIdentity();
-
-                    AddClaimIfMissing(identity, "oid", claims.Sub);
-                    AddClaimIfMissing(identity, ClaimTypes.NameIdentifier, claims.Sub);
-                    AddClaimIfMissing(identity, "tenant_id", claims.TenantId);
-                    AddClaimIfMissing(identity, ClaimTypes.Name, claims.Name);
-
-                    if (claims.Roles is { Length: > 0 })
-                    {
-                        foreach (var role in claims.Roles)
-                        {
-                            AddClaimIfMissing(identity, ClaimTypes.Role, role);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse X-Orig-Request header");
+                AddClaimIfMissing(newIdentity, ClaimTypes.Role, role);
             }
         }
 
-        await _next(context);
+        return Task.FromResult(new ClaimsPrincipal(newIdentity));
+    }
+
+    private bool IsTrustedGatewayCaller(ClaimsPrincipal principal)
+    {
+        if (!_settings.RequireTrustedGateway)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(_settings.GatewayAppId))
+            return false;
+
+        return principal.HasClaim(c =>
+            (string.Equals(c.Type, "azp", StringComparison.OrdinalIgnoreCase)
+             || string.Equals(c.Type, "appid", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(c.Value, _settings.GatewayAppId, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void AddClaimIfMissing(ClaimsIdentity identity, string type, string? value)
     {
-        if (string.IsNullOrEmpty(value)) return;
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
         if (!identity.HasClaim(c => c.Type == type && c.Value == value))
             identity.AddClaim(new Claim(type, value));
     }
 
     private sealed record ForwardedClaims(
-        string? Sub,
-        string? TenantId,
-        string? Name,
-        string[]? Roles)
-    {
-        // Support case-insensitive JSON deserialization
-        [System.Text.Json.Serialization.JsonPropertyName("sub")]
-        public string? Sub { get; init; } = Sub;
-
-        [System.Text.Json.Serialization.JsonPropertyName("tenant_id")]
-        public string? TenantId { get; init; } = TenantId;
-
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public string? Name { get; init; } = Name;
-
-        [System.Text.Json.Serialization.JsonPropertyName("roles")]
-        public string[]? Roles { get; init; } = Roles;
-    }
+        [property: JsonPropertyName("sub")] string? Sub,
+        [property: JsonPropertyName("tenant_id")] string? TenantId,
+        [property: JsonPropertyName("name")] string? Name,
+        [property: JsonPropertyName("roles")] string[]? Roles);
 }

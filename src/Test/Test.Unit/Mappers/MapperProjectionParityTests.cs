@@ -136,18 +136,20 @@ public class MapperProjectionParityTests
             .WithTaskItemId(entity.Id).WithSortOrder(1).Build());
 
         var fullDto = entity.ToDto();
+        var comments = fullDto.Comments ?? throw new AssertFailedException("TaskItem DTO comments were not projected.");
+        var checklistItems = fullDto.ChecklistItems ?? throw new AssertFailedException("TaskItem DTO checklist items were not projected.");
 
         var expectedComment = entity.Comments.Single().ToDto();
-        Assert.AreEqual(1, fullDto.Comments.Count);
-        Assert.AreEqual(expectedComment.Id, fullDto.Comments[0].Id);
-        Assert.AreEqual(expectedComment.Body, fullDto.Comments[0].Body);
-        Assert.AreEqual(expectedComment.TaskItemId, fullDto.Comments[0].TaskItemId);
+        Assert.AreEqual(1, comments.Count);
+        Assert.AreEqual(expectedComment.Id, comments[0].Id);
+        Assert.AreEqual(expectedComment.Body, comments[0].Body);
+        Assert.AreEqual(expectedComment.TaskItemId, comments[0].TaskItemId);
 
         var expectedChecklist = entity.ChecklistItems.Single().ToDto();
-        Assert.AreEqual(1, fullDto.ChecklistItems.Count);
-        Assert.AreEqual(expectedChecklist.Id, fullDto.ChecklistItems[0].Id);
-        Assert.AreEqual(expectedChecklist.Title, fullDto.ChecklistItems[0].Title);
-        Assert.AreEqual(expectedChecklist.SortOrder, fullDto.ChecklistItems[0].SortOrder);
-        Assert.AreEqual(expectedChecklist.TaskItemId, fullDto.ChecklistItems[0].TaskItemId);
+        Assert.AreEqual(1, checklistItems.Count);
+        Assert.AreEqual(expectedChecklist.Id, checklistItems[0].Id);
+        Assert.AreEqual(expectedChecklist.Title, checklistItems[0].Title);
+        Assert.AreEqual(expectedChecklist.SortOrder, checklistItems[0].SortOrder);
+        Assert.AreEqual(expectedChecklist.TaskItemId, checklistItems[0].TaskItemId);
     }
 }

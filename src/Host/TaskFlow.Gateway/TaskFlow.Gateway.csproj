@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" />
     <PackageReference Include="Yarp.ReverseProxy" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

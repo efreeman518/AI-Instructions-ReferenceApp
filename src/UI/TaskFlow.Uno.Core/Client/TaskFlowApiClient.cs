@@ -232,7 +232,7 @@ public class TaskItemsRequestBuilder
     public async Task<TaskItemDto?> PostAsync(TaskItemDto dto, CancellationToken cancellationToken = default)
     {
         NormalizeChildTaskItemIds(dto, dto.Id ?? Guid.Empty);
-        var response = await _http.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(cancellationToken);
         return wrapper?.Item;
@@ -266,7 +266,7 @@ public class TaskItemsSearchRequestBuilder
     public async Task<PagedResponse<TaskItemDto>?> PostAsync(SearchRequest<TaskItemSearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/task-items/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/task-items/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<TaskItemDto>>(cancellationToken);
     }
@@ -280,14 +280,14 @@ public class TaskItemByIdRequestBuilder
 
     public async Task<TaskItemDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<TaskItemDto>>($"/api/task-items/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<TaskItemDto>>($"/api/v1/task-items/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task<TaskItemDto?> PutAsync(TaskItemDto dto, CancellationToken cancellationToken = default)
     {
         TaskItemsRequestBuilder.NormalizeChildTaskItemIds(dto, _id);
-        var response = await _http.PutAsJsonAsync($"/api/task-items/{_id}", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
+        var response = await _http.PutAsJsonAsync($"/api/v1/task-items/{_id}", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(cancellationToken);
         return wrapper?.Item;
@@ -295,7 +295,7 @@ public class TaskItemByIdRequestBuilder
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/task-items/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/task-items/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
@@ -310,7 +310,7 @@ public class CategoriesRequestBuilder
 
     public async Task<CategoryDto?> PostAsync(CategoryDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>(cancellationToken);
         return wrapper?.Item;
@@ -325,7 +325,7 @@ public class CategoriesSearchRequestBuilder
     public async Task<PagedResponse<CategoryDto>?> PostAsync(SearchRequest<CategorySearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/categories/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/categories/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<CategoryDto>>(cancellationToken);
     }
@@ -339,13 +339,13 @@ public class CategoryByIdRequestBuilder
 
     public async Task<CategoryDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<CategoryDto>>($"/api/categories/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<CategoryDto>>($"/api/v1/categories/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task<CategoryDto?> PutAsync(CategoryDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PutAsJsonAsync($"/api/categories/{_id}", new DefaultRequest<CategoryDto> { Item = dto }, cancellationToken);
+        var response = await _http.PutAsJsonAsync($"/api/v1/categories/{_id}", new DefaultRequest<CategoryDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>(cancellationToken);
         return wrapper?.Item;
@@ -353,7 +353,7 @@ public class CategoryByIdRequestBuilder
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/categories/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/categories/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
@@ -368,7 +368,7 @@ public class TagsRequestBuilder
 
     public async Task<TagDto?> PostAsync(TagDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(cancellationToken);
         return wrapper?.Item;
@@ -383,7 +383,7 @@ public class TagsSearchRequestBuilder
     public async Task<PagedResponse<TagDto>?> PostAsync(SearchRequest<TagSearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/tags/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/tags/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<TagDto>>(cancellationToken);
     }
@@ -397,13 +397,13 @@ public class TagByIdRequestBuilder
 
     public async Task<TagDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<TagDto>>($"/api/tags/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<TagDto>>($"/api/v1/tags/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task<TagDto?> PutAsync(TagDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PutAsJsonAsync($"/api/tags/{_id}", new DefaultRequest<TagDto> { Item = dto }, cancellationToken);
+        var response = await _http.PutAsJsonAsync($"/api/v1/tags/{_id}", new DefaultRequest<TagDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(cancellationToken);
         return wrapper?.Item;
@@ -411,7 +411,7 @@ public class TagByIdRequestBuilder
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/tags/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/tags/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
@@ -426,7 +426,7 @@ public class CommentsRequestBuilder
 
     public async Task<CommentDto?> PostAsync(CommentDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/comments", new DefaultRequest<CommentDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/comments", new DefaultRequest<CommentDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(cancellationToken);
         return wrapper?.Item;
@@ -441,7 +441,7 @@ public class CommentsSearchRequestBuilder
     public async Task<PagedResponse<CommentDto>?> PostAsync(SearchRequest<CommentSearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/comments/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/comments/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<CommentDto>>(cancellationToken);
     }
@@ -455,13 +455,13 @@ public class CommentByIdRequestBuilder
 
     public async Task<CommentDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<CommentDto>>($"/api/comments/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<CommentDto>>($"/api/v1/comments/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task<CommentDto?> PutAsync(CommentDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PutAsJsonAsync($"/api/comments/{_id}", new DefaultRequest<CommentDto> { Item = dto }, cancellationToken);
+        var response = await _http.PutAsJsonAsync($"/api/v1/comments/{_id}", new DefaultRequest<CommentDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(cancellationToken);
         return wrapper?.Item;
@@ -469,7 +469,7 @@ public class CommentByIdRequestBuilder
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/comments/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/comments/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
@@ -484,7 +484,7 @@ public class ChecklistItemsRequestBuilder
 
     public async Task<ChecklistItemDto?> PostAsync(ChecklistItemDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(cancellationToken);
         return wrapper?.Item;
@@ -499,7 +499,7 @@ public class ChecklistItemsSearchRequestBuilder
     public async Task<PagedResponse<ChecklistItemDto>?> PostAsync(SearchRequest<ChecklistItemSearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/checklist-items/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/checklist-items/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<ChecklistItemDto>>(cancellationToken);
     }
@@ -513,13 +513,13 @@ public class ChecklistItemByIdRequestBuilder
 
     public async Task<ChecklistItemDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<ChecklistItemDto>>($"/api/checklist-items/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<ChecklistItemDto>>($"/api/v1/checklist-items/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task<ChecklistItemDto?> PutAsync(ChecklistItemDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PutAsJsonAsync($"/api/checklist-items/{_id}", new DefaultRequest<ChecklistItemDto> { Item = dto }, cancellationToken);
+        var response = await _http.PutAsJsonAsync($"/api/v1/checklist-items/{_id}", new DefaultRequest<ChecklistItemDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(cancellationToken);
         return wrapper?.Item;
@@ -527,7 +527,7 @@ public class ChecklistItemByIdRequestBuilder
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/checklist-items/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/checklist-items/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
@@ -542,7 +542,7 @@ public class AttachmentsRequestBuilder
 
     public async Task<AttachmentDto?> PostAsync(AttachmentDto dto, CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/attachments", new DefaultRequest<AttachmentDto> { Item = dto }, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/attachments", new DefaultRequest<AttachmentDto> { Item = dto }, cancellationToken);
         response.EnsureSuccessStatusCode();
         var wrapper = await response.Content.ReadFromJsonAsync<DefaultResponse<AttachmentDto>>(cancellationToken);
         return wrapper?.Item;
@@ -557,7 +557,7 @@ public class AttachmentsSearchRequestBuilder
     public async Task<PagedResponse<AttachmentDto>?> PostAsync(SearchRequest<AttachmentSearchFilter> request,
         CancellationToken cancellationToken = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/attachments/search", request, cancellationToken);
+        var response = await _http.PostAsJsonAsync("/api/v1/attachments/search", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PagedResponse<AttachmentDto>>(cancellationToken);
     }
@@ -571,13 +571,13 @@ public class AttachmentByIdRequestBuilder
 
     public async Task<AttachmentDto?> GetAsync(CancellationToken cancellationToken = default)
     {
-        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<AttachmentDto>>($"/api/attachments/{_id}", cancellationToken);
+        var wrapper = await _http.GetFromJsonAsync<DefaultResponse<AttachmentDto>>($"/api/v1/attachments/{_id}", cancellationToken);
         return wrapper?.Item;
     }
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _http.DeleteAsync($"/api/attachments/{_id}", cancellationToken);
+        var response = await _http.DeleteAsync($"/api/v1/attachments/{_id}", cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }

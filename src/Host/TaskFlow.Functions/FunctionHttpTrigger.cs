@@ -18,7 +18,7 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
 
     [Function("TaskApiProxy")]
     public async Task<HttpResponseData> TaskApiProxy(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "tasks")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/tasks")] HttpRequestData req,
         CancellationToken ct)
     {
         logger.LogInformation("TaskApiProxy invoked at {UtcNow}", DateTime.UtcNow);

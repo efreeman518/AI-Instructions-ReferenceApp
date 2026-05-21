@@ -9,7 +9,7 @@ public static class AgentEndpoints
 {
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/agent").WithTags("Agent");
+        var group = app.MapGroup("/agent").WithTags("Agent");
 
         group.MapPost("/chat", async (
             [FromBody] AgentChatRequest request,

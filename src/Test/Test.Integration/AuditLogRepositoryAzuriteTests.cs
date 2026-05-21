@@ -1,6 +1,7 @@
 using Aspire.Hosting.Testing;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
+using EF.Test.Integration.Aspire;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -29,9 +30,10 @@ public class AuditLogRepositoryAzuriteTests
 
         await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
 
-        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
-            .AsTask()
-            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
+        var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
+            "TableStorage1",
+            AspireTestHost.DefaultTimeout,
+            ct);
         Assert.IsFalse(string.IsNullOrWhiteSpace(connectionString));
 
         var tableName = $"audit{Guid.NewGuid():N}"[..31];

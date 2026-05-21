@@ -134,9 +134,22 @@ public static partial class RegisterServices
                 containerName));
     }
 
-    private static void AddHealthChecks(IServiceCollection services)
+    private static void AddHealthChecks(IServiceCollection services, IConfiguration config)
     {
-        services.AddHealthChecks()
-            .AddCheck<HealthChecks.SqlHealthCheck>("sql", tags: ["ready"]);
+        var builder = services.AddHealthChecks()
+            .AddCheck<HealthChecks.MemoryHealthCheck>("memory", tags: ["memory", "full"])
+            .AddCheck<HealthChecks.SqlHealthCheck>("sql", tags: ["ready", "db", "full"]);
+
+        if (!config.GetValue<bool>("HealthChecks:EnableExternalServices", false))
+            return;
+
+        if (!string.IsNullOrWhiteSpace(ResolveConnectionString(config, "BlobStorage1", "BlobStorage1", "Values:BlobStorage1")))
+            builder.AddCheck<HealthChecks.BlobStorageHealthCheck>("blob-storage", tags: ["full", "extservice"]);
+
+        if (!string.IsNullOrWhiteSpace(ResolveConnectionString(config, "ServiceBus1", "ServiceBus1", "Values:ServiceBus1")))
+            builder.AddCheck<HealthChecks.ServiceBusHealthCheck>("service-bus", tags: ["full", "extservice"]);
+
+        if (!string.IsNullOrWhiteSpace(config.GetConnectionString("CosmosDb1")))
+            builder.AddCheck<HealthChecks.CosmosDbHealthCheck>("cosmos-db", tags: ["full", "extservice"]);
     }
 }

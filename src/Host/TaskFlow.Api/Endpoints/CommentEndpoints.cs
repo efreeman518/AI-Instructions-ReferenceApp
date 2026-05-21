@@ -16,7 +16,7 @@ public static class CommentEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/comments").WithTags("Comments");
+        var g = group.MapGroup("/comments").WithTags("Comments");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<CommentDto>>(StatusCodes.Status200OK)

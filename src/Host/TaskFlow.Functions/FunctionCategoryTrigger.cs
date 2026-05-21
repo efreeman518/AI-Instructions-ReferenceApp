@@ -13,7 +13,7 @@ public class FunctionCategoryTrigger(
 {
     [Function(nameof(CreateCategory))]
     public async Task<HttpResponseData> CreateCategory(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "categories")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/categories")] HttpRequestData req,
         CancellationToken ct)
     {
         var request = await req.ReadFromJsonAsync<CreateCategoryRequest>(cancellationToken: ct);

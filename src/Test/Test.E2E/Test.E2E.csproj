@@ -8,10 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="MSTest" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Newtonsoft.Json" />
-    <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="EF.Common.Contracts" />
   </ItemGroup>
 
@@ -23,6 +20,7 @@
     <ProjectReference Include="..\Test.Support\Test.Support.csproj" />
     <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\EF.Test.Integration\EF.Test.Integration.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
   </ItemGroup>
 

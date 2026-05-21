@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using EF.Test.Integration.EntityFramework;
 using TaskFlow.Infrastructure.Data;
 
 namespace Test.Integration;
@@ -13,17 +13,15 @@ internal static class DbContextFactory
 {
     internal static TaskFlowDbContextTrxn CreateTrxnContext(string? connString = null)
     {
-        var options = new DbContextOptionsBuilder<TaskFlowDbContextTrxn>()
-            .UseSqlServer(connString ?? AspireTestHost.ConnectionString)
-            .Options;
+        var options = DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextTrxn>(
+            connString ?? AspireTestHost.ConnectionString);
         return new TaskFlowDbContextTrxn(options) { AuditId = "integration-test" };
     }
 
     internal static TaskFlowDbContextQuery CreateQueryContext(string? connString = null)
     {
-        var options = new DbContextOptionsBuilder<TaskFlowDbContextQuery>()
-            .UseSqlServer(connString ?? AspireTestHost.ConnectionString)
-            .Options;
+        var options = DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextQuery>(
+            connString ?? AspireTestHost.ConnectionString);
         return new TaskFlowDbContextQuery(options) { AuditId = "integration-test" };
     }
 }

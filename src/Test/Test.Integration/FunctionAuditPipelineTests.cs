@@ -4,13 +4,14 @@ using Aspire.Hosting.Testing;
 using Azure;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
+using EF.Test.Integration.Aspire;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
 /// <summary>
-/// End-to-end audit pipeline test for the Functions host: POST /api/categories on the
+/// End-to-end audit pipeline test for the Functions host: POST /api/v1/categories on the
 /// <c>taskflowfunctions</c> resource → Function request handling → audit middleware → Azurite Table
 /// Storage row, with a polling read-back.
 /// Aspire tier (Aspire.Hosting.Testing) — required because the Functions host has the longest cold-start
@@ -57,9 +58,10 @@ public class FunctionAuditPipelineTests
         Assert.AreEqual(FunctionFallbackTenantId, responseBody.TenantId);
         Assert.AreEqual(request.Name, responseBody.Name);
 
-        var connectionString = await AspireTestHost.AspireApp!.GetConnectionStringAsync("TableStorage1", ct)
-            .AsTask()
-            .WaitAsync(AspireTestHost.DefaultTimeout, ct);
+        var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
+            "TableStorage1",
+            AspireTestHost.DefaultTimeout,
+            ct);
         var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
         var auditEntity = await WaitForAuditEntityAsync(
             tableClient,
@@ -88,7 +90,7 @@ public class FunctionAuditPipelineTests
         {
             try
             {
-                var response = await client.PostAsJsonAsync("/api/categories", request, ct);
+                var response = await client.PostAsJsonAsync("/api/v1/categories", request, ct);
                 if (response.StatusCode == HttpStatusCode.Created)
                     return response;
 

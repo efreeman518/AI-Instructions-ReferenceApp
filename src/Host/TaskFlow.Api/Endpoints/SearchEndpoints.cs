@@ -9,7 +9,7 @@ public static class SearchEndpoints
 {
     public static IEndpointRouteBuilder MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/search").WithTags("Search");
+        var group = app.MapGroup("/search").WithTags("Search");
 
         group.MapGet("/tasks", async (
             [FromQuery] string query,
