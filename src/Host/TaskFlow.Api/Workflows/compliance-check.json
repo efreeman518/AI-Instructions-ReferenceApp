@@ -140,7 +140,7 @@
       },
       "edges": [ { "on": ["Match"], "nextNodeId": "n-ok" }, { "on": ["Error"], "nextNodeId": "n-ok" } ]
     },
-    "n-ok": { "id": "n-ok", "type": "checkpoint", "label": "Loop iteration done" },
+    "n-ok": { "id": "n-ok", "type": "checkpoint", "label": "Loop iteration done", "config": {} },
     "n-summary-event": {
       "id": "n-summary-event",
       "type": "message",
