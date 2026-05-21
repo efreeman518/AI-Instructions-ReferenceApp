@@ -1,8 +1,6 @@
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
 using EF.FlowEngine.Definition;
 using EF.FlowEngine.Impl;
+using System.Text.Json;
 
 namespace Test.Integration.FlowEngine;
 
@@ -54,6 +52,22 @@ public class WorkflowDefinitionValidityTests
         // ValidateAndThrow surfaces validator errors (unknown node types, dangling edges,
         // missing required fields, malformed JSON schemas) as a typed exception.
         WorkflowDefinitionValidator.ValidateAndThrow(def);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllWorkflows))]
+    [TestCategory("Integration")]
+    public void Each_Workflow_Node_Has_Explicit_Config_For_SqlRegistrySerialization(string fileName, string _id, string _version)
+    {
+        using var document = JsonDocument.Parse(ReadWorkflowFile(fileName));
+        var nodes = document.RootElement.GetProperty("nodes");
+
+        foreach (var node in nodes.EnumerateObject())
+        {
+            Assert.IsTrue(
+                node.Value.TryGetProperty("config", out _),
+                $"{fileName}:{node.Name} must include explicit config, use {{}} when empty.");
+        }
     }
 
     [TestMethod]

@@ -6,6 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Skip heavy/optional resources to keep startup fast and avoid func.exe dependency.
 var isTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING") == "true"
     || string.Equals(builder.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+var applicationStyle = Environment.GetEnvironmentVariable("TASKFLOW_APPLICATION_STYLE");
 
 // Keep SQL password stable across restarts so persistent SQL volumes remain usable.
 // Tests can still override via Parameters__sql-password.
@@ -70,10 +71,20 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WaitFor(sql)
     .WaitFor(redis);
 
+if (isTesting)
+{
+    api.WithEnvironment("Cors__AllowedOrigins__0", "http://localhost");
+}
+
+if (!string.IsNullOrWhiteSpace(applicationStyle))
+{
+    api.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
+}
+
 if (!isTesting)
 {
     // Scheduler host
-    builder.AddProject<Projects.TaskFlow_Scheduler>("taskflowscheduler")
+    var scheduler = builder.AddProject<Projects.TaskFlow_Scheduler>("taskflowscheduler")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
         .WithReference(redis, connectionName: "Redis1")
@@ -81,6 +92,11 @@ if (!isTesting)
         .WithReference(serviceBus)
         .WithReplicas(1)
         .WaitFor(sql);
+
+    if (!string.IsNullOrWhiteSpace(applicationStyle))
+    {
+        scheduler.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
+    }
 
     // Gateway host
     builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
@@ -91,7 +107,7 @@ if (!isTesting)
 if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS") == "true")
 {
     // Functions host
-    builder.AddAzureFunctionsProject<Projects.TaskFlow_Functions>("taskflowfunctions")
+    var functions = builder.AddAzureFunctionsProject<Projects.TaskFlow_Functions>("taskflowfunctions")
         .WithHostStorage(storage)
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
@@ -100,6 +116,11 @@ if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS
         .WithReference(serviceBus)
         .WaitFor(sql)
         .WaitFor(storage);
+
+    if (!string.IsNullOrWhiteSpace(applicationStyle))
+    {
+        functions.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
+    }
 }
 
 // Uno UI (WASM) — calls Gateway, not API directly

@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client;
@@ -117,41 +116,61 @@ public class TaskItemApiService(
 
     private static TaskItemModel MapToModel(TaskItemDto dto) => new()
     {
-        Id = dto.Id, Title = dto.Title ?? string.Empty, Description = dto.Description,
-        Priority = dto.Priority ?? "None", Status = dto.Status ?? "Open",
+        Id = dto.Id,
+        Title = dto.Title ?? string.Empty,
+        Description = dto.Description,
+        Priority = dto.Priority ?? "None",
+        Status = dto.Status ?? "Open",
         Features = dto.Features ?? "None",
-        EstimatedEffort = dto.EstimatedEffort, ActualEffort = dto.ActualEffort,
-        CompletedDate = dto.CompletedDate, CategoryId = dto.CategoryId,
+        EstimatedEffort = dto.EstimatedEffort,
+        ActualEffort = dto.ActualEffort,
+        CompletedDate = dto.CompletedDate,
+        CategoryId = dto.CategoryId,
         ParentTaskItemId = dto.ParentTaskItemId,
-        StartDate = dto.StartDate, DueDate = dto.DueDate,
+        StartDate = dto.StartDate,
+        DueDate = dto.DueDate,
         RecurrenceInterval = dto.RecurrenceInterval,
         RecurrenceFrequency = dto.RecurrenceFrequency,
         RecurrenceEndDate = dto.RecurrenceEndDate,
         CategoryName = dto.CategoryName,
         Comments = dto.Comments?.Select(c => new CommentModel
         {
-            Id = c.Id, Body = c.Body ?? string.Empty, TaskItemId = c.TaskItemId ?? Guid.Empty
+            Id = c.Id,
+            Body = c.Body ?? string.Empty,
+            TaskItemId = c.TaskItemId ?? Guid.Empty
         }).ToList(),
         ChecklistItems = dto.ChecklistItems?.Select(c => new ChecklistItemModel
         {
-            Id = c.Id, Title = c.Title ?? string.Empty, IsCompleted = c.IsCompleted ?? false,
-            SortOrder = c.SortOrder ?? 0, CompletedDate = c.CompletedDate,
+            Id = c.Id,
+            Title = c.Title ?? string.Empty,
+            IsCompleted = c.IsCompleted ?? false,
+            SortOrder = c.SortOrder ?? 0,
+            CompletedDate = c.CompletedDate,
             TaskItemId = c.TaskItemId ?? Guid.Empty
         }).ToList(),
         Tags = dto.Tags?.Select(t => new TagModel
         {
-            Id = t.Id, Name = t.Name ?? string.Empty, Color = t.Color
+            Id = t.Id,
+            Name = t.Name ?? string.Empty,
+            Color = t.Color
         }).ToList(),
         SubTasks = dto.SubTasks?.Select(MapToModel).ToList()
     };
 
     private static TaskItemDto MapToDto(TaskItemModel model) => new()
     {
-        Id = model.Id, Title = model.Title, Description = model.Description,
-        Priority = model.Priority, Status = model.Status, Features = model.Features,
-        EstimatedEffort = model.EstimatedEffort, ActualEffort = model.ActualEffort,
-        CategoryId = model.CategoryId, ParentTaskItemId = model.ParentTaskItemId,
-        StartDate = model.StartDate, DueDate = model.DueDate,
+        Id = model.Id,
+        Title = model.Title,
+        Description = model.Description,
+        Priority = model.Priority,
+        Status = model.Status,
+        Features = model.Features,
+        EstimatedEffort = model.EstimatedEffort,
+        ActualEffort = model.ActualEffort,
+        CategoryId = model.CategoryId,
+        ParentTaskItemId = model.ParentTaskItemId,
+        StartDate = model.StartDate,
+        DueDate = model.DueDate,
         RecurrenceInterval = model.RecurrenceInterval,
         RecurrenceFrequency = model.RecurrenceFrequency,
         RecurrenceEndDate = model.RecurrenceEndDate,
@@ -160,13 +179,17 @@ public class TaskItemApiService(
         // flow where the child update could lose fields (e.g. IsCompleted).
         ChecklistItems = model.ChecklistItems?.Select(c => new ChecklistItemDto
         {
-            Id = c.Id, Title = c.Title, IsCompleted = c.IsCompleted,
-            SortOrder = c.SortOrder, CompletedDate = c.CompletedDate,
+            Id = c.Id,
+            Title = c.Title,
+            IsCompleted = c.IsCompleted,
+            SortOrder = c.SortOrder,
+            CompletedDate = c.CompletedDate,
             TaskItemId = c.TaskItemId == Guid.Empty ? model.Id ?? Guid.Empty : c.TaskItemId
         }).ToList(),
         Comments = model.Comments?.Select(c => new CommentDto
         {
-            Id = c.Id, Body = c.Body,
+            Id = c.Id,
+            Body = c.Body,
             TaskItemId = c.TaskItemId == Guid.Empty ? model.Id ?? Guid.Empty : c.TaskItemId
         }).ToList()
     };

@@ -34,6 +34,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 |-------|-----------|
 | **Orchestration** | .NET Aspire (local dev + cloud deployment) |
 | **API** | ASP.NET Core Minimal APIs |
+| **Application Layer** | Selectable Service or CQRS implementation (`Application:Style`; default `Service`) |
 | **Gateway** | YARP Reverse Proxy |
 | **Background Jobs** | Azure Functions (isolated worker v4), TickerQ Scheduler |
 | **UI** | Uno Platform WASM (MVUX), Blazor WASM/Server (MudBlazor, Refit) |
@@ -51,6 +52,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 ### Design Principles
 
 - **Domain-Driven Design** — Aggregates, value objects, domain events, bounded contexts
+- **Selectable Application Style** — Same Domain, Infrastructure, UI, DTO contracts, and HTTP routes can run through the default Service layer or direct CQRS handlers
 - **CQRS-like** — Separate read/write DbContexts; denormalized Cosmos read model alongside normalized SQL
 - **Multi-Tenant First** — Tenant isolation at query filter, service, and authorization layers
 - **Event-Driven** — Integration events flow through Service Bus to Azure Functions for async processing
@@ -150,7 +152,8 @@ C4Component
 
         Component(endpoints, "Minimal API Endpoints", "ASP.NET Core", "HTTP request handling, routing, OpenAPI")
         Component(middleware, "Middleware Pipeline", "ASP.NET Core", "Security headers, correlation, exception handling, rate limiting, auth")
-        Component(services, "Application Services", "C#", "Business logic, validation, mapping, tenant enforcement")
+        Component(services, "Application Services", "TaskFlow.Application.Services", "Service-mode use cases")
+        Component(cqrs, "CQRS Handlers", "TaskFlow.Application.Cqrs", "Command/query records, handlers, custom validation")
         Component(repos_q, "Query Repositories", "EF Core", "Read-optimized, no-tracking, projections")
         Component(repos_t, "Transactional Repositories", "EF Core", "Write operations, audit, optimistic concurrency")
         Component(cache, "Cache Provider", "FusionCache", "L1 in-memory + L2 Redis with backplane")
@@ -166,11 +169,15 @@ C4Component
     ContainerDb(blobs, "Blob Storage", "")
 
     Rel(endpoints, middleware, "Passes through")
-    Rel(endpoints, services, "Calls")
+    Rel(endpoints, services, "Service mode")
+    Rel(endpoints, cqrs, "Cqrs mode")
     Rel(services, repos_q, "Queries")
     Rel(services, repos_t, "Mutates")
     Rel(services, cache, "Get/Set/Invalidate")
     Rel(services, events, "Publishes integration events")
+    Rel(cqrs, repos_q, "Queries when needed")
+    Rel(cqrs, repos_t, "Mutates when needed")
+    Rel(cqrs, events, "Publishes integration events")
     Rel(repos_q, sql, "SELECT")
     Rel(repos_t, sql, "INSERT/UPDATE/DELETE")
     Rel(cache, redis, "L2 cache + backplane")
@@ -198,13 +205,13 @@ block-beta
         b1["Wires Application + Infrastructure"]
     end
     block:app["Application Layer"]
-        a1["Services"] a2["Contracts"] a3["Models"] a4["Mappers"] a5["MessageHandlers"]
+        a1["Services"] a2["CQRS"] a3["Contracts"] a4["Models"] a5["Mappers"] a6["MessageHandlers"]
     end
     block:domain["Domain Layer"]
         d1["Domain.Model — Entities, Aggregates, Value Objects"] d2["Domain.Shared — Enums, Interfaces"]
     end
     block:infra["Infrastructure Layer"]
-        i1["Repositories (EF Core)"] i2["Storage (Blob)"] i2b["Storage (Cosmos)"] i3["AI (Search, OpenAI)"] i4["Data (DbContext)"]
+        i1["Repositories (EF Core)"] i2["Storage (Blob)"] i2b["Storage (Cosmos)"] i3["AI (Search, OpenAI)"] i4["Data (DbContext)"] i5["EF.CQRS package candidate"]
     end
 
     ui -- "references Application.Models" --> app
@@ -225,15 +232,40 @@ block-beta
 | **UI** | TaskFlow.Uno, TaskFlow.Blazor | User interfaces — Uno MVUX + Kiota; Blazor MudBlazor + Refit | Application.Models (shared contract) |
 | **Host** | Api, Gateway, Functions, Scheduler | HTTP pipeline, function triggers, config | Bootstrapper |
 | **Bootstrapper** | TaskFlow.Bootstrapper | DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (`RegisterServices.FlowEngine.cs`) and FE-migration startup task. | Application, Infrastructure |
-| **Application** | Services, Contracts, Models, Mappers, MessageHandlers | Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions. `MessageHandlers` also defines `IWorkflowTrigger` for invoking FlowEngine workflows from domain events. | Domain |
+| **Application** | Services, Cqrs, Contracts, Models, Mappers, MessageHandlers | Use-case implementation for the selected style, validation, DTO mapping, tenant enforcement, integration event definitions. `MessageHandlers` also defines `IWorkflowTrigger` for invoking FlowEngine workflows from domain events. | Domain |
 | **Domain** | Domain.Model, Domain.Shared | Entities, aggregates, value objects, enums, marker interfaces | Nothing (no outward deps) |
-| **Infrastructure** | Repositories, Data, Storage, AI | EF Core, Azure SDK implementations of Application.Contracts interfaces. `Data` also owns the FlowEngine state DbContext (`TaskFlowFlowEngineDbContext`) and its migrations. | Application.Contracts, Domain |
+| **Infrastructure** | Repositories, Data, Storage, AI, EF.CQRS | EF Core, Azure SDK implementations of Application.Contracts interfaces. `EF.CQRS` is a separately packaged CQRS helper candidate under Infrastructure for now. `Data` also owns the FlowEngine state DbContext (`TaskFlowFlowEngineDbContext`) and its migrations. | Application.Contracts, Domain |
+
+### Application Style Switch
+
+TaskFlow can run the same public API contract through either application-layer style. The switch is startup-time configuration, not per-request dispatch.
+
+| Setting | Behavior |
+|---------|----------|
+| `Application:Style` | `Service` or `Cqrs`; missing/blank defaults to `Service` |
+| `TASKFLOW_APPLICATION_STYLE` | Environment override used by local test runs and forwarded by Aspire to API, Scheduler, and Functions |
+| `Service` | Registers the existing `I*Service` implementations and maps the service endpoint set |
+| `Cqrs` | Registers `TaskFlow.Application.Cqrs` command/query handlers plus decorators and maps the CQRS endpoint set |
+| Public contract | Routes, DTOs, envelopes, auth, audit, infrastructure repositories, and UI clients remain unchanged |
+
+`TaskFlow.Api` contains two endpoint sets. Service endpoints inject `I*Service`. CQRS endpoints inject the exact `IRequestHandler<TRequest,TResponse>` needed by that route, construct a command/query record, and call `HandleAsync` directly. The avoided patterns are central request dispatchers, request buses, and generic `Send()` entrypoints. The reason is traceability: each route exposes the exact request and handler registration it uses, so tests and code review can follow the use case without hidden runtime routing.
+
+`src/Infrastructure/EF.CQRS` is intentionally isolated as the package candidate. It provides `ICommand`, `IQuery`, `IRequestHandler`, request validators, validation/logging decorators, and `AddDecoratedRequestHandler(...)` DI helpers. The project has no TaskFlow business logic.
+
+### Service vs CQRS Tradeoffs
+
+| Style | Pros | Cons | Best Fit |
+|-------|------|------|----------|
+| `Service` | Familiar, compact, fewer files, easy to scan for simple CRUD and shared workflows | Services can grow broad over time; one class may accumulate several endpoint flows | Small-to-medium CRUD modules, teams that value fewer moving parts |
+| `Cqrs` | One request/handler per use case; endpoint-to-handler flow is explicit; custom validation/decorator pipeline is easy to test | More files and registrations; can be ceremony for simple CRUD; needs guardrails against hiding use cases behind generic dispatch | Use cases with distinct validation, branching, audit, event, or query/write behavior |
 
 ### Dependency Rules (Architecture-Test Enforced)
 
 - **Domain** has zero references to Application, Infrastructure, or Host layers
 - **Application.Services** has zero references to Infrastructure or Host layers
+- **Application.Cqrs** has zero references to Host layers or Infrastructure implementation projects; it may reference the isolated `EF.CQRS` package candidate
 - **Infrastructure** implements `Application.Contracts` interfaces (not Domain contracts)
+- CQRS guardrails: avoid central request dispatchers, request buses, and generic `Send()` entrypoints; one command/query maps to one handler registration so wiring remains explicit
 - All tenant entities implement `ITenantEntity<Guid>`
 - All services have corresponding interfaces in Contracts
 - Entity properties use private setters (encapsulation)
@@ -445,28 +477,42 @@ sequenceDiagram
     participant GW as Gateway (YARP)
     participant API as TaskFlow API
     participant SVC as Application Service
-    participant RQ as Query Repository
+    participant H as CQRS Request Handler
     participant RT as Transactional Repository
     participant DB as SQL Server
     participant SB as Service Bus
 
-    UI->>GW: POST /api/task-items (Bearer token)
+    UI->>GW: POST /api/v1/task-items (Bearer token)
     GW->>GW: Validate token, extract claims
-    GW->>API: POST /api/task-items + X-Orig-Request header
+    GW->>API: POST /api/v1/task-items + X-Orig-Request header
     API->>API: Middleware: correlation ID, rate limit, auth
-    API->>SVC: TaskItemService.CreateAsync(request)
-    SVC->>SVC: TenantBoundaryValidator.EnsureTenantBoundary()
-    SVC->>SVC: StructureValidator.ValidateCreate()
-    SVC->>SVC: dto.ToEntity(tenantId)
-    SVC->>RT: Create(entity)
-    RT->>DB: INSERT INTO TaskItems
-    SVC->>RT: SaveChangesAsync(ClientWins)
-    RT-->>SVC: Success
-    SVC->>SB: PublishAsync(TaskItemCreatedEvent)
-    SVC-->>API: Result<DefaultResponse<TaskItemDto>>
+    API->>API: Endpoint set selected at startup by Application:Style
+    alt Service
+        API->>SVC: TaskItemService.CreateAsync(request)
+        SVC->>SVC: TenantBoundaryValidator + structure validation
+        SVC->>SVC: dto.ToEntity(tenantId)
+        SVC->>RT: Create(entity)
+        RT->>DB: INSERT INTO TaskItems
+        SVC->>RT: SaveChangesAsync(ClientWins)
+        RT-->>SVC: Success
+        SVC->>SB: PublishAsync(TaskItemCreatedEvent)
+        SVC-->>API: Result<DefaultResponse<TaskItemDto>>
+    else Cqrs
+        API->>H: HandleAsync(CreateTaskItemCommand)
+        H->>H: Validation decorator + custom request validator
+        H->>H: TenantBoundaryValidator + dto.ToEntity(tenantId)
+        H->>RT: Create(entity)
+        RT->>DB: INSERT INTO TaskItems
+        H->>RT: SaveChangesAsync(ClientWins)
+        RT-->>H: Success
+        H->>SB: PublishAsync(TaskItemCreatedEvent)
+        H-->>API: Result<DefaultResponse<TaskItemDto>>
+    end
     API-->>GW: 201 Created + JSON body
     GW-->>UI: 201 Created
 ```
+
+The CQRS path is direct endpoint-to-handler invocation. Decorators are assembled by DI around the exact handler type; there is no central dispatch step.
 
 ### 6.2 Event Processing Flow — Cosmos Projection
 
@@ -499,7 +545,7 @@ sequenceDiagram
     participant FN as Azure Functions
     participant SQL as SQL Server
 
-    UI->>API: POST /api/attachments/upload (multipart: file, ownerType, ownerId)
+    UI->>API: POST /api/v1/attachments/upload (multipart: file, ownerType, ownerId)
     API->>BLOB: Upload blob to container
     BLOB-->>API: Storage URI
     API->>SQL: INSERT Attachment record (fileName, contentType, size, URI)
@@ -517,7 +563,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant SVC as Application Service
+    participant SVC as Service or Handler
     participant L1 as FusionCache L1 (Memory)
     participant L2 as Redis L2 (Backplane)
     participant DB as SQL Server
@@ -546,31 +592,48 @@ sequenceDiagram
 
 ## 7. API Contract Summary
 
+**Route versioning boundary:** business/domain HTTP contracts are versioned under `/api/v1/*`. Operational, health, gateway, and workflow-admin surfaces are intentionally unversioned: `/health/*`, `/alive`, `/healthz`, `/api/flowengine/*`, and the Azure Functions host health route `/api/health`. Versioning applies to the API contract consumed by clients, not to host-management probes or third-party/admin surfaces with their own lifecycle.
+
 ### 7.1 Entity Endpoints (Consistent CRUD Pattern)
 
 | Method | Route | Purpose |
 |--------|-------|---------|
-| `POST` | `/api/{entity}/search` | Paged search with filters and sorting |
-| `GET` | `/api/{entity}/{id}` | Get single entity by ID |
-| `POST` | `/api/{entity}` | Create new entity |
-| `PUT` | `/api/{entity}/{id}` | Update existing entity |
-| `DELETE` | `/api/{entity}/{id}` | Delete entity |
+| `POST` | `/api/v1/{entity}/search` | Paged search with filters and sorting |
+| `GET` | `/api/v1/{entity}/{id}` | Get single entity by ID |
+| `POST` | `/api/v1/{entity}` | Create new entity |
+| `PUT` | `/api/v1/{entity}/{id}` | Update existing entity |
+| `DELETE` | `/api/v1/{entity}/{id}` | Delete entity |
 
 **Entities with full CRUD**: `task-items`, `categories`, `tags`, `comments`, `checklist-items`, `attachments`  
 **Entities with partial CRUD**: `task-item-tags` (create, get, delete — no search/update)
+
+### 7.1.1 Endpoint Implementation Sets
+
+HTTP routes and DTO contracts do not change when the application style changes. `TaskFlow.Api` selects one endpoint implementation set during startup:
+
+| Style | Endpoint implementation | Dependency shape |
+|-------|-------------------------|------------------|
+| `Service` | `Endpoints/*Endpoints.cs` (excluding `Endpoints/Cqrs`) | Endpoints inject `I*Service` interfaces from `Application.Contracts` |
+| `Cqrs` | `Endpoints/Cqrs/*` | Endpoints inject the route-specific `IRequestHandler<TRequest,TResponse>` and call `HandleAsync` directly |
+
+This keeps generated clients, gateway routing, UIs, auth policies, ProblemDetails behavior, and E2E tests stable while demonstrating both application-layer designs.
 
 ### 7.2 Special Endpoints
 
 | Method | Route | Purpose |
 |--------|-------|---------|
-| `POST` | `/api/attachments/upload` | Multipart file upload (file, ownerType, ownerId) |
-| `GET` | `/api/search/tasks` | AI-powered hybrid search (`?query=...&mode=hybrid&maxResults=10`) |
-| `POST` | `/api/agent/chat` | AI agent chat endpoint |
-| `GET` | `/api/task-views` | Cosmos DB denormalized views (`?tenantId=...&pageSize=20`) |
-| `GET` | `/api/task-views/{id}` | Single task view (`?tenantId=...`) |
+| `POST` | `/api/v1/attachments/upload` | Multipart file upload (file, ownerType, ownerId) |
+| `GET` | `/api/v1/search/tasks` | AI-powered hybrid search (`?query=...&mode=hybrid&maxResults=10`) |
+| `POST` | `/api/v1/agent/chat` | AI agent chat endpoint |
+| `GET` | `/api/v1/task-views` | Cosmos DB denormalized views (`?tenantId=...&pageSize=20`) |
+| `GET` | `/api/v1/task-views/{id}` | Single task view (`?tenantId=...`) |
 | `*` | `/api/flowengine/*` | FlowEngine admin API — instances, registry, circuit-breakers, human tasks. Mounted via `MapFlowEngineAdmin(prefix: "/api/flowengine")`; see [§14 Workflow Orchestration](#14-workflow-orchestration-flowengine) |
-| `GET` | `/health` | Health check |
+| `GET` | `/health/memory` | Anonymous memory health probe |
+| `GET` | `/health/db` | Authenticated database health probe |
+| `GET` | `/health/full` | Authenticated full probe, optionally including external dependencies |
 | `GET` | `/alive` | Liveness probe |
+
+The Azure Functions app keeps the Functions host default `/api` prefix. Its business HTTP triggers mirror the public versioned contract (`/api/v1/*`); its host health trigger remains `/api/health`.
 
 ### 7.3 Request/Response Envelopes
 
@@ -585,17 +648,18 @@ Result<T>                    → Success | Failure(errors) | None (404)
 ### 7.4 Middleware Pipeline (Order of Execution)
 
 ```
-1. SecurityHeadersMiddleware       — Adds security response headers
-2. CorrelationIdMiddleware         — Generates/propagates X-Correlation-Id
-3. ExceptionHandler                — Catches exceptions → ProblemDetails (409, 422, 404, 403, 500)
-4. RateLimiter                     — Per-tenant, 100 requests/minute
-5. CORS                            — Policy "TaskFlowUi" for allowed origins
-6. Authentication                  — Scaffold (dev) or JWT Bearer (Entra ID)
-7. Authorization                   — Policy-based (see Security Model)
-8. GatewayClaimsMiddleware         — Extracts X-Orig-Request header from Gateway
-9. OpenAPI / Scalar UI             — API documentation (if enabled)
-10. Health + Alive endpoints       — /health, /alive
-11. Entity Endpoints               — All CRUD endpoint groups
+1. SecurityHeadersMiddleware       - Adds security response headers
+2. CorrelationIdMiddleware         - Generates/propagates X-Correlation-Id
+3. HeaderPropagation               - Captures X-Correlation-Id for outgoing HttpClient calls
+4. ExceptionHandler                - Catches exceptions -> ProblemDetails with trace/activity metadata
+5. RateLimiter                     - Per-tenant API limits plus tiered health limits
+6. CORS                            - Policy TaskFlowUi for allowed origins
+7. Authentication                  - Scaffold (dev) or JWT Bearer (Entra ID)
+8. Authorization                   - Authenticated fallback/default policy plus named policies
+9. GatewayClaimsTransformer        - Rehydrates X-Orig-Request only from configured trusted gateway app id
+10. OpenAPI / Scalar UI            - API documentation (if enabled)
+11. Health + Alive endpoints       - /health/memory, /health/db, /health/full, /alive
+12. Versioned Entity Endpoints     - /api/v1/*
 ```
 
 ---
@@ -609,7 +673,7 @@ Result<T>                    → Success | Failure(errors) | None (404)
 | **Scaffold** | Development | Predictable test identity; all requests succeed; no real token validation |
 | **Entra ID** | Production | JWT Bearer validation against Microsoft Entra External ID tenant |
 
-The mode is config-driven (`Auth:Mode` in `appsettings.json`), allowing a single build to serve both environments.
+The mode is config-driven (`AuthMode` in `appsettings.json`), allowing a single build to serve both environments.
 
 ### 8.2 Multi-Tenancy Enforcement
 
@@ -643,6 +707,8 @@ graph LR
 | `TenantAdmin` | Admin within a specific tenant |
 | `StatusTransition` | Controls who can transition task statuses |
 
+Fallback and default authorization require an authenticated principal for every endpoint unless the route is explicitly anonymous. Scaffold mode supplies a predictable local principal; production uses JWT bearer validation.
+
 ### 8.4 Gateway Claims Flow
 
 ```
@@ -651,13 +717,14 @@ Gateway: Validate token (Entra or scaffold)
 Gateway: Acquire service-to-service token
 Gateway → API: Authorization: Bearer {service-token}
               + X-Orig-Request: Base64({ oid, tenant_id, name, roles })
-API: GatewayClaimsMiddleware extracts X-Orig-Request
+API: GatewayClaimsTransformer verifies azp/appid == GatewayClaimsTransform:GatewayAppId
+API: GatewayClaimsTransformer extracts X-Orig-Request
 API: Sets IRequestContext (tenant, user, roles)
 ```
 
 ### 8.5 Rate Limiting
 
-Per-tenant fixed window: **100 requests per minute**. Returns `429 Too Many Requests` with `Retry-After` header.
+Per-tenant fixed window: **100 requests per minute** by default for versioned API routes. Health endpoints use separate IP-based policies: memory/alive is generous, db is tighter, and full is strict because it can include expensive dependency probes. Returns `429 Too Many Requests`.
 
 ---
 
@@ -788,8 +855,10 @@ Configured via **Aspire Service Defaults** (`Extensions.cs`):
 | Endpoint | Source | Purpose | Checks |
 |----------|--------|---------|--------|
 | `/healthz` | ServiceDefaults | Liveness | All registered checks |
-| `/readyz` | ServiceDefaults | Readiness | Checks tagged `"ready"` (SQL, Redis) |
-| `/health` | API | Custom health check | SQL connectivity |
+| `/readyz` | ServiceDefaults | Readiness | Checks tagged `"ready"` |
+| `/health/memory` | API/Gateway | Cheap liveness-style probe | Memory/self checks |
+| `/health/db` | API | Authenticated persistence probe | Checks tagged `"db"` |
+| `/health/full` | API/Gateway | Authenticated full probe | Checks tagged `"full"`; external dependencies only when `HealthChecks:EnableExternalServices=true` |
 | `/alive` | API | Simple liveness | Always returns 200 |
 
 ### 10.3 Correlation Tracking
@@ -925,16 +994,22 @@ graph TB
 
 | Project | Purpose | Value | Primary Tools |
 |---------|---------|-------|---------------|
-| **Test.Unit** | Pure-CPU verification of domain logic, DTO ↔ entity mapping, application service success/failure/conflict paths, in-memory repository CRUD, and Uno API-service mappers. | Fastest feedback loop — millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched. | MSTest, **Moq**, EF Core InMemory provider |
-| **Test.Endpoints** | Drives every HTTP endpoint through the full ASP.NET Core pipeline (middleware → endpoint → service → repo) and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes. | Confirms wire contract without paying for real infrastructure. The whole API surface boots in under a second and runs against an isolated EF InMemory database per factory instance. | MSTest, `Microsoft.AspNetCore.Mvc.Testing` (**WebApplicationFactory**), EF Core InMemory |
-| **Test.Architecture** | Asserts compile-time layering and naming rules: Domain has zero outward references; `Application.Services` cannot reference Infrastructure or Hosts; every tenant entity implements `ITenantEntity<Guid>`; services have matching `I*` interfaces; entity setters are private. | Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with `dotnet test`, and travel with the code instead of living in a wiki. | MSTest, **NetArchTest.Rules** |
+| **Test.Unit** | Pure-CPU verification of domain logic, DTO ↔ entity mapping, application service and CQRS handler success/failure/conflict paths, custom CQRS validation, in-memory repository CRUD, and Uno API-service mappers. | Fastest feedback loop — millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched. | MSTest, **Moq**, EF Core InMemory provider |
+| **Test.Endpoints** | Drives every HTTP endpoint through the full ASP.NET Core pipeline in both application styles and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes. | Confirms the wire contract stays identical across service endpoints and CQRS endpoints without paying for real infrastructure. | MSTest, `Microsoft.AspNetCore.Mvc.Testing` (**WebApplicationFactory**), EF Core InMemory |
+| **Test.Architecture** | Asserts compile-time layering and naming rules: Domain has zero outward references; `Application.Services` cannot reference Infrastructure or Hosts; `Application.Cqrs` has no Host or Infrastructure implementation dependency; CQRS avoids central request dispatchers, request buses, and generic `Send()` entrypoints; every tenant entity implements `ITenantEntity<Guid>`; services have matching `I*` interfaces; entity setters are private. | Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with `dotnet test`, and travel with the code instead of living in a wiki. | MSTest, **NetArchTest.Rules** |
 | **Test.Integration** | End-to-end verification of cross-service workflows by booting the full **Aspire AppHost** in-process: SQL Server, Service Bus emulator, Azure Table Storage, and (when `func.exe` is on PATH) Azure Functions. Covers EF migrations, repository CRUD with paging, the audit pipeline (interceptor → channel → table storage), and domain-event flow (API publish → Service Bus → Function projection → audit row). | Highest-fidelity tests that still run on a developer laptop. Because Aspire wires the same resources used by `dotnet run`, behavior matches the local dev experience and the cloud deployment. | MSTest, **Aspire.Hosting.Testing** (`DistributedApplicationTestingBuilder`), Testcontainers.MsSql, `Azure.Data.Tables` |
-| **Test.E2E** | Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container — cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs. | Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Trades the InMemory shortcut for real RDBMS semantics without paying for the rest of the Aspire graph. | MSTest, WebApplicationFactory, **Testcontainers.MsSql** |
+| **Test.E2E** | Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container in both application styles. These cover cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs. | Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Proves service and CQRS modes preserve the same user-facing behavior over the real RDBMS. | MSTest, WebApplicationFactory, **Testcontainers.MsSql** |
 | **Test.Load** | NBomber HTTP scenarios — task-search throughput and CRUD generation — with assertions on success rate (≥ 95 %) and P99 latency (< 2 s). | Catches pre-prod throughput regressions and gives a reproducible perf baseline. Tests are `[Ignore]`'d by default (manual run) so they never gate CI on infra availability. | MSTest, **NBomber**, NBomber.Http |
 | **Test.Benchmarks** | BenchmarkDotNet console runner exercising hot-path mappers (`ToDto`, `ToEntity`) with `[MemoryDiagnoser]` for allocation tracking. | Quantifies the cost of mapping changes — guards against silent allocation regressions when DTOs are extended. | **BenchmarkDotNet** |
 | **Test.Support** | Reusable test infrastructure: `WebApplicationFactoryBase<TProgram, TTrxn, TQuery>`, fluent entity builders (`CategoryBuilder`, `TaskItemBuilder`, `CommentBuilder`, `TagBuilder`), shared constants. | Removes ~100 lines of duplicated DI-rewiring boilerplate from every WebApplicationFactory test project. Builders give tests intent-revealing fixture data. | `Microsoft.AspNetCore.Mvc.Testing`, EF Core InMemory |
 | **Test.PlaywrightUI** | Browser-driven UI tests against the running Blazor (`https://localhost:7201`) and Uno WASM (`https://localhost:7069`) frontends — full CRUD lifecycle (create → edit → delete), dashboard smoke, regression scenarios. | The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss. | **Playwright** (TypeScript, `@playwright/test`) |
 | **Test.Integration.FlowEngine** | Workflow-definition validity tier for every JSON file shipped under `TaskFlow.Api/Workflows/`. Asserts JSON → `WorkflowDefinition` deserialization, `WorkflowDefinitionValidator.ValidateAndThrow` passes (unknown node types, dangling edges, malformed schemas), in-memory `IWorkflowRegistry` round-trip preserves node count + status, `WorkflowDefinitionBuilder.FromJson` hydrates id/version/nodes, and the copy-on-build glob does not silently drop files. | Catches authoring mistakes that would otherwise only surface at first-instance-start in dev. Runs without any Aspire stack or Docker — uses `EF.FlowEngine.Testing`'s in-memory registry. Fast (sub-second) and is the first line of defense on every PR that touches a workflow JSON. | MSTest, **EF.FlowEngine.Testing** (`InMemoryWorkflowRegistry`) |
+
+### 12.2.1 Application Style Coverage
+
+Endpoint and E2E workflow suites run against both `ApplicationStyle.Service` and `ApplicationStyle.Cqrs` by overriding `Application:Style`/`TASKFLOW_APPLICATION_STYLE` in the test host. The same HTTP routes, request/response envelopes, ProblemDetails shapes, auth behavior, and database side effects must pass in both modes.
+
+CQRS-specific unit tests cover handler behavior, the custom `IRequestValidator<TRequest>` pattern, validation failure response mapping, and decorator order. Architecture tests guard the CQRS boundary: no central request dispatcher, no request bus, no generic `Send()` entrypoint, no Host dependency, no Infrastructure implementation dependency, and one request record per handler registration.
 
 ### 12.3 Testing Tools
 
@@ -1415,12 +1490,12 @@ The agent-client wiring is the integration point with the existing AI stack: Flo
 
 `Application.MessageHandlers.WorkflowTriggerHandler` implements `IWorkflowTrigger` with a single method `OnTaskItemCreatedAsync(TaskItemCreatedEvent)` that calls `engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })`.
 
-> **It is intentionally not wired to `IInternalMessageBus` today.** `TaskItemCreatedEvent` is an integration event traveling over Service Bus, not an in-process `IMessage`. The class exists as a one-line addition wherever the event is raised — typically in `TaskItemService` after `eventPublisher.PublishAsync`, or in a custom Service Bus subscriber inside `TaskFlow.Functions`. For the reference-app demo, manual invocation via the dashboard's `/workflows/run` page is sufficient.
+> **It is intentionally not wired to `IInternalMessageBus` today.** `TaskItemCreatedEvent` is an integration event traveling over Service Bus, not an in-process `IMessage`. The class exists as a one-line addition wherever the event is raised — typically in `TaskItemService` (Service style), `CreateTaskItemCommandHandler` (CQRS style) after `eventPublisher.PublishAsync`, or in a custom Service Bus subscriber inside `TaskFlow.Functions`. For the reference-app demo, manual invocation via the dashboard's `/workflows/run` page is sufficient.
 
 Wiring options when a downstream consumer wants automatic triggering:
 
 1. **Service Bus subscriber in `TaskFlow.Functions`** — add a topic subscription, deserialize `TaskItemCreatedEvent`, call `IWorkflowTrigger.OnTaskItemCreatedAsync`. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.
-2. **Inline call in `TaskItemService`** — DI-resolve `IWorkflowTrigger`, call after `eventPublisher.PublishAsync`. Simpler but ties the request thread to engine startup.
+2. **Inline call in the active create-task use case** — DI-resolve `IWorkflowTrigger`, call after `eventPublisher.PublishAsync` in `TaskItemService` or `CreateTaskItemCommandHandler`. Simpler but ties the request thread to engine startup.
 3. **TickerQ job for `compliance-check`** — a cron-triggered scheduler job that calls `engine.StartBackgroundAsync` with the `compliance-check` workflow id and a fresh `windowDays` param.
 
 ### 14.7 Admin API and Auth
@@ -1489,8 +1564,9 @@ Browser verification (Blazor + Dashboard, run separately from AppHost):
 
 | Function | Trigger | Binding | Purpose |
 |----------|---------|---------|---------|
-| `HealthCheck` | HTTP GET `/health` | Anonymous | Health probe |
-| `TaskApiProxy` | HTTP GET `/tasks` | Function key | Read-only task query (placeholder) |
+| `HealthCheck` | HTTP GET `/api/health` | Anonymous | Function host health probe |
+| `TaskApiProxy` | HTTP GET `/api/v1/tasks` | Function key | Read-only task query (placeholder) |
+| `CreateCategory` | HTTP POST `/api/v1/categories` | Anonymous | Category create endpoint used by the Functions audit pipeline test |
 | `ProcessTaskEvent` | Service Bus Topic | `DomainEvents` topic, `function-processor` subscription | Projects task events to Cosmos DB read model |
 | `ProcessAttachment` | Blob | Attachment container | Validates files, extracts metadata, updates Attachment record |
 | `StaleTaskCleanup` | Timer | Config-driven cron | Deletes cancelled/stale tasks older than 90 days |
@@ -1503,4 +1579,4 @@ Browser verification (Blazor + Dashboard, run separately from AppHost):
 | `RecurringTaskGeneration` | Daily 2:00 AM UTC | Generates new task instances from recurring patterns |
 | `StaleTaskCleanup` | Weekly Sunday 3:00 AM UTC | Archives/soft-deletes old cancelled tasks |
 
-TickerQ uses an EF Core operational store (`TickerQDbContext`, schema `"ticker"`) for job persistence when `Scheduling:UsePersistence=true`.
+TickerQ uses an EF Core operational store (`TickerQDbContext`, schema `"Scheduler"`) for job persistence when `Scheduling:UsePersistence=true`. Startup validates the schema, can create it for local development (`Scheduling:AutoCreateSchema=true`), and can emit a deployment script (`Scheduling:GenerateDeploymentScript=true`). Job execution records OpenTelemetry metrics through `TaskFlow.Scheduler`, and global TickerQ failures flow through `TaskFlowSchedulerExceptionHandler`.

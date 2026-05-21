@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
@@ -16,7 +16,7 @@ public static class TaskItemEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/task-items").WithTags("TaskItems");
+        var g = group.MapGroup("/task-items").WithTags("TaskItems");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<TaskItemDto>>(StatusCodes.Status200OK)

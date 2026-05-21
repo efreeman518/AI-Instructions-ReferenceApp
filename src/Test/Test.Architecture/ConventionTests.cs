@@ -1,5 +1,5 @@
-using System.Reflection;
 using EF.Domain.Contracts;
+using System.Reflection;
 
 namespace Test.Architecture;
 

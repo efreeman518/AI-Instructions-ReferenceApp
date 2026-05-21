@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Logging;
 using EF.Common.Contracts;
+using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Application.Services.Rules;

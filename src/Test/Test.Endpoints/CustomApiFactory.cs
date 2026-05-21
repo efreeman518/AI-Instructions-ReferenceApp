@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Infrastructure.Data;
 using Test.Support;
 
@@ -8,11 +10,27 @@ namespace Test.Endpoints;
 /// In-memory WebApplicationFactory for endpoint contract tests.
 ///
 /// Uses EF Core <c>InMemoryDatabase</c> per factory instance so each test class gets an isolated DB.
-/// For multi-endpoint workflow tests against a real SQL database, see <c>SqlApiFactory</c> in Test.E2E.
+/// Set TASKFLOW_APPLICATION_STYLE=Cqrs to run the same endpoint tests against CQRS endpoint mappings.
 /// </summary>
 public sealed class CustomApiFactory : WebApplicationFactoryBase<Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery>
 {
+    private readonly string _applicationStyle;
     private readonly string _dbName = $"TestDb_{Guid.NewGuid()}";
+
+    public CustomApiFactory(string? applicationStyle = null)
+    {
+        _applicationStyle = applicationStyle
+            ?? Environment.GetEnvironmentVariable(ApplicationStyleResolver.EnvironmentVariable)
+            ?? ApplicationStyle.Service.ToString();
+    }
+
+    protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
+    {
+        config.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [ApplicationStyleResolver.ConfigKey] = _applicationStyle
+        });
+    }
 
     protected override DbContextOptions BuildTrxnOptions() =>
         new DbContextOptionsBuilder<TaskFlowDbContextTrxn>().UseInMemoryDatabase(_dbName).Options;

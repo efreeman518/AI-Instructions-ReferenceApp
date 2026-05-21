@@ -7,7 +7,7 @@ public static class TaskViewEndpoints
 {
     public static IEndpointRouteBuilder MapTaskViewEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/task-views").WithTags("TaskViews");
+        var group = app.MapGroup("/task-views").WithTags("TaskViews");
 
         group.MapGet("/{id}", async (string id,
             [FromQuery] string tenantId,

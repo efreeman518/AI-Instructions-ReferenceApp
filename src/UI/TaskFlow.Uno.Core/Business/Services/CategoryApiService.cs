@@ -53,15 +53,21 @@ public class CategoryApiService(
 
     private static CategoryModel MapToModel(CategoryDto dto) => new()
     {
-        Id = dto.Id, Name = dto.Name ?? string.Empty, Description = dto.Description,
-        SortOrder = dto.SortOrder ?? 0, IsActive = dto.IsActive ?? true,
+        Id = dto.Id,
+        Name = dto.Name ?? string.Empty,
+        Description = dto.Description,
+        SortOrder = dto.SortOrder ?? 0,
+        IsActive = dto.IsActive ?? true,
         ParentCategoryId = dto.ParentCategoryId
     };
 
     private static CategoryDto MapToDto(CategoryModel model) => new()
     {
-        Id = model.Id, Name = model.Name, Description = model.Description,
-        SortOrder = model.SortOrder, IsActive = model.IsActive,
+        Id = model.Id,
+        Name = model.Name,
+        Description = model.Description,
+        SortOrder = model.SortOrder,
+        IsActive = model.IsActive,
         ParentCategoryId = model.ParentCategoryId
     };
 }

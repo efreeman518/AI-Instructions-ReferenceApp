@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using TaskFlow.Uno.Core.Client;
 
@@ -43,12 +42,12 @@ public class MockHttpMessageHandler : HttpMessageHandler
                 OwnerType = "TaskItem", OwnerId = Guid.Parse("33333333-3333-3333-3333-111111111111") }
     ];
 
-        private readonly List<TaskItemDto> _tasks = CreateSeedTasks();
+    private readonly List<TaskItemDto> _tasks = CreateSeedTasks();
 
     private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
 
-        private static List<TaskItemDto> CreateSeedTasks()
-        {
+    private static List<TaskItemDto> CreateSeedTasks()
+    {
         var now = DateTimeOffset.UtcNow;
 
         return
@@ -110,7 +109,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
                 CategoryId = Guid.Parse("11111111-1111-1111-1111-111111111111"), CategoryName = "Development",
                 DueDate = now.AddDays(10) }
         ];
-        }
+    }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {

@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using EF.AspNetCore;
 using EF.Common.Contracts;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
@@ -16,7 +16,7 @@ public static class CommentEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/comments").WithTags("Comments");
+        var g = group.MapGroup("/comments").WithTags("Comments");
 
         g.MapPost("/search", Search)
             .Produces<PagedResponse<CommentDto>>(StatusCodes.Status200OK)

@@ -3,6 +3,7 @@ using EF.Data.Interceptors;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -18,7 +19,7 @@ namespace Test.Support;
 /// Removes the standard pooled-DbContext + interceptor + scoped-factory plumbing that the production host
 /// registers, then re-registers test-mode contexts using <see cref="TestDbContextFactory{TContext}"/>.
 ///
-/// Constrained to <c>DbContextBase&lt;string, Guid?&gt;</c> — the EF.Packages canonical audit/tenant shape.
+/// Constrained to <c>DbContextBase&lt;string, Guid?&gt;</c> - the EF.Packages canonical audit/tenant shape.
 /// Apps that deviate from these types must override <see cref="ConfigureWebHost"/> directly rather than using
 /// this base.
 /// </summary>
@@ -30,6 +31,7 @@ public abstract class WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryCo
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.ConfigureAppConfiguration((_, config) => ConfigureTestConfiguration(config));
 
         builder.ConfigureServices(services =>
         {
@@ -61,6 +63,8 @@ public abstract class WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryCo
     /// <summary>Hook for removing app-specific services (extra interceptors, additional pooled contexts, etc.).
     /// Default implementation is a no-op.</summary>
     protected virtual void RemoveAppSpecificServices(IServiceCollection services) { }
+
+    protected virtual void ConfigureTestConfiguration(IConfigurationBuilder config) { }
 
     private static void RemoveStandardEfInfrastructure(IServiceCollection services)
     {

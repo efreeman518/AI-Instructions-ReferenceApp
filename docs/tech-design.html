@@ -84,6 +84,7 @@
   <tr><th>Layer</th><th>Technology</th></tr>
   <tr><td>Orchestration</td><td>.NET Aspire (local dev + cloud deployment)</td></tr>
   <tr><td>API</td><td>ASP.NET Core Minimal APIs</td></tr>
+  <tr><td>Application Layer</td><td>Selectable Service or CQRS implementation (<code>Application:Style</code>; default <code>Service</code>)</td></tr>
   <tr><td>Gateway</td><td>YARP Reverse Proxy</td></tr>
   <tr><td>Background Jobs</td><td>Azure Functions (isolated worker v4), TickerQ Scheduler</td></tr>
   <tr><td>UI</td><td>Uno Platform WASM (MVUX), Blazor WASM/Server (MudBlazor, Refit)</td></tr>
@@ -102,6 +103,7 @@
 <h3>Design Principles</h3>
 <ul>
   <li><strong>Domain-Driven Design</strong> — Aggregates, value objects, domain events, bounded contexts</li>
+  <li><strong>Selectable Application Style</strong> - Same Domain, Infrastructure, UI, DTO contracts, and HTTP routes can run through the default Service layer or direct CQRS handlers</li>
   <li><strong>CQRS-like</strong> — Separate read/write DbContexts; denormalized Cosmos read model alongside normalized SQL</li>
   <li><strong>Multi-Tenant First</strong> — Tenant isolation at query filter, service, and authorization layers</li>
   <li><strong>Event-Driven</strong> — Integration events flow through Service Bus to Azure Functions for async processing</li>
@@ -300,8 +302,8 @@
   <text x="390" y="104" text-anchor="middle" fill="#8b949e" font-size="9">Security, correlation, auth</text>
 
   <rect x="140" y="155" width="230" height="50" rx="8" fill="rgba(63,185,80,0.15)" stroke="#3fb950" stroke-width="1.5"/>
-  <text x="255" y="178" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Application Services</text>
-  <text x="255" y="194" text-anchor="middle" fill="#8b949e" font-size="9">Business logic, validation, tenant enforcement</text>
+  <text x="255" y="178" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Services / CQRS Handlers</text>
+  <text x="255" y="194" text-anchor="middle" fill="#8b949e" font-size="9">Selected endpoint implementation</text>
 
   <rect x="50" y="250" width="180" height="50" rx="8" fill="rgba(240,136,62,0.12)" stroke="#f0883e" stroke-width="1.5"/>
   <text x="140" y="273" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Query Repositories</text>
@@ -401,13 +403,15 @@
   <!-- Application Layer -->
   <rect x="100" y="210" width="700" height="90" rx="10" fill="rgba(63,185,80,0.12)" stroke="#3fb950" stroke-width="2"/>
   <text x="450" y="233" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">Application Layer</text>
-  <text x="180" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Services</text>
-  <text x="290" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Contracts</text>
-  <text x="400" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Models</text>
-  <text x="510" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Mappers</text>
-  <text x="640" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">MessageHandlers</text>
-  <text x="290" y="278" text-anchor="middle" fill="#8b949e" font-size="9">Interfaces, Events, DTOs</text>
-  <text x="180" y="278" text-anchor="middle" fill="#8b949e" font-size="9">Use cases</text>
+  <text x="160" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Services</text>
+  <text x="260" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">CQRS</text>
+  <text x="370" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Contracts</text>
+  <text x="480" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Models</text>
+  <text x="590" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">Mappers</text>
+  <text x="710" y="260" text-anchor="middle" fill="#e6edf3" font-size="11">MessageHandlers</text>
+  <text x="370" y="278" text-anchor="middle" fill="#8b949e" font-size="9">Interfaces, Events, DTOs</text>
+  <text x="160" y="278" text-anchor="middle" fill="#8b949e" font-size="9">Use cases</text>
+  <text x="260" y="278" text-anchor="middle" fill="#8b949e" font-size="9">Handlers</text>
 
   <!-- Domain Layer -->
   <rect x="200" y="340" width="500" height="70" rx="10" fill="rgba(248,81,73,0.12)" stroke="#f85149" stroke-width="2"/>
@@ -422,7 +426,7 @@
   <text x="350" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Storage (Blob)</text>
   <text x="460" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Storage (Cosmos)</text>
   <text x="590" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">AI (Search, OpenAI)</text>
-  <text x="730" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Data (DbContext)</text>
+  <text x="730" y="497" text-anchor="middle" fill="#e6edf3" font-size="11">Data + EF.CQRS</text>
 
   <!-- Dependency arrows -->
   <!-- Host → Bootstrapper -->
@@ -457,16 +461,38 @@
   <tr><td><strong style="color:#bc8cff">UI</strong></td><td>TaskFlow.Uno, TaskFlow.Blazor</td><td>User interfaces — Uno MVUX + Kiota; Blazor MudBlazor + Refit</td><td>Application.Models (shared contract)</td></tr>
   <tr><td><strong style="color:#58a6ff">Host</strong></td><td>Api, Gateway, Functions, Scheduler</td><td>HTTP pipeline, function triggers, config</td><td>Bootstrapper</td></tr>
   <tr><td><strong style="color:#d29922">Bootstrapper</strong></td><td>TaskFlow.Bootstrapper</td><td>DI composition root — wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (<code>RegisterServices.FlowEngine.cs</code>) and the FE-migration startup task.</td><td>Application, Infrastructure</td></tr>
-  <tr><td><strong style="color:#3fb950">Application</strong></td><td>Services, Contracts, Models, Mappers, MessageHandlers</td><td>Use-case services, validation, DTO mapping, tenant enforcement, integration event definitions. <code>MessageHandlers</code> also defines <code>IWorkflowTrigger</code> for invoking FlowEngine workflows from domain events.</td><td>Domain</td></tr>
+  <tr><td><strong style="color:#3fb950">Application</strong></td><td>Services, Cqrs, Contracts, Models, Mappers, MessageHandlers</td><td>Use-case implementation for the selected style, validation, DTO mapping, tenant enforcement, integration event definitions. <code>MessageHandlers</code> also defines <code>IWorkflowTrigger</code> for invoking FlowEngine workflows from domain events.</td><td>Domain</td></tr>
   <tr><td style="color:#f85149"><strong>Domain</strong></td><td>Domain.Model, Domain.Shared</td><td>Entities, aggregates, value objects, enums, marker interfaces</td><td>Nothing (zero outward deps)</td></tr>
-  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces. <code>Data</code> also owns the FlowEngine state DbContext (<code>TaskFlowFlowEngineDbContext</code>) and its migrations.</td><td>Application.Contracts, Domain</td></tr>
+  <tr><td><strong style="color:#f0883e">Infrastructure</strong></td><td>Repositories, Data, Storage, AI, EF.CQRS</td><td>EF Core, Azure SDK implementations of <strong>Application.Contracts</strong> interfaces. <code>EF.CQRS</code> is a separately packaged CQRS helper candidate under Infrastructure for now. <code>Data</code> also owns the FlowEngine state DbContext (<code>TaskFlowFlowEngineDbContext</code>) and its migrations.</td><td>Application.Contracts, Domain</td></tr>
+</table>
+
+<h3>Application Style Switch</h3>
+<p>TaskFlow can run the same public API contract through either application-layer style. The switch is startup-time configuration, not per-request dispatch.</p>
+<table>
+  <tr><th>Setting</th><th>Behavior</th></tr>
+  <tr><td><code>Application:Style</code></td><td><code>Service</code> or <code>Cqrs</code>; missing/blank defaults to <code>Service</code></td></tr>
+  <tr><td><code>TASKFLOW_APPLICATION_STYLE</code></td><td>Environment override used by local test runs and forwarded by Aspire to API, Scheduler, and Functions</td></tr>
+  <tr><td><code>Service</code></td><td>Registers the existing <code>I*Service</code> implementations and maps the service endpoint set</td></tr>
+  <tr><td><code>Cqrs</code></td><td>Registers <code>TaskFlow.Application.Cqrs</code> command/query handlers plus decorators and maps the CQRS endpoint set</td></tr>
+  <tr><td>Public contract</td><td>Routes, DTOs, envelopes, auth, audit, infrastructure repositories, and UI clients remain unchanged</td></tr>
+</table>
+<p><code>TaskFlow.Api</code> contains two endpoint sets. Service endpoints inject <code>I*Service</code>. CQRS endpoints inject the exact <code>IRequestHandler&lt;TRequest,TResponse&gt;</code> needed by that route, construct a command/query record, and call <code>HandleAsync</code> directly. The avoided patterns are central request dispatchers, request buses, and generic <code>Send()</code> entrypoints. The reason is traceability: each route exposes the exact request and handler registration it uses, so tests and code review can follow the use case without hidden runtime routing.</p>
+<p><code>src/Infrastructure/EF.CQRS</code> is intentionally isolated as the package candidate. It provides <code>ICommand</code>, <code>IQuery</code>, <code>IRequestHandler</code>, request validators, validation/logging decorators, and <code>AddDecoratedRequestHandler(...)</code> DI helpers. The project has no TaskFlow business logic.</p>
+
+<h3>Service vs CQRS Tradeoffs</h3>
+<table>
+  <tr><th>Style</th><th>Pros</th><th>Cons</th><th>Best Fit</th></tr>
+  <tr><td><code>Service</code></td><td>Familiar, compact, fewer files, easy to scan for simple CRUD and shared workflows</td><td>Services can grow broad over time; one class may accumulate several endpoint flows</td><td>Small-to-medium CRUD modules, teams that value fewer moving parts</td></tr>
+  <tr><td><code>Cqrs</code></td><td>One request/handler per use case; endpoint-to-handler flow is explicit; custom validation/decorator pipeline is easy to test</td><td>More files and registrations; can be ceremony for simple CRUD; needs guardrails against hiding use cases behind generic dispatch</td><td>Use cases with distinct validation, branching, audit, event, or query/write behavior</td></tr>
 </table>
 
 <h3>Dependency Rules (Architecture-Test Enforced)</h3>
 <ul>
   <li><strong>Domain</strong> has zero references to Application, Infrastructure, or Host layers</li>
   <li><strong>Application.Services</strong> has zero references to Infrastructure or Host layers</li>
+  <li><strong>Application.Cqrs</strong> has zero references to Host layers or Infrastructure implementation projects; it may reference the isolated <code>EF.CQRS</code> package candidate</li>
   <li><strong>Infrastructure</strong> implements <code>Application.Contracts</code> interfaces (not Domain contracts)</li>
+  <li>CQRS guardrails: avoid central request dispatchers, request buses, and generic <code>Send()</code> entrypoints; one command/query maps to one handler registration so wiring remains explicit</li>
   <li>All tenant entities implement <code>ITenantEntity&lt;Guid&gt;</code></li>
   <li>All services have corresponding interfaces in Contracts</li>
   <li>Entity properties use private setters (encapsulation)</li>
@@ -752,7 +778,7 @@
   <rect x="290" y="10" width="80" height="30" rx="6" fill="rgba(88,166,255,0.2)" stroke="#58a6ff" stroke-width="1.5"/>
   <text x="330" y="30" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">API</text>
   <rect x="420" y="10" width="80" height="30" rx="6" fill="rgba(63,185,80,0.2)" stroke="#3fb950" stroke-width="1.5"/>
-  <text x="460" y="30" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">Service</text>
+  <text x="460" y="30" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">App Style</text>
   <rect x="560" y="10" width="80" height="30" rx="6" fill="rgba(240,136,62,0.2)" stroke="#f0883e" stroke-width="1.5"/>
   <text x="600" y="30" text-anchor="middle" fill="#f0883e" font-size="11" font-weight="600">Repo (W)</text>
   <rect x="700" y="10" width="80" height="30" rx="6" fill="rgba(240,136,62,0.2)" stroke="#f0883e" stroke-width="1.5"/>
@@ -771,7 +797,7 @@
 
   <!-- Messages -->
   <line x1="70" y1="70" x2="200" y2="70" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
-  <text x="135" y="64" text-anchor="middle" fill="#e6edf3" font-size="9">POST /api/task-items (Bearer)</text>
+  <text x="135" y="64" text-anchor="middle" fill="#e6edf3" font-size="9">POST /api/v1/task-items (Bearer)</text>
 
   <line x1="200" y1="100" x2="330" y2="100" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
   <text x="265" y="94" text-anchor="middle" fill="#e6edf3" font-size="9">+ X-Orig-Request header</text>
@@ -780,7 +806,7 @@
   <text x="330" y="132" text-anchor="middle" fill="#8b949e" font-size="8">middleware</text>
 
   <line x1="330" y1="150" x2="460" y2="150" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
-  <text x="395" y="144" text-anchor="middle" fill="#e6edf3" font-size="9">CreateAsync(request)</text>
+  <text x="395" y="144" text-anchor="middle" fill="#e6edf3" font-size="9">Create/Handle request</text>
 
   <rect x="440" y="165" width="40" height="55" rx="3" fill="rgba(63,185,80,0.1)" stroke="#3fb950" stroke-width="0.5"/>
   <text x="460" y="182" text-anchor="middle" fill="#8b949e" font-size="7">tenant</text>
@@ -828,6 +854,8 @@
   </g>
 </svg>
 </div>
+
+<p>The application-style box represents the selected startup path. In <code>Service</code> mode the endpoint calls an <code>I*Service</code>. In <code>Cqrs</code> mode the endpoint calls the route-specific <code>IRequestHandler&lt;TRequest,TResponse&gt;</code> directly. CQRS decorators are assembled by DI around that exact handler type; there is no central dispatch step.</p>
 
 <h3>6.2 Event Processing — Cosmos Projection</h3>
 <div class="diagram-container">
@@ -903,7 +931,7 @@
   <line x1="680" y1="38" x2="680" y2="360" stroke="#8b949e" stroke-width="0.5" stroke-dasharray="4,3"/>
   <!-- Messages -->
   <line x1="60" y1="70" x2="200" y2="70" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
-  <text x="130" y="64" text-anchor="middle" fill="#e6edf3" font-size="9">POST /api/attachments/upload</text>
+  <text x="130" y="64" text-anchor="middle" fill="#e6edf3" font-size="9">POST /api/v1/attachments/upload</text>
   <line x1="200" y1="110" x2="360" y2="110" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
   <text x="280" y="104" text-anchor="middle" fill="#e6edf3" font-size="9">Upload blob</text>
   <line x1="360" y1="140" x2="200" y2="140" stroke="#f0883e" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowOrange)"/>
@@ -1005,30 +1033,44 @@
 <!-- ============================================================ -->
 <h2 id="api">7. API Contract Summary</h2>
 
+<div class="callout"><strong>Route versioning boundary:</strong> business/domain HTTP contracts are versioned under <code>/api/v1/*</code>. Operational, health, gateway, and workflow-admin surfaces are intentionally unversioned: <code>/health/*</code>, <code>/alive</code>, <code>/healthz</code>, <code>/api/flowengine/*</code>, and the Azure Functions host health route <code>/api/health</code>. Versioning applies to the API contract consumed by clients, not to host-management probes or third-party/admin surfaces with their own lifecycle.</div>
+
 <h3>7.1 Entity Endpoints (Consistent CRUD Pattern)</h3>
 <table>
   <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
-  <tr><td><code>POST</code></td><td><code>/api/{entity}/search</code></td><td>Paged search with filters and sorting</td></tr>
-  <tr><td><code>GET</code></td><td><code>/api/{entity}/{id}</code></td><td>Get single entity by ID</td></tr>
-  <tr><td><code>POST</code></td><td><code>/api/{entity}</code></td><td>Create new entity</td></tr>
-  <tr><td><code>PUT</code></td><td><code>/api/{entity}/{id}</code></td><td>Update existing entity</td></tr>
-  <tr><td><code>DELETE</code></td><td><code>/api/{entity}/{id}</code></td><td>Delete entity</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/{entity}/search</code></td><td>Paged search with filters and sorting</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/{entity}/{id}</code></td><td>Get single entity by ID</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/{entity}</code></td><td>Create new entity</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/v1/{entity}/{id}</code></td><td>Update existing entity</td></tr>
+  <tr><td><code>DELETE</code></td><td><code>/api/v1/{entity}/{id}</code></td><td>Delete entity</td></tr>
 </table>
 <p><strong>Full CRUD</strong>: <code>task-items</code>, <code>categories</code>, <code>tags</code>, <code>comments</code>, <code>checklist-items</code>, <code>attachments</code><br/>
 <strong>Partial CRUD</strong>: <code>task-item-tags</code> (create, get, delete — no search/update)</p>
 
+<h3>7.1.1 Endpoint Implementation Sets</h3>
+<p>HTTP routes and DTO contracts do not change when the application style changes. <code>TaskFlow.Api</code> selects one endpoint implementation set during startup:</p>
+<table>
+  <tr><th>Style</th><th>Endpoint implementation</th><th>Dependency shape</th></tr>
+  <tr><td><code>Service</code></td><td><code>Endpoints/*Endpoints.cs</code> (excluding <code>Endpoints/Cqrs</code>)</td><td>Endpoints inject <code>I*Service</code> interfaces from <code>Application.Contracts</code></td></tr>
+  <tr><td><code>Cqrs</code></td><td><code>Endpoints/Cqrs/*</code></td><td>Endpoints inject the route-specific <code>IRequestHandler&lt;TRequest,TResponse&gt;</code> and call <code>HandleAsync</code> directly</td></tr>
+</table>
+<p>This keeps generated clients, gateway routing, UIs, auth policies, ProblemDetails behavior, and E2E tests stable while demonstrating both application-layer designs.</p>
+
 <h3>7.2 Special Endpoints</h3>
 <table>
   <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
-  <tr><td><code>POST</code></td><td><code>/api/attachments/upload</code></td><td>Multipart file upload (file, ownerType, ownerId)</td></tr>
-  <tr><td><code>GET</code></td><td><code>/api/search/tasks</code></td><td>AI-powered hybrid search (<code>?query=...&amp;mode=hybrid&amp;maxResults=10</code>)</td></tr>
-  <tr><td><code>POST</code></td><td><code>/api/agent/chat</code></td><td>AI agent chat endpoint</td></tr>
-  <tr><td><code>GET</code></td><td><code>/api/task-views</code></td><td>Cosmos DB denormalized views (<code>?tenantId=...&amp;pageSize=20</code>)</td></tr>
-  <tr><td><code>GET</code></td><td><code>/api/task-views/{id}</code></td><td>Single task view</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/attachments/upload</code></td><td>Multipart file upload (file, ownerType, ownerId)</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/search/tasks</code></td><td>AI-powered hybrid search (<code>?query=...&amp;mode=hybrid&amp;maxResults=10</code>)</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/agent/chat</code></td><td>AI agent chat endpoint</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/task-views</code></td><td>Cosmos DB denormalized views (<code>?tenantId=...&amp;pageSize=20</code>)</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/task-views/{id}</code></td><td>Single task view</td></tr>
   <tr><td><code>*</code></td><td><code>/api/flowengine/*</code></td><td>FlowEngine admin API — instances, registry, circuit-breakers, human tasks. Mounted via <code>MapFlowEngineAdmin(prefix: "/api/flowengine")</code>; see <a href="#flowengine">§14 Workflow Orchestration</a></td></tr>
-  <tr><td><code>GET</code></td><td><code>/health</code></td><td>Health check</td></tr>
+  <tr><td><code>GET</code></td><td><code>/health/memory</code></td><td>Anonymous memory health probe</td></tr>
+  <tr><td><code>GET</code></td><td><code>/health/db</code></td><td>Authenticated database health probe</td></tr>
+  <tr><td><code>GET</code></td><td><code>/health/full</code></td><td>Authenticated full probe, optionally including external dependencies</td></tr>
   <tr><td><code>GET</code></td><td><code>/alive</code></td><td>Liveness probe</td></tr>
 </table>
+<p>The Azure Functions app keeps the Functions host default <code>/api</code> prefix. Its business HTTP triggers mirror the public versioned contract (<code>/api/v1/*</code>); its host health trigger remains <code>/api/health</code>.</p>
 
 <h3>7.3 Request/Response Envelopes</h3>
 <table>
@@ -1045,15 +1087,16 @@
   <tr><th>#</th><th>Middleware</th><th>Purpose</th></tr>
   <tr><td>1</td><td>SecurityHeadersMiddleware</td><td>Adds security response headers</td></tr>
   <tr><td>2</td><td>CorrelationIdMiddleware</td><td>Generates/propagates X-Correlation-Id</td></tr>
-  <tr><td>3</td><td>ExceptionHandler</td><td>Catches exceptions → ProblemDetails (409, 422, 404, 403, 500)</td></tr>
-  <tr><td>4</td><td>RateLimiter</td><td>Per-tenant, 100 requests/minute</td></tr>
-  <tr><td>5</td><td>CORS</td><td>Policy "TaskFlowUi" for allowed origins</td></tr>
-  <tr><td>6</td><td>Authentication</td><td>Scaffold (dev) or JWT Bearer (Entra ID)</td></tr>
-  <tr><td>7</td><td>Authorization</td><td>Policy-based (see Security Model)</td></tr>
-  <tr><td>8</td><td>GatewayClaimsMiddleware</td><td>Extracts X-Orig-Request header from Gateway</td></tr>
-  <tr><td>9</td><td>OpenAPI / Scalar UI</td><td>API documentation (if enabled)</td></tr>
-  <tr><td>10</td><td>Health + Alive endpoints</td><td>/health, /alive</td></tr>
-  <tr><td>11</td><td>Entity Endpoints</td><td>All CRUD endpoint groups</td></tr>
+  <tr><td>3</td><td>HeaderPropagation</td><td>Captures X-Correlation-Id for outgoing HttpClient calls</td></tr>
+  <tr><td>4</td><td>ExceptionHandler</td><td>Catches exceptions to ProblemDetails with trace/activity metadata</td></tr>
+  <tr><td>5</td><td>RateLimiter</td><td>Per-tenant API limits plus tiered health limits</td></tr>
+  <tr><td>6</td><td>CORS</td><td>Policy TaskFlowUi for allowed origins</td></tr>
+  <tr><td>7</td><td>Authentication</td><td>Scaffold (dev) or JWT Bearer (Entra ID)</td></tr>
+  <tr><td>8</td><td>Authorization</td><td>Authenticated fallback/default policy plus named policies</td></tr>
+  <tr><td>9</td><td>GatewayClaimsTransformer</td><td>Rehydrates X-Orig-Request only from configured trusted gateway app id</td></tr>
+  <tr><td>10</td><td>OpenAPI / Scalar UI</td><td>API documentation (if enabled)</td></tr>
+  <tr><td>11</td><td>Health + Alive endpoints</td><td>/health/memory, /health/db, /health/full, /alive</td></tr>
+  <tr><td>12</td><td>Versioned Entity Endpoints</td><td>/api/v1/*</td></tr>
 </table>
 
 <!-- ============================================================ -->
@@ -1067,7 +1110,7 @@
   <tr><td><strong>Scaffold</strong></td><td>Development</td><td>Predictable test identity; all requests succeed; no real token validation</td></tr>
   <tr><td><strong>Entra ID</strong></td><td>Production</td><td>JWT Bearer validation against Microsoft Entra External ID tenant</td></tr>
 </table>
-<p>Config-driven via <code>Auth:Mode</code> in <code>appsettings.json</code> — single build, multiple deployment profiles.</p>
+<p>Config-driven via <code>AuthMode</code> in <code>appsettings.json</code> — single build, multiple deployment profiles.</p>
 
 <h3>8.2 Multi-Tenancy Enforcement</h3>
 <div class="diagram-container">
@@ -1110,17 +1153,18 @@
   <tr><td><code>TenantAdmin</code></td><td>Admin within a specific tenant</td></tr>
   <tr><td><code>StatusTransition</code></td><td>Controls who can transition task statuses</td></tr>
 </table>
+<p>Fallback and default authorization require an authenticated principal for every endpoint unless the route is explicitly anonymous. Scaffold mode supplies a predictable local principal; production uses JWT bearer validation.</p>
 
 <h3>8.4 Gateway Claims Flow</h3>
 <div class="callout">
   <strong>User → Gateway:</strong> Bearer {user-token}<br/>
   <strong>Gateway:</strong> Validates token (Entra or scaffold), acquires service-to-service token<br/>
   <strong>Gateway → API:</strong> <code>Authorization: Bearer {service-token}</code> + <code>X-Orig-Request: Base64({ oid, tenant_id, name, roles })</code><br/>
-  <strong>API:</strong> GatewayClaimsMiddleware extracts X-Orig-Request → sets <code>IRequestContext</code> (tenant, user, roles)
+  <strong>API:</strong> GatewayClaimsTransformer verifies <code>azp</code>/<code>appid</code> equals <code>GatewayClaimsTransform:GatewayAppId</code>, then extracts <code>X-Orig-Request</code> and sets <code>IRequestContext</code> (tenant, user, roles)
 </div>
 
 <h3>8.5 Rate Limiting</h3>
-<p>Per-tenant fixed window: <strong>100 requests per minute</strong>. Returns <code>429 Too Many Requests</code> with <code>Retry-After</code> header.</p>
+<p>Per-tenant fixed window: <strong>100 requests per minute</strong> by default for versioned API routes. Health endpoints use separate IP-based policies: memory/alive is generous, db is tighter, and full is strict because it can include expensive dependency probes. Returns <code>429 Too Many Requests</code>.</p>
 
 <!-- ============================================================ -->
 <!-- SECTION 9: DEPLOYMENT TOPOLOGY -->
@@ -1312,8 +1356,10 @@
 <table>
   <tr><th>Endpoint</th><th>Source</th><th>Purpose</th><th>Checks</th></tr>
   <tr><td><code>/healthz</code></td><td>ServiceDefaults</td><td>Liveness</td><td>All registered checks</td></tr>
-  <tr><td><code>/readyz</code></td><td>ServiceDefaults</td><td>Readiness</td><td>Checks tagged "ready" (SQL, Redis)</td></tr>
-  <tr><td><code>/health</code></td><td>API</td><td>Custom health check</td><td>SQL connectivity</td></tr>
+  <tr><td><code>/readyz</code></td><td>ServiceDefaults</td><td>Readiness</td><td>Checks tagged ready</td></tr>
+  <tr><td><code>/health/memory</code></td><td>API/Gateway</td><td>Cheap liveness-style probe</td><td>Memory/self checks</td></tr>
+  <tr><td><code>/health/db</code></td><td>API</td><td>Authenticated persistence probe</td><td>Checks tagged db</td></tr>
+  <tr><td><code>/health/full</code></td><td>API/Gateway</td><td>Authenticated full probe</td><td>Checks tagged full; external dependencies only when <code>HealthChecks:EnableExternalServices=true</code></td></tr>
   <tr><td><code>/alive</code></td><td>API</td><td>Simple liveness</td><td>Always returns 200</td></tr>
 </table>
 
@@ -1534,19 +1580,19 @@
   <tr><th>Project</th><th>Purpose</th><th>Value</th><th>Primary Tools</th></tr>
   <tr>
     <td><strong>Test.Unit</strong></td>
-    <td>Pure-CPU verification of domain logic, DTO ↔ entity mapping, application service success / failure / conflict paths, in-memory repository CRUD, and Uno API-service mappers.</td>
+    <td>Pure-CPU verification of domain logic, DTO ↔ entity mapping, application service and CQRS handler success / failure / conflict paths, custom CQRS validation, in-memory repository CRUD, and Uno API-service mappers.</td>
     <td>Fastest feedback loop — millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched.</td>
     <td>MSTest, <strong>Moq</strong>, EF Core InMemory provider</td>
   </tr>
   <tr>
     <td><strong>Test.Endpoints</strong></td>
-    <td>Drives every HTTP endpoint through the full ASP.NET Core pipeline (middleware → endpoint → service → repo) and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes.</td>
-    <td>Confirms wire contract without paying for real infrastructure. The whole API surface boots in under a second and runs against an isolated EF InMemory database per factory instance.</td>
+    <td>Drives every HTTP endpoint through the full ASP.NET Core pipeline in both application styles and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes.</td>
+    <td>Confirms the wire contract stays identical across service endpoints and CQRS endpoints without paying for real infrastructure.</td>
     <td>MSTest, <code>Microsoft.AspNetCore.Mvc.Testing</code> (<strong>WebApplicationFactory</strong>), EF Core InMemory</td>
   </tr>
   <tr>
     <td><strong>Test.Architecture</strong></td>
-    <td>Asserts compile-time layering and naming rules: Domain has zero outward references; <code>Application.Services</code> cannot reference Infrastructure or Hosts; every tenant entity implements <code>ITenantEntity&lt;Guid&gt;</code>; services have matching <code>I*</code> interfaces; entity setters are private.</td>
+    <td>Asserts compile-time layering and naming rules: Domain has zero outward references; <code>Application.Services</code> cannot reference Infrastructure or Hosts; <code>Application.Cqrs</code> has no Host or Infrastructure implementation dependency; CQRS avoids central request dispatchers, request buses, and generic <code>Send()</code> entrypoints; every tenant entity implements <code>ITenantEntity&lt;Guid&gt;</code>; services have matching <code>I*</code> interfaces; entity setters are private.</td>
     <td>Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with <code>dotnet test</code>, and travel with the code instead of living in a wiki.</td>
     <td>MSTest, <strong>NetArchTest.Rules</strong></td>
   </tr>
@@ -1558,8 +1604,8 @@
   </tr>
   <tr>
     <td><strong>Test.E2E</strong></td>
-    <td>Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container — cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs.</td>
-    <td>Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Trades the InMemory shortcut for real RDBMS semantics without paying for the rest of the Aspire graph.</td>
+    <td>Multi-endpoint workflow tests (create → search → update → delete) against a real SQL Server container in both application styles. These cover cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs.</td>
+    <td>Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). Proves service and CQRS modes preserve the same user-facing behavior over the real RDBMS.</td>
     <td>MSTest, WebApplicationFactory, <strong>Testcontainers.MsSql</strong></td>
   </tr>
   <tr>
@@ -1593,6 +1639,10 @@
     <td>MSTest, <strong>EF.FlowEngine.Testing</strong> (<code>InMemoryWorkflowRegistry</code>)</td>
   </tr>
 </table>
+
+<h3>12.2.1 Application Style Coverage</h3>
+<p>Endpoint and E2E workflow suites run against both <code>ApplicationStyle.Service</code> and <code>ApplicationStyle.Cqrs</code> by overriding <code>Application:Style</code>/<code>TASKFLOW_APPLICATION_STYLE</code> in the test host. The same HTTP routes, request/response envelopes, ProblemDetails shapes, auth behavior, and database side effects must pass in both modes.</p>
+<p>CQRS-specific unit tests cover handler behavior, the custom <code>IRequestValidator&lt;TRequest&gt;</code> pattern, validation failure response mapping, and decorator order. Architecture tests guard the CQRS boundary: no central request dispatcher, no request bus, no generic <code>Send()</code> entrypoint, no Host dependency, no Infrastructure implementation dependency, and one request record per handler registration.</p>
 
 <h3>12.3 Testing Tools</h3>
 <table>
@@ -2318,11 +2368,11 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 
 <h3>14.6 Workflow Triggering</h3>
 <p><code>Application.MessageHandlers.WorkflowTriggerHandler</code> implements <code>IWorkflowTrigger</code> with a single method <code>OnTaskItemCreatedAsync(TaskItemCreatedEvent)</code> that calls <code>engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })</code>.</p>
-<div class="callout"><strong>It is intentionally not wired to <code>IInternalMessageBus</code> today.</strong> <code>TaskItemCreatedEvent</code> is an integration event traveling over Service Bus, not an in-process <code>IMessage</code>. The class exists as a one-line addition wherever the event is raised — typically in <code>TaskItemService</code> after <code>eventPublisher.PublishAsync</code>, or in a custom Service Bus subscriber inside <code>TaskFlow.Functions</code>. For the reference-app demo, manual invocation via the dashboard's <code>/workflows/run</code> page is sufficient.</div>
+<div class="callout"><strong>It is intentionally not wired to <code>IInternalMessageBus</code> today.</strong> <code>TaskItemCreatedEvent</code> is an integration event traveling over Service Bus, not an in-process <code>IMessage</code>. The class exists as a one-line addition wherever the event is raised — typically in <code>TaskItemService</code> (Service style), <code>CreateTaskItemCommandHandler</code> (CQRS style) after <code>eventPublisher.PublishAsync</code>, or in a custom Service Bus subscriber inside <code>TaskFlow.Functions</code>. For the reference-app demo, manual invocation via the dashboard's <code>/workflows/run</code> page is sufficient.</div>
 <p>Wiring options when a downstream consumer wants automatic triggering:</p>
 <ol>
   <li><strong>Service Bus subscriber in <code>TaskFlow.Functions</code></strong> — add a topic subscription, deserialize <code>TaskItemCreatedEvent</code>, call <code>IWorkflowTrigger.OnTaskItemCreatedAsync</code>. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.</li>
-  <li><strong>Inline call in <code>TaskItemService</code></strong> — DI-resolve <code>IWorkflowTrigger</code>, call after <code>eventPublisher.PublishAsync</code>. Simpler but ties the request thread to engine startup.</li>
+  <li><strong>Inline call in the active create-task use case</strong> — DI-resolve <code>IWorkflowTrigger</code>, call after <code>eventPublisher.PublishAsync</code> in <code>TaskItemService</code> or <code>CreateTaskItemCommandHandler</code>. Simpler but ties the request thread to engine startup.</li>
   <li><strong>TickerQ job for <code>compliance-check</code></strong> — a cron-triggered scheduler job that calls <code>engine.StartBackgroundAsync</code> with the <code>compliance-check</code> workflow id and a fresh <code>windowDays</code> param.</li>
 </ol>
 
@@ -2386,8 +2436,9 @@ curl -sk "$GW/api/flowengine/instances/$INSTANCE_ID" | jq '{ status, history }'<
 <h3>Azure Functions</h3>
 <table>
   <tr><th>Function</th><th>Trigger</th><th>Binding</th><th>Purpose</th></tr>
-  <tr><td><code>HealthCheck</code></td><td>HTTP GET <code>/health</code></td><td>Anonymous</td><td>Health probe</td></tr>
-  <tr><td><code>TaskApiProxy</code></td><td>HTTP GET <code>/tasks</code></td><td>Function key</td><td>Read-only task query (placeholder)</td></tr>
+  <tr><td><code>HealthCheck</code></td><td>HTTP GET <code>/api/health</code></td><td>Anonymous</td><td>Function host health probe</td></tr>
+  <tr><td><code>TaskApiProxy</code></td><td>HTTP GET <code>/api/v1/tasks</code></td><td>Function key</td><td>Read-only task query (placeholder)</td></tr>
+  <tr><td><code>CreateCategory</code></td><td>HTTP POST <code>/api/v1/categories</code></td><td>Anonymous</td><td>Category create endpoint used by the Functions audit pipeline test</td></tr>
   <tr><td><code>ProcessTaskEvent</code></td><td>Service Bus Topic</td><td><code>DomainEvents</code> topic, <code>function-processor</code> sub</td><td>Projects task events to Cosmos DB read model</td></tr>
   <tr><td><code>ProcessAttachment</code></td><td>Blob</td><td>Attachment container</td><td>Validates files, extracts metadata, updates record</td></tr>
   <tr><td><code>StaleTaskCleanup</code></td><td>Timer</td><td>Config-driven cron</td><td>Deletes cancelled/stale tasks older than 90 days</td></tr>
@@ -2400,7 +2451,7 @@ curl -sk "$GW/api/flowengine/instances/$INSTANCE_ID" | jq '{ status, history }'<
   <tr><td><code>RecurringTaskGeneration</code></td><td>Daily 2:00 AM UTC</td><td>Generates new task instances from recurring patterns</td></tr>
   <tr><td><code>StaleTaskCleanup</code></td><td>Weekly Sunday 3:00 AM UTC</td><td>Archives/soft-deletes old cancelled tasks</td></tr>
 </table>
-<p>TickerQ uses an EF Core operational store (<code>TickerQDbContext</code>, schema <code>"ticker"</code>) for job persistence when <code>Scheduling:UsePersistence=true</code>.</p>
+<p>TickerQ uses an EF Core operational store (<code>TickerQDbContext</code>, schema <code>Scheduler</code>) for job persistence when <code>Scheduling:UsePersistence=true</code>. Startup validates the schema, can create it for local development (<code>Scheduling:AutoCreateSchema=true</code>), and can emit a deployment script (<code>Scheduling:GenerateDeploymentScript=true</code>). Job execution records OpenTelemetry metrics through <code>TaskFlow.Scheduler</code>, and global TickerQ failures flow through <code>TaskFlowSchedulerExceptionHandler</code>.</p>
 
 </div><!-- end container -->
 </body>

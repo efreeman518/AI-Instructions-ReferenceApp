@@ -5,7 +5,7 @@ namespace TaskFlow.Uno.Core.Business.Notifications;
 public sealed class NotificationService : INotificationService
 {
     private static readonly TimeSpan SuccessDismiss = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan InfoDismiss    = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan InfoDismiss = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan WarningDismiss = TimeSpan.FromSeconds(6);
 
     private readonly TimeProvider _time;

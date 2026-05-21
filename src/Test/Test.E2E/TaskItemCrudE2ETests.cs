@@ -1,10 +1,10 @@
+using EF.Common.Contracts;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EF.Common.Contracts;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
 
@@ -60,7 +60,7 @@ public class TaskItemCrudE2ETests
 
         // CREATE
         var dto = new TaskItemDto { Title = "E2E Task", Priority = Priority.High };
-        var createResp = await client.PostAsJsonAsync("/api/task-items",
+        var createResp = await client.PostAsJsonAsync("/api/v1/task-items",
             new DefaultRequest<TaskItemDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -70,7 +70,7 @@ public class TaskItemCrudE2ETests
         var id = created.Id!.Value;
 
         // READ
-        var getResp = await client.GetAsync($"/api/task-items/{id}");
+        var getResp = await client.GetAsync($"/api/v1/task-items/{id}");
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
         var fetched = (await getResp.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_json))!.Item;
         Assert.AreEqual("E2E Task", fetched!.Title);
@@ -83,7 +83,7 @@ public class TaskItemCrudE2ETests
             Priority = Priority.Low,
             Status = fetched.Status
         };
-        var putResp = await client.PutAsJsonAsync($"/api/task-items/{id}",
+        var putResp = await client.PutAsJsonAsync($"/api/v1/task-items/{id}",
             new DefaultRequest<TaskItemDto> { Item = updateDto });
         Assert.AreEqual(HttpStatusCode.OK, putResp.StatusCode,
             $"Update failed: {await putResp.Content.ReadAsStringAsync()}");
@@ -91,11 +91,11 @@ public class TaskItemCrudE2ETests
         Assert.AreEqual("E2E Task Updated", updated!.Title);
 
         // DELETE
-        var delResp = await client.DeleteAsync($"/api/task-items/{id}");
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{id}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
 
         // VERIFY DELETED
-        var verifyResp = await client.GetAsync($"/api/task-items/{id}");
+        var verifyResp = await client.GetAsync($"/api/v1/task-items/{id}");
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
@@ -107,7 +107,7 @@ public class TaskItemCrudE2ETests
         using var client = CreateClient();
 
         var dto = new CategoryDto { Name = "E2E Category", IsActive = true, SortOrder = 1 };
-        var createResp = await client.PostAsJsonAsync("/api/categories",
+        var createResp = await client.PostAsJsonAsync("/api/v1/categories",
             new DefaultRequest<CategoryDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -115,18 +115,18 @@ public class TaskItemCrudE2ETests
         Assert.IsNotNull(created);
         var id = created.Id!.Value;
 
-        var getResp = await client.GetAsync($"/api/categories/{id}");
+        var getResp = await client.GetAsync($"/api/v1/categories/{id}");
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
 
         var updateDto = new CategoryDto { Id = id, Name = "E2E Category Updated", IsActive = true, SortOrder = 2 };
-        var putResp = await client.PutAsJsonAsync($"/api/categories/{id}",
+        var putResp = await client.PutAsJsonAsync($"/api/v1/categories/{id}",
             new DefaultRequest<CategoryDto> { Item = updateDto });
         Assert.AreEqual(HttpStatusCode.OK, putResp.StatusCode);
 
-        var delResp = await client.DeleteAsync($"/api/categories/{id}");
+        var delResp = await client.DeleteAsync($"/api/v1/categories/{id}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
 
-        var verifyResp = await client.GetAsync($"/api/categories/{id}");
+        var verifyResp = await client.GetAsync($"/api/v1/categories/{id}");
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
@@ -138,7 +138,7 @@ public class TaskItemCrudE2ETests
         using var client = CreateClient();
 
         var dto = new TagDto { Name = "e2e-tag", Color = "#FF0000" };
-        var createResp = await client.PostAsJsonAsync("/api/tags",
+        var createResp = await client.PostAsJsonAsync("/api/v1/tags",
             new DefaultRequest<TagDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -146,18 +146,18 @@ public class TaskItemCrudE2ETests
         Assert.IsNotNull(created);
         var id = created.Id!.Value;
 
-        var getResp = await client.GetAsync($"/api/tags/{id}");
+        var getResp = await client.GetAsync($"/api/v1/tags/{id}");
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
 
         var updateDto = new TagDto { Id = id, Name = "e2e-tag-updated", Color = "#00FF00" };
-        var putResp = await client.PutAsJsonAsync($"/api/tags/{id}",
+        var putResp = await client.PutAsJsonAsync($"/api/v1/tags/{id}",
             new DefaultRequest<TagDto> { Item = updateDto });
         Assert.AreEqual(HttpStatusCode.OK, putResp.StatusCode);
 
-        var delResp = await client.DeleteAsync($"/api/tags/{id}");
+        var delResp = await client.DeleteAsync($"/api/v1/tags/{id}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
 
-        var verifyResp = await client.GetAsync($"/api/tags/{id}");
+        var verifyResp = await client.GetAsync($"/api/v1/tags/{id}");
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
@@ -171,7 +171,7 @@ public class TaskItemCrudE2ETests
         // Seed a task
         var searchMarker = $"Searchable E2E {Guid.NewGuid():N}";
         var dto = new TaskItemDto { Title = $"{searchMarker} Task", Priority = Priority.Medium };
-        await client.PostAsJsonAsync("/api/task-items",
+        await client.PostAsJsonAsync("/api/v1/task-items",
             new DefaultRequest<TaskItemDto> { Item = dto });
 
         // Search
@@ -181,7 +181,7 @@ public class TaskItemCrudE2ETests
             PageSize = 50,
             Filter = new TaskItemSearchFilter { SearchTerm = searchMarker }
         };
-        var searchResp = await client.PostAsJsonAsync("/api/task-items/search", searchReq);
+        var searchResp = await client.PostAsJsonAsync("/api/v1/task-items/search", searchReq);
         Assert.AreEqual(HttpStatusCode.OK, searchResp.StatusCode);
 
         using var document = await JsonDocument.ParseAsync(await searchResp.Content.ReadAsStreamAsync());
@@ -207,7 +207,7 @@ public class TaskItemCrudE2ETests
         foreach (var title in new[] { $"{searchMarker} 01", $"{searchMarker} 02" })
         {
             var dto = new TaskItemDto { Title = title, Priority = Priority.Medium };
-            var createResp = await client.PostAsJsonAsync("/api/task-items",
+            var createResp = await client.PostAsJsonAsync("/api/v1/task-items",
                 new DefaultRequest<TaskItemDto> { Item = dto });
             Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
                 $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -222,7 +222,7 @@ public class TaskItemCrudE2ETests
                 Filter = new TaskItemSearchFilter { SearchTerm = searchMarker }
             };
 
-            var response = await client.PostAsJsonAsync("/api/task-items/search", request);
+            var response = await client.PostAsJsonAsync("/api/v1/task-items/search", request);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
                 $"Search failed: {await response.Content.ReadAsStringAsync()}");
 
@@ -267,13 +267,13 @@ public class TaskItemCrudE2ETests
 
         // Create parent task
         var taskDto = new TaskItemDto { Title = "Parent for Comment E2E", Priority = Priority.Low };
-        var taskResp = await client.PostAsJsonAsync("/api/task-items",
+        var taskResp = await client.PostAsJsonAsync("/api/v1/task-items",
             new DefaultRequest<TaskItemDto> { Item = taskDto });
         var taskId = (await taskResp.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_json))!.Item!.Id!.Value;
 
         // Create comment
         var commentDto = new CommentDto { Body = "E2E Comment", TaskItemId = taskId };
-        var createResp = await client.PostAsJsonAsync("/api/comments",
+        var createResp = await client.PostAsJsonAsync("/api/v1/comments",
             new DefaultRequest<CommentDto> { Item = commentDto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -282,11 +282,11 @@ public class TaskItemCrudE2ETests
         var commentId = created.Id!.Value;
 
         // Read
-        var getResp = await client.GetAsync($"/api/comments/{commentId}");
+        var getResp = await client.GetAsync($"/api/v1/comments/{commentId}");
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
 
         // Delete
-        var delResp = await client.DeleteAsync($"/api/comments/{commentId}");
+        var delResp = await client.DeleteAsync($"/api/v1/comments/{commentId}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
     }
 
@@ -299,13 +299,13 @@ public class TaskItemCrudE2ETests
 
         // Create parent task
         var taskDto = new TaskItemDto { Title = "Parent for Checklist E2E", Priority = Priority.Low };
-        var taskResp = await client.PostAsJsonAsync("/api/task-items",
+        var taskResp = await client.PostAsJsonAsync("/api/v1/task-items",
             new DefaultRequest<TaskItemDto> { Item = taskDto });
         var taskId = (await taskResp.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_json))!.Item!.Id!.Value;
 
         // Create checklist item
         var dto = new ChecklistItemDto { Title = "E2E Checklist Item", IsCompleted = false, SortOrder = 1, TaskItemId = taskId };
-        var createResp = await client.PostAsJsonAsync("/api/checklist-items",
+        var createResp = await client.PostAsJsonAsync("/api/v1/checklist-items",
             new DefaultRequest<ChecklistItemDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -313,7 +313,7 @@ public class TaskItemCrudE2ETests
         Assert.IsNotNull(created);
 
         // Delete
-        var delResp = await client.DeleteAsync($"/api/checklist-items/{created.Id}");
+        var delResp = await client.DeleteAsync($"/api/v1/checklist-items/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
     }
 }

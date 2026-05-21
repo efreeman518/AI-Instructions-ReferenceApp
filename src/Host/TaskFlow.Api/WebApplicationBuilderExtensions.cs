@@ -1,7 +1,11 @@
+using Asp.Versioning;
 using EF.FlowEngine.AdminApi;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using TaskFlow.Api.Endpoints;
+using TaskFlow.Api.Endpoints.Cqrs;
 using TaskFlow.Api.Middleware;
+using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api;
 
@@ -18,6 +22,7 @@ public static class WebApplicationBuilderExtensions
 
         // 2. Correlation tracking
         app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseHeaderPropagation();
 
         // 3. Exception handler (before routing)
         app.UseExceptionHandler();
@@ -37,25 +42,49 @@ public static class WebApplicationBuilderExtensions
         // OpenAPI / Scalar
         if (app.Configuration.GetValue<bool>("OpenApiSettings:Enable", true))
         {
-            app.MapOpenApi();
+            app.MapOpenApi()
+                .AllowAnonymous();
             app.MapScalarApiReference(options =>
             {
                 options.WithTitle("TaskFlow API");
                 options.WithTheme(ScalarTheme.Moon);
-            });
+            })
+            .AllowAnonymous();
         }
 
         // Default Aspire endpoints
         app.MapDefaultEndpoints();
 
         // Health endpoints
-        app.MapHealthChecks("/health");
-        app.MapGet("/alive", () => Results.Ok("Alive"));
+        app.MapHealthChecks("/health/memory", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("memory")
+        })
+        .AllowAnonymous()
+        .RequireRateLimiting("HealthMemory");
+
+        app.MapHealthChecks("/health/db", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("db")
+        })
+        .RequireAuthorization()
+        .RequireRateLimiting("HealthDb");
+
+        app.MapHealthChecks("/health/full", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("full")
+        })
+        .RequireAuthorization()
+        .RequireRateLimiting("HealthFull");
+
+        app.MapGet("/alive", () => Results.Ok("Alive"))
+            .AllowAnonymous()
+            .RequireRateLimiting("HealthMemory");
 
         // API endpoint groups
         SetupApiEndpoints(app);
 
-        // FlowEngine admin API — instance/registry/circuit-breaker/human-task operations.
+        // FlowEngine admin API - instance/registry/circuit-breaker/human-task operations.
         // Fronted by YARP gateway; consumed by EF.FlowEngine.Dashboard hosted in TaskFlow.Blazor.
         app.MapFlowEngineAdmin(prefix: "/api/flowengine");
 
@@ -66,15 +95,40 @@ public static class WebApplicationBuilderExtensions
 
     private static void SetupApiEndpoints(WebApplication app)
     {
-        app.MapCategoryEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapTagEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapTaskItemEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapCommentEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapChecklistItemEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapAttachmentEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapTaskItemTagEndpoints(ProblemDetailsIncludeStackTrace);
-        app.MapSearchEndpoints();
-        app.MapAgentEndpoints();
-        app.MapTaskViewEndpoints();
+        var apiVersion = new ApiVersion(1, 0);
+        var versionSet = app.NewApiVersionSet()
+            .HasApiVersion(apiVersion)
+            .ReportApiVersions()
+            .Build();
+        var api = app.MapGroup("/api/v{apiVersion:apiVersion}")
+            .WithApiVersionSet(versionSet)
+            .MapToApiVersion(apiVersion)
+            .RequireRateLimiting("PerTenant");
+
+        var style = ApplicationStyleResolver.Resolve(app.Configuration[ApplicationStyleResolver.ConfigKey]);
+        if (style == ApplicationStyle.Cqrs)
+        {
+            api.MapCategoryCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTagCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTaskItemCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapCommentCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapChecklistItemCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapAttachmentCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTaskItemTagCqrsEndpoints(ProblemDetailsIncludeStackTrace);
+        }
+        else
+        {
+            api.MapCategoryEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTagEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTaskItemEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapCommentEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapChecklistItemEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapAttachmentEndpoints(ProblemDetailsIncludeStackTrace);
+            api.MapTaskItemTagEndpoints(ProblemDetailsIncludeStackTrace);
+        }
+
+        api.MapSearchEndpoints();
+        api.MapAgentEndpoints();
+        api.MapTaskViewEndpoints();
     }
 }

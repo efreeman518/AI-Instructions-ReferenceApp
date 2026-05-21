@@ -8,7 +8,7 @@ using TaskFlow.Domain.Shared.Enums;
 namespace Test.Endpoints;
 
 /// <summary>
-/// HTTP contract tests for <c>/api/checklist-items</c> CRUD; each test seeds a parent TaskItem via the
+/// HTTP contract tests for <c>/api/v1/checklist-items</c> CRUD; each test seeds a parent TaskItem via the
 /// real API surface to satisfy the foreign-key relation.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): contract-level
 /// coverage of routing, status codes, and envelope shape — not FK cascade semantics.
@@ -34,7 +34,7 @@ public class ChecklistItemEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForChecklist", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
         return created!.Id!.Value;
     }
@@ -47,7 +47,7 @@ public class ChecklistItemEndpointTests
         var taskId = await CreateParentTaskItem(client);
         var dto = new ChecklistItemDto { Title = "Step 1", TaskItemId = taskId, SortOrder = 0 };
 
-        var response = await client.PostAsJsonAsync("/api/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
@@ -62,10 +62,10 @@ public class ChecklistItemEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new ChecklistItemDto { Title = "GetStep", TaskItemId = taskId, SortOrder = 1 };
-        var createResponse = await client.PostAsJsonAsync("/api/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
 
-        var response = await client.GetAsync($"/api/checklist-items/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/checklist-items/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
@@ -79,7 +79,7 @@ public class ChecklistItemEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/checklist-items/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/checklist-items/{Guid.NewGuid()}");
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -91,7 +91,7 @@ public class ChecklistItemEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new ChecklistItemDto { Title = "Before step", TaskItemId = taskId, SortOrder = 0 };
-        var createResponse = await client.PostAsJsonAsync("/api/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
 
         var updateDto = new ChecklistItemDto
@@ -102,7 +102,7 @@ public class ChecklistItemEndpointTests
             SortOrder = 1,
             IsCompleted = true
         };
-        var response = await client.PutAsJsonAsync($"/api/checklist-items/{created.Id}", new DefaultRequest<ChecklistItemDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/checklist-items/{created.Id}", new DefaultRequest<ChecklistItemDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
@@ -116,14 +116,14 @@ public class ChecklistItemEndpointTests
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
         var dto = new ChecklistItemDto { Title = "ToDelete step", TaskItemId = taskId, SortOrder = 0 };
-        var createResponse = await client.PostAsJsonAsync("/api/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
 
-        var response = await client.DeleteAsync($"/api/checklist-items/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/checklist-items/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-        var getResponse = await client.GetAsync($"/api/checklist-items/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/checklist-items/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 }

@@ -120,7 +120,7 @@
       "config": {
         "clientRef": "taskflow-api",
         "method": "POST",
-        "path": "/api/taskitems/{{$.context._loopItem.Id}}/comments",
+        "path": "/api/v1/task-items/{{$.context._loopItem.Id}}/comments",
         "body": { "Text": "Compliance review complete: {{$.context._humanTaskResponse.notes}}" },
         "idempotencyKey": "$.context._loopItem.Id + '-compliance-resolved'"
       },
@@ -134,13 +134,13 @@
       "config": {
         "clientRef": "taskflow-api",
         "method": "POST",
-        "path": "/api/taskitems/{{$.context._loopItem.Id}}/comments",
+        "path": "/api/v1/task-items/{{$.context._loopItem.Id}}/comments",
         "body": { "Text": "Compliance evidence is expiring soon — please refresh." },
         "idempotencyKey": "$.context._loopItem.Id + '-compliance-reminder'"
       },
       "edges": [ { "on": ["Match"], "nextNodeId": "n-ok" }, { "on": ["Error"], "nextNodeId": "n-ok" } ]
     },
-    "n-ok": { "id": "n-ok", "type": "checkpoint", "label": "Loop iteration done" },
+    "n-ok": { "id": "n-ok", "type": "checkpoint", "label": "Loop iteration done", "config": {} },
     "n-summary-event": {
       "id": "n-summary-event",
       "type": "message",

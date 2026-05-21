@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace TaskFlow.Infrastructure.AI;
 
 public class TaskFlowAiSettings

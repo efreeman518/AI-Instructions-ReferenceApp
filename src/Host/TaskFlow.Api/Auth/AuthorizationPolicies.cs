@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api.Auth;
@@ -11,7 +12,13 @@ public static class AuthorizationPolicies
 
     public static IServiceCollection AddTaskFlowAuthorization(this IServiceCollection services)
     {
+        var authenticatedUserPolicy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+
         services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(authenticatedUserPolicy)
+            .SetDefaultPolicy(authenticatedUserPolicy)
             .AddPolicy(GlobalAdmin, policy =>
                 policy.RequireRole(AppConstants.ROLE_GLOBAL_ADMIN))
             .AddPolicy(TenantMatch, policy =>

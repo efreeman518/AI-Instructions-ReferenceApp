@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using TaskFlow.Application.Contracts.Services;
 
 namespace TaskFlow.Functions;

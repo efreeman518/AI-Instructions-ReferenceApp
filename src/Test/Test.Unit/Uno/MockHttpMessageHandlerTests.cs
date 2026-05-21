@@ -1,4 +1,3 @@
-using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
@@ -35,7 +34,7 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task SearchTaskItems_ReturnsMockData()
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/task-items/search",
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/task-items/search",
             new SearchRequest<TaskItemSearchFilter> { PageNumber = 1, PageSize = 50 });
 
         response.EnsureSuccessStatusCode();
@@ -49,7 +48,7 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task SearchCategories_ReturnsMockData()
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/categories/search",
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/categories/search",
             new SearchRequest<CategorySearchFilter> { PageNumber = 1, PageSize = 100 });
 
         response.EnsureSuccessStatusCode();
@@ -63,7 +62,7 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task SearchTags_ReturnsMockData()
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/tags/search",
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/tags/search",
             new SearchRequest<TagSearchFilter> { PageNumber = 1, PageSize = 100 });
 
         response.EnsureSuccessStatusCode();
@@ -78,7 +77,7 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task DeleteTaskItem_ReturnsNoContent()
     {
-        var response = await _httpClient.DeleteAsync($"/api/task-items/{Guid.NewGuid()}");
+        var response = await _httpClient.DeleteAsync($"/api/v1/task-items/{Guid.NewGuid()}");
 
         Assert.AreEqual(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }

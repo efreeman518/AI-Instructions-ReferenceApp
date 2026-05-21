@@ -1,6 +1,5 @@
 using EF.BackgroundServices;
 using EF.BackgroundServices.InternalMessageBus;
-using EF.BackgroundServices.Work;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Bootstrapper.StartupTasks;
@@ -23,7 +22,7 @@ public static partial class RegisterServices
         AddBlobStorageServices(services, config);
         AddServiceBusServices(services, config);
         AddCosmosDbServices(services, config);
-        AddHealthChecks(services);
+        AddHealthChecks(services, config);
         AddStartupTasks(services);
 
         return services;
@@ -39,7 +38,7 @@ public static partial class RegisterServices
     public static IServiceCollection RegisterApplicationServices(
         this IServiceCollection services, IConfiguration config)
     {
-        AddApplicationServices(services);
+        AddApplicationServices(services, config);
         services.AddAiServices(config);
         // FlowEngine registered after AI so the agent client can resolve AzureOpenAIClient.
         AddFlowEngineServices(services, config);

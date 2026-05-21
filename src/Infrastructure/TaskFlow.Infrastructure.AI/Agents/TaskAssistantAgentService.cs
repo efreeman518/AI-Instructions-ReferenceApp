@@ -1,10 +1,10 @@
-using System.Reflection;
 using Azure.AI.OpenAI;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using System.Reflection;
 
 namespace TaskFlow.Infrastructure.AI.Agents;
 

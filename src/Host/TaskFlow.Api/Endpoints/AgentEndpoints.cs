@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using TaskFlow.Infrastructure.AI.Agents;
 
 namespace TaskFlow.Api.Endpoints;
@@ -9,7 +7,7 @@ public static class AgentEndpoints
 {
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/agent").WithTags("Agent");
+        var group = app.MapGroup("/agent").WithTags("Agent");
 
         group.MapPost("/chat", async (
             [FromBody] AgentChatRequest request,

@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using TaskFlow.Infrastructure.AI.Search;
 
 namespace TaskFlow.Api.Endpoints;
@@ -9,7 +7,7 @@ public static class SearchEndpoints
 {
     public static IEndpointRouteBuilder MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/search").WithTags("Search");
+        var group = app.MapGroup("/search").WithTags("Search");
 
         group.MapGet("/tasks", async (
             [FromQuery] string query,

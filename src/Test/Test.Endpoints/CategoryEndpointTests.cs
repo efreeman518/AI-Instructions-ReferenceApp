@@ -1,13 +1,13 @@
+using EF.Common.Contracts;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using EF.Common.Contracts;
 using TaskFlow.Application.Models;
 
 namespace Test.Endpoints;
 
 /// <summary>
-/// HTTP contract tests for <c>/api/categories</c> CRUD plus search and a full create→read→update→delete
+/// HTTP contract tests for <c>/api/v1/categories</c> CRUD plus search and a full create→read→update→delete
 /// round-trip.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): verifies status codes,
 /// envelope shape, and search projection over the Categories endpoint without spinning a real SQL container.
@@ -32,7 +32,7 @@ public class CategoryEndpointTests
         using var client = CreateClient();
         var dto = new CategoryDto { Name = "Test Category", SortOrder = 1, IsActive = true };
 
-        var response = await client.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
@@ -47,10 +47,10 @@ public class CategoryEndpointTests
     {
         using var client = CreateClient();
         var dto = new CategoryDto { Name = "GetTest Category", SortOrder = 1, IsActive = true };
-        var createResponse = await client.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
 
-        var response = await client.GetAsync($"/api/categories/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/categories/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
@@ -64,7 +64,7 @@ public class CategoryEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/categories/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/categories/{Guid.NewGuid()}");
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -75,7 +75,7 @@ public class CategoryEndpointTests
     {
         using var client = CreateClient();
         var dto = new CategoryDto { Name = "Before", SortOrder = 1, IsActive = true };
-        var createResponse = await client.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
 
         var updateDto = new CategoryDto
@@ -85,7 +85,7 @@ public class CategoryEndpointTests
             SortOrder = 2,
             IsActive = true
         };
-        var response = await client.PutAsJsonAsync($"/api/categories/{created.Id}", new DefaultRequest<CategoryDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/categories/{created.Id}", new DefaultRequest<CategoryDto> { Item = updateDto });
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
@@ -98,14 +98,14 @@ public class CategoryEndpointTests
     {
         using var client = CreateClient();
         var dto = new CategoryDto { Name = "ToDelete Category", SortOrder = 1, IsActive = true };
-        var createResponse = await client.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto });
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
 
-        var response = await client.DeleteAsync($"/api/categories/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/categories/{created!.Id}");
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-        var getResponse = await client.GetAsync($"/api/categories/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/categories/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
@@ -115,9 +115,9 @@ public class CategoryEndpointTests
     {
         using var client = CreateClient();
 
-        await client.PostAsJsonAsync("/api/categories",
+        await client.PostAsJsonAsync("/api/v1/categories",
             new DefaultRequest<CategoryDto> { Item = new CategoryDto { Name = "SearchMe Cat", SortOrder = 1, IsActive = true } });
-        await client.PostAsJsonAsync("/api/categories",
+        await client.PostAsJsonAsync("/api/v1/categories",
             new DefaultRequest<CategoryDto> { Item = new CategoryDto { Name = "Other Cat", SortOrder = 2, IsActive = true } });
 
         var searchRequest = new SearchRequest<CategorySearchFilter>
@@ -127,7 +127,7 @@ public class CategoryEndpointTests
             Filter = new CategorySearchFilter { SearchTerm = "SearchMe" }
         };
 
-        var response = await client.PostAsJsonAsync("/api/categories/search", searchRequest);
+        var response = await client.PostAsJsonAsync("/api/v1/categories/search", searchRequest);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -145,12 +145,12 @@ public class CategoryEndpointTests
 
         // Create
         var dto = new CategoryDto { Name = "CrudCycle Cat", SortOrder = 1, IsActive = true };
-        var createResponse = await client.PostAsJsonAsync("/api/categories", new DefaultRequest<CategoryDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/categories", new DefaultRequest<CategoryDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResponse.StatusCode);
         var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CategoryDto>>())!.Item;
 
         // Read
-        var getResponse = await client.GetAsync($"/api/categories/{created!.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/categories/{created!.Id}");
         Assert.AreEqual(HttpStatusCode.OK, getResponse.StatusCode);
 
         // Update
@@ -161,15 +161,15 @@ public class CategoryEndpointTests
             SortOrder = 5,
             IsActive = false
         };
-        var updateResponse = await client.PutAsJsonAsync($"/api/categories/{created.Id}", new DefaultRequest<CategoryDto> { Item = updateDto });
+        var updateResponse = await client.PutAsJsonAsync($"/api/v1/categories/{created.Id}", new DefaultRequest<CategoryDto> { Item = updateDto });
         Assert.AreEqual(HttpStatusCode.OK, updateResponse.StatusCode);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/categories/{created.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/v1/categories/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         // Verify deleted
-        var verifyResponse = await client.GetAsync($"/api/categories/{created.Id}");
+        var verifyResponse = await client.GetAsync($"/api/v1/categories/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResponse.StatusCode);
     }
 }

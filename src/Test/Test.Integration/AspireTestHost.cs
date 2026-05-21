@@ -1,6 +1,6 @@
+using AppHost;
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
-using AppHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -57,6 +57,7 @@ public class AspireTestHost
                 // Default in the testing builder; setting explicitly to make intent visible.
                 // Flip to false locally if you need to inspect resource state in the dashboard.
                 appOptions.DisableDashboard = true;
+                appOptions.EnableResourceLogging = true;
 
                 // Pass the SQL parameter through host config instead of mutating Parameters__sql-password env var.
                 // The AppHost's `builder.AddParameter("sql-password", ...)` resolves from IConfiguration first.

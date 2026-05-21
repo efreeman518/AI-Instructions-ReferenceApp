@@ -1,7 +1,7 @@
-using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 
@@ -13,7 +13,7 @@ public class FunctionCategoryTrigger(
 {
     [Function(nameof(CreateCategory))]
     public async Task<HttpResponseData> CreateCategory(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "categories")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/categories")] HttpRequestData req,
         CancellationToken ct)
     {
         var request = await req.ReadFromJsonAsync<CreateCategoryRequest>(cancellationToken: ct);

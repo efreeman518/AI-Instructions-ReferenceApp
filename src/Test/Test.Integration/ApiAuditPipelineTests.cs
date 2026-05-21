@@ -1,16 +1,18 @@
-using System.Net;
-using System.Net.Http.Json;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Azure;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
 /// <summary>
-/// End-to-end audit pipeline test for the API: POST /api/categories → API request handling →
+/// End-to-end audit pipeline test for the API: POST /api/v1/categories → API request handling →
 /// audit middleware → Azurite Table Storage row, with a polling read-back to confirm the persisted entity.
 /// Aspire tier (Aspire.Hosting.Testing) — required because two Aspire resources participate
 /// (<c>taskflowapi</c> for the request, <c>TableStorage1</c> for verification), and both must be Healthy
@@ -89,7 +91,7 @@ public class ApiAuditPipelineTests
         {
             try
             {
-                var response = await client.PostAsJsonAsync("/api/categories", request, ct);
+                var response = await client.PostAsJsonAsync("/api/v1/categories", request, ct);
                 if (response.StatusCode == HttpStatusCode.Created)
                     return response;
 
@@ -106,10 +108,45 @@ public class ApiAuditPipelineTests
         }
 
         if (lastException != null)
+        {
+            DumpResourceState("taskflowapi");
+            await DumpResourceLogsAsync("taskflowapi", ct);
             throw lastException;
+        }
 
         Assert.Fail($"Category create API did not return 201. Last status: {lastStatusCode}; body: {lastBody}");
         throw new InvalidOperationException("Unreachable");
+    }
+
+    private static void DumpResourceState(string resourceName)
+    {
+        if (AspireTestHost.AspireApp is null)
+            return;
+
+        if (!AspireTestHost.AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
+        {
+            Console.WriteLine($"{resourceName} state: not found");
+            return;
+        }
+
+        var snapshot = resourceEvent.Snapshot;
+        Console.WriteLine(
+            $"{resourceName} state: {snapshot.State}; health: {snapshot.HealthStatus}; exit: {snapshot.ExitCode}; started: {snapshot.StartTimeStamp:O}; stopped: {snapshot.StopTimeStamp:O}");
+    }
+
+    private static async Task DumpResourceLogsAsync(string resourceName, CancellationToken ct)
+    {
+        if (AspireTestHost.AspireApp is null)
+            return;
+
+        var logs = AspireTestHost.AspireApp.Services.GetRequiredService<ResourceLoggerService>();
+        await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(ct))
+        {
+            foreach (var line in batch)
+            {
+                Console.WriteLine($"{resourceName}: {line}");
+            }
+        }
     }
 
     private static async Task<AuditLogTableEntity> WaitForAuditEntityAsync(

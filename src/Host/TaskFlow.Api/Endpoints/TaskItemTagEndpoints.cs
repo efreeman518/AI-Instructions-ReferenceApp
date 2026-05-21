@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using EF.AspNetCore;
-using EF.Common.Contracts;
+using Microsoft.AspNetCore.Mvc;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;
 
@@ -14,7 +13,7 @@ public static class TaskItemTagEndpoints
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
 
-        var g = group.MapGroup("/api/task-item-tags").WithTags("TaskItemTags");
+        var g = group.MapGroup("/task-item-tags").WithTags("TaskItemTags");
 
         g.MapGet("/{id:guid}", GetById)
             .Produces<DefaultResponse<TaskItemTagDto>>(StatusCodes.Status200OK)

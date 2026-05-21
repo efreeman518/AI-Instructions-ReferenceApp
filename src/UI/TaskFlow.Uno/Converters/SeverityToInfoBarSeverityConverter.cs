@@ -1,4 +1,3 @@
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using TaskFlow.Uno.Core.Business.Notifications;
 
@@ -12,7 +11,7 @@ public sealed class SeverityToInfoBarSeverityConverter : IValueConverter
             {
                 NotificationSeverity.Success => InfoBarSeverity.Success,
                 NotificationSeverity.Warning => InfoBarSeverity.Warning,
-                NotificationSeverity.Error   => InfoBarSeverity.Error,
+                NotificationSeverity.Error => InfoBarSeverity.Error,
                 _ => InfoBarSeverity.Informational
             }
             : InfoBarSeverity.Informational;

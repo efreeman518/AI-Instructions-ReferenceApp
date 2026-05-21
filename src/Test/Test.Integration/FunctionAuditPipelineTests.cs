@@ -1,16 +1,16 @@
-using System.Net;
-using System.Net.Http.Json;
 using Aspire.Hosting.Testing;
 using Azure;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
+using System.Net;
+using System.Net.Http.Json;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
 
 namespace Test.Integration;
 
 /// <summary>
-/// End-to-end audit pipeline test for the Functions host: POST /api/categories on the
+/// End-to-end audit pipeline test for the Functions host: POST /api/v1/categories on the
 /// <c>taskflowfunctions</c> resource → Function request handling → audit middleware → Azurite Table
 /// Storage row, with a polling read-back.
 /// Aspire tier (Aspire.Hosting.Testing) — required because the Functions host has the longest cold-start
@@ -88,7 +88,7 @@ public class FunctionAuditPipelineTests
         {
             try
             {
-                var response = await client.PostAsJsonAsync("/api/categories", request, ct);
+                var response = await client.PostAsJsonAsync("/api/v1/categories", request, ct);
                 if (response.StatusCode == HttpStatusCode.Created)
                     return response;
 

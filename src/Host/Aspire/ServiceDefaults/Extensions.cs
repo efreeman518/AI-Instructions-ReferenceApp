@@ -19,6 +19,7 @@ public static class Extensions
         builder.Services.AddServiceDiscovery();
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
+            http.AddHeaderPropagation();
             http.AddStandardResilienceHandler();
             http.AddServiceDiscovery();
         });
@@ -78,12 +79,14 @@ public static class Extensions
         app.MapHealthChecks("/healthz", new HealthCheckOptions
         {
             Predicate = _ => true
-        });
+        })
+        .AllowAnonymous();
 
         app.MapHealthChecks("/readyz", new HealthCheckOptions
         {
             Predicate = r => r.Tags.Contains("ready")
-        });
+        })
+        .AllowAnonymous();
 
         return app;
     }
