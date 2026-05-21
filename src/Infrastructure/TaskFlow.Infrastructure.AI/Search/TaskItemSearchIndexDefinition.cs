@@ -1,3 +1,4 @@
+using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 
 namespace TaskFlow.Infrastructure.AI.Search;

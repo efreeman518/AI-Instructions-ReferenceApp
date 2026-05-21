@@ -1,7 +1,7 @@
 using EF.AspNetCore;
 using EF.Common.Contracts;
-using EF.CQRS.Abstractions;
 using Microsoft.AspNetCore.Mvc;
+using EF.CQRS.Abstractions;
 using TaskFlow.Application.Cqrs.Requests;
 using TaskFlow.Application.Models;
 

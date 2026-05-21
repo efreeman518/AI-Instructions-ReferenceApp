@@ -1,6 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using System.Diagnostics.CodeAnalysis;
 
 namespace TaskFlow.Infrastructure.Data;
 

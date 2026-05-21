@@ -1,10 +1,10 @@
+using System.Reflection;
 using EF.CQRS.Abstractions;
 using EF.CQRS.Decorators;
 using EF.CQRS.Validation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace EF.CQRS.DependencyInjection;
 

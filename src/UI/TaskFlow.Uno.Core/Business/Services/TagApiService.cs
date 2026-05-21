@@ -53,15 +53,11 @@ public class TagApiService(
 
     private static TagModel MapToModel(TagDto dto) => new()
     {
-        Id = dto.Id,
-        Name = dto.Name ?? string.Empty,
-        Color = dto.Color
+        Id = dto.Id, Name = dto.Name ?? string.Empty, Color = dto.Color
     };
 
     private static TagDto MapToDto(TagModel model) => new()
     {
-        Id = model.Id,
-        Name = model.Name,
-        Color = model.Color
+        Id = model.Id, Name = model.Name, Color = model.Color
     };
 }

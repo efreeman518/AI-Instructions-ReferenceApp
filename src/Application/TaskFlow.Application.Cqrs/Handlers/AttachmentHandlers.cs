@@ -1,10 +1,10 @@
 using EF.Common.Contracts;
-using EF.CQRS.Abstractions;
 using EF.Data.Contracts;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Storage;
+using EF.CQRS.Abstractions;
 using TaskFlow.Application.Cqrs.Requests;
 using TaskFlow.Application.Cqrs.Validation;
 using TaskFlow.Application.Mappers;

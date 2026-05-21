@@ -1,7 +1,7 @@
+using System.Security.Claims;
 using EF.Common.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
 using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Bootstrapper;

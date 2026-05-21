@@ -1,9 +1,9 @@
-using EF.Common.Contracts;
-using EF.Data.Contracts;
 using EF.Domain.Contracts;
+using EF.Data.Contracts;
+using Moq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Messaging;
 using TaskFlow.Application.Contracts.Repositories;

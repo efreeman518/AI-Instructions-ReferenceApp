@@ -2,6 +2,7 @@ using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
+using TaskFlow.Infrastructure.Data;
 using Test.Support;
 using Test.Support.Builders;
 

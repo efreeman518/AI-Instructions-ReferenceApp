@@ -1,5 +1,6 @@
 using EF.BackgroundServices;
 using EF.BackgroundServices.InternalMessageBus;
+using EF.BackgroundServices.Work;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Bootstrapper.StartupTasks;

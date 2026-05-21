@@ -1,3 +1,4 @@
+using OpenTelemetry.Metrics;
 using TaskFlow.Bootstrapper;
 using TaskFlow.Scheduler;
 using TaskFlow.Scheduler.Telemetry;

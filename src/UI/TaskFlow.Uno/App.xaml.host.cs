@@ -11,6 +11,7 @@ using TaskFlow.Uno.Core.Client.Http;
 using TaskFlow.Uno.Infrastructure;
 using TaskFlow.Uno.Presentation;
 using TaskFlow.Uno.Views;
+using Uno.Extensions.Http.Kiota;
 
 namespace TaskFlow.Uno;
 

@@ -1,10 +1,10 @@
 using EF.Common.Contracts;
-using EF.CQRS.Abstractions;
-using EF.CQRS.Decorators;
-using EF.CQRS.Validation;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using EF.CQRS.Abstractions;
 using TaskFlow.Application.Cqrs.Requests;
+using EF.CQRS.Decorators;
+using EF.CQRS.Validation;
 using TaskFlow.Application.Cqrs.Validation;
 using TaskFlow.Application.Models;
 using Test.Support;

@@ -1,6 +1,6 @@
-using AppHost;
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
+using AppHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

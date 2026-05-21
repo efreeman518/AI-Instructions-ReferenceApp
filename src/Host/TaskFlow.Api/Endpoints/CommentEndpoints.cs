@@ -1,7 +1,7 @@
-using EF.AspNetCore;
-using EF.Common.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using EF.AspNetCore;
+using EF.Common.Contracts;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Models;

@@ -1,5 +1,5 @@
-using EF.CQRS.Abstractions;
 using System.Reflection;
+using EF.CQRS.Abstractions;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Cqrs.Registration;
 using TaskFlow.Domain.Model;

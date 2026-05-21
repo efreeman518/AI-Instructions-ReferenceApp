@@ -53,25 +53,17 @@ public class CommentApiService(
 
     private static CommentModel MapToModel(CommentDto dto) => new()
     {
-        Id = dto.Id,
-        Body = dto.Body ?? string.Empty,
-        TaskItemId = dto.TaskItemId ?? Guid.Empty,
+        Id = dto.Id, Body = dto.Body ?? string.Empty, TaskItemId = dto.TaskItemId ?? Guid.Empty,
         Attachments = dto.Attachments?.Select(a => new AttachmentModel
         {
-            Id = a.Id,
-            FileName = a.FileName ?? string.Empty,
-            ContentType = a.ContentType ?? string.Empty,
-            FileSizeBytes = a.FileSizeBytes ?? 0,
-            StorageUri = a.StorageUri ?? string.Empty,
-            OwnerType = a.OwnerType ?? "Comment",
-            OwnerId = a.OwnerId ?? Guid.Empty
+            Id = a.Id, FileName = a.FileName ?? string.Empty, ContentType = a.ContentType ?? string.Empty,
+            FileSizeBytes = a.FileSizeBytes ?? 0, StorageUri = a.StorageUri ?? string.Empty,
+            OwnerType = a.OwnerType ?? "Comment", OwnerId = a.OwnerId ?? Guid.Empty
         }).ToList()
     };
 
     private static CommentDto MapToDto(CommentModel model) => new()
     {
-        Id = model.Id,
-        Body = model.Body,
-        TaskItemId = model.TaskItemId
+        Id = model.Id, Body = model.Body, TaskItemId = model.TaskItemId
     };
 }

@@ -1,12 +1,12 @@
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Text.Json;
-using System.Threading.RateLimiting;
 using TaskFlow.Gateway.HealthChecks;
 using Yarp.ReverseProxy.Transforms;
 
@@ -59,7 +59,7 @@ public static class RegisterGatewayServices
             .AddJwtBearer(options =>
             {
                 options.Authority = $"{instance.TrimEnd('/')}/{tenantId}/v2.0";
-                options.Audience = GetRequiredValue(entraSection, "ClientId");
+            options.Audience = GetRequiredValue(entraSection, "ClientId");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
