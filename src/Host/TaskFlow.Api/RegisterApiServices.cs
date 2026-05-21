@@ -22,8 +22,8 @@ public static class RegisterApiServices
         AddExceptionHandling(services);
         AddCorrelationTracking(services);
         AddRateLimiting(services, config);
-        var apiVersioningBuilder = AddApiVersioning(services);
-        AddOpenApi(services, config, apiVersioningBuilder);
+        AddApiVersioning(services);
+        AddOpenApi(services, config);
 
         // Workflow JSON seeding is now configured in the bootstrapper via
         // FlowEngineBuilder.AddWorkflowJsonSeeding (EF.FlowEngine v1.0.104+).
@@ -171,37 +171,42 @@ public static class RegisterApiServices
     {
         return services.AddApiVersioning(options =>
         {
-            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.DefaultApiVersion = ApiContract.DefaultVersion;
             options.AssumeDefaultVersionWhenUnspecified = false;
             options.ReportApiVersions = true;
             options.ApiVersionReader = new UrlSegmentApiVersionReader();
         })
         .AddApiExplorer(options =>
         {
-            options.GroupNameFormat = "'v'VVV";
+            options.GroupNameFormat = ApiContract.ApiExplorerGroupNameFormat;
             options.SubstituteApiVersionInUrl = true;
         });
     }
 
     private static void AddOpenApi(
         IServiceCollection services,
-        IConfiguration config,
-        IApiVersioningBuilder apiVersioningBuilder)
+        IConfiguration config)
     {
         if (!config.GetValue<bool>("OpenApiSettings:Enable", true)) return;
 
-        services.AddOpenApi("v1", options =>
+        foreach (var apiDocument in ApiContract.SupportedDocuments)
         {
-            options.AddDocumentTransformer((document, context, ct) =>
+            services.AddOpenApi(apiDocument.GroupName, options =>
             {
-                document.Info = new()
+                options.ShouldInclude = apiDescription =>
+                    string.Equals(apiDescription.GroupName, apiDocument.GroupName, StringComparison.OrdinalIgnoreCase);
+
+                options.AddDocumentTransformer((document, context, ct) =>
                 {
-                    Title = "TaskFlow API",
-                    Version = "v1",
-                    Description = "Multi-tenant TaskFlow API"
-                };
-                return Task.CompletedTask;
+                    document.Info = new()
+                    {
+                        Title = ApiContract.Title,
+                        Version = apiDocument.DisplayName,
+                        Description = ApiContract.Description
+                    };
+                    return Task.CompletedTask;
+                });
             });
-        });
+        }
     }
 }

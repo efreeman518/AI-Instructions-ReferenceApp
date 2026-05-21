@@ -635,7 +635,13 @@ This keeps generated clients, gateway routing, UIs, auth policies, ProblemDetail
 
 The Azure Functions app keeps the Functions host default `/api` prefix. Its business HTTP triggers mirror the public versioned contract (`/api/v1/*`); its host health trigger remains `/api/health`.
 
-### 7.3 Request/Response Envelopes
+### 7.3 OpenAPI Documents
+
+OpenAPI is available when `OpenApiSettings:Enable=true`. The JSON document route is `GET /openapi/{documentName}.json`; the current baseline document is `GET /openapi/v1.json`.
+
+`ApiContract.SupportedDocuments` is the source of truth for registered OpenAPI documents. Each document is registered separately and filtered by the API Explorer group name, so simultaneous endpoint versions can coexist: a v1-only endpoint appears in `/openapi/v1.json`, a v2-only endpoint appears in `/openapi/v2.json` once `v2` is added, and shared endpoints can opt into both versions. Scalar is mapped by `MapScalarApiReference()` when OpenAPI is enabled.
+
+### 7.4 Request/Response Envelopes
 
 ```
 DefaultRequest<TDto>         → Wraps a DTO for create/update operations
@@ -645,7 +651,7 @@ PagedResponse<TDto>          → Items[] + TotalCount + pagination metadata
 Result<T>                    → Success | Failure(errors) | None (404)
 ```
 
-### 7.4 Middleware Pipeline (Order of Execution)
+### 7.5 Middleware Pipeline (Order of Execution)
 
 ```
 1. SecurityHeadersMiddleware       - Adds security response headers

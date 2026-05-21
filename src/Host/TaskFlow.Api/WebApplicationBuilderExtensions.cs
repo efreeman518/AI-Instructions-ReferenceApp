@@ -46,7 +46,7 @@ public static class WebApplicationBuilderExtensions
                 .AllowAnonymous();
             app.MapScalarApiReference(options =>
             {
-                options.WithTitle("TaskFlow API");
+                options.WithTitle(ApiContract.Title);
                 options.WithTheme(ScalarTheme.Moon);
             })
             .AllowAnonymous();
@@ -95,14 +95,17 @@ public static class WebApplicationBuilderExtensions
 
     private static void SetupApiEndpoints(WebApplication app)
     {
-        var apiVersion = new ApiVersion(1, 0);
-        var versionSet = app.NewApiVersionSet()
-            .HasApiVersion(apiVersion)
-            .ReportApiVersions()
-            .Build();
-        var api = app.MapGroup("/api/v{apiVersion:apiVersion}")
+        var versionSetBuilder = app.NewApiVersionSet()
+            .ReportApiVersions();
+
+        foreach (var apiDocument in ApiContract.SupportedDocuments)
+            versionSetBuilder.HasApiVersion(apiDocument.Version);
+
+        var versionSet = versionSetBuilder.Build();
+
+        var api = app.MapGroup(ApiContract.VersionedRoutePrefix)
             .WithApiVersionSet(versionSet)
-            .MapToApiVersion(apiVersion)
+            .MapToApiVersion(ApiContract.DefaultVersion)
             .RequireRateLimiting("PerTenant");
 
         var style = ApplicationStyleResolver.Resolve(app.Configuration[ApplicationStyleResolver.ConfigKey]);

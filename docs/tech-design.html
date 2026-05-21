@@ -1072,7 +1072,11 @@
 </table>
 <p>The Azure Functions app keeps the Functions host default <code>/api</code> prefix. Its business HTTP triggers mirror the public versioned contract (<code>/api/v1/*</code>); its host health trigger remains <code>/api/health</code>.</p>
 
-<h3>7.3 Request/Response Envelopes</h3>
+<h3>7.3 OpenAPI Documents</h3>
+<p>OpenAPI is available when <code>OpenApiSettings:Enable=true</code>. The JSON document route is <code>GET /openapi/{documentName}.json</code>; the current baseline document is <code>GET /openapi/v1.json</code>.</p>
+<p><code>ApiContract.SupportedDocuments</code> is the source of truth for registered OpenAPI documents. Each document is registered separately and filtered by the API Explorer group name, so simultaneous endpoint versions can coexist: a v1-only endpoint appears in <code>/openapi/v1.json</code>, a v2-only endpoint appears in <code>/openapi/v2.json</code> once <code>v2</code> is added, and shared endpoints can opt into both versions. Scalar is mapped by <code>MapScalarApiReference()</code> when OpenAPI is enabled.</p>
+
+<h3>7.4 Request/Response Envelopes</h3>
 <table>
   <tr><th>Type</th><th>Purpose</th></tr>
   <tr><td><code>DefaultRequest&lt;TDto&gt;</code></td><td>Wraps a DTO for create/update operations</td></tr>
@@ -1082,7 +1086,7 @@
   <tr><td><code>Result&lt;T&gt;</code></td><td>Success | Failure(errors) | None (404)</td></tr>
 </table>
 
-<h3>7.4 Middleware Pipeline (Order of Execution)</h3>
+<h3>7.5 Middleware Pipeline (Order of Execution)</h3>
 <table>
   <tr><th>#</th><th>Middleware</th><th>Purpose</th></tr>
   <tr><td>1</td><td>SecurityHeadersMiddleware</td><td>Adds security response headers</td></tr>
