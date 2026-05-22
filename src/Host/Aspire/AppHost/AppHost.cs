@@ -101,9 +101,15 @@ if (!isTesting)
     }
 
     // Gateway host
-    builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
+    var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
         .WithReference(api)
         .WaitFor(api);
+
+    builder.AddViteApp("taskflowreact", "../../../UI/TaskFlow.React")
+        .WithReference(gateway)
+        .WithEnvironment("VITE_API_BASE_URL", gateway.GetEndpoint("http"))
+        .WaitFor(gateway)
+        .WithExternalHttpEndpoints();
 }
 
 if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS") == "true")

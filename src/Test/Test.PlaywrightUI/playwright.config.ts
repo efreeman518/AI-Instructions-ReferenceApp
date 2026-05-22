@@ -30,5 +30,15 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
       },
     },
+    {
+      name: "react",
+      testDir: "./tests/react",
+      use: {
+        baseURL: process.env.TASKFLOW_REACT_BASE_URL ?? "http://localhost:5178",
+        screenshot: "only-on-failure",
+        trace: "on-first-retry",
+        ...devices["Desktop Chrome"],
+      },
+    },
   ],
 });

@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "uno": {
+      "type": "http",
+      "url": "https://mcp.platform.uno/v1",
+      "tools": [
+        "*"
+      ]
+    },
+    "uno-app": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "dnx",
+        "-y",
+        "uno.devserver",
+        "--mcp-app"
+      ],
+      "env": {},
+      "tools": [
+        "*"
+      ]
+    }
+  }
+}
