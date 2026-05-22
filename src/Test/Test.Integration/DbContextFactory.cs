@@ -1,4 +1,4 @@
-using EF.Test.Integration.EntityFramework;
+using EF.IntegrationTesting.EntityFramework;
 using TaskFlow.Infrastructure.Data;
 
 namespace Test.Integration;

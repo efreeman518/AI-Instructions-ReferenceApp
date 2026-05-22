@@ -1,11 +1,11 @@
 using EF.Data;
-using EF.Test.Integration.AspNetCore;
+using EF.IntegrationTesting.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Test.Support;
 
 /// <summary>
-/// TaskFlow-specific adapter over the reusable EF.Test.Integration WebApplicationFactory base.
+/// TaskFlow-specific adapter over the reusable EF.IntegrationTesting WebApplicationFactory base.
 /// Keeps test factories stable while moving shared EF host-replacement plumbing into the package project.
 /// </summary>
 public abstract class WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryContext>

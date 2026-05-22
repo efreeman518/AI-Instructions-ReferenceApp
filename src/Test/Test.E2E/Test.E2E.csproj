@@ -10,6 +10,7 @@
     <PackageReference Include="MSTest" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="EF.Common.Contracts" />
+    <PackageReference Include="EF.IntegrationTesting" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,7 +21,6 @@
     <ProjectReference Include="..\Test.Support\Test.Support.csproj" />
     <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\EF.Test.Integration\EF.Test.Integration.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
   </ItemGroup>
 

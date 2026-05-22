@@ -5,7 +5,7 @@ using Aspire.Hosting.Testing;
 using Azure;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
-using EF.Test.Integration.Aspire;
+using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;

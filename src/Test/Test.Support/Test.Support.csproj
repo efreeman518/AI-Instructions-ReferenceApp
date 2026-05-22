@@ -3,6 +3,7 @@
   <ItemGroup>
     <PackageReference Include="EF.Common.Contracts" />
     <PackageReference Include="EF.Domain" />
+    <PackageReference Include="EF.IntegrationTesting" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
   </ItemGroup>
 
@@ -11,7 +12,6 @@
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Shared\TaskFlow.Domain.Shared.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Contracts\TaskFlow.Application.Contracts.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\EF.Test.Integration\EF.Test.Integration.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
   </ItemGroup>

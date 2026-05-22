@@ -1,5 +1,5 @@
-using EF.Test.Integration.EntityFramework;
-using EF.Test.Integration.Testcontainers;
+using EF.IntegrationTesting.EntityFramework;
+using EF.IntegrationTesting.Testcontainers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using TaskFlow.Application.Contracts;

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="EF.Common.Contracts" />
+    <PackageReference Include="EF.CQRS" />
     <PackageReference Include="EF.Data.Contracts" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
@@ -17,7 +18,6 @@
     <ProjectReference Include="..\TaskFlow.Application.Contracts\TaskFlow.Application.Contracts.csproj" />
     <ProjectReference Include="..\TaskFlow.Application.Mappers\TaskFlow.Application.Mappers.csproj" />
     <ProjectReference Include="..\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\EF.CQRS\EF.CQRS.csproj" />
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Model\TaskFlow.Domain.Model.csproj" />
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Shared\TaskFlow.Domain.Shared.csproj" />
   </ItemGroup>

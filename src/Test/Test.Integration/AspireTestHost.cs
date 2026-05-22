@@ -1,11 +1,11 @@
 using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using AppHost;
-using EF.Test.Integration.Aspire;
+using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using EnvironmentVariableScope = EF.Test.Integration.Environment.EnvironmentVariableScope;
-using FunctionsCoreToolsDiscovery = EF.Test.Integration.Environment.FunctionsCoreToolsDiscovery;
+using EnvironmentVariableScope = EF.IntegrationTesting.Environment.EnvironmentVariableScope;
+using FunctionsCoreToolsDiscovery = EF.IntegrationTesting.Environment.FunctionsCoreToolsDiscovery;
 
 namespace Test.Integration;
 

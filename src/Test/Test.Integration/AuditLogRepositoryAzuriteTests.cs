@@ -1,7 +1,7 @@
 using Aspire.Hosting.Testing;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
-using EF.Test.Integration.Aspire;
+using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

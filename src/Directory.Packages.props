@@ -4,30 +4,31 @@
   </PropertyGroup>
   <ItemGroup Label="EF.Packages (Private Feed — github.com/efreeman518/EF.Packages)">
     <!-- Core packages — always available -->
-    <PackageVersion Include="EF.Domain" Version="1.0.63" />
-    <PackageVersion Include="EF.Domain.Contracts" Version="1.0.63" />
-    <PackageVersion Include="EF.Data" Version="1.0.63" />
-    <PackageVersion Include="EF.Data.Contracts" Version="1.0.63" />
-    <PackageVersion Include="EF.Common" Version="1.0.63" />
-    <PackageVersion Include="EF.Common.Contracts" Version="1.0.63" />
-    <PackageVersion Include="EF.Host" Version="1.0.63" />
-    <PackageVersion Include="EF.AspNetCore" Version="1.0.63" />
-    <PackageVersion Include="EF.BackgroundServices" Version="1.0.63" />
+    <PackageVersion Include="EF.CQRS" Version="1.0.66" />
+    <PackageVersion Include="EF.Domain" Version="1.0.66" />
+    <PackageVersion Include="EF.Domain.Contracts" Version="1.0.66" />
+    <PackageVersion Include="EF.Data" Version="1.0.66" />
+    <PackageVersion Include="EF.Data.Contracts" Version="1.0.66" />
+    <PackageVersion Include="EF.Common" Version="1.0.66" />
+    <PackageVersion Include="EF.Common.Contracts" Version="1.0.66" />
+    <PackageVersion Include="EF.Host" Version="1.0.66" />
+    <PackageVersion Include="EF.AspNetCore" Version="1.0.66" />
+    <PackageVersion Include="EF.BackgroundServices" Version="1.0.66" />
     <PackageVersion Include="EF.Cache" Version="1.0.58" />
     <PackageVersion Include="EF.Test.Unit" Version="1.0.58" />
-    <PackageVersion Include="EF.Test.Integration" Version="1.0.58" />
+    <PackageVersion Include="EF.IntegrationTesting" Version="1.0.66" />
     <!-- Extended packages — add to individual .csproj when needed -->
     <PackageVersion Include="EF.Auth" Version="1.0.58" />
-    <PackageVersion Include="EF.Messaging" Version="1.0.63" />
-    <PackageVersion Include="EF.Storage" Version="1.0.63" />
-    <PackageVersion Include="EF.Table" Version="1.0.63" />
+    <PackageVersion Include="EF.Messaging" Version="1.0.66" />
+    <PackageVersion Include="EF.Storage" Version="1.0.66" />
+    <PackageVersion Include="EF.Table" Version="1.0.66" />
     <PackageVersion Include="EF.CosmosDb" Version="1.0.58" />
     <PackageVersion Include="EF.KeyVault" Version="1.0.58" />
     <PackageVersion Include="EF.Grpc" Version="1.0.58" />
     <PackageVersion Include="EF.OpenAI" Version="1.0.58" />
     <PackageVersion Include="EF.AzureOpenAI" Version="1.0.58" />
     <PackageVersion Include="EF.MSGraph" Version="1.0.58" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="4.11.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.12.0" />
   </ItemGroup>
   <ItemGroup Label="EF.Packages.Enterprise (Private Feed)">
     <PackageVersion Include="EF.FilterBuilder" Version="1.0.104" />
@@ -46,11 +47,11 @@
     <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.104" />
   </ItemGroup>
   <ItemGroup Label="Microsoft Entity Framework Core">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" />
   </ItemGroup>
   <ItemGroup Label="Roslyn (pinned to resolve EF Core Design + FlowEngine.Scripting conflict)">
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.3.0" />
@@ -62,23 +63,23 @@
   <ItemGroup Label="Microsoft ASP.NET Core">
     <PackageVersion Include="Asp.Versioning.Http" Version="10.0.0" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="3.8.3" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.5.0" />
   </ItemGroup>
   <ItemGroup Label="Aspire">
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.0" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.3.0" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.3.5" />
     <PackageVersion Include="KubernetesClient" Version="19.0.2" />
   </ItemGroup>
   <ItemGroup Label="YARP">
@@ -112,7 +113,7 @@
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.6.0" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
   </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="MSTest" Version="4.2.2" />
@@ -134,18 +135,18 @@
   </ItemGroup>
   <ItemGroup Label="Azure Storage">
     <PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.28.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.14.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.5" />
   </ItemGroup>
   <ItemGroup Label="Azure Service Bus">
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.3.5" />
   </ItemGroup>
   <ItemGroup Label="Azure Cosmos DB">
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.59.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.3.5" />
   </ItemGroup>
   <ItemGroup Label="Data Protection">
     <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.2" />
@@ -156,8 +157,8 @@
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Search.Documents" Version="12.0.0" />
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.4.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.3.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.3.0" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.3.5" />
   </ItemGroup>
 </Project>
