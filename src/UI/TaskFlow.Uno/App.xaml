@@ -5,7 +5,9 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <MaterialToolkitTheme xmlns="using:Uno.Toolkit.UI.Material" />
+                <MaterialToolkitTheme xmlns="using:Uno.Toolkit.UI.Material"
+                                      ColorOverrideSource="ms-appx:///Styles/ColorPaletteOverride.xaml" />
+                <ResourceDictionary Source="ms-appx:///Converters/Converters.xaml" />
                 <ResourceDictionary Source="ms-appx:///Styles/AppStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

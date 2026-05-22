@@ -5,4 +5,9 @@
       <TASKFLOW_APPLICATION_STYLE>Service</TASKFLOW_APPLICATION_STYLE>
     </EnvironmentVariables>
   </RunConfiguration>
+  <TestRunParameters>
+    <Parameter name="TASKFLOW_MOBILE_TESTS_ENABLED" value="false" />
+    <Parameter name="TASKFLOW_MOBILE_PLATFORM" value="Android" />
+    <Parameter name="TASKFLOW_APPIUM_SERVER_URL" value="http://127.0.0.1:4723/" />
+  </TestRunParameters>
 </RunSettings>

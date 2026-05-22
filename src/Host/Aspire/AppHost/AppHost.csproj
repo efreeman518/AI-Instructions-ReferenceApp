@@ -27,8 +27,7 @@
     <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />
-    <!-- Uno.Sdk does not expose GetTargetPath; run Uno WASM separately -->
-    <!-- <ProjectReference Include="..\..\..\UI\TaskFlow.Uno\TaskFlow.Uno.csproj" /> -->
+    <ProjectReference Include="..\..\TaskFlow.Uno.WasmHost\TaskFlow.Uno.WasmHost.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,29 +1,19 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:utu="using:Uno.Toolkit.UI"
-    xmlns:conv="using:TaskFlow.Uno.Converters">
+    xmlns:utu="using:Uno.Toolkit.UI">
 
     <!-- ═══════════════════════════════════════════════════════
          Converters
          ═══════════════════════════════════════════════════════ -->
-    <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
-    <conv:BoolToActiveTextConverter x:Key="BoolToActiveText" />
-    <conv:NullableDateToShortDateConverter x:Key="NullableDateToShortDate" />
-
     <!-- ═══════════════════════════════════════════════════════
          Semantic accent brushes (use Material palette colors)
          ═══════════════════════════════════════════════════════ -->
-    <SolidColorBrush x:Key="AccentSuccessBrush" Color="#4CAF50" />
-    <SolidColorBrush x:Key="AccentWarningBrush" Color="#FF9800" />
-    <SolidColorBrush x:Key="AccentDangerBrush" Color="#F44336" />
-    <SolidColorBrush x:Key="AccentInfoBrush" Color="#2196F3" />
-    <SolidColorBrush x:Key="AccentSuccessLightBrush" Color="#C8E6C9" />
-    <SolidColorBrush x:Key="AccentWarningLightBrush" Color="#FFE0B2" />
-    <SolidColorBrush x:Key="AccentDangerLightBrush" Color="#FFCDD2" />
-    <SolidColorBrush x:Key="AccentInfoLightBrush" Color="#BBDEFB" />
-    <SolidColorBrush x:Key="AccentPrimaryBrush" Color="#6750A4" />
-    <SolidColorBrush x:Key="AccentPrimaryLightBrush" Color="#D0BCFF" />
+    <SolidColorBrush x:Key="AccentSuccessBrush" Color="{ThemeResource TaskFlowSuccessColor}" />
+    <SolidColorBrush x:Key="AccentWarningBrush" Color="{ThemeResource TaskFlowWarningColor}" />
+    <StaticResource x:Key="AccentDangerBrush" ResourceKey="ErrorBrush" />
+    <SolidColorBrush x:Key="AccentInfoBrush" Color="{ThemeResource TaskFlowInfoColor}" />
+    <StaticResource x:Key="AccentPrimaryBrush" ResourceKey="PrimaryBrush" />
 
     <!-- ═══════════════════════════════════════════════════════
          Spacing / Layout Constants

@@ -1,11 +1,7 @@
 <UserControl x:Class="TaskFlow.Uno.Views.Controls.NotificationHost"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
-             xmlns:conv="using:TaskFlow.Uno.Converters">
-    <UserControl.Resources>
-        <conv:SeverityToInfoBarSeverityConverter x:Key="SeverityToInfoBar" />
-    </UserControl.Resources>
+             xmlns:muxc="using:Microsoft.UI.Xaml.Controls">
 
     <ItemsControl ItemsSource="{x:Bind Items, Mode=OneWay}">
         <ItemsControl.ItemsPanel>

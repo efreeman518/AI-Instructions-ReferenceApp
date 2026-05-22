@@ -1,8 +1,14 @@
-<Project Sdk="Uno.Sdk/6.5.31">
+<Project Sdk="Uno.Sdk/6.5.36">
   <PropertyGroup>
     <!-- Clear singular TargetFramework inherited from Directory.Build.props -->
     <TargetFramework />
-    <TargetFrameworks>net10.0-browserwasm</TargetFrameworks>
+    <!-- Keep fast default Wasm restores for local web work. Before Android/iOS
+         package builds, restore once with BuildAllUnoTargets=true so platform
+         Skia runtime packages are present in the NuGet asset graph. -->
+    <TaskFlowUnoTargetFrameworks>net10.0-browserwasm;net10.0-android;net10.0-ios</TaskFlowUnoTargetFrameworks>
+    <TargetFrameworks Condition="'$(TargetFrameworkOverride)'!=''">$(TargetFrameworkOverride)</TargetFrameworks>
+    <TargetFrameworks Condition="'$(TargetFrameworkOverride)'=='' and '$(BuildAllUnoTargets)'=='true'">$(TaskFlowUnoTargetFrameworks)</TargetFrameworks>
+    <TargetFrameworks Condition="'$(TargetFrameworkOverride)'=='' and '$(BuildAllUnoTargets)'!='true'">net10.0-browserwasm</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
     <ApplicationTitle>TaskFlow</ApplicationTitle>
@@ -11,8 +17,8 @@
     <ApplicationVersion>1</ApplicationVersion>
     <IsAotCompatible>true</IsAotCompatible>
 
-    <!-- Suppress Uno Extensions trimming/AOT warnings (framework limitation, not app code) -->
-    <NoWarn>$(NoWarn);IL2026;IL3050</NoWarn>
+    <!-- Suppress Uno framework warnings that are not actionable in app code. -->
+    <NoWarn>$(NoWarn);IL2026;IL3050;XA4214</NoWarn>
 
     <UnoFeatures>
       Material;
@@ -25,6 +31,8 @@
       Serialization;
       Localization;
       Navigation;
+      Skia;
+      SkiaRenderer;
       ThemeService;
       Authentication;
     </UnoFeatures>
@@ -39,6 +47,13 @@
 
   <PropertyGroup Condition="'$(UseMocks)'=='true'">
     <DefineConstants>$(DefineConstants);USE_MOCKS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != '' AND $(TargetFramework.Contains('-android'))">
+    <!-- Appium/ADB sideloads only the APK, so Debug builds cannot rely on fast-deployed assemblies. -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <AndroidEnableAssemblyCompression>false</AndroidEnableAssemblyCompression>
+    <AndroidStoreUncompressedFileExtensions>.so;$(AndroidStoreUncompressedFileExtensions)</AndroidStoreUncompressedFileExtensions>
   </PropertyGroup>
 
   <ItemGroup>

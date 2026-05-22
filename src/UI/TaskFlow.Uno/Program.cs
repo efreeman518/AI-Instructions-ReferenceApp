@@ -1,12 +1,18 @@
+#if __WASM__
+using Uno.UI.Hosting;
+
 namespace TaskFlow.Uno;
 
 public class Program
 {
-    private static App? _app;
-
-    static int Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Microsoft.UI.Xaml.Application.Start(_ => _app = new App());
-        return 0;
+        var host = UnoPlatformHostBuilder.Create()
+            .App(() => new App())
+            .UseWebAssembly()
+            .Build();
+
+        await host.RunAsync();
     }
 }
+#endif

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TaskFlow.Uno.WasmHost</RootNamespace>
+    <UnoWasmProject>$(MSBuildProjectDirectory)\..\..\UI\TaskFlow.Uno\TaskFlow.Uno.csproj</UnoWasmProject>
+    <UnoWasmTargetFramework>net10.0-browserwasm</UnoWasmTargetFramework>
+  </PropertyGroup>
+
+  <Target Name="BuildTaskFlowUnoWasm"
+          BeforeTargets="Build"
+          Condition="'$(SkipUnoWasmBuild)'!='true' and ('$(SolutionDir)'=='' or '$(SolutionDir)'=='*Undefined*')">
+    <PropertyGroup>
+      <_UseMocksProperty Condition="'$(UseMocks)'!=''"> -p:UseMocks=$(UseMocks)</_UseMocksProperty>
+    </PropertyGroup>
+    <Exec Command="dotnet build &quot;$(UnoWasmProject)&quot; -p:TargetFrameworkOverride=$(UnoWasmTargetFramework) -p:Configuration=$(Configuration)$(_UseMocksProperty) -m:1" />
+  </Target>
+
+</Project>

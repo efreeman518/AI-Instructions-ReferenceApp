@@ -23,6 +23,7 @@
     <Project Path="Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj" />
     <Project Path="Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj" />
     <Project Path="Host/TaskFlow.Functions/TaskFlow.Functions.csproj" />
+    <Project Path="Host/TaskFlow.Uno.WasmHost/TaskFlow.Uno.WasmHost.csproj" />
   </Folder>
   <Folder Name="/Host/Aspire/">
     <Project Path="Host/Aspire/AppHost/AppHost.csproj" />
@@ -43,5 +44,6 @@
     <Project Path="Test/Test.Load/Test.Load.csproj" />
     <Project Path="Test/Test.Benchmarks/Test.Benchmarks.csproj" />
     <Project Path="Test/Test.E2E/Test.E2E.csproj" />
+    <Project Path="Test/Test.Mobile/Test.Mobile.csproj" />
   </Folder>
 </Solution>

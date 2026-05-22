@@ -23,6 +23,21 @@ Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bi
 
 **Detailed docs:** [tech-design.md](docs/tech-design.md) · [DESIGN-DECISIONS.md](.scaffold/DESIGN-DECISIONS.md) · [UBIQUITOUS-LANGUAGE.md](.scaffold/UBIQUITOUS-LANGUAGE.md)
 
+## Local Mobile UI Tests
+
+TaskFlow mobile smoke tests use MSTest + Appium for the Uno Android/iOS heads. Android runs locally on Windows; iOS requires macOS or a Mac host with Xcode.
+
+Before building the Android package, restore the Uno app with all mobile targets included:
+
+```powershell
+rtk dotnet restore src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:BuildAllUnoTargets=true
+rtk dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:TargetFrameworkOverride=net10.0-android -p:UseMocks=true --no-restore -m:1
+```
+
+The explicit `BuildAllUnoTargets=true` restore is required because the Uno project defaults to a fast Wasm-only restore for local web work. Android/Appium runs need the platform Skia runtime packages in the NuGet asset graph.
+
+Full Appium setup and run commands live in [src/Test/Test.Mobile/README.md](src/Test/Test.Mobile/README.md).
+
 ## Phase 1 Alignment Artifacts
 
 - `.scaffold/domain-specification.yaml`

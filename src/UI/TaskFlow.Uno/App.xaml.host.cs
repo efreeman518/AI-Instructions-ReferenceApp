@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -31,8 +32,7 @@ public partial class App : Application
                 )
                 .UseHttp((context, services) =>
                 {
-                    var gatewayUrl = context.Configuration["GatewayBaseUrl"]
-                        ?? throw new InvalidOperationException("GatewayBaseUrl not configured.");
+                    var gatewayUrl = ResolveGatewayUrl(context.Configuration);
                     services.AddSingleton<MockHttpMessageHandler>();
                     services.AddTransient<BusyDelegatingHandler>();
                     services.AddTransient<ProblemDetailsDelegatingHandler>();
@@ -68,7 +68,7 @@ public partial class App : Application
                 .ConfigureServices((context, services) =>
                 {
                     // Captured here because this callback runs on the UI thread
-                    // during OnLaunched → host build; resolving it lazily from
+                    // during OnLaunched -> host build; resolving it lazily from
                     // DI could surface a background thread.
                     var uiDispatcher = new DispatcherQueueUiDispatcher(DispatcherQueue.GetForCurrentThread());
 
@@ -94,6 +94,26 @@ public partial class App : Application
                     ReactiveViewModelMappings.ViewModelMappings,
                     RegisterRoutes,
                     configure: navConfig => navConfig with { AddressBarUpdateEnabled = false }));
+    }
+
+    private static string ResolveGatewayUrl(IConfiguration configuration)
+    {
+#if __ANDROID__
+        const string platformGatewayKey = "AndroidGatewayBaseUrl";
+#elif __IOS__ && !__MACCATALYST__
+        const string platformGatewayKey = "IosGatewayBaseUrl";
+#else
+        const string platformGatewayKey = "GatewayBaseUrl";
+#endif
+        var gatewayUrl = configuration[platformGatewayKey]
+            ?? configuration["GatewayBaseUrl"];
+
+        if (string.IsNullOrWhiteSpace(gatewayUrl))
+        {
+            throw new InvalidOperationException($"{platformGatewayKey} or GatewayBaseUrl must be configured.");
+        }
+
+        return gatewayUrl;
     }
 
     private async ValueTask<IDictionary<string, string>?> ProcessCredentials(

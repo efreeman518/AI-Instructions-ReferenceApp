@@ -110,6 +110,11 @@ if (!isTesting)
         .WithEnvironment("VITE_API_BASE_URL", gateway.GetEndpoint("http"))
         .WaitFor(gateway)
         .WithExternalHttpEndpoints();
+
+    builder.AddProject<Projects.TaskFlow_Uno_WasmHost>("taskflowuno")
+        .WithReference(gateway)
+        .WaitFor(gateway)
+        .WithExternalHttpEndpoints();
 }
 
 if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS") == "true")
@@ -131,12 +136,6 @@ if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS
         functions.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
     }
 }
-
-// Uno UI (WASM) — calls Gateway, not API directly
-// Uno.Sdk does not expose GetTargetPath; run Uno WASM separately
-// builder.AddProject<Projects.TaskFlow_Uno>("taskflowuno")
-//     .WithReference(gateway)
-//     .WaitFor(gateway);
 
 await builder.Build().RunAsync();
 
