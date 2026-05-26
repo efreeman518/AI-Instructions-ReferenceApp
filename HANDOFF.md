@@ -1,13 +1,13 @@
-# HANDOFF — TaskFlow Reference App
+# HANDOFF - TaskFlow Reference App
 
-> **Status: complete.** Phases 1–5e + post-phase hardening sessions are all done. This file is retained as the scaffold-flow resume contract; it is no longer the source of truth for build/test/vulnerability state.
+> **Status: complete.** Phases 1-5e + post-phase hardening sessions are all done. This file is retained as the scaffold-flow resume contract; it is no longer the source of truth for build/test/vulnerability state.
 >
-> - Current verified counts, warnings, and vulnerability table → [REFERENCE-STATUS.md](.scaffold/REFERENCE-STATUS.md).
-> - Per-phase narrative and outputs → `git log` (e.g. `git log --oneline -- HANDOFF.md`); the pre-collapse version is preserved in commit history.
+> - Current verified counts, warnings, and vulnerability table -> [REFERENCE-STATUS.md](.scaffold/REFERENCE-STATUS.md).
+> - Per-phase narrative and outputs -> `git log` (e.g. `git log --oneline -- HANDOFF.md`); the pre-collapse version is preserved in commit history.
 
 ## Session Summary
 
-Phases 1–5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC) + FlowEngine workflow orchestration integration. Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client → Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules, plus **EF.FlowEngine 1.0.104** (separate `flowengine` schema in same SQL DB, three shipped workflows under `TaskFlow.Api/Workflows/`, Blazor-hosted Dashboard + Designer, admin API at `/api/flowengine/*`, agent nodes wired to existing Azure OpenAI client, `IWorkflowTrigger` for domain-event invocation).
+Phases 1-5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC) + FlowEngine workflow orchestration integration. Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client -> Gateway, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, deployment-only with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules, plus **EF.FlowEngine 1.0.104** (separate `flowengine` schema in same SQL DB, three shipped workflows under `TaskFlow.Api/Workflows/`, Blazor-hosted Dashboard + Designer, admin API at `/api/flowengine/*`, agent nodes wired to existing Azure OpenAI client, `IWorkflowTrigger` for domain-event invocation).
 
 ## Current State
 
@@ -31,7 +31,7 @@ testStatus:
   unitTests: green
   endpointTests: green
   infrastructureTests: green     # Integration + E2E via Testcontainers
-  flowEngineTests: green         # Test.Integration.FlowEngine — 13 workflow-validity cases
+  flowEngineTests: green         # Test.Integration.FlowEngine - 13 workflow-validity cases
 hostGates:
   scheduler: validated
   functionApp: validated
@@ -49,19 +49,19 @@ hostGates:
 | `.scaffold/DESIGN-DECISIONS.md` | 1 | Decision dependency graph |
 | `.scaffold/resource-implementation.yaml` | 2 | Resource definition (validated) |
 | `.scaffold/implementation-plan.md` | 3 | Vertical slice order |
-| `.scaffold/INSTRUCTION-GAPS.md` | — | Recorded gaps for the maintenance repo |
-| `.scaffold/REFERENCE-STATUS.md` | — | Current verified build/test/vuln snapshot |
+| `.scaffold/INSTRUCTION-GAPS.md` | - | Recorded gaps for the maintenance repo |
+| `.scaffold/REFERENCE-STATUS.md` | - | Current verified build/test/vuln snapshot |
 | `dotnet-tools.json` | 3 | dotnet-ef pinned (project root) |
 | `src/TaskFlow.slnx` | 4+ | 32-project clean-architecture solution |
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
-| `HANDOFF.md` | — | This file. Stays at project root as the session resume contract. |
-| `src/Host/TaskFlow.Api/Workflows/*.json` | 5e+ | Three FlowEngine workflow definitions (`ai-task-triage`, `ai-task-decomposer`, `compliance-check`) — seeded at startup, validated on every build via Test.Integration.FlowEngine. |
+| `HANDOFF.md` | - | This file. Stays at project root as the session resume contract. |
+| `src/Host/TaskFlow.Api/Workflows/*.json` | 5e+ | Three FlowEngine workflow definitions (`ai-task-triage`, `ai-task-decomposer`, `compliance-check`) - seeded at startup, validated on every build via Test.Integration.FlowEngine. |
 | `src/Infrastructure/TaskFlow.Infrastructure.Data/Migrations/FlowEngine/` | 5e+ | FlowEngine schema migration (`flowengine` schema, separate migration history). |
 
 ## Outstanding Follow-Ups
 
-Tracked in [REFERENCE-STATUS.md § Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
+Tracked in [REFERENCE-STATUS.md Section  Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
 
 ## Resume Protocol
 

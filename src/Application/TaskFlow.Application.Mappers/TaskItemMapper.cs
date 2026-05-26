@@ -16,7 +16,7 @@ public static class TaskItemMapper
     // verifies the compiled result still agrees with each child mapper's ToDto.
     //
     // Owned-type flattening (DateRange / RecurrencePattern -> scalar columns) must stay
-    // EF-translatable AND evaluate correctly in-memory — keep these to property access and
+    // EF-translatable AND evaluate correctly in-memory - keep these to property access and
     // null-conditional checks only.
     public static readonly Expression<Func<TaskItem, TaskItemDto>> Projection =
         entity => new TaskItemDto
@@ -99,7 +99,7 @@ public static class TaskItemMapper
     }
 
     // Minimal query-only shape for list/search endpoints. Intentionally has no ToDto counterpart
-    // — search results should never include children. Kept separate from Projection because
+    // - search results should never include children. Kept separate from Projection because
     // the two have different purposes (lean grid rows vs. full hydrated record).
     public static readonly Expression<Func<TaskItem, TaskItemDto>> ProjectorSearch =
         entity => new TaskItemDto

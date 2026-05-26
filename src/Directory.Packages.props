@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup Label="EF.Packages (Private Feed — github.com/efreeman518/EF.Packages)">
-    <!-- Core packages — always available -->
+  <ItemGroup Label="EF.Packages (Private Feed - github.com/efreeman518/EF.Packages)">
+    <!-- Core packages - always available -->
     <PackageVersion Include="EF.CQRS" Version="1.0.66" />
     <PackageVersion Include="EF.Domain" Version="1.0.66" />
     <PackageVersion Include="EF.Domain.Contracts" Version="1.0.66" />
@@ -17,7 +17,7 @@
     <PackageVersion Include="EF.Cache" Version="1.0.58" />
     <PackageVersion Include="EF.Test.Unit" Version="1.0.58" />
     <PackageVersion Include="EF.IntegrationTesting" Version="1.0.66" />
-    <!-- Extended packages — add to individual .csproj when needed -->
+    <!-- Extended packages - add to individual .csproj when needed -->
     <PackageVersion Include="EF.Auth" Version="1.0.58" />
     <PackageVersion Include="EF.Messaging" Version="1.0.66" />
     <PackageVersion Include="EF.Storage" Version="1.0.66" />

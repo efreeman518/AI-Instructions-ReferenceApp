@@ -7,7 +7,7 @@ using Test.Support.Builders;
 namespace Test.Unit.Mappers;
 
 /// <summary>
-/// Validates <c>ChecklistItemMapper</c> entity ↔ DTO mapping including the parent <c>TaskItemId</c>
+/// Validates <c>ChecklistItemMapper</c> entity <-> DTO mapping including the parent <c>TaskItemId</c>
 /// linkage and failure surfacing for invalid DTO input.
 /// Pure-unit tier: static mapping extensions only.
 /// </summary>

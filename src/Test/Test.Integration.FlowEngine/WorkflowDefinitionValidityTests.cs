@@ -10,7 +10,7 @@ namespace Test.Integration.FlowEngine;
 // and round-trips through an in-memory IWorkflowRegistry (which re-runs the validator on SaveAsync).
 //
 // These tests catch most authoring mistakes that would otherwise only surface at first-instance-start
-// in dev — unknown node types, dangling edge.nextNodeId references, missing entryNodeId, malformed
+// in dev - unknown node types, dangling edge.nextNodeId references, missing entryNodeId, malformed
 // outputSchema / paramsSchema JSON.
 [TestClass]
 public class WorkflowDefinitionValidityTests
@@ -26,7 +26,7 @@ public class WorkflowDefinitionValidityTests
         ["compliance-check.json",    ComplianceId,  "1.0.0"],
     ];
 
-    // Canonical options for FlowEngine workflow JSON — camelCase, string-named enums with
+    // Canonical options for FlowEngine workflow JSON - camelCase, string-named enums with
     // integer fallback. Both the seeding service and WorkflowDefinitionBuilder.FromJson use
     // this same instance; reusing it here keeps the test serializer in lock-step with runtime.
     private static readonly JsonSerializerOptions JsonOpts = WorkflowDefinitionJsonOptions.Default;
@@ -83,7 +83,7 @@ public class WorkflowDefinitionValidityTests
         await registry.SaveAsync(def);
 
         // Our JSON ships with status=Active, so the explicit transition is a no-op; mirror
-        // the seeding service's idempotent pattern (swallow Active→Active) so the test is
+        // the seeding service's idempotent pattern (swallow Active->Active) so the test is
         // robust if we ever flip the JSON to ship as Draft.
         try
         {

@@ -103,7 +103,7 @@ public class RecurringTaskGenerationHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<TaskItemDto> { Data = tasks, Total = 2 });
 
-        // Empty and null both filtered out — handler considers neither as recurring
+        // Empty and null both filtered out - handler considers neither as recurring
         await _handler.HandleAsync(CancellationToken.None);
 
         _serviceMock.Verify(s => s.SearchAsync(

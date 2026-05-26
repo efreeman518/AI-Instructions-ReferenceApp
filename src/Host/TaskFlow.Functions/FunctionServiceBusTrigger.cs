@@ -5,10 +5,18 @@ using TaskFlow.Application.Contracts.Services;
 
 namespace TaskFlow.Functions;
 
+/// <summary>
+/// Service Bus projection trigger. It consumes application integration events from the
+/// DomainEvents topic and updates read models through application services.
+/// </summary>
 public class FunctionServiceBusTrigger(
     ILogger<FunctionServiceBusTrigger> logger,
     ITaskViewProjectionService projectionService)
 {
+    /// <summary>
+    /// Dispatches task-related events by message Subject. Unknown event types are logged because
+    /// the topic can contain future integration events that this Function version does not handle.
+    /// </summary>
     [Function(nameof(ProcessTaskEvent))]
     public async Task ProcessTaskEvent(
         [ServiceBusTrigger("%DomainEventsTopic%", "%DomainEventsSubscription%",

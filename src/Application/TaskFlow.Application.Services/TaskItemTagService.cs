@@ -11,7 +11,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
-#pragma warning disable CS9113 // Parameter 'cache' is unread — reserved for future caching
+#pragma warning disable CS9113 // Parameter 'cache' is unread - reserved for future caching
 internal class TaskItemTagService(
     ILogger<TaskItemTagService> logger,
     IRequestContext<string, Guid?> requestContext,

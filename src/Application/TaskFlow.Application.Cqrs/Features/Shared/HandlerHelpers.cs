@@ -5,6 +5,10 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Shared;
 
+/// <summary>
+/// Small CQRS helpers that mirror service-layer response envelopes, cache keys, and tenant
+/// search filtering so both application styles keep the same observable API behavior.
+/// </summary>
 internal static class HandlerHelpers
 {
     public static DefaultResponse<TDto> BuildResponse<TDto>(TDto? dto) =>

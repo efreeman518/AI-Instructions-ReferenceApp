@@ -12,9 +12,9 @@ namespace Test.Integration;
 
 /// <summary>
 /// End-to-end audit pipeline test for the Functions host: POST /api/v1/categories on the
-/// <c>taskflowfunctions</c> resource → Function request handling → audit middleware → Azurite Table
+/// <c>taskflowfunctions</c> resource -> Function request handling -> audit middleware -> Azurite Table
 /// Storage row, with a polling read-back.
-/// Aspire tier (Aspire.Hosting.Testing) — required because the Functions host has the longest cold-start
+/// Aspire tier (Aspire.Hosting.Testing) - required because the Functions host has the longest cold-start
 /// of any resource and the test depends on both <c>taskflowfunctions</c> and <c>TableStorage1</c>. Skips
 /// inconclusive when Azure Functions Core Tools (<c>func</c>) is not installed.
 /// </summary>
@@ -36,7 +36,7 @@ public class FunctionAuditPipelineTests
 
         var ct = CancellationToken.None;
 
-        // Functions host has the longest cold-start of any resource — wait for health before issuing requests.
+        // Functions host has the longest cold-start of any resource - wait for health before issuing requests.
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowfunctions", ct);
         await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
 

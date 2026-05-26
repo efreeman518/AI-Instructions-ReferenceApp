@@ -10,8 +10,16 @@ using TaskFlow.Api.Middleware;
 
 namespace TaskFlow.Api;
 
+/// <summary>
+/// API-only service registration. The Bootstrapper owns business and infrastructure services;
+/// this type owns HTTP concerns such as JSON, CORS, auth, ProblemDetails, rate limiting, and OpenAPI.
+/// </summary>
 public static class RegisterApiServices
 {
+    /// <summary>
+    /// Adds HTTP-facing dependencies without building the app. Startup logging is passed in so
+    /// auth and config failures can be reported before the runtime logger factory exists.
+    /// </summary>
     public static IServiceCollection AddApiServices(
         this IServiceCollection services, IConfiguration config, ILogger startupLogger)
     {

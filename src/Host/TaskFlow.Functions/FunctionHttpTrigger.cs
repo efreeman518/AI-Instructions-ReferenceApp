@@ -26,7 +26,7 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
         // Read-only proxy: forwards to the task service for lightweight queries
         // Future: wire to ITaskItemService.SearchAsync for direct read access
         var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-        await response.WriteAsJsonAsync(new { message = "TaskApiProxy placeholder — wire to ITaskItemService" }, ct);
+        await response.WriteAsJsonAsync(new { message = "TaskApiProxy placeholder - wire to ITaskItemService" }, ct);
         return response;
     }
 }

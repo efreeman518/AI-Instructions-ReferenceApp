@@ -81,7 +81,7 @@ public class StaleTaskCleanupHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<TaskItemDto> { Data = recentCancelled, Total = 2 });
 
-        // Handler filters to DueDate < 90 days ago — these are recent, so staleTasks count = 0
+        // Handler filters to DueDate < 90 days ago - these are recent, so staleTasks count = 0
         await _handler.HandleAsync(CancellationToken.None);
 
         _serviceMock.Verify(s => s.SearchAsync(
@@ -103,7 +103,7 @@ public class StaleTaskCleanupHandlerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<TaskItemDto> { Data = noDueDate, Total = 1 });
 
-        // Null DueDate → not stale (DueDate.HasValue is false)
+        // Null DueDate -> not stale (DueDate.HasValue is false)
         await _handler.HandleAsync(CancellationToken.None);
 
         _serviceMock.Verify(s => s.SearchAsync(

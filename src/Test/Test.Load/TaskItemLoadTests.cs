@@ -19,7 +19,7 @@ public class TaskItemLoadTests
     private const string BaseUrl = "http://localhost:5000";
 
     [TestMethod]
-    [Ignore("Run manually — requires API host running")]
+    [Ignore("Run manually - requires API host running")]
     public void Given_TaskItemSearchEndpoint_When_LoadApplied_Then_MeetsPerformanceBaseline()
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
@@ -50,7 +50,7 @@ public class TaskItemLoadTests
     }
 
     [TestMethod]
-    [Ignore("Run manually — requires API host running")]
+    [Ignore("Run manually - requires API host running")]
     public void Given_TaskItemCrudEndpoints_When_LoadApplied_Then_MeetsThroughputBaseline()
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };

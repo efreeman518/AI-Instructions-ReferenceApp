@@ -7,7 +7,7 @@ namespace Test.Unit.Uno;
 /// <summary>
 /// Validates the <c>MockHttpMessageHandler</c> used by the Uno design-mode client: routes return the
 /// expected mock payloads (TaskItems, Categories, Tags), DELETE returns 204, and unknown routes return 404.
-/// Pure-unit tier: the handler is run inside an <c>HttpClient</c> with no real network — verifies the
+/// Pure-unit tier: the handler is run inside an <c>HttpClient</c> with no real network - verifies the
 /// mock surface alone, not API behavior (which Test.Endpoints and Test.E2E cover).
 /// </summary>
 [TestClass]
@@ -71,7 +71,7 @@ public class MockHttpMessageHandlerTests
 
         Assert.IsNotNull(result);
         Assert.IsNotEmpty(result.Items!);
-        // Mock SearchTags orders alphabetically — "backend" sorts before "frontend".
+        // Mock SearchTags orders alphabetically - "backend" sorts before "frontend".
         Assert.AreEqual("backend", result.Items![0].Name);
     }
 

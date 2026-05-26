@@ -9,7 +9,7 @@ namespace Test.Unit.Uno;
 /// <summary>
 /// Validates <c>CommentApiService</c> against <c>MockHttpMessageHandler</c>: CRUD methods map Kiota
 /// payloads to the Uno <c>CommentModel</c>.
-/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler — no real server.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler - no real server.
 /// </summary>
 [TestClass]
 [TestCategory("Unit")]

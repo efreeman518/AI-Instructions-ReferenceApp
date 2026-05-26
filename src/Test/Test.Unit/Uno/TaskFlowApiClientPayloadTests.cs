@@ -10,7 +10,7 @@ namespace Test.Unit.Uno;
 /// (Comments, ChecklistItems) always emit a non-null <c>taskItemId</c> on POST and reuse the route id on
 /// PUT, even when the caller leaves them empty.
 /// Pure-unit tier: a capturing <see cref="System.Net.Http.HttpMessageHandler"/> records the JSON body
-/// without ever opening a socket — payload-shape regression coverage for client serialization rules.
+/// without ever opening a socket - payload-shape regression coverage for client serialization rules.
 /// </summary>
 [TestClass]
 [TestCategory("Unit")]

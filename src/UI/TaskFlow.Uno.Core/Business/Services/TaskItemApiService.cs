@@ -156,7 +156,7 @@ public class TaskItemApiService(
         RecurrenceFrequency = model.RecurrenceFrequency,
         RecurrenceEndDate = model.RecurrenceEndDate,
         // Children sent in the same payload so create/update is a single
-        // atomic server call — avoids the split "create task + update child"
+        // atomic server call - avoids the split "create task + update child"
         // flow where the child update could lose fields (e.g. IsCompleted).
         ChecklistItems = model.ChecklistItems?.Select(c => new ChecklistItemDto
         {

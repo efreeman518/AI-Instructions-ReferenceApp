@@ -15,6 +15,11 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>
+/// Service-style TaskItem application boundary. It enforces tenant scope, delegates rules to the
+/// aggregate, persists through transaction repositories, and publishes integration events after
+/// successful saves without rolling back the saved entity if publishing fails.
+/// </summary>
 internal class TaskItemService(
     ILogger<TaskItemService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -71,6 +76,10 @@ internal class TaskItemService(
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>
+    /// Creates the aggregate under the caller tenant, saves it first, then publishes the created event.
+    /// Event publishing is best-effort because the database save is the source of truth.
+    /// </summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> CreateAsync(
         DefaultRequest<TaskItemDto> request, CancellationToken ct = default)
     {
@@ -118,6 +127,10 @@ internal class TaskItemService(
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
 
+    /// <summary>
+    /// Updates the aggregate and child collections from one DTO payload. Status transitions run
+    /// through the aggregate before the updater syncs children so invalid transitions fail before save.
+    /// </summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> UpdateAsync(
         DefaultRequest<TaskItemDto> request, CancellationToken ct = default)
     {
@@ -171,7 +184,7 @@ internal class TaskItemService(
             entity.UpdateRecurrencePattern(null);
         }
 
-        // Sync child collections via Updater — removed items must be hard-deleted,
+        // Sync child collections via Updater - removed items must be hard-deleted,
         // not just unlinked, so the UI's single-payload save can retire checklist
         // items / comments that were removed client-side.
         var syncResult = repoTrxn.UpdateFromDto(entity, dto, RelatedDeleteBehavior.RelationshipAndEntity);

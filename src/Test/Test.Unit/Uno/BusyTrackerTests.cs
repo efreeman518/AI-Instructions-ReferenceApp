@@ -5,7 +5,7 @@ namespace Test.Unit.Uno;
 
 /// <summary>
 /// Validates <c>BusyTracker</c> ref-counting semantics: nested begins, double-dispose idempotence,
-/// PropertyChanged firing only on the 0↔non-zero edge, and concurrent increment/decrement under
+/// PropertyChanged firing only on the 0<->non-zero edge, and concurrent increment/decrement under
 /// <c>Parallel.ForEach</c>.
 /// Pure-unit tier: pure in-memory primitive; no infra.
 /// </summary>

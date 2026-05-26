@@ -4,6 +4,10 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Blazor.Services;
 
+/// <summary>
+/// Refit client for the gateway-hosted TaskFlow API. It intentionally uses shared application
+/// DTOs so Blazor exercises the same wire contract as endpoint tests and the other UI hosts.
+/// </summary>
 public interface ITaskFlowApiClient
 {
     // ---- TaskItems ----

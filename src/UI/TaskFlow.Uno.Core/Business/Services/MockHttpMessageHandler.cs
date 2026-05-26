@@ -6,7 +6,7 @@ using TaskFlow.Uno.Core.Client;
 namespace TaskFlow.Uno.Core.Business.Services;
 
 /// <summary>
-/// Stateful mock handler — CRUD operations modify in-memory collections.
+/// Stateful mock handler - CRUD operations modify in-memory collections.
 /// Thread-safe via lock; data persists for the app session lifetime.
 /// </summary>
 public class MockHttpMessageHandler : HttpMessageHandler

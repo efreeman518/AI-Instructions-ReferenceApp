@@ -41,7 +41,7 @@ public partial record TaskListModel
 
     public IImmutableList<int> PageSizeOptions { get; } = [10, 20, 50];
 
-    // ── List + page-metadata state (individually bindable) ──
+    // -- List + page-metadata state (individually bindable) --
     public IListState<TaskItemModel> Items => ListState<TaskItemModel>.Empty(this);
     public IState<int> PageNumber => State<int>.Value(this, () => 1);
     public IState<int> TotalCount => State<int>.Value(this, () => 0);
@@ -55,7 +55,7 @@ public partial record TaskListModel
     public IState<bool> IsEmpty => State<bool>.Value(this, () => true);
     public IListState<int> VisiblePageNumbers => ListState<int>.Empty(this);
 
-    // ── User-input state ──
+    // -- User-input state --
     public IState<int> CurrentPage => State<int>.Value(this, () => 1);
     public IState<int> SelectedPageSize => State<int>.Value(this, () => DefaultPageSize);
     public IState<int> PageSize => State<int>.Value(this, () => DefaultPageSize);

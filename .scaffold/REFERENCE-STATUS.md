@@ -1,4 +1,4 @@
-# REFERENCE-STATUS — TaskFlow
+# REFERENCE-STATUS - TaskFlow
 
 Current verified status of the TaskFlow reference application. Used by the proof map ([../AI-Instructions-Scaffold/support/taskflow-proof-map.md](../AI-Instructions-Scaffold/support/taskflow-proof-map.md)) and consumers who need an authoritative snapshot of build/test/vulnerability state.
 
@@ -13,7 +13,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 | Target framework | .NET 10 |
 | Projects | 33 (Test.Integration.FlowEngine added with the FlowEngine integration) |
 | Errors | 0 |
-| Warnings | 28 (all NU1902/NU1903 — vulnerable transitive packages; tracked under Vulnerability Status) |
+| Warnings | 28 (all NU1902/NU1903 - vulnerable transitive packages; tracked under Vulnerability Status) |
 
 > Note: `src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj` builds separately because Uno.Sdk requires explicit invocation: `dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj`.
 
@@ -27,9 +27,9 @@ Current verified status of the TaskFlow reference application. Used by the proof
 | Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains (~40s) |
 | Test.Integration | `TestCategory=Integration` | 14 | service-level vs real SQL via Testcontainers (~170s) |
 | Test.Integration.FlowEngine | `TestCategory=Integration` | 13 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; sub-second |
-| Test.PlaywrightUI | n/a (Node.js) | — | hosted-stack required (see below) |
-| Test.Load | `TestCategory=Load` | — | NBomber; `[Ignore]` by default; manual run |
-| Test.Benchmarks | n/a | — | BenchmarkDotNet console runner; `dotnet run -c Release` |
+| Test.PlaywrightUI | n/a (Node.js) | - | hosted-stack required (see below) |
+| Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
+| Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
 **Total automated:** 327 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine.
 
@@ -39,7 +39,7 @@ Node.js Playwright suite. Run `npm install` inside the folder before first use. 
 
 ## Vulnerability Status
 
-Run `dotnet list package --vulnerable --include-transitive` and capture findings here. Severity policy from [../AI-Instructions-Scaffold/support/execution-gates.md](../AI-Instructions-Scaffold/support/execution-gates.md) § Vulnerability Audit:
+Run `dotnet list package --vulnerable --include-transitive` and capture findings here. Severity policy from [../AI-Instructions-Scaffold/support/execution-gates.md](../AI-Instructions-Scaffold/support/execution-gates.md) Section  Vulnerability Audit:
 
 - **High/Critical:** must be fixed or recorded with owner + target resolution date
 - **Moderate:** logged here, tracked but not blocking
@@ -60,23 +60,23 @@ Per the consolidated 5-sub-phase taxonomy:
 
 | Phase | Status |
 |---|---|
-| 1 — Domain Discovery | complete |
-| 2 — Resource Definition | complete |
-| 3 — Implementation Plan | complete |
-| 4 — Contract Scaffolding | complete |
-| 5a — Foundation (TDD) | complete |
-| 5b — App Core + Runtime/Edge | complete |
-| 5c — Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI, Blazor) |
-| 5d — Quality + Delivery | complete (architecture/load/benchmark tests, Dockerfiles, CI/CD, IaC Bicep) |
-| 5e — Integration (Auth + AI) | complete (scaffold mode; live Entra/Foundry deployment-only) |
-| 5e+ — Workflow Orchestration | complete (EF.FlowEngine 1.0.104, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes require `TaskFlowAiSettings:FoundryEndpoint` — deployment-only) |
+| 1 - Domain Discovery | complete |
+| 2 - Resource Definition | complete |
+| 3 - Implementation Plan | complete |
+| 4 - Contract Scaffolding | complete |
+| 5a - Foundation (TDD) | complete |
+| 5b - App Core + Runtime/Edge | complete |
+| 5c - Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI, Blazor) |
+| 5d - Quality + Delivery | complete (architecture/load/benchmark tests, Dockerfiles, CI/CD, IaC Bicep) |
+| 5e - Integration (Auth + AI) | complete (scaffold mode; live Entra/Foundry deployment-only) |
+| 5e+ - Workflow Orchestration | complete (EF.FlowEngine 1.0.104, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes require `TaskFlowAiSettings:FoundryEndpoint` - deployment-only) |
 
 ## Infrastructure as Code (IaC)
 
 `infra/` contains the Bicep deployment baseline:
 
-- `main.bicep` — top-level entry
-- `modules/` — SQL, Cosmos DB, Service Bus, Storage, Key Vault, App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, Cosmos RBAC
+- `main.bicep` - top-level entry
+- `modules/` - SQL, Cosmos DB, Service Bus, Storage, Key Vault, App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, Cosmos RBAC
 
 Deployment plan: [.azure/deployment-plan.md](.azure/deployment-plan.md).
 
@@ -86,8 +86,8 @@ Validate locally: `az bicep build --file infra/main.bicep`.
 
 `Test.Endpoints` and `Test.E2E` derive from a shared `WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryContext>` in `Test.Support` (see `src/Test/Test.Support/WebApplicationFactoryBase.cs`). The base handles the standard EF.Packages plumbing swap (interceptor removal, pooled-factory removal, scoped-factory removal, reflection-based `DbContext` creation). Derived classes only specify the test-mode store:
 
-- `Test.Endpoints/CustomApiFactory.cs` — InMemoryDatabase per factory instance
-- `Test.E2E/SqlApiFactory.cs` — Testcontainers SQL Server, container managed at the class level
+- `Test.Endpoints/CustomApiFactory.cs` - InMemoryDatabase per factory instance
+- `Test.E2E/SqlApiFactory.cs` - Testcontainers SQL Server, container managed at the class level
 
 ## Outstanding Follow-Ups
 

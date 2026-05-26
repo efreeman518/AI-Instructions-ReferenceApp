@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace TaskFlow.Api.Middleware;
 
+/// <summary>
+/// Converts unhandled exceptions into ProblemDetails responses and applies log severity by
+/// failure class so client errors and disconnects do not pollute server-error dashboards.
+/// </summary>
 internal sealed class DefaultExceptionHandler(
     ILogger<DefaultExceptionHandler> logger,
     IHostEnvironment environment) : IExceptionHandler
@@ -35,10 +39,10 @@ internal sealed class DefaultExceptionHandler(
         if (exception is OperationCanceledException)
             logger.LogInformation("Request cancelled by client: {Path}", httpContext.Request.Path);
         else if (statusCode < 500)
-            logger.LogWarning(exception, "Client error {StatusCode}: {ExceptionType} — {Message}",
+            logger.LogWarning(exception, "Client error {StatusCode}: {ExceptionType} - {Message}",
                 statusCode, exception.GetType().Name, exception.Message);
         else
-            logger.LogError(exception, "Unhandled exception: {ExceptionType} — {Message}",
+            logger.LogError(exception, "Unhandled exception: {ExceptionType} - {Message}",
                 exception.GetType().Name, exception.Message);
 
         var problemDetails = new ProblemDetails

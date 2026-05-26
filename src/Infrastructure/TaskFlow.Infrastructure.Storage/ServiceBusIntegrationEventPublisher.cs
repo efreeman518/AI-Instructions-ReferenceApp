@@ -6,6 +6,10 @@ using TaskFlow.Application.Contracts.Messaging;
 
 namespace TaskFlow.Infrastructure.Storage;
 
+/// <summary>
+/// Publishes application integration events to Azure Service Bus. Message Subject and EventType
+/// carry the CLR event name because Functions use that metadata to dispatch projection work.
+/// </summary>
 public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
 {
     private readonly ServiceBusClient _client;
@@ -24,6 +28,10 @@ public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
         CancellationToken ct = default) where TEvent : class
         => PublishAsync(integrationEvent, DefaultTopic, correlationId, ct);
 
+    /// <summary>
+    /// Serializes one event per message and preserves correlation id for cross-service tracing.
+    /// Topic names are supplied by callers when workflow or app events need a non-default channel.
+    /// </summary>
     public async Task PublishAsync<TEvent>(TEvent integrationEvent, string topicOrQueue,
         string? correlationId = null, CancellationToken ct = default) where TEvent : class
     {

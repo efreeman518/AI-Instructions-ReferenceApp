@@ -10,7 +10,7 @@ namespace Test.Unit.Services;
 /// Validates <see cref="TaskFlow.Application.MessageHandlers.AuditHandler"/> forwards the inbound
 /// <c>AuditEntry</c> to <c>IAuditLogRepository.AppendAsync</c> for both <c>Guid</c> and nullable-<c>Guid</c>
 /// tenant generic shapes, preserving Id/TenantId/Action.
-/// Pure-unit tier (Moq only): the repository is substituted — Azurite-backed persistence is covered by
+/// Pure-unit tier (Moq only): the repository is substituted - Azurite-backed persistence is covered by
 /// <c>AuditLogRepositoryAzuriteTests</c> in Test.Integration.
 /// </summary>
 [TestClass]

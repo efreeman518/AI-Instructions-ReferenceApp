@@ -1,3 +1,5 @@
+// Transport types that mirror TaskFlow.Application.Models. Keep these wire names aligned with
+// the API envelopes; component-specific view state should live in page components instead.
 export const taskStatuses = ['Open', 'InProgress', 'Blocked', 'Completed', 'Cancelled'] as const
 export type TaskItemStatus = (typeof taskStatuses)[number]
 

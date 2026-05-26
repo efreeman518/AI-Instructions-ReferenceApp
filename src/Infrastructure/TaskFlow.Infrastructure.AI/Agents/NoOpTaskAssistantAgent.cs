@@ -7,7 +7,7 @@ public class NoOpTaskAssistantAgent(ILogger<NoOpTaskAssistantAgent> logger) : IT
     public Task<AgentChatResponse> ChatAsync(
         AgentChatRequest request, Guid? tenantId, CancellationToken ct = default)
     {
-        logger.LogWarning("TaskAssistant agent not configured — returning stub response");
+        logger.LogWarning("TaskAssistant agent not configured - returning stub response");
         return Task.FromResult(new AgentChatResponse
         {
             Message = "AI agent is not configured. Set the AiServices:FoundryEndpoint configuration to enable.",

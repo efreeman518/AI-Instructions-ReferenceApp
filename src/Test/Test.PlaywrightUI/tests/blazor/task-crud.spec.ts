@@ -26,8 +26,8 @@ import {
  * Run:  npm run test:blazor
  */
 
-test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
-  // Tests must run in order — each depends on the previous test's side effects
+test.describe("TaskFlow Blazor - Task CRUD lifecycle", () => {
+  // Tests must run in order - each depends on the previous test's side effects
   test.describe.configure({ mode: "serial" });
   let taskTitle: string;
   let updatedTitle: string;
@@ -45,7 +45,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     page.setDefaultTimeout(30_000);
   });
 
-  // ── CREATE ──────────────────────────────────────────────────────────
+  // -- CREATE ----------------------------------------------------------
   test("1. create a new task", async ({ page }) => {
     await waitForApp(page);
     await navigateToNewTask(page);
@@ -59,7 +59,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     await page.getByText(/^Comments \(0\)$/).click();
     await page.getByPlaceholder("Add a comment...").fill(commentBody);
     await page.getByRole("button", { name: /^add$/i }).last().click();
-    // Status=Open and Priority=Medium are defaults — no need to select them
+    // Status=Open and Priority=Medium are defaults - no need to select them
 
     await clickSave(page);
 
@@ -69,7 +69,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     await expectTaskInTable(page, taskTitle, 20_000);
   });
 
-  // ── READ ────────────────────────────────────────────────────────────
+  // -- READ ------------------------------------------------------------
   test("2. read the created task in the list", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
@@ -89,7 +89,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     await navigateToTaskList(page);
   });
 
-  // ── UPDATE ──────────────────────────────────────────────────────────
+  // -- UPDATE ----------------------------------------------------------
   test("3. update the task title and priority", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
@@ -110,7 +110,7 @@ test.describe("TaskFlow Blazor — Task CRUD lifecycle", () => {
     await expect(row).toContainText("High");
   });
 
-  // ── DELETE ──────────────────────────────────────────────────────────
+  // -- DELETE ----------------------------------------------------------
   test("4. delete the task", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, updatedTitle);

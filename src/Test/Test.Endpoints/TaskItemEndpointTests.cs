@@ -10,7 +10,7 @@ namespace Test.Endpoints;
 
 /// <summary>
 /// HTTP contract tests for <c>/api/v1/task-items</c> CRUD plus search (filter by SearchTerm, paged response)
-/// and a full create→read→update→delete cycle.
+/// and a full create->read->update->delete cycle.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): the same
 /// multi-endpoint workflow runs against real SQL in <c>TaskItemCrudE2ETests</c>; here we only need
 /// contract correctness, not SQL semantics, so InMemory is sufficient.

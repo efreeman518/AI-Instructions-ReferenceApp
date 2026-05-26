@@ -26,7 +26,7 @@ public sealed partial class NotificationHost : UserControl
 
     private void OnInfoBarClosed(InfoBar sender, InfoBarClosedEventArgs args)
     {
-        // Only react to user-initiated closes — programmatic dismiss via the
+        // Only react to user-initiated closes - programmatic dismiss via the
         // notification service removes the item from Items directly, which
         // would re-enter this handler with Reason=Programmatic otherwise.
         if (args.Reason != InfoBarCloseReason.CloseButton) return;

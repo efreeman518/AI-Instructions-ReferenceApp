@@ -33,7 +33,7 @@ RUN dotnet restore src/Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj
 COPY src/ src/
 RUN dotnet publish src/Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj -c Release -o /app --no-restore
 
-# Runtime — no port exposed (background worker)
+# Runtime - no port exposed (background worker)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 

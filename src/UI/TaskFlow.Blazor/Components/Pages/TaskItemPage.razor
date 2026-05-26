@@ -370,7 +370,7 @@ else
         _locationChangingRegistration?.Dispose();
     }
 
-    // Children are local-only — the server Updater syncs them from the parent
+    // Children are local-only - the server Updater syncs them from the parent
     // DTO on the next Save. Newly added items have no Id so the Updater treats
     // them as inserts; removals drop them from the list and the Updater hard-
     // deletes the matching rows via RelatedDeleteBehavior.RelationshipAndEntity.

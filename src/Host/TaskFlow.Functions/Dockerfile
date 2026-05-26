@@ -33,7 +33,7 @@ RUN dotnet restore src/Host/TaskFlow.Functions/TaskFlow.Functions.csproj
 COPY src/ src/
 RUN dotnet publish src/Host/TaskFlow.Functions/TaskFlow.Functions.csproj -c Release -o /app --no-restore
 
-# Runtime — Azure Functions isolated worker
+# Runtime - Azure Functions isolated worker
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 EXPOSE 8080

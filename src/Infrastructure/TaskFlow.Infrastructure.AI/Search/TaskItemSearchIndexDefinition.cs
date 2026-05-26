@@ -3,6 +3,10 @@ using Azure.Search.Documents.Indexes.Models;
 
 namespace TaskFlow.Infrastructure.AI.Search;
 
+/// <summary>
+/// Programmatic Azure AI Search index definition for task search. It must stay aligned with
+/// TaskItemSearchDocument and the query modes in TaskFlowSearchService.
+/// </summary>
 public static class TaskItemSearchIndexDefinition
 {
     public const string IndexName = "taskitems-index";

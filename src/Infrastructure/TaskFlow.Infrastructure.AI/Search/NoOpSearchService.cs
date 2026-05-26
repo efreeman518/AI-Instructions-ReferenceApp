@@ -7,19 +7,19 @@ public class NoOpSearchService(ILogger<NoOpSearchService> logger) : ITaskFlowSea
     public Task<IReadOnlyList<TaskItemSearchResult>> SearchTaskItemsAsync(
         string query, SearchMode mode, Guid? tenantId, int maxResults = 10, CancellationToken ct = default)
     {
-        logger.LogWarning("AI Search not configured — returning empty results for query '{Query}'", query);
+        logger.LogWarning("AI Search not configured - returning empty results for query '{Query}'", query);
         return Task.FromResult<IReadOnlyList<TaskItemSearchResult>>([]);
     }
 
     public Task IndexTaskItemAsync(TaskItemSearchDocument document, CancellationToken ct = default)
     {
-        logger.LogDebug("AI Search not configured — skipping index for document '{Id}'", document.Id);
+        logger.LogDebug("AI Search not configured - skipping index for document '{Id}'", document.Id);
         return Task.CompletedTask;
     }
 
     public Task RemoveTaskItemAsync(string taskItemId, CancellationToken ct = default)
     {
-        logger.LogDebug("AI Search not configured — skipping removal for '{Id}'", taskItemId);
+        logger.LogDebug("AI Search not configured - skipping removal for '{Id}'", taskItemId);
         return Task.CompletedTask;
     }
 }

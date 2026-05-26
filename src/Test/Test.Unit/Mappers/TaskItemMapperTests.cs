@@ -8,9 +8,9 @@ using Test.Support.Builders;
 namespace Test.Unit.Mappers;
 
 /// <summary>
-/// Validates <c>TaskItemMapper</c> entity ↔ DTO mapping including the date-range and recurrence-pattern
+/// Validates <c>TaskItemMapper</c> entity <-> DTO mapping including the date-range and recurrence-pattern
 /// flatten/unflatten paths and failure surfacing for invalid DTO input.
-/// Pure-unit tier: static mapping extensions only — no infra.
+/// Pure-unit tier: static mapping extensions only - no infra.
 /// </summary>
 [TestClass]
 public class TaskItemMapperTests

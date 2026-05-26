@@ -6,6 +6,11 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>
+/// Builds the denormalized TaskView read model consumed by Cosmos-backed task views.
+/// Function triggers call this after domain events; it reads authoritative SQL data and upserts
+/// a projection document so projection retries are safe.
+/// </summary>
 public class TaskViewProjectionService : ITaskViewProjectionService
 {
     private readonly ITaskItemRepositoryQuery _taskItemRepo;
@@ -25,6 +30,11 @@ public class TaskViewProjectionService : ITaskViewProjectionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Rehydrates a task with its related data, computes read-model counters, and writes the
+    /// TaskView document. Missing source tasks are logged and skipped because event delivery is
+    /// asynchronous and can race deletions.
+    /// </summary>
     public async Task ProjectTaskItemAsync(Guid taskItemId, CancellationToken ct = default)
     {
         var entity = await _taskItemRepo.GetTaskItemAsync(taskItemId, ct);

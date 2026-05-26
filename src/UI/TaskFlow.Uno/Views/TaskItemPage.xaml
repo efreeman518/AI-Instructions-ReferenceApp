@@ -35,7 +35,7 @@
                 </StackPanel>
             </Grid>
 
-            <!-- ═══════════ Task Details Form ═══════════ -->
+            <!-- Task Details Form -->
             <Border Style="{StaticResource InlineFormCardStyle}">
                 <utu:AutoLayout Spacing="16">
                     <TextBox Header="Title"
@@ -85,7 +85,7 @@
                 </utu:AutoLayout>
             </Border>
 
-            <!-- ═══════════ Schedule ═══════════ -->
+            <!-- Schedule -->
             <Border Style="{StaticResource InlineFormCardStyle}">
                 <utu:AutoLayout Spacing="12">
                     <TextBlock Text="SCHEDULE" Style="{StaticResource StatLabelStyle}" />
@@ -101,7 +101,7 @@
                 </utu:AutoLayout>
             </Border>
 
-            <!-- ═══════════ Checklist Section ═══════════ -->
+            <!-- Checklist Section -->
             <Border Style="{StaticResource InlineFormCardStyle}">
                 <utu:AutoLayout Spacing="12">
                     <utu:AutoLayout Orientation="Horizontal" Spacing="10">
@@ -158,7 +158,7 @@
                 </utu:AutoLayout>
             </Border>
 
-            <!-- ═══════════ Comments Section ═══════════ -->
+            <!-- Comments Section -->
             <Border Style="{StaticResource InlineFormCardStyle}">
                 <utu:AutoLayout Spacing="12">
                     <utu:AutoLayout Orientation="Horizontal" Spacing="10">
@@ -221,7 +221,7 @@
                 </utu:AutoLayout>
             </Border>
 
-            <!-- ═══════════ Attachments Section ═══════════ -->
+            <!-- Attachments Section -->
             <Border Style="{StaticResource InlineFormCardStyle}">
                 <utu:AutoLayout Spacing="12">
                     <utu:AutoLayout Orientation="Horizontal" Spacing="10">

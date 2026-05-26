@@ -11,8 +11,16 @@ using Yarp.ReverseProxy.Transforms;
 
 namespace TaskFlow.Gateway;
 
+/// <summary>
+/// Gateway composition root. It validates external users, forwards original user claims to the
+/// API, acquires downstream service tokens, applies CORS, health checks, rate limiting, and YARP.
+/// </summary>
 public static class RegisterGatewayServices
 {
+    /// <summary>
+    /// Registers gateway-only services. The API remains the authorization and business boundary;
+    /// the gateway handles edge auth and downstream token exchange.
+    /// </summary>
     public static IServiceCollection AddGatewayServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -35,7 +43,7 @@ public static class RegisterGatewayServices
             // Dev mode: register no-op auth so middleware doesn't reject requests
             services.AddAuthentication().AddJwtBearer(options =>
             {
-                // No validation — scaffold passthrough
+                // No validation - scaffold passthrough
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = false,
@@ -83,7 +91,8 @@ public static class RegisterGatewayServices
                     var tokenService = ctx.HttpContext.RequestServices.GetRequiredService<TokenService>();
                     var clusterId = context.Cluster?.ClusterId ?? "api-cluster";
 
-                    // Forward original user claims as X-Orig-Request header
+                    // Forward original user claims as X-Orig-Request header for the API
+                    // claims transformer after the API validates the gateway service token.
                     AddOriginalUserClaimsHeader(ctx);
 
                     // Acquire service token for downstream API

@@ -9,7 +9,7 @@ namespace Test.Unit.Uno;
 /// <summary>
 /// Validates <c>TagApiService</c> against <c>MockHttpMessageHandler</c>: CRUD methods map Kiota payloads
 /// to the Uno <c>TagModel</c>.
-/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler — no real server.
+/// Pure-unit tier: in-process <c>HttpClient</c> with mock handler - no real server.
 /// </summary>
 [TestClass]
 [TestCategory("Unit")]
@@ -43,7 +43,7 @@ public class TagApiServiceTests
         var results = await _service.SearchAsync();
 
         Assert.IsNotEmpty(results);
-        // Mock SearchTags orders alphabetically — "backend" sorts before "frontend".
+        // Mock SearchTags orders alphabetically - "backend" sorts before "frontend".
         Assert.AreEqual("backend", results[0].Name);
         Assert.AreEqual("#10B981", results[0].Color);
     }

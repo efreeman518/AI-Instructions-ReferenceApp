@@ -11,6 +11,11 @@ namespace TaskFlow.Bootstrapper;
 
 public static partial class RegisterServices
 {
+    /// <summary>
+    /// Registers the write DbContext, read DbContext, FlowEngine DbContext, and repositories.
+    /// The write context carries the audit interceptor; the query context is no-tracking and
+    /// uses ApplicationIntent=ReadOnly when the connection string does not already specify it.
+    /// </summary>
     private static void AddDatabaseServices(IServiceCollection services, IConfiguration config)
     {
         services.AddTransient<AuditInterceptor<string, Guid?>>();
@@ -43,7 +48,7 @@ public static partial class RegisterServices
         services.AddScoped(sp => sp.GetRequiredService<DbContextScopedFactory<TaskFlowDbContextQuery, string, Guid?>>()
             .CreateDbContext());
 
-        // FlowEngine DbContext — same SQL Server connection, separate schema + migration history.
+        // FlowEngine DbContext - same SQL Server connection, separate schema + migration history.
         // Inherits FlowEngineOutboxDbContext to enable atomic state+outbox saves.
         services.AddPooledDbContextFactory<TaskFlowFlowEngineDbContext>((sp, options) =>
         {
@@ -66,6 +71,10 @@ public static partial class RegisterServices
         services.AddScoped<ITaskItemTagRepositoryQuery, TaskItemTagRepositoryQuery>();
     }
 
+    /// <summary>
+    /// Applies provider-specific SQL options while keeping retry policy consistent between
+    /// local SQL Server and Azure SQL.
+    /// </summary>
     private static void ConfigureSqlOptions(
         DbContextOptionsBuilder options,
         string connectionString,
@@ -96,8 +105,10 @@ public static partial class RegisterServices
         }
     }
 
-    // FlowEngine variant: isolates migration history to a dedicated table so it does not
-    // collide with the application's __EFMigrationsHistory.
+    /// <summary>
+    /// Uses the app transaction connection for FlowEngine state but isolates schema and
+    /// migration history so workflow tables never collide with application migrations.
+    /// </summary>
     private static void ConfigureFlowEngineSqlOptions(
         DbContextOptionsBuilder options,
         string connectionString,

@@ -30,14 +30,14 @@ public sealed class TaskFlowFlowEngineDbContext(DbContextOptions<TaskFlowFlowEng
     public DbSet<FlowEngineHumanTaskRow> HumanTasks => Set<FlowEngineHumanTaskRow>();
     public DbSet<FlowEngineChildSignalRow> ChildSignals => Set<FlowEngineChildSignalRow>();
 
-    // Outbox — same DbContext as state so SqlExecutionStateStore.SaveWithOutboxAsync can stage
+    // Outbox - same DbContext as state so SqlExecutionStateStore.SaveWithOutboxAsync can stage
     // entries inside the same SaveChangesAsync.
     public DbSet<FlowEngineOutboxRow> Outbox => Set<FlowEngineOutboxRow>();
 
     public void StageOutboxEntry(OutboxEntry entry)
         => OutboxDbContextHelpers.StageOutboxEntry(this, entry);
 
-    // Circuit-breaker store — persists open/half-open state per circuit key across replicas
+    // Circuit-breaker store - persists open/half-open state per circuit key across replicas
     // and restarts so a single instance failing doesn't reset the breaker for the others.
     public DbSet<FlowEngineCircuitBreakerRow> CircuitBreakers => Set<FlowEngineCircuitBreakerRow>();
 

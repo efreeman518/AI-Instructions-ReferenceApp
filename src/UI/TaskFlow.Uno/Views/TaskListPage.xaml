@@ -100,7 +100,7 @@
             </utu:AutoLayout>
         </Border>
 
-        <!-- Task List — bound directly to TaskPage state (no FeedView wrapper) -->
+        <!-- Task List - bound directly to TaskPage state (no FeedView wrapper) -->
         <Grid Grid.Row="2" RowSpacing="12">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -160,7 +160,7 @@
                                 </Grid>
                             </Border>
 
-                        <!-- Scrollable items region — only this row scrolls; header/pager stay fixed -->
+                        <!-- Scrollable items region - only this row scrolls; header/pager stay fixed -->
                         <ScrollViewer Grid.Row="2"
                                       VerticalScrollMode="Auto"
                                       VerticalScrollBarVisibility="Auto"

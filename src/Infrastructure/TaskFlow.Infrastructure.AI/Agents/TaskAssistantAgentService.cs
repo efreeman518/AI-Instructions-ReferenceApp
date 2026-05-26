@@ -8,6 +8,10 @@ using OpenAI.Chat;
 
 namespace TaskFlow.Infrastructure.AI.Agents;
 
+/// <summary>
+/// Live task assistant backed by Azure OpenAI and Microsoft Agents. It loads the embedded
+/// system prompt, exposes TaskItemTools as function tools, and keeps one agent session per DI scope.
+/// </summary>
 public class TaskAssistantAgentService : ITaskAssistantAgent
 {
     private readonly ChatClientAgent _agent;

@@ -7,7 +7,7 @@ using Test.Support.Builders;
 namespace Test.Unit.Mappers;
 
 /// <summary>
-/// Validates <c>CommentMapper</c> entity ↔ DTO mapping: body and parent <c>TaskItemId</c> preservation
+/// Validates <c>CommentMapper</c> entity <-> DTO mapping: body and parent <c>TaskItemId</c> preservation
 /// plus failure surfacing for invalid DTO input.
 /// Pure-unit tier: static mapping extensions only.
 /// </summary>

@@ -77,7 +77,7 @@ public sealed class NotificationService : INotificationService
                 {
                     if (Items[i].DedupeKey == key)
                     {
-                        // Upsert — replace in-place with new content, keep position.
+                        // Upsert - replace in-place with new content, keep position.
                         Items[i] = n;
                         return;
                     }

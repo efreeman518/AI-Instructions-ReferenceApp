@@ -15,8 +15,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace TaskFlow.Scheduler;
 
+/// <summary>
+/// Scheduler composition and operational-store setup. TickerQ owns scheduling mechanics;
+/// TaskFlow handlers own the domain work invoked by each cron function.
+/// </summary>
 public static class RegisterSchedulerServices
 {
+    /// <summary>
+    /// Registers job handlers, metrics, and scheduler health checks without configuring the
+    /// TickerQ engine itself.
+    /// </summary>
     public static IServiceCollection AddSchedulerServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -32,6 +40,10 @@ public static class RegisterSchedulerServices
         return services;
     }
 
+    /// <summary>
+    /// Configures TickerQ execution, optional SQL persistence, and optional dashboard hosting
+    /// from Scheduling:* configuration.
+    /// </summary>
     public static IHostApplicationBuilder AddTickerQConfig(this IHostApplicationBuilder builder)
     {
         var config = builder.Configuration;
@@ -94,6 +106,10 @@ public static class RegisterSchedulerServices
         return builder;
     }
 
+    /// <summary>
+    /// Validates or creates the Scheduler schema for TickerQ's operational store. This is a
+    /// local-startup convenience; production can disable auto-create and run generated scripts.
+    /// </summary>
     public static async Task ConfigureTickerQDatabase(this WebApplication app)
     {
         var config = app.Configuration;
@@ -136,6 +152,10 @@ public static class RegisterSchedulerServices
             await GenerateDeploymentScriptAsync(db, logger);
     }
 
+    /// <summary>
+    /// Seeds default cron definitions. In-memory mode may not expose ICronTickerManager, so this
+    /// method logs and exits rather than failing scheduler startup.
+    /// </summary>
     public static async Task SeedCronJobs(this WebApplication app)
     {
         try
@@ -144,7 +164,7 @@ public static class RegisterSchedulerServices
             var cronManager = scope.ServiceProvider.GetService<ICronTickerManager<CronTickerEntity>>();
             if (cronManager is null)
             {
-                app.Logger.LogWarning("ICronTickerManager not available — cron seeding skipped (in-memory mode)");
+                app.Logger.LogWarning("ICronTickerManager not available - cron seeding skipped (in-memory mode)");
                 return;
             }
 
@@ -173,7 +193,7 @@ public static class RegisterSchedulerServices
         }
         catch (InvalidOperationException ex)
         {
-            app.Logger.LogWarning(ex, "Cron seeding skipped — ICronTickerManager not registered (in-memory mode)");
+            app.Logger.LogWarning(ex, "Cron seeding skipped - ICronTickerManager not registered (in-memory mode)");
         }
     }
 

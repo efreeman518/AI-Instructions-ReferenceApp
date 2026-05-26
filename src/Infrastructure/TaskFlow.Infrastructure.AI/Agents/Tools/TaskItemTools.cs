@@ -6,11 +6,21 @@ using TaskFlow.Infrastructure.AI.Search;
 
 namespace TaskFlow.Infrastructure.AI.Agents.Tools;
 
+/// <summary>
+/// Function-tool boundary exposed to the task assistant agent. Tools reuse application services
+/// instead of repositories so validation, tenant filtering, status rules, audit, and integration
+/// event publishing stay the same as normal API calls.
+/// </summary>
 public class TaskItemTools(
     ILogger<TaskItemTools> logger,
     ITaskItemService taskItemService,
     ITaskFlowSearchService searchService)
 {
+    /// <summary>
+    /// Searches via Azure AI Search when configured, or the no-op search service in scaffold mode.
+    /// Status and priority parameters are accepted for agent affordance but not yet pushed into the
+    /// search filter.
+    /// </summary>
     public async Task<string> SearchTasks(string query, string? status = null, string? priority = null)
     {
         logger.LogDebug("Agent tool: SearchTasks query='{Query}' status={Status} priority={Priority}", query, status, priority);
@@ -26,6 +36,9 @@ public class TaskItemTools(
         return string.Join("\n", lines);
     }
 
+    /// <summary>
+    /// Reads through the application service so tenant-boundary checks match the API path.
+    /// </summary>
     public async Task<string> GetTaskDetails(string taskId)
     {
         logger.LogDebug("Agent tool: GetTaskDetails id={TaskId}", taskId);
@@ -51,6 +64,10 @@ public class TaskItemTools(
             """;
     }
 
+    /// <summary>
+    /// Creates a task through the application service. The request context supplies tenant and user
+    /// metadata; the agent only provides business fields.
+    /// </summary>
     public async Task<string> CreateTask(string title, string? description = null, string? priority = null)
     {
         logger.LogDebug("Agent tool: CreateTask title='{Title}'", title);
@@ -69,6 +86,10 @@ public class TaskItemTools(
         return $"Created task '{title}' with ID {result.Value!.Item!.Id}";
     }
 
+    /// <summary>
+    /// Loads the current task, changes only Status, and delegates transition validation to the
+    /// aggregate through the application service.
+    /// </summary>
     public async Task<string> UpdateTaskStatus(string taskId, string newStatus)
     {
         logger.LogDebug("Agent tool: UpdateTaskStatus id={TaskId} status={Status}", taskId, newStatus);
@@ -92,6 +113,10 @@ public class TaskItemTools(
         return $"Updated task '{dto.Title}' status to {newStatus}.";
     }
 
+    /// <summary>
+    /// Produces a lightweight backlog summary from the normal task search endpoint rather than a
+    /// separate analytics store.
+    /// </summary>
     public async Task<string> SummarizeBacklog()
     {
         logger.LogDebug("Agent tool: SummarizeBacklog");

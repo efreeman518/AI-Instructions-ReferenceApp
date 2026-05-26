@@ -1,4 +1,4 @@
-# Implementation Plan — TaskFlow
+# Implementation Plan - TaskFlow
 
 ## Inputs Summary
 
@@ -16,17 +16,17 @@
 
 Entities are implemented in dependency order (left-to-right):
 
-1. **Category** — no dependencies, self-referencing hierarchy
-2. **Tag** — no dependencies, simple entity
-3. **TaskItem** — depends on Category (navigation), self-referencing sub-tasks
-4. **Comment** — depends on TaskItem (1:M parent)
-5. **ChecklistItem** — depends on TaskItem (1:M parent)
-6. **Attachment** — depends on TaskItem + Comment (polymorphic join)
-7. **TaskItemTag** — depends on TaskItem + Tag (M:M bridge)
+1. **Category** - no dependencies, self-referencing hierarchy
+2. **Tag** - no dependencies, simple entity
+3. **TaskItem** - depends on Category (navigation), self-referencing sub-tasks
+4. **Comment** - depends on TaskItem (1:M parent)
+5. **ChecklistItem** - depends on TaskItem (1:M parent)
+6. **Attachment** - depends on TaskItem + Comment (polymorphic join)
+7. **TaskItemTag** - depends on TaskItem + Tag (M:M bridge)
 
 ## Implementation Steps
 
-### Phase 4 — Contract Scaffolding
+### Phase 4 - Contract Scaffolding
 
 - [ ] Solution structure (TaskFlow.slnx, Directory.Packages.props, Directory.Build.props, global.json, nuget.config)
 - [ ] All project files with correct references:
@@ -43,19 +43,19 @@ Entities are implemented in dependency order (left-to-right):
 - [ ] No-op DI stubs in RegisterServices.cs
 - [ ] **Checkpoint:** `dotnet build` succeeds on full solution including test projects
 
-### Phase 5a — Foundation (TDD)
+### Phase 5a - Foundation (TDD)
 
-Per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Attachment → TaskItemTag):
+Per entity (Category -> Tag -> TaskItem -> Comment -> ChecklistItem -> Attachment -> TaskItemTag):
 
-- [ ] Write entity factory tests (Create method validation, required fields) — RED
-- [ ] Implement entity with rich domain model (private setters, factory Create, DomainResult<T>) — GREEN
-- [ ] Write domain rule tests (specifications, state machine transitions) — RED
-- [ ] Implement domain rules (TaskNotOverdueSpec, CanTransitionStatusSpec, MaxSubTaskDepthSpec, ChecklistCompletionSpec, MaxActiveTasksPerTenantSpec) — GREEN
-- [ ] Write builder activation tests — RED → GREEN
-- [ ] Write repository CRUD tests (in-memory SQLite) — RED
-- [ ] Implement EF configurations (entity configs, relationships, indexes, value objects) — GREEN
-- [ ] Implement repositories (read + write, paging, filtering) — GREEN
-- [ ] Implement updaters — GREEN
+- [ ] Write entity factory tests (Create method validation, required fields) - RED
+- [ ] Implement entity with rich domain model (private setters, factory Create, DomainResult<T>) - GREEN
+- [ ] Write domain rule tests (specifications, state machine transitions) - RED
+- [ ] Implement domain rules (TaskNotOverdueSpec, CanTransitionStatusSpec, MaxSubTaskDepthSpec, ChecklistCompletionSpec, MaxActiveTasksPerTenantSpec) - GREEN
+- [ ] Write builder activation tests - RED -> GREEN
+- [ ] Write repository CRUD tests (in-memory SQLite) - RED
+- [ ] Implement EF configurations (entity configs, relationships, indexes, value objects) - GREEN
+- [ ] Implement repositories (read + write, paging, filtering) - GREEN
+- [ ] Implement updaters - GREEN
 - [ ] Split DbContexts: TaskFlowDbContextTrxn (pooled, audit interceptor) + TaskFlowDbContextQuery (no-tracking, read-only intent)
 - [ ] Pooled context factories with DbContextScopedFactory<T>
 - [ ] AuditInterceptor (CreatedBy, UpdatedBy, UpdatedDate via IRequestContext)
@@ -65,19 +65,19 @@ Per entity (Category → Tag → TaskItem → Comment → ChecklistItem → Atta
 - [ ] Scaffold initial EF migration
 - [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit"` passes
 
-### Phase 5b — App Core + Runtime/Edge (TDD for app/API, tests-after for runtime)
+### Phase 5b - App Core + Runtime/Edge (TDD for app/API, tests-after for runtime)
 
 Per entity (same order):
 
-- [ ] Write mapper tests (round-trip projection consistency) — RED
-- [ ] Implement DTOs + mappers — GREEN
-- [ ] Write service unit tests (mock repos, success/failure/not-found/conflict paths) — RED
-- [ ] Implement services with caching (FusionCache named instances), domain event publishing, tenant boundary validation — GREEN
-- [ ] Write structure validator tests — RED
-- [ ] Implement structure validators — GREEN
-- [ ] Write endpoint contract tests in `Test.Endpoints` (200/400/404/409/422, auth policies, contract shapes) — RED
-- [ ] Implement minimal API endpoints — GREEN
-- [ ] Implement global exception handler (DbUpdateConcurrencyException → 409, validation → 422, not-found → 404)
+- [ ] Write mapper tests (round-trip projection consistency) - RED
+- [ ] Implement DTOs + mappers - GREEN
+- [ ] Write service unit tests (mock repos, success/failure/not-found/conflict paths) - RED
+- [ ] Implement services with caching (FusionCache named instances), domain event publishing, tenant boundary validation - GREEN
+- [ ] Write structure validator tests - RED
+- [ ] Implement structure validators - GREEN
+- [ ] Write endpoint contract tests in `Test.Endpoints` (200/400/404/409/422, auth policies, contract shapes) - RED
+- [ ] Implement minimal API endpoints - GREEN
+- [ ] Implement global exception handler (DbUpdateConcurrencyException -> 409, validation -> 422, not-found -> 404)
 - [ ] Implement domain event handlers (TaskItemCreatedEventHandler, TaskItemStatusChangedEventHandler, CommentAddedEventHandler, AttachmentUploadedEventHandler)
 - [ ] FusionCache integration with Redis backplane (named caches per entity, tag-based invalidation)
 - [ ] Request context factory (IRequestContext<Guid, Guid> from HTTP context)
@@ -105,7 +105,7 @@ Runtime/edge concerns (tests-after, within 5b):
 - [ ] Write infrastructure tests (health checks, config validation, caching behavior)
 - [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes; `dotnet run --project src/Aspire/AppHost` starts and all services healthy
 
-### Phase 5c — Optional Hosts (Tests-After)
+### Phase 5c - Optional Hosts (Tests-After)
 
 - [ ] YARP Gateway:
   - Route configuration (API forwarding)
@@ -121,12 +121,12 @@ Runtime/edge concerns (tests-after, within 5b):
   - StaleTaskCleanup (timer trigger)
   - ProcessAttachment (blob trigger)
   - TaskApiProxy (HTTP trigger, read-only)
-- [ ] Uno UI (WASM) — Full CRUD + Dashboard (dedicated session)
+- [ ] Uno UI (WASM) - Full CRUD + Dashboard (dedicated session)
 - [ ] Blazor UI alternative (if enabled)
 - [ ] Write per-host smoke tests
 - [ ] **Checkpoint:** each enabled host starts and responds; per-host gate status recorded in HANDOFF.md
 
-### Phase 5d — Quality + Delivery
+### Phase 5d - Quality + Delivery
 
 - [ ] Architecture tests (NetArchTest):
   - Domain.Model has no dependencies on Infrastructure or Application
@@ -138,21 +138,21 @@ Runtime/edge concerns (tests-after, within 5b):
 - [ ] Load tests (NBomber): task CRUD throughput, search latency, p95/p99
 - [ ] Benchmarks (BenchmarkDotNet): search projection, entity mapping, cache hit/miss
 - [ ] Dockerfiles per host (API, Gateway, Scheduler, Functions)
-- [ ] IaC (Bicep) — `infra/main.bicep` plus modules under `infra/modules/`
+- [ ] IaC (Bicep) - `infra/main.bicep` plus modules under `infra/modules/`
 - [ ] CI/CD pipelines (`.github/workflows/ci.yml`, `cd.yml`)
 - [ ] Vulnerability audit: `dotnet list package --vulnerable --include-transitive`
 - [ ] Full regression: `dotnet test` (all categories)
 - [ ] **Checkpoint:** full test suite passes; `az bicep build infra/main.bicep` succeeds
 
-### Phase 5e — Integration (Auth + AI)
+### Phase 5e - Integration (Auth + AI)
 
 **Authentication finalization:**
 
-- [ ] Conditional auth registration (appsettings section present → JWT Bearer; absent → no-op passthrough)
-- [ ] Auth stub → real Entra ID JWT Bearer (config-driven)
+- [ ] Conditional auth registration (appsettings section present -> JWT Bearer; absent -> no-op passthrough)
+- [ ] Auth stub -> real Entra ID JWT Bearer (config-driven)
 - [ ] Role-based policies: GlobalAdmin bypass + tenant-matched policies (TenantMember, TenantAdmin)
 - [ ] Gateway auth: user-facing (Entra External), claim relay to API
-- [ ] Service-to-service tokens: Gateway → API via client credentials (TokenService)
+- [ ] Service-to-service tokens: Gateway -> API via client credentials (TokenService)
 - [ ] Claim extraction precedence: oid > NameIdentifier > sub
 - [ ] Update appsettings with Entra configuration sections (commented out for scaffold mode)
 
@@ -162,7 +162,7 @@ Runtime/edge concerns (tests-after, within 5b):
 - [ ] Azure AI Search:
   - taskitems-index definition (keyword + semantic + vector fields)
   - Search service with no-op stub when endpoint not configured
-  - On-write vectorization handler (TaskItemCreated/StatusChanged → embed + index)
+  - On-write vectorization handler (TaskItemCreated/StatusChanged -> embed + index)
 - [ ] Agent:
   - TaskAssistant (ChatClientAgent) with function tools:
     - SearchTasks, CreateTask, UpdateTask, GetTaskDetails, SummarizeTasks
@@ -170,14 +170,14 @@ Runtime/edge concerns (tests-after, within 5b):
   - Grounded retrieval (RAG) via taskitems-index
   - Per-user conversation scoping, no cross-tenant leakage
 - [ ] Aspire resource wiring: AddAzureAISearch(), AddAzureOpenAI()
-- [ ] Bootstrapper DI registration (lazy-optional: no config → no-op)
+- [ ] Bootstrapper DI registration (lazy-optional: no config -> no-op)
 - [ ] API endpoints: /api/search/tasks, /api/agent/chat
 - [ ] Configuration: Foundry endpoint, model deployment names, search index name in appsettings
 - [ ] **Checkpoint:** authenticated endpoints respond correctly; app boots without AI config (no-op stubs); search + agent work when Azure AI resources configured
 
 ## Open Questions
 
-All resolved — no outstanding questions.
+All resolved - no outstanding questions.
 
 ## Decision Dependency Graph
 
@@ -207,7 +207,7 @@ flowchart TD
 |---|---|---|
 | 1 | SQL for all entities | Relational joins needed for hierarchical categories, self-referencing tasks, M:M tags |
 | 2 | Cosmos DB for TaskView projection | Denormalized read-optimized document; demonstrates document-first aggregates + reconciliation |
-| 3 | Blob storage for attachments | Binary content → blob; SAS URI for direct client upload/download |
+| 3 | Blob storage for attachments | Binary content -> blob; SAS URI for direct client upload/download |
 | 4 | Service Bus for domain events | At-least-once delivery, outbox pattern, topic/subscription model |
 | 5 | FusionCache + Redis | L1 memory + L2 distributed cache with fail-safe; named instances per entity |
 | 6 | .NET 10 | Latest framework; all packages at latest versions |

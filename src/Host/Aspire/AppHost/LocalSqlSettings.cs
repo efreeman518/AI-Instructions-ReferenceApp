@@ -6,13 +6,13 @@ namespace AppHost;
 /// <remarks>
 /// <para>
 /// <b>Why hardcoded?</b> This is a dev-loop-only credential consumed exclusively by the local SQL
-/// Server container the AppHost spins up. It never reaches production — production services
+/// Server container the AppHost spins up. It never reaches production - production services
 /// (<c>TaskFlow.Api</c>, <c>TaskFlow.Functions</c>, etc.) receive connection strings from Azure
 /// (Key Vault / Managed Identity); the AppHost project itself is not deployed.
 /// </para>
 /// <para>
-/// <b>Why not <c>appsettings.json</c> / config?</b> Same outcome — the value still lives in source
-/// control — but behind a configuration-key lookup. A typed constant is more discoverable, removes a
+/// <b>Why not <c>appsettings.json</c> / config?</b> Same outcome - the value still lives in source
+/// control - but behind a configuration-key lookup. A typed constant is more discoverable, removes a
 /// class of "wrong key" bugs, and lets both the AppHost and the test fixture import the same symbol
 /// (one source of truth).
 /// </para>
@@ -23,7 +23,7 @@ namespace AppHost;
 /// </para>
 /// <para>
 /// <b>Why not environment variables?</b> Same first-run friction as user-secrets, plus tests would
-/// need to save/restore <c>Parameters__sql-password</c> across the assembly lifetime — exactly the
+/// need to save/restore <c>Parameters__sql-password</c> across the assembly lifetime - exactly the
 /// pattern <c>AspireTestHost</c> recently moved away from in favor of <c>configureBuilder</c>
 /// configuration injection.
 /// </para>
@@ -37,7 +37,7 @@ namespace AppHost;
 /// <para>
 /// <b>Override path.</b> The hardcoded value is only the <i>default</i> passed to
 /// <c>builder.AddParameter("sql-password", defaultSqlPassword, secret: true)</c>. Aspire Parameter
-/// resolution still honors the normal config chain first — env var <c>Parameters__sql-password</c>,
+/// resolution still honors the normal config chain first - env var <c>Parameters__sql-password</c>,
 /// user-secret <c>Parameters:sql-password</c>, command-line <c>--Parameters:sql-password=...</c>, or
 /// <c>hostSettings.Configuration["Parameters:sql-password"]</c> in tests via <c>configureBuilder</c>.
 /// Anyone who wants to inject a different value can do so without editing this file.

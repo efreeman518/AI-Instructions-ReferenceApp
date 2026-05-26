@@ -5,8 +5,16 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data;
 
+/// <summary>
+/// Shared EF model for read and write DbContexts. Centralizes schema, table naming,
+/// default SQL types, entity configurations, and tenant query filters.
+/// </summary>
 public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContextBase<string, Guid?>(options)
 {
+    /// <summary>
+    /// Builds the TaskFlow model once for derived contexts. Derived contexts only choose tracking
+    /// and connection behavior; entity mapping stays identical.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

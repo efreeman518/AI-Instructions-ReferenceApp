@@ -85,7 +85,7 @@
       "id": "n-decide",
       "type": "decision",
       "label": "Route by compliance status",
-      "intent": "Expired → escalate to human review. Expiring soon → reminder comment. OK → no action.",
+      "intent": "Expired -> escalate to human review. Expiring soon -> reminder comment. OK -> no action.",
       "config": { "target": "$.context.complianceFinding.status" },
       "edges": [
         { "label": "Expired",       "on": ["Match"], "when": "Context.ContainsKey(\"complianceFinding\") && Context[\"complianceFinding\"][\"status\"].ToString() == \"expired\"",       "nextNodeId": "n-escalate" },
@@ -135,7 +135,7 @@
         "clientRef": "taskflow-api",
         "method": "POST",
         "path": "/api/v1/task-items/{{$.context._loopItem.Id}}/comments",
-        "body": { "Text": "Compliance evidence is expiring soon — please refresh." },
+        "body": { "Text": "Compliance evidence is expiring soon - please refresh." },
         "idempotencyKey": "$.context._loopItem.Id + '-compliance-reminder'"
       },
       "edges": [ { "on": ["Match"], "nextNodeId": "n-ok" }, { "on": ["Error"], "nextNodeId": "n-ok" } ]

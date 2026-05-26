@@ -16,10 +16,10 @@ namespace Test.Integration;
 /// Validates the domain-event projection pipeline: a TaskItem persisted to SQL is read by
 /// <c>TaskViewProjectionService</c> through the query-side repositories and emitted as a TaskView
 /// document with correct counts (comments, attachments, checklist totals/completed).
-/// Aspire tier by reuse: only SQL is exercised here (the Service Bus → Function → projection hop is
+/// Aspire tier by reuse: only SQL is exercised here (the Service Bus -> Function -> projection hop is
 /// covered separately in <c>FunctionAuditPipelineTests</c>), but the test piggybacks on the shared
 /// <c>AspireTestHost</c> SQL container rather than starting its own. The TaskView store is in-memory
-/// (<c>InMemoryTaskViewRepository</c>) — real Cosmos behavior is out of scope for this test.
+/// (<c>InMemoryTaskViewRepository</c>) - real Cosmos behavior is out of scope for this test.
 /// </summary>
 [TestClass]
 public class DomainEventPipelineTests
@@ -38,7 +38,7 @@ public class DomainEventPipelineTests
     [Timeout(120000)]
     public async Task Given_TaskItemCreated_When_ProjectionRuns_Then_TaskViewProduced()
     {
-        // Arrange — real SQL via TestContainers
+        // Arrange - real SQL via TestContainers
         var connStr = AspireTestHost.ConnectionString;
         var ctx = DbContextFactory.CreateTrxnContext(connStr);
 
@@ -65,10 +65,10 @@ public class DomainEventPipelineTests
             taskItemRepo, attachmentRepo, taskViewRepo,
             NullLogger<TaskViewProjectionService>.Instance);
 
-        // Act — run projection (same as what Function trigger calls)
+        // Act - run projection (same as what Function trigger calls)
         await projectionService.ProjectTaskItemAsync(task.Id);
 
-        // Assert — TaskView was produced with correct data
+        // Assert - TaskView was produced with correct data
         var taskView = await taskViewRepo.GetAsync(task.Id.ToString(), TenantId.ToString());
         Assert.IsNotNull(taskView, "TaskView should be created by projection");
         Assert.AreEqual("Integration Test Task", taskView.Title);

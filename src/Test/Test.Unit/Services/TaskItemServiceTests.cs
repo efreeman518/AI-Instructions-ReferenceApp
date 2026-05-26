@@ -21,7 +21,7 @@ namespace Test.Unit.Services;
 /// dependencies (repositories, request context, tenant-boundary validator, cache, event bus): CRUD
 /// success/failure paths, status transitions surfacing as DomainResult, search projection, and event
 /// publication on create/update.
-/// Pure-unit tier (Moq only): the service contract is exercised in isolation — SQL semantics are covered
+/// Pure-unit tier (Moq only): the service contract is exercised in isolation - SQL semantics are covered
 /// by the E2E tier (<c>TaskItemCrudE2ETests</c>) and Integration tier (<c>DomainEventPipelineTests</c>).
 /// </summary>
 [TestClass]

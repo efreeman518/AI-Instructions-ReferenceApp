@@ -18,7 +18,7 @@ public sealed class ApplyFlowEngineMigrationsStartup(
 
         if (env != "Development" && !isAspire)
         {
-            logger.LogInformation("Skipping FlowEngine auto-migration — not Development or Aspire");
+            logger.LogInformation("Skipping FlowEngine auto-migration - not Development or Aspire");
             return;
         }
 
@@ -30,7 +30,7 @@ public sealed class ApplyFlowEngineMigrationsStartup(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "FlowEngine EF migration failed — continuing startup");
+            logger.LogWarning(ex, "FlowEngine EF migration failed - continuing startup");
         }
     }
 }

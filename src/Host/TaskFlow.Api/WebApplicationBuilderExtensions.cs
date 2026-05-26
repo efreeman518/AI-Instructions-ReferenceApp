@@ -10,10 +10,18 @@ using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api;
 
+/// <summary>
+/// Owns the HTTP pipeline and route graph for the API host. Service registration stays in
+/// RegisterApiServices and Bootstrapper; this type controls middleware order and endpoint shape.
+/// </summary>
 public static class WebApplicationBuilderExtensions
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>
+    /// Builds the middleware pipeline in dependency order: security, correlation, exception
+    /// handling, rate limiting, CORS, auth, docs, health, domain endpoints, then FlowEngine admin.
+    /// </summary>
     public static WebApplication ConfigurePipeline(this WebApplication app)
     {
         _problemDetailsIncludeStackTrace = app.Environment.IsDevelopment() || app.Environment.IsStaging();
@@ -94,6 +102,11 @@ public static class WebApplicationBuilderExtensions
 
     public static bool ProblemDetailsIncludeStackTrace => _problemDetailsIncludeStackTrace;
 
+    /// <summary>
+    /// Maps the public API contract once, then routes entity CRUD to either application services
+    /// or CQRS handlers based on Application:Style / TASKFLOW_APPLICATION_STYLE.
+    /// Search, agent, and TaskView endpoints remain shared because they are not style-specific.
+    /// </summary>
     private static void SetupApiEndpoints(WebApplication app)
     {
         var apiDocuments = ApiContract.SupportedDocuments

@@ -5,7 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace TaskFlow.Infrastructure.AI.Search;
 
-#pragma warning disable CS9113 // Parameter 'settings' is unread — reserved for future AI configuration
+#pragma warning disable CS9113 // Parameter 'settings' is unread - reserved for future AI configuration
+/// <summary>
+/// Azure AI Search adapter for task search. Tenant filtering is applied as a search filter
+/// before keyword, semantic, vector, or hybrid options are selected.
+/// </summary>
 public class TaskFlowSearchService(
     ILogger<TaskFlowSearchService> logger,
     SearchClient searchClient,

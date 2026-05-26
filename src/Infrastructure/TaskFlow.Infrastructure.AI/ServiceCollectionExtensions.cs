@@ -22,7 +22,7 @@ public static class AiServiceCollectionExtensions
 
         var settings = aiSection.Get<TaskFlowAiSettings>() ?? new TaskFlowAiSettings();
 
-        // Azure OpenAI / Foundry Models client — conditional on endpoint config
+        // Azure OpenAI / Foundry Models client - conditional on endpoint config
         if (!string.IsNullOrWhiteSpace(settings.FoundryEndpoint))
         {
             services.AddSingleton(new AzureOpenAIClient(
@@ -44,7 +44,7 @@ public static class AiServiceCollectionExtensions
             }
             else
             {
-                // TODO: [CONFIGURE] AI Search endpoint — set AiServices:SearchEndpoint for live search
+                // TODO: [CONFIGURE] AI Search endpoint - set AiServices:SearchEndpoint for live search
                 services.AddScoped<ITaskFlowSearchService, NoOpSearchService>();
             }
         }
@@ -53,7 +53,7 @@ public static class AiServiceCollectionExtensions
             services.AddScoped<ITaskFlowSearchService, NoOpSearchService>();
         }
 
-        // Agent function tools (always registered — agents and tests both need them)
+        // Agent function tools (always registered - agents and tests both need them)
         services.AddScoped<TaskItemTools>();
 
         // Agent services

@@ -23,7 +23,7 @@ try
     // 2. Data Protection (Azure Blob key storage + Key Vault key encryption)
     ConfigureDataProtection();
 
-    // 3. Registration chain — order matters for dependency resolution
+    // 3. Registration chain - order matters for dependency resolution
     services
         .RegisterInfrastructureServices(config)
         .RegisterDomainServices(config)

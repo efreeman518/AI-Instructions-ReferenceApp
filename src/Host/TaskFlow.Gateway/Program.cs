@@ -11,7 +11,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Pipeline order: security → CORS → middleware → endpoints → reverse proxy
+// Pipeline order: security -> CORS -> middleware -> endpoints -> reverse proxy
 app.UseExceptionHandler(appBuilder =>
     appBuilder.Run(async ctx =>
     {

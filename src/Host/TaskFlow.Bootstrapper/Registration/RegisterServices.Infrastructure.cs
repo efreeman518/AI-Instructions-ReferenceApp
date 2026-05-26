@@ -15,6 +15,10 @@ namespace TaskFlow.Bootstrapper;
 
 public static partial class RegisterServices
 {
+    /// <summary>
+    /// Registers audit persistence when a Table Storage connection exists; otherwise keeps
+    /// audit message handling alive with a no-op repository for local and test hosts.
+    /// </summary>
     private static void AddTableStorageServices(IServiceCollection services, IConfiguration config)
     {
         var connStr = ResolveConnectionString(
@@ -40,6 +44,11 @@ public static partial class RegisterServices
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
     }
 
+    /// <summary>
+    /// Resolves Aspire, appsettings, and Functions-style connection keys in a stable order.
+    /// A real connection string wins over UseDevelopmentStorage=true, but the emulator value
+    /// is kept as a fallback when it is the only configured value.
+    /// </summary>
     private static string? ResolveConnectionString(IConfiguration config, string connectionName, params string[] alternateKeys)
     {
         string? fallbackConnectionString = null;
@@ -58,6 +67,10 @@ public static partial class RegisterServices
         return fallbackConnectionString;
     }
 
+    /// <summary>
+    /// Enumerates connection-string sources without assuming which host supplied them.
+    /// ASP.NET, Aspire, and Azure Functions use different key shapes for the same resource.
+    /// </summary>
     private static IEnumerable<string?> GetConnectionStringCandidates(IConfiguration config, string connectionName, IEnumerable<string> alternateKeys)
     {
         yield return Environment.GetEnvironmentVariable($"ConnectionStrings__{connectionName}");
@@ -70,6 +83,10 @@ public static partial class RegisterServices
         }
     }
 
+    /// <summary>
+    /// Registers attachment blob storage only when configured. Upload endpoints surface a
+    /// service-level failure if this optional dependency is absent.
+    /// </summary>
     private static void AddBlobStorageServices(IServiceCollection services, IConfiguration config)
     {
         var connStr = ResolveConnectionString(
@@ -91,6 +108,10 @@ public static partial class RegisterServices
         services.AddScoped<IBlobStorageRepository, BlobStorageRepository>();
     }
 
+    /// <summary>
+    /// Registers integration-event publishing through Service Bus when available; otherwise
+    /// uses a no-op publisher so core CRUD remains usable without messaging infrastructure.
+    /// </summary>
     private static void AddServiceBusServices(IServiceCollection services, IConfiguration config)
     {
         var connStr = ResolveConnectionString(
@@ -113,6 +134,10 @@ public static partial class RegisterServices
         services.AddSingleton<IIntegrationEventPublisher, ServiceBusIntegrationEventPublisher>();
     }
 
+    /// <summary>
+    /// Registers the denormalized TaskView read model in Cosmos DB when configured.
+    /// The no-op repository preserves API shape when the Cosmos emulator is intentionally skipped.
+    /// </summary>
     private static void AddCosmosDbServices(IServiceCollection services, IConfiguration config)
     {
         var connStr = config.GetConnectionString("CosmosDb1");
@@ -134,6 +159,10 @@ public static partial class RegisterServices
                 containerName));
     }
 
+    /// <summary>
+    /// Adds cheap always-on checks first and gates external-service checks behind config so
+    /// readiness probes do not require every emulator in lightweight local or test runs.
+    /// </summary>
     private static void AddHealthChecks(IServiceCollection services, IConfiguration config)
     {
         var builder = services.AddHealthChecks()

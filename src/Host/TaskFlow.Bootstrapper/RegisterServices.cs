@@ -8,8 +8,17 @@ using TaskFlow.Infrastructure.AI;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>
+/// Shared composition root used by every host. Keeps API, Functions, Scheduler, and tests on the
+/// same service graph while each host decides which pipeline or trigger surface it exposes.
+/// </summary>
 public static partial class RegisterServices
 {
+    /// <summary>
+    /// Registers cross-cutting infrastructure first: request context, persistence, cache,
+    /// Azure service adapters, health checks, and startup tasks. Several adapters fall back
+    /// to no-op implementations when local or cloud resources are absent.
+    /// </summary>
     public static IServiceCollection RegisterInfrastructureServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -29,6 +38,10 @@ public static partial class RegisterServices
         return services;
     }
 
+    /// <summary>
+    /// Reserved for domain-level services. Domain entities are currently behavior-rich POCOs,
+    /// so there is no runtime service registration here.
+    /// </summary>
     public static IServiceCollection RegisterDomainServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -36,6 +49,10 @@ public static partial class RegisterServices
         return services;
     }
 
+    /// <summary>
+    /// Registers application services, optional AI services, and FlowEngine. AI registration
+    /// comes before FlowEngine because FlowEngine agent connectors can resolve AzureOpenAIClient.
+    /// </summary>
     public static IServiceCollection RegisterApplicationServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -46,6 +63,10 @@ public static partial class RegisterServices
         return services;
     }
 
+    /// <summary>
+    /// Reserved extension point for host-level background services. The channel queue is
+    /// registered with infrastructure support services because it is shared by audit handling.
+    /// </summary>
     public static IServiceCollection RegisterBackgroundServices(
         this IServiceCollection services, IConfiguration config)
     {
@@ -53,6 +74,10 @@ public static partial class RegisterServices
         return services;
     }
 
+    /// <summary>
+    /// Startup tasks run after the host is built, not during DI registration, so they can
+    /// resolve scoped DbContexts and tolerate local emulator startup ordering.
+    /// </summary>
     private static void AddStartupTasks(IServiceCollection services)
     {
         services.AddScoped<IStartupTask, ApplyEFMigrationsStartup>();

@@ -11,11 +11,11 @@ using TaskFlow.Domain.Shared.Enums;
 namespace Test.E2E;
 
 /// <summary>
-/// Multi-endpoint workflow tests over the full HTTP→Endpoint→Service→EF→SQL stack: TaskItem/Category/Tag
+/// Multi-endpoint workflow tests over the full HTTP->Endpoint->Service->EF->SQL stack: TaskItem/Category/Tag
 /// CRUD round-trips, server-side paged search across distinct pages, and child-aggregate (Comment,
 /// ChecklistItem) lifecycles.
 /// SQL tier (WebApplicationFactory + Testcontainers SQL via <c>SqlApiFactory</c>): real SQL is required
-/// for paging plans, FK constraints applied by EF migrations, and projection behavior — InMemory
+/// for paging plans, FK constraints applied by EF migrations, and projection behavior - InMemory
 /// (Test.Endpoints tier) would silently mask these. The Aspire tier is unnecessary because only one
 /// backing service (SQL) participates.
 /// </summary>
@@ -51,7 +51,7 @@ public class TaskItemCrudE2ETests
 
     private HttpClient CreateClient() => _factory.CreateClient();
 
-    // ── TaskItem full CRUD ────────────────────────────────────
+    // -- TaskItem full CRUD ------------------------------------
 
     [TestMethod]
     public async Task TaskItem_FullCrudCycle_AgainstRealSql()
@@ -99,7 +99,7 @@ public class TaskItemCrudE2ETests
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
-    // ── Category full CRUD ────────────────────────────────────
+    // -- Category full CRUD ------------------------------------
 
     [TestMethod]
     public async Task Category_FullCrudCycle_AgainstRealSql()
@@ -130,7 +130,7 @@ public class TaskItemCrudE2ETests
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
-    // ── Tag full CRUD ─────────────────────────────────────────
+    // -- Tag full CRUD -----------------------------------------
 
     [TestMethod]
     public async Task Tag_FullCrudCycle_AgainstRealSql()
@@ -161,7 +161,7 @@ public class TaskItemCrudE2ETests
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
-    // ── Search works against real SQL ─────────────────────────
+    // -- Search works against real SQL -------------------------
 
     [TestMethod]
     public async Task TaskItem_Search_ReturnsResults_AgainstRealSql()
@@ -258,7 +258,7 @@ public class TaskItemCrudE2ETests
             pagedTitles);
     }
 
-    // ── Comment CRUD (child of TaskItem) ──────────────────────
+    // -- Comment CRUD (child of TaskItem) ----------------------
 
     [TestMethod]
     public async Task Comment_CrudCycle_AgainstRealSql()
@@ -290,7 +290,7 @@ public class TaskItemCrudE2ETests
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
     }
 
-    // ── ChecklistItem CRUD (child of TaskItem) ────────────────
+    // -- ChecklistItem CRUD (child of TaskItem) ----------------
 
     [TestMethod]
     public async Task ChecklistItem_CrudCycle_AgainstRealSql()

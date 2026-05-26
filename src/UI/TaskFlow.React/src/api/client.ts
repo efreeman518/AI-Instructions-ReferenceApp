@@ -20,6 +20,10 @@ import type {
 const apiVersionRoot = '/api/v1'
 const configuredBaseUrl = (import.meta.env.PROD ? import.meta.env.VITE_API_BASE_URL : '')?.replace(/\/$/, '') ?? ''
 
+/**
+ * Error shape used by React Query callers. It preserves ProblemDetails when the API returns
+ * RFC 7807 payloads while still supporting plain text or empty error bodies.
+ */
 export class ApiError extends Error {
   status: number
   details?: ProblemDetails
@@ -33,6 +37,8 @@ export class ApiError extends Error {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  // Production calls the Aspire-provided gateway URL. Development leaves the origin empty so
+  // Vite proxying can route API traffic without baking a dynamic port into the bundle.
   const response = await fetch(`${configuredBaseUrl}${path}`, {
     ...init,
     credentials: 'include',
@@ -101,6 +107,8 @@ function del(path: string, signal?: AbortSignal): Promise<void> {
   return requestJson<void>(path, { method: 'DELETE', signal })
 }
 
+// The API has used both data/total/pageIndex and items/totalCount/pageNumber names.
+// Normalize both shapes so page components do not encode transport compatibility logic.
 function normalizePaged<T>(response: PagedResponse<T>): PagedResult<T> {
   return {
     items: response.data ?? response.items ?? [],
@@ -110,6 +118,8 @@ function normalizePaged<T>(response: PagedResponse<T>): PagedResult<T> {
   }
 }
 
+// The server treats pageIndex as 1-based. Keep that convention here even though MUI's
+// TablePagination uses 0-based page indexes at the component boundary.
 function searchRequest<TFilter>(filter: TFilter, pageIndex = 1, pageSize = 25): SearchRequest<TFilter> {
   return { filter, pageIndex, pageSize }
 }
@@ -129,6 +139,8 @@ async function search<TItem, TFilter>(
   return normalizePaged(response)
 }
 
+// Minimal API write endpoints return DefaultResponse<T>. Treat null item as a contract
+// failure because callers need a concrete entity for cache invalidation and navigation.
 function unwrap<T>(response: DefaultResponse<T>): T {
   if (!response.item) {
     throw new ApiError('The API returned an empty response.', 500)

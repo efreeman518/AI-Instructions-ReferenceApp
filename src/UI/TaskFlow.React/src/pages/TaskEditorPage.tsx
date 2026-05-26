@@ -125,6 +125,8 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
   const comments = form.comments ?? []
   const isBusy = saveMutation.isPending || deleteMutation.isPending
 
+  // Checklist and comment edits stay local until Save. The API updater syncs them from
+  // the parent TaskItem payload, which keeps create/update as one aggregate save.
   function saveTask() {
     if (!form.title.trim()) {
       showNotification('Title is required.', 'warning')
@@ -165,6 +167,8 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
     setNewChecklistTitle('')
   }
 
+  // New child rows use emptyGuid until the task has a server id. The API layer and server
+  // updater replace that placeholder from the parent route/body during persistence.
   function updateChecklistItem(index: number, item: ChecklistItem) {
     setForm((current) => ({
       ...current,

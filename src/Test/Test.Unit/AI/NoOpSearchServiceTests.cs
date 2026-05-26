@@ -5,7 +5,7 @@ namespace Test.Unit.AI;
 
 /// <summary>
 /// Validates the No-Op fallback <c>NoOpSearchService</c> returns empty results from search and that
-/// index/remove calls are no-throw — the production behavior when AI Search is not configured.
+/// index/remove calls are no-throw - the production behavior when AI Search is not configured.
 /// Pure-unit tier: instantiates the No-Op directly with <c>NullLogger</c>.
 /// </summary>
 [TestClass]

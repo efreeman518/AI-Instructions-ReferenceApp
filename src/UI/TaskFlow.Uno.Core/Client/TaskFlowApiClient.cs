@@ -1,10 +1,14 @@
 using System.Text.Json.Serialization;
 
-// Kiota client stub — replace with Kiota-generated client when OpenAPI spec is available.
+// Kiota client stub - replace with Kiota-generated client when OpenAPI spec is available.
 // This stub provides the typed navigation structure matching the API surface.
 
 namespace TaskFlow.Uno.Core.Client;
 
+/// <summary>
+/// Thin typed wrapper over HttpClient for Uno services. It intentionally models the API
+/// route tree instead of business behavior; mapping and user notifications live one layer up.
+/// </summary>
 public class TaskFlowApiClient
 {
     private readonly HttpClient _httpClient;
@@ -17,6 +21,10 @@ public class TaskFlowApiClient
     public ApiRequestBuilder Api => new(_httpClient);
 }
 
+/// <summary>
+/// Entry point for versioned API resources. Every builder below owns only transport concerns:
+/// route, envelope, JSON shape, and status-code enforcement.
+/// </summary>
 public class ApiRequestBuilder
 {
     private readonly HttpClient _http;
@@ -30,7 +38,7 @@ public class ApiRequestBuilder
     public AttachmentsRequestBuilder Attachments => new(_http);
 }
 
-#region DTOs (transport layer — matches API contract)
+#region DTOs (transport layer - matches API contract)
 
 /// <summary>Wraps a DTO for POST/PUT requests. Matches API DefaultRequest&lt;T&gt;.</summary>
 public class DefaultRequest<T>
@@ -122,9 +130,9 @@ public class SearchRequest<TFilter> where TFilter : class, new()
     [System.Text.Json.Serialization.JsonPropertyName("filter")]
     public TFilter Filter { get; set; } = new();
 
-    // Wire property name is `pageIndex` but the value is 1-based — that's
+    // Wire property name is `pageIndex` but the value is 1-based - that's
     // the contract the server actually binds. Do NOT also serialize
-    // pageNumber — the server's linked setter will clobber it.
+    // pageNumber - the server's linked setter will clobber it.
     [System.Text.Json.Serialization.JsonIgnore]
     public int PageNumber { get; set; } = 1;
 
@@ -238,6 +246,10 @@ public class TaskItemsRequestBuilder
         return wrapper?.Item;
     }
 
+    /// <summary>
+    /// Fills child TaskItemId values from the parent route/body id so create and update payloads
+    /// can use one parent envelope even when the UI buffered new child rows locally.
+    /// </summary>
     internal static void NormalizeChildTaskItemIds(TaskItemDto dto, Guid fallbackTaskItemId)
     {
         if (dto.Comments != null)

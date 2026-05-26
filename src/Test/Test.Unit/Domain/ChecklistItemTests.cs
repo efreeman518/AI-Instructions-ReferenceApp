@@ -5,8 +5,8 @@ namespace Test.Unit.Domain;
 
 /// <summary>
 /// Validates the <see cref="TaskFlow.Domain.Model.ChecklistItem"/> aggregate's factory and update rules,
-/// including the <c>IsCompleted</c> ↔ <c>CompletedDate</c> derived-state invariant when toggling completion.
-/// Pure-unit tier: factory and method calls only — no persistence, no projection.
+/// including the <c>IsCompleted</c> <-> <c>CompletedDate</c> derived-state invariant when toggling completion.
+/// Pure-unit tier: factory and method calls only - no persistence, no projection.
 /// </summary>
 [TestClass]
 public class ChecklistItemTests

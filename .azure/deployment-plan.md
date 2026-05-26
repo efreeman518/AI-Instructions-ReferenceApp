@@ -10,7 +10,7 @@ Generated: 2026-04-23
 
 **Goal:** Deploy TaskFlow multi-tenant task management application to a single Azure dev environment. All backend services containerized in Azure Container Apps, Functions on Flex Consumption, minimal SKUs, managed identities, App Configuration + Key Vault for config/secrets.
 
-**Path:** Modernize Existing — adding Azure deployment infrastructure to an existing .NET Aspire-orchestrated application.
+**Path:** Modernize Existing - adding Azure deployment infrastructure to an existing .NET Aspire-orchestrated application.
 
 ---
 
@@ -20,7 +20,7 @@ Generated: 2026-04-23
 |-----------|-------|
 | Classification | Development |
 | Scale | Small (single dev environment) |
-| Budget | Cost-Optimized — target <$50/mo |
+| Budget | Cost-Optimized - target <$50/mo |
 | **Subscription** | `db98b283-631e-4f24-bd77-321332820725` |
 | **Location** | `eastus2` |
 
@@ -46,7 +46,7 @@ Generated: 2026-04-23
 **Rationale:**
 - User requested Bicep IaC
 - Full control over resource definitions and modular structure
-- No AZD wrapper — deployment via `az deployment` + GitHub Actions
+- No AZD wrapper - deployment via `az deployment` + GitHub Actions
 - Aspire used only for local dev orchestration, not cloud deployment
 
 ---
@@ -86,7 +86,7 @@ Generated: 2026-04-23
 | Key Vault | Secrets management | Standard | ~$0 |
 | Log Analytics Workspace | Centralized logging | Pay-as-you-go (5GB free) | ~$0 |
 | User-Assigned Managed Identity | GitHub Actions OIDC deploy | N/A | $0 |
-| Container Registry | N/A — using ghcr.io | N/A | $0 |
+| Container Registry | N/A - using ghcr.io | N/A | $0 |
 
 **Total estimated: ~$17-27/mo**
 
@@ -103,7 +103,7 @@ Generated: 2026-04-23
 ### Networking
 
 - **No Front Door** (dev budget constraint)
-- **No VNet / Private Endpoints** (dev budget constraint — minimal SKUs don't support)
+- **No VNet / Private Endpoints** (dev budget constraint - minimal SKUs don't support)
 - Gateway: external ingress (public), all other Container Apps: internal only
 - Services secured via: managed identity, service-level firewall rules (allow Azure services)
 - SQL: firewall rule allowing Azure services
@@ -113,7 +113,7 @@ Generated: 2026-04-23
 
 | Config Type | Store | Access Method |
 |-------------|-------|---------------|
-| App settings (non-secret) | App Configuration | Managed Identity → `Azure App Configuration` SDK |
+| App settings (non-secret) | App Configuration | Managed Identity -> `Azure App Configuration` SDK |
 | Connection strings, API keys | Key Vault | Key Vault references from App Configuration |
 | Service endpoints | Container App env vars | Bicep output wiring |
 
@@ -136,7 +136,7 @@ Generated: 2026-04-23
 | Microsoft.OperationalInsights/workspaces | 1 | Pay-as-you-go |
 | Microsoft.ManagedIdentity/userAssignedIdentities | 1 | Deploy identity |
 
-**Status:** ✅ All resources within limits. Storage: 0/250 used. All other resource types have no enforced subscription-level quota in eastus2.
+**Status:**  All resources within limits. Storage: 0/250 used. All other resource types have no enforced subscription-level quota in eastus2.
 
 ---
 
@@ -156,7 +156,7 @@ Generated: 2026-04-23
 - [x] Generate GitHub Actions workflow (`.github/workflows/`)
 - [x] Generate bootstrap script (`infra/scripts/bootstrap.ps1`)
 - [x] Generate parameter files
-- [x] ⛔ Update plan status to "Ready for Validation"
+- [x]  Update plan status to "Ready for Validation"
 
 ### Phase 3: Validation
 - [ ] Invoke azure-validate skill

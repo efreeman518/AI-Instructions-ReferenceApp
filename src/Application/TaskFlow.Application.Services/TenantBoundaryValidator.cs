@@ -5,6 +5,10 @@ using TaskFlow.Application.Services.Rules;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>
+/// Adapter around shared validation helpers so services and CQRS handlers depend on one
+/// injectable tenant-boundary abstraction instead of static rule calls.
+/// </summary>
 internal sealed class TenantBoundaryValidator : ITenantBoundaryValidator
 {
     public Result EnsureTenantBoundary(ILogger logger, Guid? requestTenantId,

@@ -10,7 +10,7 @@ namespace Test.Endpoints;
 /// <summary>
 /// HTTP contract tests for <c>/api/v1/comments</c> CRUD; each test seeds a parent TaskItem first.
 /// Endpoint tier (WebApplicationFactory + EF InMemory via <c>CustomApiFactory</c>): contract-level
-/// coverage — status codes, envelope shape, and 404 paths.
+/// coverage - status codes, envelope shape, and 404 paths.
 /// </summary>
 [TestClass]
 public class CommentEndpointTests

@@ -7,7 +7,7 @@ using Test.Support.Builders;
 namespace Test.Unit.Mappers;
 
 /// <summary>
-/// Validates <c>TaskItemTagMapper</c> entity ↔ DTO mapping for the bridge type and failure surfacing
+/// Validates <c>TaskItemTagMapper</c> entity <-> DTO mapping for the bridge type and failure surfacing
 /// for empty foreign keys.
 /// Pure-unit tier: static mapping extensions only.
 /// </summary>

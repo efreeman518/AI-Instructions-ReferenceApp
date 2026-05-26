@@ -9,6 +9,8 @@ using TaskFlow.Blazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Blazor Server host for CRUD pages and FlowEngine dashboard pages. API calls go through
+// the gateway so auth, claim forwarding, and routing match the other front ends.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -41,10 +43,10 @@ builder.Services
         client.BaseAddress = new Uri(gatewayBaseUrl);
         client.DefaultRequestHeaders.Add("Accept", "application/json");
     })
-    // No auth handler yet — gateway dev mode accepts unauthenticated requests.
+    // No auth handler yet - gateway dev mode accepts unauthenticated requests.
     .AddStandardResilienceHandler();
 
-// FlowEngine Dashboard — talks to TaskFlow.Api's MapFlowEngineAdmin via the gateway.
+// FlowEngine Dashboard - talks to TaskFlow.Api's MapFlowEngineAdmin via the gateway.
 // Pages contributed by the package are picked up via Routes.razor's AdditionalAssemblies.
 var flowEngineAdminBaseUrl = builder.Configuration["FlowEngine:AdminApiBaseUrl"]
     ?? new Uri(new Uri(gatewayBaseUrl), "/api/flowengine/").ToString();

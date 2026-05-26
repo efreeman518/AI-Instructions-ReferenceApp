@@ -20,7 +20,7 @@ import {
  */
 
 // ---------------------------------------------------------------------------
-// Uno-specific helpers — all use coordinate-based interaction because
+// Uno-specific helpers - all use coordinate-based interaction because
 // Uno WASM renders elements invisible to Playwright's standard click checks.
 // ---------------------------------------------------------------------------
 
@@ -165,13 +165,13 @@ async function openTaskByTitle(page: Page, title: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests — share a single page/context to avoid re-booting WASM each test.
+// Tests - share a single page/context to avoid re-booting WASM each test.
 // Uno WASM's async default-route resolution can override manual sidebar
 // navigation on a freshly loaded page.  Sharing the page means the route
 // resolves once in test 1 and stays stable for tests 2-4.
 // ---------------------------------------------------------------------------
 
-test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
+test.describe("TaskFlow Uno WASM - Task CRUD lifecycle", () => {
   test.describe.configure({ mode: "serial" });
 
   let sharedPage: Page;
@@ -196,7 +196,7 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     await sharedContext.close();
   });
 
-  // ── CREATE ──────────────────────────────────────────────────────────
+  // -- CREATE ----------------------------------------------------------
   test("1. create a new task", async () => {
     await navigateToNewTask(sharedPage);
     await sharedPage.waitForTimeout(1_000);
@@ -219,15 +219,15 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
 
     await clickVisibleText(sharedPage, "Save Task");
 
-    // Save auto-navigates to task list — wait for it, then search for the task
+    // Save auto-navigates to task list - wait for it, then search for the task
     await expectBodyToContain(sharedPage, "Manage and track all your tasks", 15_000);
     await searchForTask(sharedPage, taskTitle);
     await expectBodyToContain(sharedPage, taskTitle, 10_000);
   });
 
-  // ── READ ────────────────────────────────────────────────────────────
+  // -- READ ------------------------------------------------------------
   test("2. read the created task in the list", async () => {
-    // Navigate via sidebar (no fresh boot — route is already stable)
+    // Navigate via sidebar (no fresh boot - route is already stable)
     await goToTaskList(sharedPage);
     await searchForTask(sharedPage, taskTitle);
     const body = await getBodyText(sharedPage);
@@ -239,7 +239,7 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     await expectBodyToContain(sharedPage, commentBody, 10_000);
   });
 
-  // ── UPDATE ──────────────────────────────────────────────────────────
+  // -- UPDATE ----------------------------------------------------------
   test("3. update the task title and priority", async () => {
     await goToTaskList(sharedPage);
     await searchForTask(sharedPage, taskTitle);
@@ -251,7 +251,7 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     await clickVisibleText(sharedPage, "Update Task");
     await sharedPage.waitForTimeout(1_000);
 
-    // Update navigates back — verify we reach the task list
+    // Update navigates back - verify we reach the task list
     await goToTaskList(sharedPage);
     await searchForTask(sharedPage, updatedTitle);
     await expectBodyToContain(sharedPage, updatedTitle, 10_000);
@@ -261,7 +261,7 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     expect(body).not.toContain(taskTitle);
   });
 
-  // ── DELETE ──────────────────────────────────────────────────────────
+  // -- DELETE ----------------------------------------------------------
   test("4. delete the task", async () => {
     await goToTaskList(sharedPage);
     await searchForTask(sharedPage, updatedTitle);
@@ -270,7 +270,7 @@ test.describe("TaskFlow Uno WASM — Task CRUD lifecycle", () => {
     await clickVisibleText(sharedPage, "Delete");
     await sharedPage.waitForTimeout(1_000);
 
-    // Should return to list; search for the deleted task — it should be gone
+    // Should return to list; search for the deleted task - it should be gone
     await goToTaskList(sharedPage);
     await searchForTask(sharedPage, updatedTitle);
     const body = await getBodyText(sharedPage);

@@ -4,12 +4,16 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace TaskFlow.Api.Auth;
 
+/// <summary>
+/// Config-driven API authentication. Scaffold mode supplies a predictable local identity;
+/// EntraID mode validates bearer tokens for deployed environments.
+/// </summary>
 public static class AuthConfiguration
 {
     /// <summary>
     /// Registers authentication based on AuthMode config.
-    /// "Scaffold" → ScaffoldAuthHandler (no external provider needed).
-    /// "EntraID" → JWT Bearer with Entra ID validation.
+    /// "Scaffold" -> ScaffoldAuthHandler (no external provider needed).
+    /// "EntraID" -> JWT Bearer with Entra ID validation.
     /// </summary>
     public static IServiceCollection AddTaskFlowAuth(this IServiceCollection services, IConfiguration config)
     {

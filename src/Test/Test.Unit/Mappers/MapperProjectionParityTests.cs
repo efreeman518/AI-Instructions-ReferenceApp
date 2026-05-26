@@ -11,16 +11,16 @@ namespace Test.Unit.Mappers;
 /// and in-memory code paths cannot drift.
 ///
 /// For the simple mappers the parity check is trivially true (ToDto IS the compiled projection)
-/// but the tests still verify the expression compiles and surfaces all expected fields — i.e.
+/// but the tests still verify the expression compiles and surfaces all expected fields - i.e.
 /// the projection is a real full shape, not a forgotten subset.
 ///
 /// For <see cref="TaskItemMapper"/> the test additionally guards against drift between the
 /// inlined child projections (Comments / ChecklistItems / Tags / SubTasks) and each child
 /// mapper's own <c>ToDto</c>. EF cannot translate child <c>.ToDto()</c> calls, so the parent
-/// expression must inline child shapes — the test ensures the inlined shape stays consistent
+/// expression must inline child shapes - the test ensures the inlined shape stays consistent
 /// with the child mapper's hand-written-equivalent path.
 ///
-/// Owned-type flattening (DateRange / RecurrencePattern → scalar columns) is also exercised:
+/// Owned-type flattening (DateRange / RecurrencePattern -> scalar columns) is also exercised:
 /// it must remain EF-translatable AND evaluate correctly in-memory.
 /// </summary>
 [TestClass]

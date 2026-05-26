@@ -9,6 +9,10 @@ namespace TaskFlow.Infrastructure.Storage;
 
 // Uses IAzureClientFactory directly because TableRepositoryBase uses typeof(T).Name as the table name,
 // but audit log requires a configurable table name from settings.
+/// <summary>
+/// Azure Table Storage audit sink. It partitions by tenant and uses reverse ticks in RowKey so
+/// newest entries sort first inside each partition.
+/// </summary>
 public class AuditLogRepository(
     IAzureClientFactory<TableServiceClient> clientFactory,
     IOptions<AuditLogStorageSettings> settings,
@@ -18,6 +22,10 @@ public class AuditLogRepository(
     private readonly AuditLogStorageSettings _settings = settings.Value;
     private readonly ILogger<AuditLogRepository> _logger = logger;
 
+    /// <summary>
+    /// Persists one audit entry. Null and empty tenant ids use a configured partition key so
+    /// global audit entries remain queryable.
+    /// </summary>
     public async Task AppendAsync<TTenantId>(AuditEntry<string, TTenantId> entry, CancellationToken ct = default)
     {
         var table = _client.GetTableClient(_settings.TableName);

@@ -9,7 +9,7 @@ namespace TaskFlow.Application.MessageHandlers;
 // Standalone trigger that maps TaskFlow integration events to FlowEngine workflow starts.
 //
 // Not wired to the InternalMessageBus (TaskItem events aren't IMessage and travel
-// out over Service Bus, not in-process). Callers invoke methods directly — typically
+// out over Service Bus, not in-process). Callers invoke methods directly - typically
 // from TaskItemService right after eventPublisher.PublishAsync, or from a custom
 // Service Bus subscriber in TaskFlow.Functions. For the demo, manual triggering via
 // the dashboard /workflows/run page is sufficient; this class makes domain-event

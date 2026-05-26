@@ -1,5 +1,5 @@
 // ============================================================================
-// TaskFlow Dev Environment — Main Bicep
+// TaskFlow Dev Environment - Main Bicep
 // Single resource group, minimal SKUs, managed identities, Entra-only auth
 // ============================================================================
 
@@ -303,7 +303,7 @@ module deployIdentity 'modules/deploy-identity.bicep' = {
   }
 }
 
-// ---- RBAC: Deploy Identity → Resource Group ----
+// ---- RBAC: Deploy Identity -> Resource Group ----
 
 module deployContributor 'modules/role-assignment.bicep' = {
   name: 'deployContributor'
@@ -473,7 +473,7 @@ module funcKvSecretsUser 'modules/role-assignment.bicep' = {
   }
 }
 
-// ---- Cosmos DB RBAC (data plane — separate module for RG scope) ----
+// ---- Cosmos DB RBAC (data plane - separate module for RG scope) ----
 
 module cosmosRbac 'modules/cosmos-rbac.bicep' = {
   name: 'cosmosRbac'

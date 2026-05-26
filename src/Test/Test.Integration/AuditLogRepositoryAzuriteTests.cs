@@ -12,7 +12,7 @@ namespace Test.Integration;
 /// <summary>
 /// Validates <c>AuditLogRepository.AppendAsync</c> against real Azurite Table Storage: partition key,
 /// row key shape (<c>..._{Id:N}</c>), and round-trip of audit metadata.
-/// Aspire tier by reuse: only Azurite is exercised — no API, no Function — but the test piggybacks on
+/// Aspire tier by reuse: only Azurite is exercised - no API, no Function - but the test piggybacks on
 /// the shared <c>AspireTestHost</c> <c>TableStorage1</c> resource instead of starting its own Azurite
 /// container. A dedicated Testcontainers Azurite fixture would also work; reusing Aspire avoids a second
 /// container per test run.

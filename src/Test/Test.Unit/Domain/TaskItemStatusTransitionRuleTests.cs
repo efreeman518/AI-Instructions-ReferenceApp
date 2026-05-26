@@ -6,7 +6,7 @@ namespace Test.Unit.Domain;
 /// <summary>
 /// Data-driven coverage of <see cref="TaskFlow.Domain.Model.Rules.TaskItemStatusTransitionRule"/>:
 /// every legal transition succeeds and every illegal transition produces a domain failure.
-/// Pure-unit tier: a stateless rule object — zero infra cost is the right cost.
+/// Pure-unit tier: a stateless rule object - zero infra cost is the right cost.
 /// </summary>
 [TestClass]
 public class TaskItemStatusTransitionRuleTests

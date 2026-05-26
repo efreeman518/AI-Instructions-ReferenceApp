@@ -12,8 +12,8 @@ namespace Test.Integration;
 /// <summary>
 /// Assembly-scoped fixture that starts the full Aspire AppHost graph (API, Functions, SQL, Table Storage)
 /// once for the test run via <c>[AssemblyInitialize]</c> and tears it down via <c>[AssemblyCleanup]</c>.
-/// Aspire tier (Aspire.Hosting.Testing) — required so downstream classes can exercise the full service
-/// mesh (HTTP → API → Service Bus → Function → projection → audit row), which no lighter tier reproduces.
+/// Aspire tier (Aspire.Hosting.Testing) - required so downstream classes can exercise the full service
+/// mesh (HTTP -> API -> Service Bus -> Function -> projection -> audit row), which no lighter tier reproduces.
 /// Per-call <c>.WaitAsync(DefaultTimeout, ct)</c> bounds every async Aspire step;
 /// <c>WaitForResourceHealthyAsync</c> avoids races where containers report Running before they accept
 /// connections.
@@ -80,7 +80,7 @@ public class AspireTestHost
         AspireApp = await builder.BuildAsync(ct).WaitAsync(DefaultTimeout, ct);
         await AspireApp.StartAsync(ct).WaitAsync(DefaultTimeout, ct);
 
-        // Container reaching the Running state does not mean SQL is accepting connections — wait for the health check.
+        // Container reaching the Running state does not mean SQL is accepting connections - wait for the health check.
         // Without this, the first test using ConnectionString races SQL warm-up.
         await AspireApp.WaitForResourceHealthyAsync("taskflowdb", DefaultTimeout, ct);
 
@@ -98,7 +98,7 @@ public class AspireTestHost
             }
             catch (TimeoutException)
             {
-                // Bounded shutdown — DisposeAsync below still cleans up underlying processes/containers.
+                // Bounded shutdown - DisposeAsync below still cleans up underlying processes/containers.
             }
             await AspireApp.DisposeAsync();
         }
@@ -110,7 +110,7 @@ public class AspireTestHost
     /// <summary>
     /// Waits for a named Aspire resource to reach the Healthy state, bounded by <see cref="DefaultTimeout"/>.
     /// Tests should call this for any non-SQL resource (taskflowapi, taskflowfunctions, TableStorage1)
-    /// before talking to it — Aspire reports Running before warm-up completes.
+    /// before talking to it - Aspire reports Running before warm-up completes.
     /// </summary>
     internal static Task WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {

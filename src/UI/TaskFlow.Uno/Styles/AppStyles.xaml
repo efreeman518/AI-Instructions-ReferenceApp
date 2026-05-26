@@ -3,21 +3,21 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:utu="using:Uno.Toolkit.UI">
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Converters
-         ═══════════════════════════════════════════════════════ -->
-    <!-- ═══════════════════════════════════════════════════════
+         ======================================================= -->
+    <!-- =======================================================
          Semantic accent brushes (use Material palette colors)
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <SolidColorBrush x:Key="AccentSuccessBrush" Color="{ThemeResource TaskFlowSuccessColor}" />
     <SolidColorBrush x:Key="AccentWarningBrush" Color="{ThemeResource TaskFlowWarningColor}" />
     <StaticResource x:Key="AccentDangerBrush" ResourceKey="ErrorBrush" />
     <SolidColorBrush x:Key="AccentInfoBrush" Color="{ThemeResource TaskFlowInfoColor}" />
     <StaticResource x:Key="AccentPrimaryBrush" ResourceKey="PrimaryBrush" />
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Spacing / Layout Constants
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Thickness x:Key="PagePadding">24,20,24,20</Thickness>
     <Thickness x:Key="PagePaddingNarrow">12,16,12,16</Thickness>
     <x:Double x:Key="ContentMaxWidth">1200</x:Double>
@@ -25,9 +25,9 @@
     <CornerRadius x:Key="BadgeRadius">16</CornerRadius>
     <CornerRadius x:Key="ChipRadius">8</CornerRadius>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Page Header
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="PageHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleLargeTextBlockStyle}">
         <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
@@ -41,9 +41,9 @@
         <Setter Property="Margin" Value="0,8,0,8" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
-         Stat Card — Dashboard summary cards
-         ═══════════════════════════════════════════════════════ -->
+    <!-- =======================================================
+         Stat Card - Dashboard summary cards
+         ======================================================= -->
     <Style x:Key="StatCardStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
         <Setter Property="Padding" Value="20,16" />
@@ -63,9 +63,9 @@
         <Setter Property="CharacterSpacing" Value="50" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Status Badge
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="BadgeStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="{StaticResource BadgeRadius}" />
         <Setter Property="Padding" Value="10,4" />
@@ -78,9 +78,9 @@
         <Setter Property="CharacterSpacing" Value="30" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          List Item Card (for task rows, tag rows, etc.)
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="ListItemCardStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="{StaticResource ChipRadius}" />
         <Setter Property="Padding" Value="18,14" />
@@ -88,9 +88,9 @@
         <Setter Property="Margin" Value="0,2" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Inline Form Card
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="InlineFormCardStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
         <Setter Property="Padding" Value="20" />
@@ -115,9 +115,9 @@
         <Setter Property="Padding" Value="12,10" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Empty State
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="EmptyStateTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="Opacity" Value="0.5" />
@@ -125,9 +125,9 @@
         <Setter Property="FontStyle" Value="Italic" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          FAB (Floating Action Button) style
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="FabButtonStyle" TargetType="Button" BasedOn="{StaticResource FilledButtonStyle}">
         <Setter Property="Height" Value="56" />
         <Setter Property="MinWidth" Value="56" />
@@ -136,9 +136,9 @@
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- =======================================================
          Delete / Danger Button
-         ═══════════════════════════════════════════════════════ -->
+         ======================================================= -->
     <Style x:Key="DangerButtonStyle" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource AccentDangerBrush}" />
         <Setter Property="Background" Value="Transparent" />
@@ -148,9 +148,9 @@
         <Setter Property="Padding" Value="12,6" />
     </Style>
 
-    <!-- ═══════════════════════════════════════════════════════
-         Form TextBox — visible border for all input fields
-         ═══════════════════════════════════════════════════════ -->
+    <!-- =======================================================
+         Form TextBox - visible border for all input fields
+         ======================================================= -->
     <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
         <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
         <Setter Property="BorderThickness" Value="1" />

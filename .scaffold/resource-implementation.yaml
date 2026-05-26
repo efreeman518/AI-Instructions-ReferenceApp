@@ -1,5 +1,5 @@
 # ============================================================================
-# TaskFlow — Resource Implementation (Phase 2 Output)
+# TaskFlow - Resource Implementation (Phase 2 Output)
 # ============================================================================
 # Maps domain constructs to Aspire/Azure resources, datatypes, and infra.
 # Schema reference: ai/resource-implementation-schema.md

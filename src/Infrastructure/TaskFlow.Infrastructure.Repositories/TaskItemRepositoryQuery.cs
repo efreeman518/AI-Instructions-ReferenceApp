@@ -12,6 +12,10 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>
+/// Read-side TaskItem repository. It uses the no-tracking query DbContext and projects search
+/// results server-side so list endpoints avoid hydrating child collections.
+/// </summary>
 public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITaskItemRepositoryQuery
 {
@@ -35,6 +39,10 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>
+    /// Applies search filters, stable default ordering, include hints, and the lean search projection
+    /// used by task list pages.
+    /// </summary>
     public async Task<PagedResponse<TaskItemDto>> SearchTaskItemsAsync(SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<TaskItem>().ComposeIQueryable(false);

@@ -13,7 +13,7 @@ namespace Test.Integration;
 /// (CRUD, includes, many-to-many bridges, the tenant query filter, polymorphic-attachment indexing) work
 /// against the migrated schema.
 /// Aspire tier by reuse: the test only needs SQL, but it piggybacks on the shared <c>AspireTestHost</c>
-/// SQL container (via <c>DbContextFactory</c>) instead of standing up a separate Testcontainers SQL —
+/// SQL container (via <c>DbContextFactory</c>) instead of standing up a separate Testcontainers SQL  - 
 /// avoiding two SQL containers per test run. A standalone Test.E2E-style <c>SqlApiFactory</c> fixture
 /// would also work; the Aspire fixture is reused for cost.
 /// </summary>
@@ -214,7 +214,7 @@ public class MigrationAndRepositoryTests
         Assert.IsGreaterThanOrEqualTo(rawCount, 2, $"Expected at least 2 categories in raw query, found {rawCount}");
 
         // When query filter is active, only matching tenant data is visible.
-        // The DbContextBase sets TenantId — we need to check if it applies.
+        // The DbContextBase sets TenantId - we need to check if it applies.
         // Since we're using the context without setting TenantId properly,
         // this validates that the filter mechanism is wired (tenant filters are
         // defined via HasQueryFilter in OnModelCreating).
@@ -228,7 +228,7 @@ public class MigrationAndRepositoryTests
             .Where(c => c.Name.EndsWith("Cat"))
             .CountAsync();
 
-        // The filter is active — the count depends on the context's TenantId.
+        // The filter is active - the count depends on the context's TenantId.
         // Since our test context doesn't match either tenant, we may get 0 or partial.
         // The key assertion: IgnoreQueryFilters returns MORE than filtered query.
         Assert.IsGreaterThanOrEqualTo(allViaEf.Count, filteredCount, "Query filter should restrict results");

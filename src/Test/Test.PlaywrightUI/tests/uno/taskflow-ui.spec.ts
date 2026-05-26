@@ -5,7 +5,7 @@ import {
   waitForApp,
 } from "../../utils/unoTestUtils";
 
-test.describe("TaskFlow UI — smoke coverage", () => {
+test.describe("TaskFlow UI - smoke coverage", () => {
   test.describe.configure({ mode: "serial" });
 
   let sharedPage: Page;

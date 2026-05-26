@@ -4,7 +4,7 @@ import {
   navigateToTaskList,
 } from "../../utils/unoTestUtils";
 
-test.describe("TaskFlow UI — task list regression coverage", () => {
+test.describe("TaskFlow UI - task list regression coverage", () => {
   test.describe.configure({ mode: "serial" });
 
   let sharedPage: Page;
@@ -40,7 +40,7 @@ test.describe("TaskFlow UI — task list regression coverage", () => {
 
   test("task detail still opens from the list after the layout changes", async () => {
     await navigateToTaskList(sharedPage);
-    // Click first E2E-prefixed task title — these are always present from prior test runs
+    // Click first E2E-prefixed task title - these are always present from prior test runs
     for (let attempt = 0; attempt < 20; attempt++) {
       const clicked = await sharedPage.evaluate(() => {
         for (const p of Array.from(document.querySelectorAll("p"))) {
@@ -67,7 +67,7 @@ test.describe("TaskFlow UI — task list regression coverage", () => {
   });
 });
 
-test.describe("TaskFlow UI — mobile task list", () => {
+test.describe("TaskFlow UI - mobile task list", () => {
   let sharedPage: Page;
   let sharedContext: BrowserContext;
 

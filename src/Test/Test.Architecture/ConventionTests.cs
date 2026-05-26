@@ -63,7 +63,7 @@ public class ConventionTests : BaseTest
     [TestMethod]
     public void Given_DomainEntities_When_Checked_Then_AllHavePrivateSetters()
     {
-        // TenantId is excluded — public setter required by ITenantEntity<Guid> interface contract
+        // TenantId is excluded - public setter required by ITenantEntity<Guid> interface contract
         var excludedProperties = new HashSet<string> { "TenantId" };
 
         var violations = new List<string>();

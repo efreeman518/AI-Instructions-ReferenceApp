@@ -11,7 +11,11 @@ namespace TaskFlow.Infrastructure.Repositories.Updaters;
 internal static class TaskItemUpdater
 {
     /// <summary>
-    /// Updates an existing entity with values from a DTO, including related child collections.
+    /// Applies the parent TaskItem DTO and synchronizes comments, checklist items, and tag links
+    /// into the loaded aggregate graph. Create-mode UIs can send child records with client-only ids
+    /// or empty TaskItemId values; the updater creates real children under the parent aggregate.
+    /// When RelatedDeleteBehavior is RelationshipAndEntity, missing children are hard-deleted so
+    /// a single parent save can represent client-side removals.
     /// </summary>
     public static DomainResult<TaskItem> UpdateFromDto(this TaskFlowDbContextTrxn db, TaskItem entity, TaskItemDto dto,
         RelatedDeleteBehavior relatedDeleteBehavior = RelatedDeleteBehavior.None)
@@ -55,7 +59,7 @@ internal static class TaskItemUpdater
                     var result = ChecklistItem.Create(updatedEntity.TenantId, updatedEntity.Id, incomingDto.Title, incomingDto.SortOrder);
                     if (result.IsSuccess)
                     {
-                        // Apply IsCompleted immediately — Create() doesn't take it,
+                        // Apply IsCompleted immediately - Create() doesn't take it,
                         // so a buffered "checked" item from the client would lose
                         // that state without this follow-up Update.
                         if (incomingDto.IsCompleted)

@@ -6,6 +6,10 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>
+/// Task aggregate root. Owns task lifecycle rules, value-object updates, and local child
+/// collection mutations before repositories persist the graph.
+/// </summary>
 public class TaskItem : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -57,6 +61,10 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return entity.Valid();
     }
 
+    /// <summary>
+    /// Applies a partial update. Null means "leave current value"; Guid.Empty clears optional
+    /// category and parent links for DTO-driven updates.
+    /// </summary>
     public DomainResult<TaskItem> Update(
         string? title = null, string? description = null,
         Priority? priority = null, TaskFeatures? features = null,
@@ -74,6 +82,10 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return Valid();
     }
 
+    /// <summary>
+    /// Moves the task through the allowed status state machine and keeps CompletedDate aligned
+    /// with Completed status. TaskItemStatus.None is a reset escape hatch for seed/test data.
+    /// </summary>
     public DomainResult<TaskItem> TransitionStatus(TaskItemStatus newStatus)
     {
         if (newStatus == TaskItemStatus.None)
@@ -117,6 +129,9 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return DomainResult.Success();
     }
 
+    /// <summary>
+    /// Removes a comment by id as an idempotent desired-state operation.
+    /// </summary>
     public DomainResult RemoveComment(Guid commentId)
     {
         var toRemove = Comments.FirstOrDefault(c => c.Id == commentId);
@@ -142,6 +157,9 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return DomainResult.Success();
     }
 
+    /// <summary>
+    /// Removes a checklist item by id as an idempotent desired-state operation.
+    /// </summary>
     public DomainResult RemoveChecklistItem(Guid checklistItemId)
     {
         var toRemove = ChecklistItems.FirstOrDefault(ci => ci.Id == checklistItemId);
@@ -170,6 +188,9 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return DomainResult.Success();
     }
 
+    /// <summary>
+    /// Removes a tag association by tag id as an idempotent desired-state operation.
+    /// </summary>
     public DomainResult RemoveTag(Guid tagId)
     {
         var toRemove = TaskItemTags.FirstOrDefault(t => t.TagId == tagId);
@@ -179,11 +200,19 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
 
     #endregion
 
+    /// <summary>
+    /// Replaces the owned DateRange value object. Validation is intentionally outside the
+    /// value object so services can decide whether incomplete dates are allowed.
+    /// </summary>
     public void UpdateDateRange(DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         DateRange = new DateRange { StartDate = startDate, DueDate = dueDate };
     }
 
+    /// <summary>
+    /// Replaces or clears the recurrence value object. Schedulers read this as a template
+    /// signal; this aggregate does not create recurring child tasks itself.
+    /// </summary>
     public void UpdateRecurrencePattern(RecurrencePattern? pattern)
     {
         RecurrencePattern = pattern;

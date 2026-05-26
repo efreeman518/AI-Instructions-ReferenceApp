@@ -13,10 +13,15 @@ namespace TaskFlow.Bootstrapper;
 
 public static partial class RegisterServices
 {
-    // FlowEngine v1.0.104 wiring — engine runtime + connector clients + JSON workflow seeding.
+    // FlowEngine v1.0.104 wiring - engine runtime + connector clients + JSON workflow seeding.
     // The 19 built-in node executors are auto-registered by AddFlowEngine() in this version.
     // Engine state + outbox live in TaskFlowFlowEngineDbContext (separate schema, shared SQL connection).
     // The Dashboard + Designer live in TaskFlow.Blazor and call into MapFlowEngineAdmin via the gateway.
+    /// <summary>
+    /// Wires FlowEngine runtime state, locks, registry, human tasks, outbox, circuit breaker,
+    /// connector clients, JSON workflow seeding, and admin policies. It is registered after AI
+    /// services so agent connectors can resolve AzureOpenAIClient when live AI is configured.
+    /// </summary>
     private static void AddFlowEngineServices(IServiceCollection services, IConfiguration config)
     {
         var fe = services.AddFlowEngine(options =>
@@ -39,12 +44,17 @@ public static partial class RegisterServices
         services.AddFlowEngineAdminPolicies();
     }
 
+    /// <summary>
+    /// Registers external connectors used by workflow nodes. Self-call HTTP goes through the public
+    /// API to preserve auth, validation, audit, and integration events; Service Bus shares the app
+    /// event connection; Azure OpenAI is optional and only registered when Foundry config exists.
+    /// </summary>
     private static void AddTaskFlowConnectorClients(
         FlowEngineBuilder fe,
         IServiceCollection services,
         IConfiguration config)
     {
-        // Self-call client — workflows that mutate TaskItems do so through the public API
+        // Self-call client - workflows that mutate TaskItems do so through the public API
         // (preserves auth, validation, audit, integration-event publishing).
         var apiBaseUrl = config["FlowEngine:TaskFlowApiBaseUrl"]
             ?? config["Gateway:BaseUrl"]
@@ -52,7 +62,7 @@ public static partial class RegisterServices
         services.AddHttpClient("taskflow-api", c => c.BaseAddress = new Uri(apiBaseUrl));
         fe.AddResilientHttpClient("taskflow-api", namedClient: "taskflow-api");
 
-        // Service Bus message client — uses the same connection string as the application's
+        // Service Bus message client - uses the same connection string as the application's
         // integration event publisher. Workflow `message` nodes publish through this; the
         // existing FunctionServiceBusTrigger picks them up alongside domain events.
         var sbConnStr = ResolveConnectionString(config, "ServiceBus1", "Values:ServiceBus1");
@@ -62,7 +72,7 @@ public static partial class RegisterServices
             fe.AddServiceBusClient("integration-events", sbConnStr, topic);
         }
 
-        // Azure OpenAI agent client — v1.0.104 introduces AddAzureOpenAIAgentClient,
+        // Azure OpenAI agent client - v1.0.104 introduces AddAzureOpenAIAgentClient,
         // which takes the AzureOpenAIClient factory + deployment/model names directly
         // instead of an Microsoft.Extensions.AI.IChatClient adapter.
         var foundryEndpoint = config[$"{TaskFlowAiSettings.ConfigSectionName}:FoundryEndpoint"];
@@ -81,6 +91,10 @@ public static partial class RegisterServices
     // hosted service that runs once at startup, skipping the directory if it does not exist
     // (e.g. when this assembly is loaded by TaskFlow.Functions or TaskFlow.Scheduler).
     // Replaces the bespoke WorkflowSeedStartupTask in pre-1.0.104 versions.
+    /// <summary>
+    /// Seeds workflow definitions from TaskFlow.Api/Workflows when that directory is present in
+    /// the running host output. Other hosts can load this assembly without requiring workflow files.
+    /// </summary>
     private static void AddWorkflowJsonSeeding(FlowEngineBuilder fe)
     {
         fe.AddWorkflowJsonSeeding(opts =>

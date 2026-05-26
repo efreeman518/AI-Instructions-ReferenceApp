@@ -13,9 +13,9 @@ using TaskFlow.Infrastructure.Storage;
 namespace Test.Integration;
 
 /// <summary>
-/// End-to-end audit pipeline test for the API: POST /api/v1/categories → API request handling →
-/// audit middleware → Azurite Table Storage row, with a polling read-back to confirm the persisted entity.
-/// Aspire tier (Aspire.Hosting.Testing) — required because two Aspire resources participate
+/// End-to-end audit pipeline test for the API: POST /api/v1/categories -> API request handling ->
+/// audit middleware -> Azurite Table Storage row, with a polling read-back to confirm the persisted entity.
+/// Aspire tier (Aspire.Hosting.Testing) - required because two Aspire resources participate
 /// (<c>taskflowapi</c> for the request, <c>TableStorage1</c> for verification), and both must be Healthy
 /// before the test can run. The polling helper tolerates eventual consistency between request completion
 /// and table visibility.
@@ -33,7 +33,7 @@ public class ApiAuditPipelineTests
     {
         var ct = CancellationToken.None;
 
-        // Resources can be Running before they're actually serving requests — wait for the health check.
+        // Resources can be Running before they're actually serving requests - wait for the health check.
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
         await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
 

@@ -23,7 +23,7 @@ public class WarmupDependencies(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Database warmup failed — continuing startup");
+            logger.LogWarning(ex, "Database warmup failed - continuing startup");
         }
     }
 }

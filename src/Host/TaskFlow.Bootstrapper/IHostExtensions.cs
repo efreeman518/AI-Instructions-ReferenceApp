@@ -5,8 +5,16 @@ using TaskFlow.Application.MessageHandlers;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>
+/// Host lifecycle helpers shared by API, Functions, Scheduler, and tests.
+/// </summary>
 public static class IHostExtensions
 {
+    /// <summary>
+    /// Finds message handlers in the application handler assembly and registers the resolved
+    /// scoped instances with the singleton internal message bus. This keeps audit handlers
+    /// active without hard-coding every closed generic handler registration.
+    /// </summary>
     public static void AutoRegisterMessageHandlers(this IHost host)
     {
         var msgBus = host.Services.GetRequiredService<IInternalMessageBus>();
@@ -44,6 +52,10 @@ public static class IHostExtensions
         }
     }
 
+    /// <summary>
+    /// Registers message handlers before running startup tasks so migration, warmup, and
+    /// later request processing share the same internal event pipeline.
+    /// </summary>
     public static async Task RunStartupTasks(this IHost host)
     {
         host.AutoRegisterMessageHandlers();

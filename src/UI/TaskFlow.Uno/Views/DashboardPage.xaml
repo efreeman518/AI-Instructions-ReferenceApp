@@ -105,7 +105,7 @@
                             </Border>
                         </Grid>
 
-                        <!-- Recent Activity — clicking a row opens the task edit page -->
+                        <!-- Recent Activity - clicking a row opens the task edit page -->
                         <utu:AutoLayout Spacing="8">
                             <TextBlock Text="Recent Activity"
                                        Style="{StaticResource TitleMedium}"

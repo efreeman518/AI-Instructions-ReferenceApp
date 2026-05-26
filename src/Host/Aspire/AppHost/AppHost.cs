@@ -14,7 +14,7 @@ var defaultSqlPassword = LocalSqlSettings.SharedSaPassword;
 
 // Infrastructure resources
 var sqlPassword = builder.AddParameter("sql-password", defaultSqlPassword, secret: true);
-// In Testing mode: non-persistent, no named volume, random port — ensures fresh container with known password.
+// In Testing mode: non-persistent, no named volume, random port - ensures fresh container with known password.
 // In dev/prod: persistent with named volume on fixed port.
 var sql = builder.AddSqlServer("sql", sqlPassword, port: isTesting ? null : 38433)
     .WithImageTag("2025-latest");
@@ -29,20 +29,20 @@ if (!isTesting)
     redis = redis.WithLifetime(ContainerLifetime.Persistent)
                  .WithDataVolume("taskflow-redis-data");
 
-// Azure Storage (Blob) — emulator
-// Not using ContainerLifetime.Persistent — persistent emulator containers survive Aspire restarts
+// Azure Storage (Blob) - emulator
+// Not using ContainerLifetime.Persistent - persistent emulator containers survive Aspire restarts
 // but get stranded on deleted Podman networks, causing netavark "eth2 already exists" errors.
 var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator();
 var blobs = storage.AddBlobs("BlobStorage1");
 var tables = storage.AddTables("TableStorage1");
 
-// Azure Service Bus — emulator
+// Azure Service Bus - emulator
 var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator();
 var domainEventsTopic = serviceBus.AddServiceBusTopic("DomainEvents");
 domainEventsTopic.AddServiceBusSubscription("function-processor");
 serviceBus.AddServiceBusQueue("TaskCommands");
 
-// Azure Cosmos DB — emulator (see AzureStorage comment re: Persistent lifetime)
+// Azure Cosmos DB - emulator (see AzureStorage comment re: Persistent lifetime)
 // Skipped in Testing: the emulator is heavy (~1.3 GB) and not needed for audit pipeline tests.
 // The API's AddCosmosDbServices falls back to NoOpTaskViewRepository when the connection string is absent.
 if (!isTesting)
@@ -51,7 +51,7 @@ if (!isTesting)
         .RunAsEmulator();
 }
 
-// AI resources (deployment-only — no emulator available)
+// AI resources (deployment-only - no emulator available)
 // TODO: [CONFIGURE] Uncomment when Azure AI resources are provisioned
 // var openai = builder.AddAzureOpenAI("openai")
 //     .AddDeployment(new("gpt-4o-deploy", "gpt-4o", "2024-08-06", "GlobalStandard", 10))

@@ -14,7 +14,7 @@ public sealed class ProblemDetailsDelegatingHandler(INotificationService notific
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (response.IsSuccessStatusCode) return response;
 
-        // Only intercept RFC 7807 payloads — leave other error shapes untouched.
+        // Only intercept RFC 7807 payloads - leave other error shapes untouched.
         if (response.Content?.Headers.ContentType?.MediaType != ProblemContentType)
             return response;
 
@@ -27,7 +27,7 @@ public sealed class ProblemDetailsDelegatingHandler(INotificationService notific
         }
         catch
         {
-            // Malformed problem+json — fall back to the raw response, caller's
+            // Malformed problem+json - fall back to the raw response, caller's
             // EnsureSuccessStatusCode will surface a plain HttpRequestException.
             return response;
         }

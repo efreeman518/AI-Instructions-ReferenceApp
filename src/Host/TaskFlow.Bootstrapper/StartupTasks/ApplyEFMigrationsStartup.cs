@@ -18,7 +18,7 @@ public class ApplyEFMigrationsStartup(
 
         if (env != "Development" && !isAspire)
         {
-            logger.LogInformation("Skipping auto-migration — not Development or Aspire");
+            logger.LogInformation("Skipping auto-migration - not Development or Aspire");
             return;
         }
 
@@ -30,7 +30,7 @@ public class ApplyEFMigrationsStartup(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "EF migration failed — continuing startup");
+            logger.LogWarning(ex, "EF migration failed - continuing startup");
         }
     }
 }

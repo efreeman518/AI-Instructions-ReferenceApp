@@ -6,6 +6,10 @@ using TaskFlow.Application.Contracts.Messaging;
 
 namespace TaskFlow.Application.Cqrs.Shared;
 
+/// <summary>
+/// Shared CQRS handler helpers for behavior that must match service-style handlers:
+/// cancellation handling, optimistic save policy, best-effort event publishing, and validator bridging.
+/// </summary>
 internal static class CqrsHandlerSupport
 {
     public static async Task<PagedResponse<TDto>> SearchAsync<TDto>(

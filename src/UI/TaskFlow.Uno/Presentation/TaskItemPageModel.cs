@@ -4,6 +4,11 @@ using TaskFlow.Uno.Core.Business.Services;
 
 namespace TaskFlow.Uno.Presentation;
 
+/// <summary>
+/// MVUX state model for the task editor. It buffers child comments and checklist items in
+/// create mode, persists children through the parent TaskItem payload, and maintains a
+/// baseline snapshot for dirty-navigation checks.
+/// </summary>
 public partial record TaskItemPageModel
 {
     public TaskItemModel? Entity { get; }
@@ -55,7 +60,7 @@ public partial record TaskItemPageModel
 
     public IState<bool> IsEditMode => State<bool>.Value(this, () => Entity?.Id is not null);
 
-    // ── Form fields ──────────────────────────────────────────────
+    // -- Form fields ----------------------------------------------
     public IState<string> Title => State<string>.Value(this, () => Entity?.Title ?? string.Empty);
     public IState<string> Description => State<string>.Value(this, () => Entity?.Description ?? string.Empty);
     public IState<string> Priority => State<string>.Value(this, () => Entity?.Priority ?? "None");
@@ -64,20 +69,20 @@ public partial record TaskItemPageModel
     public IState<DateTimeOffset?> DueDate => State<DateTimeOffset?>.Value(this, () => Entity?.DueDate);
     public IState<Guid?> SelectedCategoryId => State<Guid?>.Value(this, () => Entity?.CategoryId);
 
-    // ── Dynamic header text ──────────────────────────────────────
+    // -- Dynamic header text --------------------------------------
     public IState<string> FormHeader => State<string>.Value(this, () => Entity?.Id is not null ? "Edit Task" : "New Task");
     public IState<string> FormSubheader => State<string>.Value(this, () => Entity?.Id is not null ? "Update details, manage checklist and comments" : "Fill in the details to create a new task");
     public IState<string> SaveButtonText => State<string>.Value(this, () => Entity?.Id is not null ? "Update Task" : "Save Task");
 
-    // ── Lookup lists ─────────────────────────────────────────────
+    // -- Lookup lists ---------------------------------------------
     public IListFeed<CategoryModel> Categories => ListFeed.Async(async ct =>
         (IImmutableList<CategoryModel>)(await CategoryService.SearchAsync(isActive: true, ct: ct)).ToImmutableList());
 
     public IListFeed<TagModel> AvailableTags => ListFeed.Async(async ct =>
         (IImmutableList<TagModel>)(await TagService.SearchAsync(ct: ct)).ToImmutableList());
 
-    // ── Children (mutable lists — add/delete updates immediately; initial
-    //    load is via ListState.Async which fetches once then lets us mutate). ──
+    // -- Children (mutable lists - add/delete updates immediately; initial
+    //    load is via ListState.Async which fetches once then lets us mutate). --
     public IListState<CommentModel> Comments => ListState.Async(this, async ct =>
     {
         if (Entity?.Id is null) return ImmutableList<CommentModel>.Empty;
@@ -99,13 +104,17 @@ public partial record TaskItemPageModel
         return (IImmutableList<AttachmentModel>)result.ToImmutableList();
     });
 
-    // ── Inline add form states ───────────────────────────────────
+    // -- Inline add form states -----------------------------------
     public IState<string> NewCommentBody => State<string>.Value(this, () => string.Empty);
     public IState<string> NewChecklistTitle => State<string>.Value(this, () => string.Empty);
 
-    // ── Form reset (fired on page Visibility→Visible so create mode
+    // -- Form reset (fired on page Visibility->Visible so create mode
     //    always starts empty, even when the ViewModel instance is reused
-    //    by the Visibility navigator). ──
+    //    by the Visibility navigator). --
+    /// <summary>
+    /// Rebuilds field and child-list state from the current entity. Create mode clears child
+    /// lists; edit mode reloads them from the API so stale local edits do not survive navigation.
+    /// </summary>
     public async ValueTask Reset(CancellationToken ct = default)
     {
         var noCt = CancellationToken.None;
@@ -171,7 +180,11 @@ public partial record TaskItemPageModel
             || !string.IsNullOrWhiteSpace(newChecklist);
     }
 
-    // ── Save (create or update) ──────────────────────────────────
+    // -- Save (create or update) ----------------------------------
+    /// <summary>
+    /// Saves either a new aggregate or an existing aggregate. Child collections are included
+    /// in the same request so the server updater can insert, update, and delete related rows.
+    /// </summary>
     public async ValueTask Save(CancellationToken ct)
     {
         var title = await Title;
@@ -186,7 +199,7 @@ public partial record TaskItemPageModel
 
         // Gather any buffered children so the task + its children ship in a
         // single request. Buffered children carry a client-side Id for local
-        // tracking — strip it so the server assigns a real Id.
+        // tracking - strip it so the server assigns a real Id.
         var pendingChecklist = (await ChecklistItems) ?? ImmutableList<ChecklistItemModel>.Empty;
         var pendingComments = (await Comments) ?? ImmutableList<CommentModel>.Empty;
         var isCreate = Entity?.Id is null;
@@ -228,7 +241,7 @@ public partial record TaskItemPageModel
         }
     }
 
-    // ── Delete ───────────────────────────────────────────────────
+    // -- Delete ---------------------------------------------------
     public async ValueTask DeleteTask(CancellationToken ct)
     {
         if (Entity?.Id is null) return;
@@ -238,7 +251,10 @@ public partial record TaskItemPageModel
         await Navigator.NavigateBackAsync(this, cancellation: CancellationToken.None);
     }
 
-    // ── Comment commands (buffered in create mode; persisted on task Save) ──
+    // -- Comment commands (buffered in create mode; persisted on task Save) --
+    /// <summary>
+    /// Adds a comment immediately for persisted tasks or buffers it locally until parent save.
+    /// </summary>
     public async ValueTask AddComment(CancellationToken ct)
     {
         var body = await NewCommentBody;
@@ -277,7 +293,10 @@ public partial record TaskItemPageModel
         }
     }
 
-    // ── Checklist commands (buffered in create mode; persisted on task Save) ──
+    // -- Checklist commands (buffered in create mode; persisted on task Save) --
+    /// <summary>
+    /// Adds a checklist item immediately for persisted tasks or buffers it locally until parent save.
+    /// </summary>
     public async ValueTask AddChecklistItem(CancellationToken ct)
     {
         var title = await NewChecklistTitle;
@@ -354,7 +373,7 @@ public partial record TaskItemPageModel
         }
     }
 
-    // ── Attachment commands ──────────────────────────────────────
+    // -- Attachment commands --------------------------------------
     public async ValueTask DeleteAttachment(AttachmentModel attachment, CancellationToken ct)
     {
         if (attachment.Id is null) return;
