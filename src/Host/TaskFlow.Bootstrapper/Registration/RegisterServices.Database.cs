@@ -80,7 +80,7 @@ public static partial class RegisterServices
         {
             options.UseAzureSql(connectionString, sqlOptions =>
             {
-                sqlOptions.UseCompatibilityLevel(170);
+                sqlOptions.UseLatestCompatibilityLevel();
                 sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
             });
@@ -89,7 +89,7 @@ public static partial class RegisterServices
         {
             options.UseSqlServer(connectionString, sqlOptions =>
             {
-                sqlOptions.UseCompatibilityLevel(160);
+                sqlOptions.UseLatestCompatibilityLevel();
                 sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
             });
@@ -112,7 +112,7 @@ public static partial class RegisterServices
         {
             options.UseAzureSql(connectionString, sqlOptions =>
             {
-                sqlOptions.UseCompatibilityLevel(170);
+                sqlOptions.UseLatestCompatibilityLevel();
                 sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
                 sqlOptions.MigrationsHistoryTable(
@@ -124,7 +124,7 @@ public static partial class RegisterServices
         {
             options.UseSqlServer(connectionString, sqlOptions =>
             {
-                sqlOptions.UseCompatibilityLevel(160);
+                sqlOptions.UseLatestCompatibilityLevel();
                 sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
                 sqlOptions.MigrationsHistoryTable(

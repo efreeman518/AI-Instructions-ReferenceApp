@@ -1,4 +1,3 @@
-using EF.IntegrationTesting.EntityFramework;
 using EF.IntegrationTesting.Testcontainers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -45,8 +44,18 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
     }
 
     protected override DbContextOptions BuildTrxnOptions() =>
-        DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextTrxn>(Sql.ConnectionString);
+        BuildSqlServerOptions<TaskFlowDbContextTrxn>(Sql.ConnectionString);
 
     protected override DbContextOptions BuildQueryOptions() =>
-        DbContextOptionsFactory.BuildSqlServerOptions<TaskFlowDbContextQuery>(Sql.ConnectionString);
+        BuildSqlServerOptions<TaskFlowDbContextQuery>(Sql.ConnectionString);
+
+    private static DbContextOptions<TContext> BuildSqlServerOptions<TContext>(string connectionString)
+        where TContext : DbContext =>
+        new DbContextOptionsBuilder<TContext>()
+            .UseSqlServer(connectionString, sql =>
+            {
+                sql.UseLatestCompatibilityLevel();
+                sql.EnableRetryOnFailure();
+            })
+            .Options;
 }

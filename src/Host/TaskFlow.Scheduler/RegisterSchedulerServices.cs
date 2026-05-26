@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using TaskFlow.Infrastructure.Data;
 using TaskFlow.Scheduler.Abstractions;
 using TaskFlow.Scheduler.Handlers;
 using TaskFlow.Scheduler.Infrastructure;
@@ -62,6 +63,7 @@ public static class RegisterSchedulerServices
                         {
                             dbOptions.UseSqlServer(connStr, sqlOptions =>
                             {
+                                sqlOptions.UseLatestCompatibilityLevel();
                                 sqlOptions.EnableRetryOnFailure(3, TimeSpan.FromSeconds(10), null);
                                 sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "Scheduler");
                             });

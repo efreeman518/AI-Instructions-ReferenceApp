@@ -15,7 +15,7 @@ public class DesignTimeDbContextFactoryTrxn : IDesignTimeDbContextFactory<TaskFl
 
         Console.WriteLine(connString);
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextTrxn>();
-        optionsBuilder.UseSqlServer(connString);
+        optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
         return new TaskFlowDbContextTrxn(optionsBuilder.Options) { AuditId = "DesignTimeAuditId", TenantId = Guid.NewGuid() };
     }
 }
@@ -31,7 +31,7 @@ public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskF
 
         Console.WriteLine(connString);
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextQuery>();
-        optionsBuilder.UseSqlServer(connString);
+        optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
         return new TaskFlowDbContextQuery(optionsBuilder.Options) { AuditId = "DesignTimeAuditId", TenantId = Guid.NewGuid() };
     }
 }
@@ -47,9 +47,12 @@ public class DesignTimeDbContextFactoryFlowEngine : IDesignTimeDbContextFactory<
 
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowFlowEngineDbContext>();
         optionsBuilder.UseSqlServer(connString, sql =>
+        {
+            sql.UseLatestCompatibilityLevel();
             sql.MigrationsHistoryTable(
                 TaskFlowFlowEngineDbContext.MigrationHistoryTable,
-                TaskFlowFlowEngineDbContext.SchemaName));
+                TaskFlowFlowEngineDbContext.SchemaName);
+        });
         return new TaskFlowFlowEngineDbContext(optionsBuilder.Options);
     }
 }
