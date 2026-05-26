@@ -2,7 +2,7 @@ using EF.AspNetCore;
 using EF.Common.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using EF.CQRS.Abstractions;
-using TaskFlow.Application.Cqrs.Requests;
+using TaskFlow.Application.Cqrs.Features.TaskItemTags;
 using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;

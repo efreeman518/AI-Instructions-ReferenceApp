@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TaskFlow.Application.Contracts;
 using EF.CQRS.Abstractions;
-using TaskFlow.Application.Cqrs.Requests;
+using TaskFlow.Application.Cqrs.Features.TaskItems;
 using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;

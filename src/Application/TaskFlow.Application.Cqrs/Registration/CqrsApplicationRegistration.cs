@@ -1,8 +1,7 @@
 using EF.CQRS.DependencyInjection;
 using EF.CQRS.Validation;
 using Microsoft.Extensions.DependencyInjection;
-using TaskFlow.Application.Cqrs.Requests;
-using TaskFlow.Application.Cqrs.Validation;
+using TaskFlow.Application.Cqrs.Features.TaskItems;
 
 namespace TaskFlow.Application.Cqrs.Registration;
 
