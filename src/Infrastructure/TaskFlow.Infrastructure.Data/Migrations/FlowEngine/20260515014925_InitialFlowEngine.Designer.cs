@@ -18,7 +18,6 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("flowengine")
                 .HasAnnotation("ProductVersion", "10.0.7")
@@ -254,7 +253,6 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
 
                     b.ToTable("Workflows", "flowengine");
                 });
-#pragma warning restore 612, 618
         }
     }
 }

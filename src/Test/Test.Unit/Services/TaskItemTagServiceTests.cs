@@ -25,7 +25,6 @@ public class TaskItemTagServiceTests
     private readonly Mock<ITaskItemTagRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
-    private readonly Mock<IEntityCacheProvider> _cacheMock = new();
 
     [TestInitialize]
     public void Setup()
@@ -42,8 +41,7 @@ public class TaskItemTagServiceTests
         _requestContextMock.Object,
         _repoTrxnMock.Object,
         _repoQueryMock.Object,
-        _tenantBoundaryValidatorMock.Object,
-        _cacheMock.Object);
+        _tenantBoundaryValidatorMock.Object);
 
     [TestMethod]
     [TestCategory("Unit")]

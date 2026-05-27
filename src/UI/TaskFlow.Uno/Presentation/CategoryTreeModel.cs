@@ -3,8 +3,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 
-#pragma warning disable CS8620, CS8714 // Uno MVUX IState<T?>/IFeed<T> nullability mismatch
-
 namespace TaskFlow.Uno.Presentation;
 
 public partial record CategoryTreeModel(
@@ -12,6 +10,8 @@ public partial record CategoryTreeModel(
     ICategoryApiService CategoryService,
     IMessenger Messenger)
 {
+    private CategoryModel? _editingCategory;
+
     public IState<int> CategoriesVersion => State<int>.Value(this, () => 0);
     public IState<bool> IsEditing => State<bool>.Value(this, () => false);
     public IState<bool> IsCreating => State<bool>.Value(this, () => true);
@@ -29,14 +29,13 @@ public partial record CategoryTreeModel(
     public IState<string> NewCategoryName => State<string>.Value(this, () => string.Empty);
     public IState<string> NewCategoryDescription => State<string>.Value(this, () => string.Empty);
     public IState<Guid?> SelectedParentId => State<Guid?>.Value(this, () => null);
-    public IState<CategoryModel?> EditingCategory => State<CategoryModel?>.Value(this, () => null);
 
     public async ValueTask SaveCategory(CancellationToken ct)
     {
         var name = await NewCategoryName;
         var description = await NewCategoryDescription;
         var parentId = await SelectedParentId;
-        var editing = await EditingCategory;
+        var editing = _editingCategory;
 
         if (string.IsNullOrWhiteSpace(name)) return;
 
@@ -64,7 +63,7 @@ public partial record CategoryTreeModel(
 
     public async ValueTask StartEdit(CategoryModel category, CancellationToken ct)
     {
-        await EditingCategory.UpdateAsync(_ => category, ct);
+        _editingCategory = category;
         await NewCategoryName.UpdateAsync(_ => category.Name, ct);
         await NewCategoryDescription.UpdateAsync(_ => category.Description ?? string.Empty, ct);
         await SelectedParentId.UpdateAsync(_ => category.ParentCategoryId, ct);
@@ -83,7 +82,7 @@ public partial record CategoryTreeModel(
 
     private async ValueTask ResetEditor(CancellationToken ct)
     {
-        await EditingCategory.UpdateAsync(_ => null, ct);
+        _editingCategory = null;
         await NewCategoryName.UpdateAsync(_ => string.Empty, ct);
         await NewCategoryDescription.UpdateAsync(_ => string.Empty, ct);
         await SelectedParentId.UpdateAsync(_ => null, ct);

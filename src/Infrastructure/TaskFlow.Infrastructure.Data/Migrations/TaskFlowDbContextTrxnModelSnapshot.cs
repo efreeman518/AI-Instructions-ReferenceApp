@@ -15,7 +15,6 @@ namespace TaskFlow.Infrastructure.Data.Migrations
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
-#pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("taskflow")
                 .HasAnnotation("ProductVersion", "10.0.5")
@@ -487,7 +486,6 @@ namespace TaskFlow.Infrastructure.Data.Migrations
 
                     b.Navigation("TaskItemTags");
                 });
-#pragma warning restore 612, 618
         }
     }
 }

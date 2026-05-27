@@ -2,8 +2,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 
-#pragma warning disable CS8620, CS8714 // Uno MVUX IState<T?>/IFeed<T> nullability mismatch
-
 namespace TaskFlow.Uno.Presentation;
 
 public partial record TagManagementModel(
@@ -11,6 +9,8 @@ public partial record TagManagementModel(
     ITagApiService TagService,
     IMessenger Messenger)
 {
+    private TagModel? _editingTag;
+
     public IState<int> TagsVersion => State<int>.Value(this, () => 0);
 
     public IListFeed<TagModel> Tags => ListFeed.Async(async ct =>
@@ -21,7 +21,6 @@ public partial record TagManagementModel(
 
     public IState<string> NewTagName => State<string>.Value(this, () => string.Empty);
     public IState<string> NewTagColor => State<string>.Value(this, () => "#3B82F6");
-    public IState<TagModel?> EditingTag => State<TagModel?>.Value(this, () => null);
 
     public async ValueTask CreateTag(CancellationToken ct)
     {
@@ -36,11 +35,11 @@ public partial record TagManagementModel(
 
     public async ValueTask UpdateTag(CancellationToken ct)
     {
-        var editing = await EditingTag;
+        var editing = _editingTag;
         if (editing?.Id is null) return;
 
         await TagService.UpdateAsync(editing, ct);
-        await EditingTag.UpdateAsync(_ => null, ct);
+        _editingTag = null;
         await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
@@ -51,9 +50,15 @@ public partial record TagManagementModel(
         await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
-    public async ValueTask StartEdit(TagModel tag, CancellationToken ct) =>
-        await EditingTag.UpdateAsync(_ => tag, ct);
+    public ValueTask StartEdit(TagModel tag, CancellationToken ct)
+    {
+        _editingTag = tag;
+        return ValueTask.CompletedTask;
+    }
 
-    public async ValueTask CancelEdit(CancellationToken ct) =>
-        await EditingTag.UpdateAsync(_ => null, ct);
+    public ValueTask CancelEdit(CancellationToken ct)
+    {
+        _editingTag = null;
+        return ValueTask.CompletedTask;
+    }
 }
