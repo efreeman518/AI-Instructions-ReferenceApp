@@ -11,12 +11,17 @@ namespace Test.Load;
 /// Load tier (NBomber): both methods are <c>[Ignore]</c>'d for CI and require a manually-running API host
 /// at <c>http://localhost:5000</c>. Faster tiers (Endpoint/E2E) cannot reproduce the concurrent-load
 /// behavior these baselines guard.
+/// To run manually, start the API host, remove the <c>[Ignore]</c> attributes, then run from repo root:
+/// <c>rtk dotnet test src\Test\Test.Load\Test.Load.csproj --filter TestCategory=Load</c>.
+/// Output is saved under <c>src\Test\Test.Load\load-reports</c>.
 /// </summary>
 [TestClass]
 [TestCategory("Load")]
 public class TaskItemLoadTests
 {
     private const string BaseUrl = "http://localhost:5000";
+    private static readonly string ReportFolder = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "load-reports"));
 
     [TestMethod]
     [Ignore("Run manually - requires API host running")]
@@ -39,7 +44,7 @@ public class TaskItemLoadTests
 
         var stats = NBomberRunner
             .RegisterScenarios(scenario)
-            .WithReportFolder("load-reports")
+            .WithReportFolder(ReportFolder)
             .Run();
 
         var scenarioStats = stats.ScenarioStats[0];
@@ -81,7 +86,7 @@ public class TaskItemLoadTests
 
         var stats = NBomberRunner
             .RegisterScenarios(createScenario)
-            .WithReportFolder("load-reports")
+            .WithReportFolder(ReportFolder)
             .Run();
 
         var scenarioStats = stats.ScenarioStats[0];

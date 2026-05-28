@@ -1,0 +1,24 @@
+{
+  "stryker-config": {
+    "solution": "../../TaskFlow.slnx",
+    "project": "TaskFlow.Domain.Model.csproj",
+    "configuration": "Debug",
+    "target-framework": "net10.0",
+    "mutation-level": "Standard",
+    "test-case-filter": "TestCategory=Mutation",
+    "reporters": [
+      "progress",
+      "html",
+      "cleartext"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 0
+    },
+    "mutate": [
+      "**/TaskItem.cs",
+      "**/Rules/TaskItemStatusTransitionRule.cs"
+    ]
+  }
+}

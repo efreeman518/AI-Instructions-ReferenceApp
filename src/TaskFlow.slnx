@@ -45,5 +45,6 @@
     <Project Path="Test/Test.Benchmarks/Test.Benchmarks.csproj" />
     <Project Path="Test/Test.E2E/Test.E2E.csproj" />
     <Project Path="Test/Test.Mobile/Test.Mobile.csproj" />
+    <Project Path="Test/Test.Mutation/Test.Mutation.csproj" />
   </Folder>
 </Solution>

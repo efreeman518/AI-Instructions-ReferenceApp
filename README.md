@@ -38,6 +38,21 @@ The explicit `BuildAllUnoTargets=true` restore is required because the Uno proje
 
 Full Appium setup and run commands live in [src/Test/Test.Mobile/README.md](src/Test/Test.Mobile/README.md).
 
+## Mutation Testing
+
+TaskFlow has a focused Stryker.NET sample project at [src/Test/Test.Mutation](src/Test/Test.Mutation/README.md). It mutates selected domain files and runs MSTest samples that show boundary, failure-message, status-transition, and idempotency checks.
+
+```powershell
+rtk dotnet tool restore
+rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+```
+
+Run Stryker from `src/Test/Test.Mutation`:
+
+```powershell
+rtk dotnet tool run dotnet-stryker
+```
+
 ## Phase 1 Alignment Artifacts
 
 - `.scaffold/domain-specification.yaml`

@@ -47,7 +47,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 | **Workflow Orchestration** | EF.FlowEngine 1.0.104 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
 | **Auth** | Microsoft Entra ID (External) / Scaffold mode |
 | **Observability** | OpenTelemetry (OTLP), Aspire Dashboard |
-| **Testing** | MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, BenchmarkDotNet, NBomber, Playwright |
+| **Testing** | MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, Stryker.NET, BenchmarkDotNet, NBomber, Playwright |
 
 ### Design Principles
 
@@ -977,6 +977,7 @@ graph TB
     subgraph pyramid["Test Pyramid"]
         direction BT
         UNIT[" Unit Tests<br/><small>Domain, Mappers, Services, Repos, UI</small>"]
+        MUTATION[" Mutation Tests<br/><small>Stryker.NET domain mutant checks</small>"]
         ENDPOINTS[" Endpoint Tests<br/><small>HTTP cycles via WebApplicationFactory</small>"]
         ARCH[" Architecture Tests<br/><small>Layer deps, naming conventions, tenant contracts</small>"]
         INT[" Integration Tests<br/><small>Aspire AppHost - real SQL, Service Bus, Storage, Functions</small>"]
@@ -986,9 +987,10 @@ graph TB
         BENCH[" Benchmarks<br/><small>BenchmarkDotNet micro-perf</small>"]
     end
 
-    UNIT --- ENDPOINTS --- ARCH --- INT --- E2E --- UIE2E --- LOAD --- BENCH
+    UNIT --- MUTATION --- ENDPOINTS --- ARCH --- INT --- E2E --- UIE2E --- LOAD --- BENCH
 
     style UNIT fill:#27ae60,color:#fff
+    style MUTATION fill:#16a085,color:#fff
     style ENDPOINTS fill:#2ecc71,color:#fff
     style ARCH fill:#2980b9,color:#fff
     style INT fill:#8e44ad,color:#fff
@@ -1003,12 +1005,13 @@ graph TB
 | Project | Purpose | Value | Primary Tools |
 |---------|---------|-------|---------------|
 | **Test.Unit** | Pure-CPU verification of domain logic, DTO <-> entity mapping, application service and CQRS handler success/failure/conflict paths, custom CQRS validation, in-memory repository CRUD, and Uno API-service mappers. | Fastest feedback loop - millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched. | MSTest, **Moq**, EF Core InMemory provider |
+| **Test.Mutation** | Focused MSTest project for Stryker.NET runs against selected domain files (`TaskItem.cs`, `TaskItemStatusTransitionRule.cs`). Samples assert boundary values, failure messages, status transitions, optional-link updates, and idempotent child collections. | Demonstrates mutation testing without running the full solution suite. Stryker verifies that assertions kill comparison, boolean, string, and collection-behavior mutants in the configured domain scope. | MSTest, **Stryker.NET** |
 | **Test.Endpoints** | Drives every HTTP endpoint through the full ASP.NET Core pipeline in both application styles and asserts status codes (200/201/400/404/409/422), envelopes, and ProblemDetails shapes. | Confirms the wire contract stays identical across service endpoints and CQRS endpoints without paying for real infrastructure. | MSTest, `Microsoft.AspNetCore.Mvc.Testing` (**WebApplicationFactory**), EF Core InMemory |
 | **Test.Architecture** | Asserts compile-time layering and naming rules: Domain has zero outward references; `Application.Services` cannot reference Infrastructure or Hosts; `Application.Cqrs` has no Host or Infrastructure implementation dependency; CQRS avoids central request dispatchers, request buses, and generic `Send()` entrypoints; every tenant entity implements `ITenantEntity<Guid>`; services have matching `I*` interfaces; entity setters are private. | Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with `dotnet test`, and travel with the code instead of living in a wiki. | MSTest, **NetArchTest.Rules** |
 | **Test.Integration** | End-to-end verification of cross-service workflows by booting the full **Aspire AppHost** in-process: SQL Server, Service Bus emulator, Azure Table Storage, and (when `func.exe` is on PATH) Azure Functions. Covers EF migrations, repository CRUD with paging, the audit pipeline (interceptor -> channel -> table storage), and domain-event flow (API publish -> Service Bus -> Function projection -> audit row). | Highest-fidelity tests that still run on a developer laptop. Shared Aspire health, connection-string, and environment-scope helpers come from `EF.Test.Integration`, keeping the assembly fixture focused on TaskFlow-specific AppHost setup. | MSTest, **Aspire.Hosting.Testing** (`DistributedApplicationTestingBuilder`), `EF.Test.Integration`, `Azure.Data.Tables` |
 | **Test.E2E** | Multi-endpoint workflow tests (create -> search -> update -> delete) against a real SQL Server container in both application styles. These cover cases where the InMemory provider's missing semantics (FK constraints, projection plans, concurrency tokens) would hide bugs. | Bridges Test.Endpoints (fast, in-memory) and Test.Integration (full AppHost). The SQL container fixture and options factory come from `EF.Test.Integration`, so E2E tests only choose the application style and database backend. | MSTest, WebApplicationFactory, `EF.Test.Integration` |
-| **Test.Load** | NBomber HTTP scenarios - task-search throughput and CRUD generation - with assertions on success rate (>= 95 %) and P99 latency (< 2 s). | Catches pre-prod throughput regressions and gives a reproducible perf baseline. Tests are `[Ignore]`'d by default (manual run) so they never gate CI on infra availability. | MSTest, **NBomber**, NBomber.Http |
-| **Test.Benchmarks** | BenchmarkDotNet console runner exercising hot-path mappers (`ToDto`, `ToEntity`) with `[MemoryDiagnoser]` for allocation tracking. | Quantifies the cost of mapping changes - guards against silent allocation regressions when DTOs are extended. | **BenchmarkDotNet** |
+| **Test.Load** | NBomber HTTP scenarios - task-search throughput and CRUD generation - with assertions on success rate (>= 95 %) and P99 latency (< 2 s). Manual reports write under `src/Test/Test.Load/load-reports`. | Catches pre-prod throughput regressions and gives a reproducible perf baseline. Tests are `[Ignore]`'d by default (manual run) so they never gate CI on infra availability. | MSTest, **NBomber**, NBomber.Http |
+| **Test.Benchmarks** | BenchmarkDotNet console runner exercising hot-path mappers (`ToDto`, `ToEntity`) and application-style endpoint paths (`SearchTaskItemsAsync`, `CreateTaskItemAsync`) with `[MemoryDiagnoser]`. | Quantifies mapping allocation cost and compares Service vs CQRS endpoint overhead behind the same HTTP contract. | **BenchmarkDotNet**, WebApplicationFactory, EF Core InMemory |
 | **Test.Support** | TaskFlow-specific test infrastructure: a thin `WebApplicationFactoryBase<TProgram, TTrxn, TQuery>` adapter over `EF.Test.Integration`, fluent entity builders (`CategoryBuilder`, `TaskItemBuilder`, `CommentBuilder`, `TagBuilder`), shared constants. | Shared DI-rewiring boilerplate lives in the package candidate; Test.Support keeps only TaskFlow-specific startup-task removal and fixture data. | `EF.Test.Integration`, EF Core InMemory |
 | **Test.PlaywrightUI** | Browser-driven UI tests against the running Blazor (`https://localhost:7201`) and Uno WASM (`https://localhost:7069`) frontends - full CRUD lifecycle (create -> edit -> delete), dashboard smoke, regression scenarios. | The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss. | **Playwright** (TypeScript, `@playwright/test`) |
 | **Test.Integration.FlowEngine** | Workflow-definition validity tier for every JSON file shipped under `TaskFlow.Api/Workflows/`. Asserts JSON -> `WorkflowDefinition` deserialization, `WorkflowDefinitionValidator.ValidateAndThrow` passes (unknown node types, dangling edges, malformed schemas), in-memory `IWorkflowRegistry` round-trip preserves node count + status, `WorkflowDefinitionBuilder.FromJson` hydrates id/version/nodes, and the copy-on-build glob does not silently drop files. | Catches authoring mistakes that would otherwise only surface at first-instance-start in dev. Runs without any Aspire stack or Docker - uses `EF.FlowEngine.Testing`'s in-memory registry. Fast (sub-second) and is the first line of defense on every PR that touches a workflow JSON. | MSTest, **EF.FlowEngine.Testing** (`InMemoryWorkflowRegistry`) |
@@ -1019,6 +1022,25 @@ Endpoint and E2E workflow suites run against both `ApplicationStyle.Service` and
 
 CQRS-specific unit tests cover handler behavior, the custom `IRequestValidator<TRequest>` pattern, validation failure response mapping, and decorator order. Architecture tests guard the CQRS boundary: no central request dispatcher, no request bus, no generic `Send()` entrypoint, no Host dependency, no Infrastructure implementation dependency, and one request record per handler registration.
 
+`ApplicationStyleBenchmarks` extends that parity check into performance. It creates isolated in-memory API hosts for `Service` and `Cqrs`, disables rate-limit noise through test configuration, seeds identical task data, then benchmarks search and create endpoints through the same HTTP routes.
+
+### 12.2.2 Mutation Testing Scope
+
+`Test.Mutation` is intentionally narrow. Its `stryker-config.json` mutates `TaskFlow.Domain.Model` only for `TaskItem.cs` and `TaskItemStatusTransitionRule.cs`, filters tests to `TestCategory=Mutation`, and emits progress, cleartext, and HTML reports. This makes the sample fast enough for local learning while keeping the report focused on domain invariants rather than framework wiring.
+
+Run from repo root:
+
+```powershell
+rtk dotnet tool restore
+rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+```
+
+Run Stryker from `src/Test/Test.Mutation`:
+
+```powershell
+rtk dotnet tool run dotnet-stryker
+```
+
 ### 12.3 Testing Tools
 
 | Tool | Role | What It Provides |
@@ -1026,6 +1048,7 @@ CQRS-specific unit tests cover handler behavior, the custom `IRequestValidator<T
 | **MSTest** | Test runner (Microsoft) | `[TestClass] / [TestMethod] / [TestCategory]`, `Assert.*`, parallelization (`MSTestParallelize{Assembly,TestClasses}`), `[AssemblyInitialize]` / `[AssemblyCleanup]` for shared fixtures. |
 | **Moq** | Mocking framework | Lambda-based fakes for service interfaces (`Mock<IFoo>`); used in `Test.Unit` to isolate services from repositories and external clients. |
 | **NetArchTest.Rules** | Architecture assertion DSL | Fluent rules over reflected assemblies - `Types.InAssembly(asm).ShouldNot().HaveDependencyOnAny(...).GetResult()`. Failure surfaces the offending types. Run as ordinary MSTest cases. |
+| **Stryker.NET** | Mutation testing | Mutates selected source files, reruns the matching MSTest cases, and reports killed, survived, no-coverage, and compile-error mutants. Configured through `src/Test/Test.Mutation/stryker-config.json`. |
 | **BenchmarkDotNet** | Micro-benchmark harness | Warmup / iteration control, statistical noise rejection, `[MemoryDiagnoser]` for GC allocations, console summary tables. Run as `dotnet run -c Release --project src/Test/Test.Benchmarks`. |
 | **NBomber + NBomber.Http** | Load-test framework | `Scenario.Create(...)`, `Simulation.Inject(rate, interval, during)` for arrival-rate load, percentile assertions on latency / success. HTTP helpers for request building. |
 | **`Microsoft.AspNetCore.Mvc.Testing`** | In-process API host (**WebApplicationFactory**) | Boots `Program.cs` against a `TestServer` - full DI, middleware, routing, model binding - without Kestrel. Returns an `HttpClient` and exposes the `IServiceCollection` for test-time service replacement. |
