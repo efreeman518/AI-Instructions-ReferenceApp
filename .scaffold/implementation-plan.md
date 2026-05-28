@@ -224,7 +224,7 @@ CLI tools were preferred before MCP servers where both existed. MCP and document
 
 | Tool | Needed for | Phase | Install | Verified |
 |---|---|---|---|---|
-| `dotnet-ef` | EF migrations | 5a | `dotnet tool install dotnet-ef` | [x] |
+| `dotnet-ef` | EF migrations | 5a | Not currently pinned in `dotnet-tools.json` | [ ] |
 | `azd` | IaC/deployment validation | 5d | `winget install Microsoft.Azd` | [ ] |
 | `func` | Azure Functions local validation | 5c | `npm i -g azure-functions-core-tools@4` | [ ] |
 | `uno-check` | Uno workload validation | 5c | `dotnet tool install -g uno.check` | [ ] |

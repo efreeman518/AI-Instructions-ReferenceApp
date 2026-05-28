@@ -51,7 +51,7 @@ hostGates:
 | `.scaffold/implementation-plan.md` | 3 | Vertical slice order |
 | `.scaffold/INSTRUCTION-GAPS.md` | - | Recorded gaps for the maintenance repo |
 | `.scaffold/REFERENCE-STATUS.md` | - | Current verified build/test/vuln snapshot |
-| `dotnet-tools.json` | 3 | dotnet-ef pinned (project root) |
+| `dotnet-tools.json` | 3 | Local tool manifest (`ilspycmd`, `dotnet-stryker`) |
 | `src/TaskFlow.slnx` | 4+ | 32-project clean-architecture solution |
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
