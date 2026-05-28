@@ -51,8 +51,18 @@ Generated\ Files/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
+**/[Tt]est[Rr]esults/
 [Bb]uild[Ll]og.*
 *.trx
+
+# Test output reports
+**/[Ll]oad-[Rr]eports/
+**/load-reports/
+nbomber-log-*.txt
+nbomber_report_*.csv
+nbomber_report_*.html
+nbomber_report_*.md
+nbomber_report_*.txt
 
 # NUnit
 *.VisualState.xml

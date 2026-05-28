@@ -103,7 +103,7 @@ Runtime/edge concerns (tests-after, within 5b):
 - [ ] Configuration + appsettings (per environment, ValidateOnStart)
 - [ ] Multi-tenant middleware (request context, tenant extraction from claims)
 - [ ] Write infrastructure tests (health checks, config validation, caching behavior)
-- [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes; `dotnet run --project src/Aspire/AppHost` starts and all services healthy
+- [ ] **Checkpoint:** `dotnet build` + `dotnet test --filter "TestCategory=Unit|TestCategory=Endpoint"` passes; `dotnet run --project src/Host/Aspire/AppHost/AppHost.csproj` starts and all services healthy
 
 ### Phase 5c - Optional Hosts (Tests-After)
 

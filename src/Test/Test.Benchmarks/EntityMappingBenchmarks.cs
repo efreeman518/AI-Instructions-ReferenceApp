@@ -11,8 +11,8 @@ namespace Test.Benchmarks;
 /// Benchmark tier (BenchmarkDotNet only) - runs from <c>Program.Main</c> via <c>BenchmarkSwitcher</c>;
 /// not part of the MSTest run. The other tiers cannot produce reliable allocation/duration figures.
 /// Run from repo root with:
-/// <c>rtk dotnet run -c Release --project src\Test\Test.Benchmarks\Test.Benchmarks.csproj -- --filter *EntityMappingBenchmarks*</c>.
-/// Output is saved under <c>BenchmarkDotNet.Artifacts\results</c> in the command working directory.
+/// <c>dotnet run -c Release --project src\Test\Test.Benchmarks\Test.Benchmarks.csproj -- --filter *EntityMappingBenchmarks*</c>.
+/// Output is saved under <c>src\Test\Test.Benchmarks\BenchmarkDotNet.Artifacts\results</c>.
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(warmupCount: 3, iterationCount: 10)]

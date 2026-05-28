@@ -5,9 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EF.Common.Contracts" />
     <PackageReference Include="MSTest" />
     <PackageReference Include="NBomber" />
-    <PackageReference Include="NBomber.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
   </ItemGroup>
 
   <ItemGroup>

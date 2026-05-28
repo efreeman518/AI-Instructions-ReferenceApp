@@ -782,7 +782,7 @@ graph TB
 
 **Start locally**:
 ```bash
-dotnet run --project src/Aspire/AppHost
+dotnet run --project src/Host/Aspire/AppHost/AppHost.csproj
 # Uno WASM and Blazor (with FlowEngine Dashboard) run separately
 ```
 
@@ -1031,14 +1031,14 @@ CQRS-specific unit tests cover handler behavior, the custom `IRequestValidator<T
 Run from repo root:
 
 ```powershell
-rtk dotnet tool restore
-rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+dotnet tool restore
+dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 ```
 
 Run Stryker from `src/Test/Test.Mutation`:
 
 ```powershell
-rtk dotnet tool run dotnet-stryker
+dotnet tool run dotnet-stryker
 ```
 
 ### 12.3 Testing Tools
@@ -1225,8 +1225,8 @@ dotnet test src/Test/Test.E2E
 # Integration tests (boots Aspire AppHost - Docker + emulators)
 dotnet test --filter "TestCategory=Integration"
 
-# Load tests (manual - needs API host running on localhost:5000)
-dotnet test --filter "TestCategory=Load"
+# Load tests (manual - start Aspire AppHost first; set TASKFLOW_LOAD_BASE_URL if taskflowapi uses a non-default port)
+dotnet test src/Test/Test.Load/Test.Load.csproj --filter "TestCategory=Load"
 
 # Benchmarks (Release build, console runner)
 dotnet run -c Release --project src/Test/Test.Benchmarks

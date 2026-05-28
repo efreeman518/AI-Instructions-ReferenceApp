@@ -15,12 +15,12 @@ React + TypeScript reference UI for TaskFlow.
 Run through Aspire when the full stack is needed. AppHost passes `VITE_API_BASE_URL` and Vite proxies `/api` to the gateway.
 
 ```powershell
-rtk dotnet run --project .\Host\Aspire\AppHost\AppHost.csproj
+dotnet run --project .\Host\Aspire\AppHost\AppHost.csproj
 ```
 
 Standalone UI build:
 
 ```powershell
-rtk npm install
-rtk npm run build
+npm install
+npm run build
 ```

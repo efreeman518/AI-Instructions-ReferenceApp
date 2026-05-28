@@ -30,8 +30,8 @@ TaskFlow mobile smoke tests use MSTest + Appium for the Uno Android/iOS heads. A
 Before building the Android package, restore the Uno app with all mobile targets included:
 
 ```powershell
-rtk dotnet restore src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:BuildAllUnoTargets=true
-rtk dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:TargetFrameworkOverride=net10.0-android -p:UseMocks=true --no-restore -m:1
+dotnet restore src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:BuildAllUnoTargets=true
+dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:TargetFrameworkOverride=net10.0-android -p:UseMocks=true --no-restore -m:1
 ```
 
 The explicit `BuildAllUnoTargets=true` restore is required because the Uno project defaults to a fast Wasm-only restore for local web work. Android/Appium runs need the platform Skia runtime packages in the NuGet asset graph.
@@ -43,14 +43,14 @@ Full Appium setup and run commands live in [src/Test/Test.Mobile/README.md](src/
 TaskFlow has a focused Stryker.NET sample project at [src/Test/Test.Mutation](src/Test/Test.Mutation/README.md). It mutates selected domain files and runs MSTest samples that show boundary, failure-message, status-transition, and idempotency checks.
 
 ```powershell
-rtk dotnet tool restore
-rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+dotnet tool restore
+dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 ```
 
 Run Stryker from `src/Test/Test.Mutation`:
 
 ```powershell
-rtk dotnet tool run dotnet-stryker
+dotnet tool run dotnet-stryker
 ```
 
 ## Phase 1 Alignment Artifacts

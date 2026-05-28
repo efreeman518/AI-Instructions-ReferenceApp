@@ -1244,7 +1244,7 @@
   </g>
 </svg>
 </div>
-<pre><code>dotnet run --project src/Aspire/AppHost
+<pre><code>dotnet run --project src/Host/Aspire/AppHost/AppHost.csproj
 # Uno WASM and Blazor (with FlowEngine Dashboard) run separately</code></pre>
 <p><strong>Service dependencies</strong>: API waits for SQL + Redis. Gateway waits for API. Functions wait for SQL + Storage.</p>
 
@@ -1661,10 +1661,10 @@
 <h3>12.2.2 Mutation Testing Scope</h3>
 <p><code>Test.Mutation</code> is intentionally narrow. Its <code>stryker-config.json</code> mutates <code>TaskFlow.Domain.Model</code> only for <code>TaskItem.cs</code> and <code>TaskItemStatusTransitionRule.cs</code>, filters tests to <code>TestCategory=Mutation</code>, and emits progress, cleartext, and HTML reports. This makes the sample fast enough for local learning while keeping the report focused on domain invariants rather than framework wiring.</p>
 <p>Run from repo root:</p>
-<pre><code>rtk dotnet tool restore
-rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj</code></pre>
+<pre><code>dotnet tool restore
+dotnet test src/Test/Test.Mutation/Test.Mutation.csproj</code></pre>
 <p>Run Stryker from <code>src/Test/Test.Mutation</code>:</p>
-<pre><code>rtk dotnet tool run dotnet-stryker</code></pre>
+<pre><code>dotnet tool run dotnet-stryker</code></pre>
 
 <h3>12.3 Testing Tools</h3>
 <table>
@@ -1916,8 +1916,8 @@ dotnet test src/Test/Test.E2E
 # Integration tests (boots Aspire AppHost - Docker + emulators)
 dotnet test --filter "TestCategory=Integration"
 
-# Load tests (manual - needs API host running on localhost:5000)
-dotnet test --filter "TestCategory=Load"
+# Load tests (manual - start Aspire AppHost first; set TASKFLOW_LOAD_BASE_URL if taskflowapi uses a non-default port)
+dotnet test src/Test/Test.Load/Test.Load.csproj --filter "TestCategory=Load"
 
 # Benchmarks (Release build, console runner)
 dotnet run -c Release --project src/Test/Test.Benchmarks

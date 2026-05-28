@@ -11,12 +11,12 @@ namespace Test.Mutation.Domain;
 /// and reruns this filtered MSTest suite to decide which mutants are killed or survived.
 /// Run the suite from repo root:
 /// <code>
-/// rtk dotnet tool restore
-/// rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+/// dotnet tool restore
+/// dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 /// </code>
 /// Then run Stryker from src/Test/Test.Mutation:
 /// <code>
-/// rtk dotnet tool run dotnet-stryker
+/// dotnet tool run dotnet-stryker
 /// </code>
 /// The HTML mutation report is written under StrykerOutput.
 /// </summary>

@@ -7,14 +7,14 @@ This project is a focused Stryker.NET run target for TaskFlow domain logic. It d
 From repo root:
 
 ```powershell
-rtk dotnet tool restore
-rtk dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+dotnet tool restore
+dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 ```
 
 Then run Stryker from `src/Test/Test.Mutation`:
 
 ```powershell
-rtk dotnet tool run dotnet-stryker
+dotnet tool run dotnet-stryker
 ```
 
 Stryker writes the HTML report under `src/Test/Test.Mutation/StrykerOutput/`.

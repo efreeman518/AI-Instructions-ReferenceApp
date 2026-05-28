@@ -15,8 +15,8 @@ namespace Test.Benchmarks;
 /// BenchmarkDotNet endpoint benchmarks that compare the Service and Cqrs application styles behind the
 /// same HTTP contract. Each style uses an isolated in-memory API host and EF Core database.
 /// Run from repo root with:
-/// <c>rtk dotnet run -c Release --project src\Test\Test.Benchmarks\Test.Benchmarks.csproj -- --filter *ApplicationStyleBenchmarks*</c>.
-/// Output is saved under <c>BenchmarkDotNet.Artifacts\results</c> in the command working directory.
+/// <c>dotnet run -c Release --project src\Test\Test.Benchmarks\Test.Benchmarks.csproj -- --filter *ApplicationStyleBenchmarks*</c>.
+/// Output is saved under <c>src\Test\Test.Benchmarks\BenchmarkDotNet.Artifacts\results</c>.
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(warmupCount: 3, iterationCount: 10)]
