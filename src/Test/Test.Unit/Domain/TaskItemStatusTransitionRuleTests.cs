@@ -13,6 +13,7 @@ public class TaskItemStatusTransitionRuleTests
 {
     private readonly TaskItemStatusTransitionRule _rule = new();
 
+    /// <summary>Verifies that given valid transition, when evaluated, then passes.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.InProgress)]
@@ -30,6 +31,7 @@ public class TaskItemStatusTransitionRuleTests
         Assert.IsTrue(result.IsSuccess);
     }
 
+    /// <summary>Verifies that given invalid transition, when evaluated, then fails.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.Completed)]
@@ -46,6 +48,7 @@ public class TaskItemStatusTransitionRuleTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given transition to none, when evaluated, then passes.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_TransitionToNone_When_Evaluated_Then_Passes()

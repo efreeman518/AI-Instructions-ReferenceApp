@@ -5,6 +5,7 @@ import {
   waitForApp,
 } from "../../utils/unoTestUtils";
 
+/** Verifies the Playwright scenario for TaskFlow UI - smoke coverage. */
 test.describe("TaskFlow UI - smoke coverage", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -23,6 +24,7 @@ test.describe("TaskFlow UI - smoke coverage", () => {
     await sharedContext.close();
   });
 
+  /** Verifies the Playwright scenario for dashboard renders core summary content. */
   test("dashboard renders core summary content", async () => {
     await waitForApp(sharedPage);
 
@@ -35,6 +37,7 @@ test.describe("TaskFlow UI - smoke coverage", () => {
     ]);
   });
 
+  /** Verifies the Playwright scenario for categories page renders its management surface. */
   test("categories page renders its management surface", async () => {
     await waitForApp(sharedPage);
     await clickVisibleText(sharedPage, "Categories", "last");
@@ -48,6 +51,7 @@ test.describe("TaskFlow UI - smoke coverage", () => {
     ], 60_000);
   });
 
+  /** Verifies the Playwright scenario for tags page renders its management surface. */
   test("tags page renders its management surface", async () => {
     await waitForApp(sharedPage);
     await clickVisibleText(sharedPage, "Tags", "last");

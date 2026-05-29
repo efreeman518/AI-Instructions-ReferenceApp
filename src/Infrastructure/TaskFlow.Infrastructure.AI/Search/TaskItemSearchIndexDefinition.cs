@@ -11,6 +11,7 @@ public static class TaskItemSearchIndexDefinition
 {
     public const string IndexName = "taskitems-index";
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static SearchIndex Create()
     {
         var index = new SearchIndex(IndexName)

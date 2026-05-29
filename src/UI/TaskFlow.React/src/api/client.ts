@@ -63,6 +63,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T
 }
 
+/** Reads a JSON response body when the API returns content. */
 async function readJson(response: Response): Promise<unknown> {
   const text = await response.text()
   if (!text) {
@@ -76,6 +77,7 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
+/** Builds a user-facing API error message from problem details. */
 function problemMessage(problem: ProblemDetails | undefined, response: Response): string {
   if (problem?.detail) return problem.detail
   if (problem?.title) return problem.title
@@ -103,6 +105,7 @@ function put<TResponse, TBody>(path: string, body: TBody, signal?: AbortSignal):
   })
 }
 
+/** Sends a DELETE request and validates the expected empty response. */
 function del(path: string, signal?: AbortSignal): Promise<void> {
   return requestJson<void>(path, { method: 'DELETE', signal })
 }

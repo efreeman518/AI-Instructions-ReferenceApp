@@ -10,8 +10,10 @@ using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
+    /// <summary>Registers caching services dependencies in the service container.</summary>
     private static void AddCachingServices(IServiceCollection services, IConfiguration config)
     {
         List<CacheSettings> cacheSettings = [];

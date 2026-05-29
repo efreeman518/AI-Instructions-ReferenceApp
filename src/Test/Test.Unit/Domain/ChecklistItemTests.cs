@@ -11,6 +11,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class ChecklistItemTests
 {
+    /// <summary>Verifies that given valid input, when checklist item created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_ChecklistItemCreated_Then_ReturnsSuccess()
@@ -24,6 +25,7 @@ public class ChecklistItemTests
         Assert.IsNull(result.Value.CompletedDate);
     }
 
+    /// <summary>Verifies that given empty title, when checklist item created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -35,6 +37,7 @@ public class ChecklistItemTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty task item ID, when checklist item created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTaskItemId_When_ChecklistItemCreated_Then_ReturnsDomainFailure()
@@ -43,6 +46,7 @@ public class ChecklistItemTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing item, when updated with title, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingItem_When_UpdatedWithTitle_Then_ReturnsUpdatedValues()
@@ -53,6 +57,7 @@ public class ChecklistItemTests
         Assert.AreEqual("Updated", result.Value!.Title);
     }
 
+    /// <summary>Verifies that given incomplete item, when completion set, then completed date set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_IncompleteItem_When_CompletionSet_Then_CompletedDateSet()
@@ -64,6 +69,7 @@ public class ChecklistItemTests
         Assert.IsNotNull(result.Value.CompletedDate);
     }
 
+    /// <summary>Verifies that given completed item, when uncompleted, then completed date cleared.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_CompletedItem_When_Uncompleted_Then_CompletedDateCleared()
@@ -78,6 +84,7 @@ public class ChecklistItemTests
         Assert.IsNull(result.Value.CompletedDate);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()

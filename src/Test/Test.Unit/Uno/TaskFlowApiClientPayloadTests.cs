@@ -17,6 +17,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class TaskFlowApiClientPayloadTests
 {
+    /// <summary>Verifies task items post sets child task item ID when missing behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task TaskItemsPostAsync_SetsChildTaskItemId_WhenMissing()
     {
@@ -47,6 +48,7 @@ public class TaskFlowApiClientPayloadTests
         Assert.AreEqual(Guid.Empty.ToString(), checklistTaskItemId.GetString());
     }
 
+    /// <summary>Verifies task items put uses route ID for missing child task item ID behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task TaskItemsPutAsync_UsesRouteId_ForMissingChildTaskItemId()
     {
@@ -77,10 +79,12 @@ public class TaskFlowApiClientPayloadTests
         Assert.AreEqual(taskId.ToString(), checklistTaskItemId);
     }
 
+    /// <summary>Supports test execution for Test.unit Uno scenarios.</summary>
     private sealed class CaptureRequestHandler : HttpMessageHandler
     {
         public string? LastRequestBody { get; private set; }
 
+        /// <summary>Verifies send behavior and protects the expected test contract.</summary>
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastRequestBody = request.Content is null

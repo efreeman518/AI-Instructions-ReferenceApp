@@ -6,9 +6,11 @@ using TaskFlow.Gateway;
 
 namespace Test.Unit.Gateway;
 
+/// <summary>Covers gateway health check registration behavior with focused assertions that document expected behavior and regression intent.</summary>
 [TestClass]
 public sealed class GatewayHealthCheckRegistrationTests
 {
+    /// <summary>Verifies add gateway services with service defaults resolves health check service behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddGatewayServices_WithServiceDefaults_ResolvesHealthCheckService()
     {

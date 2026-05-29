@@ -11,6 +11,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class TagTests
 {
+    /// <summary>Verifies that given valid input, when tag created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_TagCreated_Then_ReturnsSuccess()
@@ -22,6 +23,7 @@ public class TagTests
         Assert.AreEqual("#FF0000", result.Value.Color);
     }
 
+    /// <summary>Verifies that given empty name, when tag created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -33,6 +35,7 @@ public class TagTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tenant ID, when tag created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_TagCreated_Then_ReturnsDomainFailure()
@@ -41,6 +44,7 @@ public class TagTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing tag, when updated, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingTag_When_Updated_Then_ReturnsUpdatedValues()
@@ -52,6 +56,7 @@ public class TagTests
         Assert.AreEqual("#FFFFFF", result.Value.Color);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()

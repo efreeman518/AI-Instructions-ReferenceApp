@@ -37,6 +37,7 @@ public class AspireTestHost
     /// <summary>Shared Aspire app started once for all Aspire-based integration tests.</summary>
     internal static DistributedApplication? AspireApp { get; private set; }
 
+    /// <summary>Verifies assembly init behavior and protects the expected test contract.</summary>
     [AssemblyInitialize]
     public static async Task AssemblyInit(TestContext _)
     {
@@ -87,6 +88,7 @@ public class AspireTestHost
         ConnectionString = await AspireApp.GetRequiredConnectionStringAsync("taskflowdb", DefaultTimeout, ct);
     }
 
+    /// <summary>Verifies assembly cleanup behavior and protects the expected test contract.</summary>
     [AssemblyCleanup]
     public static async Task AssemblyCleanup(TestContext testContext)
     {

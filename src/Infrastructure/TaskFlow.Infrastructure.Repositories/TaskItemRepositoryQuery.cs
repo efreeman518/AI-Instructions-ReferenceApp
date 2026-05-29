@@ -19,6 +19,7 @@ namespace TaskFlow.Infrastructure.Repositories;
 public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITaskItemRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TaskItem?> GetTaskItemAsync(Guid id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<TaskItem>, IIncludableQueryable<TaskItem, object?>>>>

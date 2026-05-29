@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@mui/material'
 
+/** Renders the confirm dialog component with consistent TaskFlow UI state. */
 export function ConfirmDialog({
   open,
   title,

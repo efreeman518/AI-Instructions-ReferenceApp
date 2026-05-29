@@ -12,9 +12,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries category data through infrastructure storage contracts.</summary>
 public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICategoryRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<Category>, IIncludableQueryable<Category, object?>>>>
@@ -31,6 +33,7 @@ public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Searches search categories and returns filtered results for callers.</summary>
     public async Task<PagedResponse<CategoryDto>> SearchCategoriesAsync(SearchRequest<CategorySearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<Category>().ComposeIQueryable(false);

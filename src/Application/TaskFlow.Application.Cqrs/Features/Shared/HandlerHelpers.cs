@@ -11,18 +11,23 @@ namespace TaskFlow.Application.Cqrs.Shared;
 /// </summary>
 internal static class HandlerHelpers
 {
+    /// <summary>Builds response from current configuration and inputs.</summary>
     public static DefaultResponse<TDto> BuildResponse<TDto>(TDto? dto) =>
         new() { Item = dto, TenantInfo = null };
 
+    /// <summary>Provides the success operation for handler helpers.</summary>
     public static Result<DefaultResponse<TDto>> Success<TDto>(TDto? dto) =>
         Result<DefaultResponse<TDto>>.Success(BuildResponse(dto));
 
+    /// <summary>Provides the not found response operation for handler helpers.</summary>
     public static Result<DefaultResponse<TDto>> NotFoundResponse<TDto>() =>
         Success<TDto>(default);
 
+    /// <summary>Provides the cache key operation for handler helpers.</summary>
     public static string CacheKey(string entityName, Guid id) =>
         entityName + ":" + id;
 
+    /// <summary>Provides the enforce tenant filter operation for handler helpers.</summary>
     public static void EnforceTenantFilter<TFilter>(
         SearchRequest<TFilter> request,
         Guid? requestTenantId,

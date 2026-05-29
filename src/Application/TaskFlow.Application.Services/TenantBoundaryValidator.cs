@@ -11,6 +11,7 @@ namespace TaskFlow.Application.Services;
 /// </summary>
 internal sealed class TenantBoundaryValidator : ITenantBoundaryValidator
 {
+    /// <summary>Validates ensure tenant boundary rules and returns failures before work continues.</summary>
     public Result EnsureTenantBoundary(ILogger logger, Guid? requestTenantId,
         IReadOnlyCollection<string> roles, Guid? entityTenantId,
         string operation, string entityName, Guid? entityId = null)
@@ -20,11 +21,13 @@ internal sealed class TenantBoundaryValidator : ITenantBoundaryValidator
             operation, entityName, entityId);
     }
 
+    /// <summary>Validates ensure global admin rules and returns failures before work continues.</summary>
     public Result EnsureGlobalAdmin(IReadOnlyCollection<string> callerRoles, string operation)
     {
         return ValidationHelper.EnsureGlobalAdmin(callerRoles, operation);
     }
 
+    /// <summary>Provides the prevent tenant change operation for tenant boundary validator.</summary>
     public Result PreventTenantChange(ILogger logger, Guid? currentTenantId, Guid? newTenantId,
         string entityName, Guid entityId)
     {

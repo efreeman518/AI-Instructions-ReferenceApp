@@ -10,8 +10,10 @@ using TaskFlow.Infrastructure.AI.Search;
 
 namespace TaskFlow.Infrastructure.AI;
 
+/// <summary>Provides AI service collection extensions behavior for the Infrastructure layer.</summary>
 public static class AiServiceCollectionExtensions
 {
+    /// <summary>Registers AI services dependencies in the service container.</summary>
     public static IServiceCollection AddAiServices(this IServiceCollection services, IConfiguration config)
     {
         var aiSection = config.GetSection(TaskFlowAiSettings.ConfigSectionName);

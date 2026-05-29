@@ -14,6 +14,7 @@ public class NoOpSearchServiceTests
 {
     private readonly NoOpSearchService _service = new(NullLogger<NoOpSearchService>.Instance);
 
+    /// <summary>Verifies search task items returns empty results behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchTaskItemsAsync_ReturnsEmptyResults()
     {
@@ -23,6 +24,7 @@ public class NoOpSearchServiceTests
         Assert.IsEmpty(results);
     }
 
+    /// <summary>Verifies index task item completes without error behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task IndexTaskItemAsync_CompletesWithoutError()
     {
@@ -40,6 +42,7 @@ public class NoOpSearchServiceTests
         // No exception = success
     }
 
+    /// <summary>Verifies remove task item completes without error behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task RemoveTaskItemAsync_CompletesWithoutError()
     {

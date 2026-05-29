@@ -38,8 +38,10 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     public ICollection<ChecklistItem> ChecklistItems { get; private set; } = [];
     public ICollection<TaskItemTag> TaskItemTags { get; private set; } = [];
 
+    /// <summary>Initializes task item with required dependencies and default state.</summary>
     private TaskItem() { }
 
+    /// <summary>Initializes task item with required dependencies and default state.</summary>
     private TaskItem(Guid tenantId, string title, string? description, Priority priority, Guid? categoryId, Guid? parentTaskItemId)
     {
         TenantId = tenantId;
@@ -52,6 +54,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         ParentTaskItemId = parentTaskItemId;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<TaskItem> Create(
         Guid tenantId, string title, string? description = null,
         Priority priority = Priority.None, Guid? categoryId = null,
@@ -123,6 +126,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return result;
     }
 
+    /// <summary>Removes remove comment while keeping aggregate relationship state consistent.</summary>
     public DomainResult RemoveComment(Comment comment)
     {
         Comments.Remove(comment);
@@ -151,6 +155,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return result;
     }
 
+    /// <summary>Removes remove checklist item while keeping aggregate relationship state consistent.</summary>
     public DomainResult RemoveChecklistItem(ChecklistItem checklistItem)
     {
         ChecklistItems.Remove(checklistItem);
@@ -182,6 +187,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         return result;
     }
 
+    /// <summary>Removes remove tag while keeping aggregate relationship state consistent.</summary>
     public DomainResult RemoveTag(TaskItemTag taskItemTag)
     {
         TaskItemTags.Remove(taskItemTag);
@@ -218,6 +224,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         RecurrencePattern = pattern;
     }
 
+    /// <summary>Checks whether a task status transition is allowed by the domain state machine.</summary>
     private static bool IsValidTransition(TaskItemStatus current, TaskItemStatus target) =>
         (current, target) switch
         {
@@ -233,6 +240,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
             _ => false
         };
 
+    /// <summary>Creates a valid task item instance with domain-required defaults.</summary>
     private DomainResult<TaskItem> Valid()
     {
         var errors = new List<DomainError>();

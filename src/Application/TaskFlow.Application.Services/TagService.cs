@@ -11,6 +11,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>Coordinates tag application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 internal class TagService(
     ILogger<TagService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -25,11 +26,13 @@ internal class TagService(
 
     #region Helpers
 
+    /// <summary>Builds response from current configuration and inputs.</summary>
     private static DefaultResponse<TagDto> BuildResponse(TagDto dto) =>
         new() { Item = dto, TenantInfo = null };
 
     #endregion
 
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<PagedResponse<TagDto>> SearchAsync(
         SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
     {
@@ -45,6 +48,7 @@ internal class TagService(
         return await repoQuery.SearchTagsAsync(request, ct);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTagAsync(id, ct);
@@ -58,6 +62,7 @@ internal class TagService(
         return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> CreateAsync(
         DefaultRequest<TagDto> request, CancellationToken ct = default)
     {
@@ -91,6 +96,7 @@ internal class TagService(
         return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> UpdateAsync(
         DefaultRequest<TagDto> request, CancellationToken ct = default)
     {
@@ -129,6 +135,7 @@ internal class TagService(
         return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTagAsync(id, ct);

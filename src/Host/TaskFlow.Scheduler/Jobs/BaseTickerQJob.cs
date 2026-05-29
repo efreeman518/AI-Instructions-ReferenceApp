@@ -16,6 +16,7 @@ public abstract class BaseTickerQJob
     private readonly ILogger _logger;
     private readonly SchedulingMetrics _metrics;
 
+    /// <summary>Initializes base ticker q job with required dependencies and default state.</summary>
     protected BaseTickerQJob(IServiceScopeFactory scopeFactory, ILogger logger, SchedulingMetrics metrics)
     {
         _scopeFactory = scopeFactory;

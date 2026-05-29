@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides task item behavior for the Infrastructure Configurations layer.</summary>
 public class TaskItemConfiguration() : EntityBaseConfiguration<TaskItem>(false)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<TaskItem> builder)
     {
         base.Configure(builder);

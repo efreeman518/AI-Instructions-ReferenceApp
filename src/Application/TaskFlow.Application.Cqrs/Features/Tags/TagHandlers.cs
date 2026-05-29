@@ -11,12 +11,14 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.Tags;
 
+/// <summary>Handles search tags work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchTagsHandler(
     ILogger<SearchTagsHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     ITagRepositoryQuery repoQuery)
     : IRequestHandler<SearchTagsQuery, PagedResponse<TagDto>>
 {
+    /// <summary>Handles search tags requests and returns the application result.</summary>
     public async Task<PagedResponse<TagDto>> HandleAsync(SearchTagsQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -25,6 +27,7 @@ internal sealed class SearchTagsHandler(
     }
 }
 
+/// <summary>Handles get tag by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetTagByIdHandler(
     ILogger<GetTagByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -32,6 +35,7 @@ internal sealed class GetTagByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetTagByIdQuery, Result<DefaultResponse<TagDto>>>
 {
+    /// <summary>Handles get tag by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> HandleAsync(GetTagByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTagAsync(query.Id, ct);
@@ -46,6 +50,7 @@ internal sealed class GetTagByIdHandler(
     }
 }
 
+/// <summary>Handles create tag work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateTagHandler(
     ILogger<CreateTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -53,6 +58,7 @@ internal sealed class CreateTagHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateTagCommand, Result<DefaultResponse<TagDto>>>
 {
+    /// <summary>Handles create tag requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> HandleAsync(CreateTagCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -79,6 +85,7 @@ internal sealed class CreateTagHandler(
     }
 }
 
+/// <summary>Handles update tag work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateTagHandler(
     ILogger<UpdateTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -86,6 +93,7 @@ internal sealed class UpdateTagHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateTagCommand, Result<DefaultResponse<TagDto>>>
 {
+    /// <summary>Handles update tag requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> HandleAsync(UpdateTagCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -119,6 +127,7 @@ internal sealed class UpdateTagHandler(
     }
 }
 
+/// <summary>Handles delete tag work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteTagHandler(
     ILogger<DeleteTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -127,6 +136,7 @@ internal sealed class DeleteTagHandler(
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteTagCommand, Result>
 {
+    /// <summary>Handles delete tag requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTagCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTagAsync(command.Id, ct);

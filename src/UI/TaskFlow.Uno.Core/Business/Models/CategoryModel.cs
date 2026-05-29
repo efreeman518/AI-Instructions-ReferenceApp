@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries category data between Uno services and presentation models.</summary>
 public record CategoryModel
 {
     public Guid? Id { get; init; }

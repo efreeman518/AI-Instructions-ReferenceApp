@@ -13,6 +13,7 @@ namespace Test.Architecture;
 [TestCategory("Architecture")]
 public class ApplicationDependencyTests : BaseTest
 {
+    /// <summary>Verifies that given application contracts assembly, when dependencies checked, then no dependency on infrastructure.</summary>
     [TestMethod]
     public void Given_ApplicationContractsAssembly_When_DependenciesChecked_Then_NoDependencyOnInfrastructure()
     {
@@ -28,6 +29,7 @@ public class ApplicationDependencyTests : BaseTest
             $"Application.Contracts has forbidden dependency on Infrastructure: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies that given application contracts assembly, when dependencies checked, then no dependency on hosts.</summary>
     [TestMethod]
     public void Given_ApplicationContractsAssembly_When_DependenciesChecked_Then_NoDependencyOnHosts()
     {
@@ -45,6 +47,7 @@ public class ApplicationDependencyTests : BaseTest
             $"Application.Contracts has forbidden dependency on Hosts: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies that given application services assembly, when dependencies checked, then no dependency on infrastructure.</summary>
     [TestMethod]
     public void Given_ApplicationServicesAssembly_When_DependenciesChecked_Then_NoDependencyOnInfrastructure()
     {
@@ -60,6 +63,7 @@ public class ApplicationDependencyTests : BaseTest
             $"Application.Services has forbidden dependency on Infrastructure: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies that given application services assembly, when dependencies checked, then no dependency on hosts.</summary>
     [TestMethod]
     public void Given_ApplicationServicesAssembly_When_DependenciesChecked_Then_NoDependencyOnHosts()
     {
@@ -77,6 +81,7 @@ public class ApplicationDependencyTests : BaseTest
             $"Application.Services has forbidden dependency on Hosts: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies format failing types behavior and protects the expected test contract.</summary>
     private static string FormatFailingTypes(NetArchTest.Rules.TestResult result) =>
         result.FailingTypes != null
             ? string.Join(", ", result.FailingTypes.Select(t => t.FullName))

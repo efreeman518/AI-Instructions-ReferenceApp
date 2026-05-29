@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides attachment behavior for the Infrastructure Configurations layer.</summary>
 public class AttachmentConfiguration() : EntityBaseConfiguration<Attachment>(false)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<Attachment> builder)
     {
         base.Configure(builder);

@@ -1,5 +1,6 @@
 namespace Test.Mobile;
 
+/// <summary>Supports test execution for Test.mobile scenarios.</summary>
 internal sealed record MobileTestSettings
 {
     public required bool Enabled { get; init; }
@@ -14,6 +15,7 @@ internal sealed record MobileTestSettings
     public string IosBundleId { get; init; } = "com.taskflow.uno";
     public TimeSpan StartupTimeout { get; init; } = TimeSpan.FromSeconds(60);
 
+    /// <summary>Verifies from behavior and protects the expected test contract.</summary>
     public static MobileTestSettings From(TestContext context)
     {
         var platform = ParsePlatform(GetValue(context, "TASKFLOW_MOBILE_PLATFORM") ?? "Android");
@@ -43,6 +45,7 @@ internal sealed record MobileTestSettings
         "then run dotnet test src/Test/Test.Mobile/Test.Mobile.csproj --filter TestCategory=MobileUI. " +
         "For Android, restore first with -p:BuildAllUnoTargets=true before the TargetFrameworkOverride build.";
 
+    /// <summary>Verifies get value behavior and protects the expected test contract.</summary>
     private static string? GetValue(TestContext context, string key)
     {
         var env = Environment.GetEnvironmentVariable(key);
@@ -63,6 +66,7 @@ internal sealed record MobileTestSettings
         return null;
     }
 
+    /// <summary>Verifies parse platform behavior and protects the expected test contract.</summary>
     private static MobileTestPlatform ParsePlatform(string value) =>
         value.Trim().ToLowerInvariant() switch
         {
@@ -71,20 +75,25 @@ internal sealed record MobileTestSettings
             _ => throw new InvalidOperationException($"Unsupported TASKFLOW_MOBILE_PLATFORM '{value}'. Use Android or iOS.")
         };
 
+    /// <summary>Verifies is true behavior and protects the expected test contract.</summary>
     private static bool IsTrue(string? value) =>
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Verifies parse positive int behavior and protects the expected test contract.</summary>
     private static int ParsePositiveInt(string? value, int fallback) =>
         int.TryParse(value, out var parsed) && parsed > 0 ? parsed : fallback;
 
+    /// <summary>Verifies platform app path key behavior and protects the expected test contract.</summary>
     private static string PlatformAppPathKey(MobileTestPlatform platform) =>
         platform == MobileTestPlatform.Android ? "TASKFLOW_ANDROID_APP_PATH" : "TASKFLOW_IOS_APP_PATH";
 
+    /// <summary>Verifies default device name behavior and protects the expected test contract.</summary>
     private static string DefaultDeviceName(MobileTestPlatform platform) =>
         platform == MobileTestPlatform.Android ? "Android Emulator" : "iPhone Simulator";
 
+    /// <summary>Verifies get default app path behavior and protects the expected test contract.</summary>
     private static string GetDefaultAppPath(string sourceRoot, MobileTestPlatform platform) =>
         platform switch
         {
@@ -108,6 +117,7 @@ internal sealed record MobileTestSettings
             _ => throw new InvalidOperationException($"Unsupported platform '{platform}'.")
         };
 
+    /// <summary>Verifies find source root behavior and protects the expected test contract.</summary>
     private static string FindSourceRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

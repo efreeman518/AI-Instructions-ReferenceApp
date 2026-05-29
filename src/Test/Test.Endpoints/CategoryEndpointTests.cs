@@ -17,14 +17,18 @@ public class CategoryEndpointTests
 {
     private static CustomApiFactory _factory = null!;
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
+    /// <summary>Verifies that given valid payload, when post category, then returns 201.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ValidPayload_When_PostCategory_Then_Returns201()
@@ -41,6 +45,7 @@ public class CategoryEndpointTests
         Assert.IsNotNull(created.Id);
     }
 
+    /// <summary>Verifies that given existing category, when get by ID, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingCategory_When_GetById_Then_Returns200()
@@ -58,6 +63,7 @@ public class CategoryEndpointTests
         Assert.AreEqual("GetTest Category", result.Name);
     }
 
+    /// <summary>Verifies that given non existent ID, when get category, then returns 404.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_NonExistentId_When_GetCategory_Then_Returns404()
@@ -69,6 +75,7 @@ public class CategoryEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>Verifies that given existing category, when put update, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingCategory_When_PutUpdate_Then_Returns200()
@@ -92,6 +99,7 @@ public class CategoryEndpointTests
         Assert.AreEqual("After", updated!.Name);
     }
 
+    /// <summary>Verifies that given existing category, when delete, then returns 204.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingCategory_When_Delete_Then_Returns204()
@@ -109,6 +117,7 @@ public class CategoryEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
+    /// <summary>Verifies that given existing categories, when search, then returns filtered page.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingCategories_When_Search_Then_ReturnsFilteredPage()
@@ -137,6 +146,7 @@ public class CategoryEndpointTests
         Assert.IsTrue(data.EnumerateArray().Any(e => e.GetProperty("name").GetString()!.Contains("SearchMe")));
     }
 
+    /// <summary>Verifies that given full CRUD cycle, when all operations executed, then all succeed.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_FullCrudCycle_When_AllOperationsExecuted_Then_AllSucceed()

@@ -14,6 +14,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class TaskItemTests
 {
+    /// <summary>Verifies that given valid input, when task item created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_TaskItemCreated_Then_ReturnsSuccess()
@@ -25,6 +26,7 @@ public class TaskItemTests
         Assert.AreEqual(TaskItemStatus.Open, result.Value.Status);
     }
 
+    /// <summary>Verifies that given empty title, when task item created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -36,6 +38,7 @@ public class TaskItemTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tenant ID, when task item created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_TaskItemCreated_Then_ReturnsDomainFailure()
@@ -44,6 +47,7 @@ public class TaskItemTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing task item, when updated, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingTaskItem_When_Updated_Then_ReturnsUpdatedValues()
@@ -56,6 +60,7 @@ public class TaskItemTests
         Assert.AreEqual(Priority.Critical, result.Value.Priority);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()
@@ -68,6 +73,7 @@ public class TaskItemTests
         Assert.AreEqual(Priority.Low, result.Value.Priority);
     }
 
+    /// <summary>Verifies that given open task, when transition to in progress, then succeeds.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_OpenTask_When_TransitionToInProgress_Then_Succeeds()
@@ -78,6 +84,7 @@ public class TaskItemTests
         Assert.AreEqual(TaskItemStatus.InProgress, result.Value!.Status);
     }
 
+    /// <summary>Verifies that given in progress task, when transition to completed, then sets completed date.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_InProgressTask_When_TransitionToCompleted_Then_SetsCompletedDate()
@@ -90,6 +97,7 @@ public class TaskItemTests
         Assert.IsNotNull(result.Value.CompletedDate);
     }
 
+    /// <summary>Verifies that given completed task, when reopened, then clears completed date.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_CompletedTask_When_Reopened_Then_ClearsCompletedDate()
@@ -105,6 +113,7 @@ public class TaskItemTests
         Assert.IsNull(result.Value.CompletedDate);
     }
 
+    /// <summary>Verifies that given open task, when transition to blocked, then fails.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_OpenTask_When_TransitionToBlocked_Then_Fails()
@@ -114,6 +123,7 @@ public class TaskItemTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given task with category, when created, then category ID set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_TaskWithCategory_When_Created_Then_CategoryIdSet()
@@ -124,6 +134,7 @@ public class TaskItemTests
         Assert.AreEqual(categoryId, result.Value!.CategoryId);
     }
 
+    /// <summary>Verifies that given task with parent, when created, then parent task item ID set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_TaskWithParent_When_Created_Then_ParentTaskItemIdSet()
@@ -134,6 +145,7 @@ public class TaskItemTests
         Assert.AreEqual(parentId, result.Value!.ParentTaskItemId);
     }
 
+    /// <summary>Verifies that given same status, when transitioned, then no op success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_SameStatus_When_Transitioned_Then_NoOpSuccess()

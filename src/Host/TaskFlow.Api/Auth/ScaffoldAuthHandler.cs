@@ -15,12 +15,14 @@ public sealed class ScaffoldAuthHandler : AuthenticationHandler<AuthenticationSc
     public const string ScaffoldUserId = "scaffold-user";
     public const string ScaffoldTenantId = "00000000-0000-0000-0000-000000000001";
 
+    /// <summary>Initializes scaffold auth handler with required dependencies and default state.</summary>
     public ScaffoldAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder)
         : base(options, logger, encoder) { }
 
+    /// <summary>Provides the handle authenticate operation for scaffold auth handler.</summary>
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var claims = new[]

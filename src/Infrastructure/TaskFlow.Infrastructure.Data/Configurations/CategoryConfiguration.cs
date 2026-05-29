@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides category behavior for the Infrastructure Configurations layer.</summary>
 public class CategoryConfiguration() : EntityBaseConfiguration<Category>(true)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<Category> builder)
     {
         base.Configure(builder);

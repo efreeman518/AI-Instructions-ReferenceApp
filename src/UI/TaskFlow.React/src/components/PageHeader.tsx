@@ -1,6 +1,7 @@
 import { Box, Stack, Typography, type SxProps, type Theme } from '@mui/material'
 import type { ReactNode } from 'react'
 
+/** Renders the page header component with consistent TaskFlow UI state. */
 export function PageHeader({
   title,
   eyebrow,

@@ -13,6 +13,7 @@ internal sealed class DefaultExceptionHandler(
     ILogger<DefaultExceptionHandler> logger,
     IHostEnvironment environment) : IExceptionHandler
 {
+    /// <summary>Provides the try handle operation for default exception handler.</summary>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {

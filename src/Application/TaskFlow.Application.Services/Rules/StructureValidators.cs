@@ -10,6 +10,7 @@ namespace TaskFlow.Application.Services.Rules;
 /// </summary>
 public static class StructureValidators
 {
+    /// <summary>Provides the require operation for structure validators.</summary>
     internal static Result Require(bool condition, string errorMessage) =>
         condition ? Result.Success() : Result.Failure(errorMessage);
 

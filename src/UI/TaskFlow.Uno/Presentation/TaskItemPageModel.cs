@@ -26,6 +26,7 @@ public partial record TaskItemPageModel
     // without requiring us to reassign the init-only Entity property.
     private TaskItemModel _baseline;
 
+    /// <summary>Initializes task item page model with required dependencies and default state.</summary>
     public TaskItemPageModel(
         TaskItemModel? entity,
         INavigator navigator,
@@ -276,6 +277,7 @@ public partial record TaskItemPageModel
         await Comments.UpdateAsync(list => (list ?? ImmutableList<CommentModel>.Empty).Add(created), CancellationToken.None);
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async ValueTask DeleteComment(CommentModel comment, CancellationToken ct)
     {
         if (Entity?.Id is not null && comment.Id is Guid id)
@@ -319,6 +321,7 @@ public partial record TaskItemPageModel
         await ChecklistItems.UpdateAsync(list => (list ?? ImmutableList<ChecklistItemModel>.Empty).Add(created), CancellationToken.None);
     }
 
+    /// <summary>Converts the current value to ggle checklist item.</summary>
     public async ValueTask ToggleChecklistItem(ChecklistItemModel item, CancellationToken ct)
     {
         var updated = item with { IsCompleted = !item.IsCompleted };
@@ -353,6 +356,7 @@ public partial record TaskItemPageModel
         }
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async ValueTask DeleteChecklistItem(ChecklistItemModel item, CancellationToken ct)
     {
         // Server call only when the parent task is persisted AND this item has an Id

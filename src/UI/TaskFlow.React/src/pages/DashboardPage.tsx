@@ -21,6 +21,7 @@ import { ErrorState, LoadingState } from '../components/StateViews'
 import { PriorityChip, StatusChip } from '../components/TaskChips'
 import { formatDate } from '../utils/format'
 
+/** Renders the dashboard page and coordinates its data operations. */
 export function DashboardPage() {
   const dashboardQuery = useQuery({
     queryKey: queryKeys.dashboard,
@@ -141,6 +142,7 @@ export function DashboardPage() {
   )
 }
 
+/** Renders a dashboard metric with its label and value. */
 function Metric({
   label,
   value,

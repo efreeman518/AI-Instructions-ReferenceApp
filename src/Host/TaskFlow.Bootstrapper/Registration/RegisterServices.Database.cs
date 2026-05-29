@@ -9,6 +9,7 @@ using TaskFlow.Infrastructure.Repositories;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
     /// <summary>

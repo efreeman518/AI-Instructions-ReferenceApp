@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models comment domain behavior and invariants.</summary>
 public class Comment : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -14,8 +15,10 @@ public class Comment : EntityBase, ITenantEntity<Guid>
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
 
+    /// <summary>Initializes comment with required dependencies and default state.</summary>
     private Comment() { }
 
+    /// <summary>Initializes comment with required dependencies and default state.</summary>
     private Comment(Guid tenantId, Guid taskItemId, string body)
     {
         TenantId = tenantId;
@@ -23,18 +26,21 @@ public class Comment : EntityBase, ITenantEntity<Guid>
         Body = body;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<Comment> Create(Guid tenantId, Guid taskItemId, string body)
     {
         var entity = new Comment(tenantId, taskItemId, body);
         return entity.Valid();
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public DomainResult<Comment> Update(string? body = null)
     {
         if (body is not null) Body = body;
         return Valid();
     }
 
+    /// <summary>Creates a valid comment instance with domain-required defaults.</summary>
     private DomainResult<Comment> Valid()
     {
         var errors = new List<DomainError>();

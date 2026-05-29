@@ -15,6 +15,7 @@ namespace Test.Unit.Mappers;
 [TestClass]
 public class TaskItemMapperTests
 {
+    /// <summary>Verifies that given valid entity, when mapped to DTO, then all properties mapped.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidEntity_When_MappedToDto_Then_AllPropertiesMapped()
@@ -31,6 +32,7 @@ public class TaskItemMapperTests
         Assert.AreEqual(entity.ParentTaskItemId, dto.ParentTaskItemId);
     }
 
+    /// <summary>Verifies that given entity with date range, when mapped to DTO, then dates flattened correctly.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EntityWithDateRange_When_MappedToDto_Then_DatesFlattenedCorrectly()
@@ -46,6 +48,7 @@ public class TaskItemMapperTests
         Assert.AreEqual(due, dto.DueDate);
     }
 
+    /// <summary>Verifies that given valid DTO, when mapped to entity, then returns success domain result.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidDto_When_MappedToEntity_Then_ReturnsSuccessDomainResult()
@@ -59,6 +62,7 @@ public class TaskItemMapperTests
         Assert.AreEqual(TaskItemStatus.Open, result.Value.Status);
     }
 
+    /// <summary>Verifies that given DTO with dates, when mapped to entity, then date range set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_DtoWithDates_When_MappedToEntity_Then_DateRangeSet()
@@ -73,6 +77,7 @@ public class TaskItemMapperTests
         Assert.AreEqual(due, result.Value.DateRange.DueDate);
     }
 
+    /// <summary>Verifies that given DTO with recurrence, when mapped to entity, then recurrence pattern set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_DtoWithRecurrence_When_MappedToEntity_Then_RecurrencePatternSet()
@@ -92,6 +97,7 @@ public class TaskItemMapperTests
         Assert.AreEqual("Weekly", result.Value.RecurrencePattern.Frequency);
     }
 
+    /// <summary>Verifies that given invalid DTO, when mapped to entity, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_InvalidDto_When_MappedToEntity_Then_ReturnsFailure()

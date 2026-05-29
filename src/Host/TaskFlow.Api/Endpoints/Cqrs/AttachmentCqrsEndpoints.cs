@@ -10,10 +10,12 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;
 
+/// <summary>Maps attachment CQRS HTTP routes to CQRS handlers and API contract metadata.</summary>
 public static class AttachmentCqrsEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers attachment CQRS routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapAttachmentCqrsEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -54,6 +56,7 @@ public static class AttachmentCqrsEndpoints
         return group;
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     private static async Task<IResult> Search(
         [FromServices] IRequestHandler<SearchAttachmentsQuery, PagedResponse<AttachmentDto>> handler,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<AttachmentSearchFilter>? request,
@@ -63,6 +66,7 @@ public static class AttachmentCqrsEndpoints
         return TypedResults.Ok(items);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] IRequestHandler<GetAttachmentByIdQuery, Result<DefaultResponse<AttachmentDto>>> handler,
         Guid id,
@@ -76,6 +80,7 @@ public static class AttachmentCqrsEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] IRequestHandler<CreateAttachmentCommand, Result<DefaultResponse<AttachmentDto>>> handler,
@@ -90,6 +95,7 @@ public static class AttachmentCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Uploads upload to the configured storage backend and returns metadata.</summary>
     private static async Task<IResult> Upload(
         HttpContext httpContext,
         IFormFile file,
@@ -109,6 +115,7 @@ public static class AttachmentCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static async Task<IResult> Update(
         HttpContext httpContext,
         [FromServices] IRequestHandler<UpdateAttachmentCommand, Result<DefaultResponse<AttachmentDto>>> handler,
@@ -129,6 +136,7 @@ public static class AttachmentCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] IRequestHandler<DeleteAttachmentCommand, Result> handler,

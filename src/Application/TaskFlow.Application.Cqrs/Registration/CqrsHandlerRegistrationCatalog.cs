@@ -8,6 +8,7 @@ using TaskFlow.Application.Cqrs.Features.TaskItemTags;
 
 namespace TaskFlow.Application.Cqrs.Registration;
 
+/// <summary>Provides CQRS handler registration behavior for the Application Registration layer.</summary>
 public sealed record CqrsHandlerRegistration(Type RequestType, Type ResponseType, Type HandlerType);
 
 /// <summary>

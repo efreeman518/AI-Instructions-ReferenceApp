@@ -4,11 +4,13 @@ using TaskFlow.Application.Contracts.Storage;
 
 namespace TaskFlow.Infrastructure.Storage.CosmosDb;
 
+/// <summary>Persists and queries cosmos task view data through infrastructure storage contracts.</summary>
 public class CosmosTaskViewRepository : ITaskViewRepository
 {
     private readonly Container _container;
     private readonly ILogger<CosmosTaskViewRepository> _logger;
 
+    /// <summary>Initializes cosmos task view repository with required dependencies and default state.</summary>
     public CosmosTaskViewRepository(
         CosmosClient cosmosClient,
         ILogger<CosmosTaskViewRepository> logger,
@@ -20,6 +22,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         _container = database.GetContainer(containerName);
     }
 
+    /// <summary>Writes upsert to the configured read model store.</summary>
     public async Task UpsertAsync(TaskViewDto taskView, CancellationToken ct = default)
     {
         var document = MapToDocument(taskView);
@@ -28,6 +31,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         _logger.LogDebug("Upserted TaskView {Id} for tenant {TenantId}", document.Id, document.TenantId);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TaskViewDto?> GetAsync(string id, string tenantId, CancellationToken ct = default)
     {
         try
@@ -42,6 +46,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         }
     }
 
+    /// <summary>Queries query by tenant from the configured read model store.</summary>
     public async Task<IReadOnlyList<TaskViewDto>> QueryByTenantAsync(
         string tenantId, int pageSize = 20, string? continuationToken = null,
         CancellationToken ct = default)
@@ -70,6 +75,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         return results;
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task DeleteAsync(string id, string tenantId, CancellationToken ct = default)
     {
         try
@@ -83,6 +89,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         }
     }
 
+    /// <summary>Maps to document into the target contract used by callers.</summary>
     private static TaskViewDocument MapToDocument(TaskViewDto dto) => new()
     {
         Id = dto.Id,
@@ -106,6 +113,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         CreatedUtc = dto.CreatedUtc
     };
 
+    /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static TaskViewDto MapToDto(TaskViewDocument doc) => new()
     {
         Id = doc.Id,

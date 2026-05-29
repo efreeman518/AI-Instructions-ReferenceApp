@@ -27,6 +27,7 @@ public class ApiAuditPipelineTests
 {
     private static readonly Guid ScaffoldTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
+    /// <summary>Verifies that given API category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
     [Timeout(300000)]
     public async Task Given_ApiCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
@@ -82,6 +83,7 @@ public class ApiAuditPipelineTests
         Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
     }
 
+    /// <summary>Verifies post create category with retry behavior and protects the expected test contract.</summary>
     private static async Task<HttpResponseMessage> PostCreateCategoryWithRetryAsync(HttpClient client, object request, CancellationToken ct)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
@@ -120,6 +122,7 @@ public class ApiAuditPipelineTests
         throw new InvalidOperationException("Unreachable");
     }
 
+    /// <summary>Verifies dump resource state behavior and protects the expected test contract.</summary>
     private static void DumpResourceState(string resourceName)
     {
         if (AspireTestHost.AspireApp is null)
@@ -136,6 +139,7 @@ public class ApiAuditPipelineTests
             $"{resourceName} state: {snapshot.State}; health: {snapshot.HealthStatus}; exit: {snapshot.ExitCode}; started: {snapshot.StartTimeStamp:O}; stopped: {snapshot.StopTimeStamp:O}");
     }
 
+    /// <summary>Verifies dump resource logs behavior and protects the expected test contract.</summary>
     private static async Task DumpResourceLogsAsync(string resourceName, CancellationToken ct)
     {
         if (AspireTestHost.AspireApp is null)
@@ -151,6 +155,7 @@ public class ApiAuditPipelineTests
         }
     }
 
+    /// <summary>Verifies wait for audit entity behavior and protects the expected test contract.</summary>
     private static async Task<AuditLogTableEntity> WaitForAuditEntityAsync(
         TableClient tableClient,
         string partitionKey,

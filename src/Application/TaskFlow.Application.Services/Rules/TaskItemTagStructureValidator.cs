@@ -3,8 +3,10 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides task item tag structure validator behavior for the Application Rules layer.</summary>
 internal static class TaskItemTagStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<TaskItemTagDto> ValidateCreate(TaskItemTagDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);

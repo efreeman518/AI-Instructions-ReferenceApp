@@ -3,12 +3,14 @@ using OpenQA.Selenium.Appium;
 
 namespace Test.Mobile;
 
+/// <summary>Covers mobile smoke behavior with focused assertions that document expected behavior and regression intent.</summary>
 [TestClass]
 [TestCategory("MobileUI")]
 public sealed class MobileSmokeTests
 {
     public TestContext TestContext { get; set; } = null!;
 
+    /// <summary>Verifies task flow mobile app launches and renders native surface behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void TaskFlowMobile_AppLaunches_AndRendersNativeSurface()
     {
@@ -50,6 +52,7 @@ public sealed class MobileSmokeTests
         }
     }
 
+    /// <summary>Verifies try save page source behavior and protects the expected test contract.</summary>
     private void TrySavePageSource(AppiumDriver driver, MobileTestSettings settings)
     {
         try
@@ -62,6 +65,7 @@ public sealed class MobileSmokeTests
         }
     }
 
+    /// <summary>Verifies try quit behavior and protects the expected test contract.</summary>
     private void TryQuit(AppiumDriver driver)
     {
         try
@@ -78,6 +82,7 @@ public sealed class MobileSmokeTests
         }
     }
 
+    /// <summary>Verifies wait for native surface behavior and protects the expected test contract.</summary>
     private static void WaitForNativeSurface(AppiumDriver driver, MobileTestSettings settings)
     {
         var deadline = DateTimeOffset.UtcNow + settings.StartupTimeout;
@@ -105,6 +110,7 @@ public sealed class MobileSmokeTests
             lastException);
     }
 
+    /// <summary>Verifies has rendered surface behavior and protects the expected test contract.</summary>
     private static bool HasRenderedSurface(string pageSource, MobileTestPlatform platform)
     {
         if (string.IsNullOrWhiteSpace(pageSource))

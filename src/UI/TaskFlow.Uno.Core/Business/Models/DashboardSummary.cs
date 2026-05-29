@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries dashboard summary data between Uno services and presentation models.</summary>
 public record DashboardSummary
 {
     public int TotalTasks { get; init; }

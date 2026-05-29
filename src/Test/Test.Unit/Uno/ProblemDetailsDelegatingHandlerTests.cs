@@ -17,6 +17,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class ProblemDetailsDelegatingHandlerTests
 {
+    /// <summary>Verifies success response passes through without notifying behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SuccessResponse_Passes_Through_Without_Notifying()
     {
@@ -29,6 +30,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.IsEmpty(svc.Items);
     }
 
+    /// <summary>Verifies non problem JSON error passes through behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task Non_ProblemJson_Error_Passes_Through()
     {
@@ -44,6 +46,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.IsEmpty(svc.Items);
     }
 
+    /// <summary>Verifies problem JSON throws problem details exception and notifies behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ProblemJson_Throws_ProblemDetailsException_And_Notifies()
     {
@@ -59,6 +62,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.AreEqual(NotificationSeverity.Error, svc.Items[0].Severity);
     }
 
+    /// <summary>Verifies problem JSON 499 throws without notifying behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ProblemJson_499_Throws_Without_Notifying()
     {
@@ -72,6 +76,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.IsEmpty(svc.Items);
     }
 
+    /// <summary>Verifies malformed problem JSON passes through behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task Malformed_ProblemJson_Passes_Through()
     {
@@ -87,6 +92,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.IsEmpty(svc.Items);
     }
 
+    /// <summary>Verifies problem JSON dedupes on concurrent duplicates behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ProblemJson_Dedupes_On_Concurrent_Duplicates()
     {
@@ -107,6 +113,7 @@ public class ProblemDetailsDelegatingHandlerTests
         Assert.HasCount(1, svc.Items);
     }
 
+    /// <summary>Verifies invoke behavior and protects the expected test contract.</summary>
     private static async Task<HttpResponseMessage> Invoke(HttpMessageHandler inner, INotificationService notifications)
     {
         var handler = new ProblemDetailsDelegatingHandler(notifications) { InnerHandler = inner };
@@ -114,6 +121,7 @@ public class ProblemDetailsDelegatingHandlerTests
         return await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://x/y"), default);
     }
 
+    /// <summary>Verifies problem response behavior and protects the expected test contract.</summary>
     private static HttpResponseMessage ProblemResponse(int status, string title, string detail)
     {
         var payload = JsonSerializer.Serialize(new { status, title, detail });
@@ -123,9 +131,11 @@ public class ProblemDetailsDelegatingHandlerTests
         };
     }
 
+    /// <summary>Supports test execution for Test.unit Uno scenarios.</summary>
     private sealed class StubHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond)
         : HttpMessageHandler
     {
+        /// <summary>Verifies send behavior and protects the expected test contract.</summary>
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
             respond(request);
     }

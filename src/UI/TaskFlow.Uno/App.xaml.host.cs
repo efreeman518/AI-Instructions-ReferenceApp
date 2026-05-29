@@ -16,8 +16,10 @@ using Uno.Extensions.Http.Kiota;
 
 namespace TaskFlow.Uno;
 
+/// <summary>Configures Uno application startup, dependency injection, and host-specific services.</summary>
 public partial class App : Application
 {
+    /// <summary>Configures app builder behavior for this component.</summary>
     private void ConfigureAppBuilder(IApplicationBuilder builder)
     {
         builder
@@ -96,6 +98,7 @@ public partial class App : Application
                     configure: navConfig => navConfig with { AddressBarUpdateEnabled = false }));
     }
 
+    /// <summary>Provides the resolve gateway URL operation for app.</summary>
     private static string ResolveGatewayUrl(IConfiguration configuration)
     {
 #if __ANDROID__
@@ -116,6 +119,7 @@ public partial class App : Application
         return gatewayUrl;
     }
 
+    /// <summary>Processes credentials through app.</summary>
     private async ValueTask<IDictionary<string, string>?> ProcessCredentials(
         IDictionary<string, string> credentials)
     {
@@ -133,11 +137,13 @@ public partial class App : Application
         };
     }
 
+    /// <summary>Configures serialization behavior for this component.</summary>
     private void ConfigureSerialization(HostBuilderContext context, IServiceCollection services)
     {
         // Register JSON serialization type info as needed
     }
 
+    /// <summary>Registers routes dependencies in the service container.</summary>
     private static void RegisterRoutes(IViewRegistry views, IRouteRegistry routes)
     {
         views.Register(

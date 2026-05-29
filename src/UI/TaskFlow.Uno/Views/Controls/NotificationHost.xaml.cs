@@ -5,6 +5,7 @@ using TaskFlow.Uno.Core.Business.Notifications;
 
 namespace TaskFlow.Uno.Views.Controls;
 
+/// <summary>Hosts the notification host XAML view and initializes its Uno page or control.</summary>
 public sealed partial class NotificationHost : UserControl
 {
     public static readonly DependencyProperty ItemsProperty = DependencyProperty.Register(
@@ -13,6 +14,7 @@ public sealed partial class NotificationHost : UserControl
         typeof(NotificationHost),
         new PropertyMetadata(null));
 
+    /// <summary>Initializes notification host with required dependencies and default state.</summary>
     public NotificationHost()
     {
         this.InitializeComponent();
@@ -24,6 +26,7 @@ public sealed partial class NotificationHost : UserControl
         set => SetValue(ItemsProperty, value);
     }
 
+    /// <summary>Handles info bar closed events for notification host.</summary>
     private void OnInfoBarClosed(InfoBar sender, InfoBarClosedEventArgs args)
     {
         // Only react to user-initiated closes - programmatic dismiss via the

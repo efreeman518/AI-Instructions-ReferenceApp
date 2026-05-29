@@ -4,10 +4,12 @@ using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
+/// <summary>Coordinates tag API application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 public class TagApiService(
     TaskFlowApiClient client,
     INotificationService notifications) : ITagApiService
 {
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<IReadOnlyList<TagModel>> SearchAsync(string? searchTerm = null,
         CancellationToken ct = default)
     {
@@ -21,12 +23,14 @@ public class TagApiService(
         return response?.Items?.Select(MapToModel).ToList() ?? [];
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TagModel?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var dto = await client.Api.Tags[id].GetAsync(cancellationToken: ct);
         return dto is null ? null : MapToModel(dto);
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<TagModel> CreateAsync(TagModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -36,6 +40,7 @@ public class TagApiService(
         return created;
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<TagModel> UpdateAsync(TagModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -45,17 +50,20 @@ public class TagApiService(
         return updated;
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Tags[id].DeleteAsync(cancellationToken: ct);
         await notifications.ShowSuccess("Tag deleted.", ct: ct);
     }
 
+    /// <summary>Maps to model into the target contract used by callers.</summary>
     private static TagModel MapToModel(TagDto dto) => new()
     {
         Id = dto.Id, Name = dto.Name ?? string.Empty, Color = dto.Color
     };
 
+    /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static TagDto MapToDto(TagModel model) => new()
     {
         Id = model.Id, Name = model.Name, Color = model.Color

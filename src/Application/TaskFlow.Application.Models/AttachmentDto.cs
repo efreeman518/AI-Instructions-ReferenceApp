@@ -3,6 +3,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Models;
 
+/// <summary>Carries attachment data across API, application, and UI boundaries.</summary>
 public record AttachmentDto : EntityBaseDto, ITenantEntityDto
 {
     public Guid TenantId { get; set; }

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TaskFlow.Infrastructure.AI;
 
+/// <summary>Provides task flow AI behavior for the Infrastructure layer.</summary>
 public class TaskFlowAiSettings
 {
     public const string ConfigSectionName = "AiServices";

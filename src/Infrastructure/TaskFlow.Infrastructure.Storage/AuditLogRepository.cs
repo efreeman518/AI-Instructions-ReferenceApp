@@ -66,6 +66,7 @@ public class AuditLogRepository(
             entry.Action);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static string? GetTenantId<TTenantId>(TTenantId tenantId)
     {
         object? tenantValue = tenantId;

@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries category data through infrastructure storage contracts.</summary>
 public class CategoryRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ICategoryRepositoryTrxn
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<Category>, IIncludableQueryable<Category, object?>>>>

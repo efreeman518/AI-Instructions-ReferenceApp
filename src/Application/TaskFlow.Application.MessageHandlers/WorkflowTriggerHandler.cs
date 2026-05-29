@@ -16,13 +16,16 @@ namespace TaskFlow.Application.MessageHandlers;
 // triggering a one-line addition wherever the event is raised.
 public interface IWorkflowTrigger
 {
+    /// <summary>Handles task item created events for workflow trigger.</summary>
     Task OnTaskItemCreatedAsync(TaskItemCreatedEvent evt, CancellationToken ct = default);
 }
 
+/// <summary>Handles workflow trigger work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 public sealed class WorkflowTriggerHandler(
     IFlowEngine engine,
     ILogger<WorkflowTriggerHandler> logger) : IWorkflowTrigger
 {
+    /// <summary>Handles task item created events for workflow trigger handler.</summary>
     public async Task OnTaskItemCreatedAsync(TaskItemCreatedEvent evt, CancellationToken ct = default)
     {
         var request = new StartRequest
@@ -52,6 +55,7 @@ public sealed class WorkflowTriggerHandler(
         }
     }
 
+    /// <summary>Wraps asynchronous work for workflow trigger handler with shared logging and error handling.</summary>
     private static JsonContextValue Wrap(string value)
         => new() { Value = JsonSerializer.SerializeToElement(value) };
 }

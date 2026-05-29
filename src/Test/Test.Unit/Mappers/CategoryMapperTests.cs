@@ -15,6 +15,7 @@ namespace Test.Unit.Mappers;
 [TestClass]
 public class CategoryMapperTests
 {
+    /// <summary>Verifies that given valid entity, when mapped to DTO, then all properties mapped.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidEntity_When_MappedToDto_Then_AllPropertiesMapped()
@@ -30,6 +31,7 @@ public class CategoryMapperTests
         Assert.AreEqual(entity.ParentCategoryId, dto.ParentCategoryId);
     }
 
+    /// <summary>Verifies that given valid DTO, when mapped to entity, then returns success domain result.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidDto_When_MappedToEntity_Then_ReturnsSuccessDomainResult()
@@ -43,6 +45,7 @@ public class CategoryMapperTests
         Assert.AreEqual(2, result.Value.SortOrder);
     }
 
+    /// <summary>Verifies that given DTO with parent category ID, when mapped to entity, then parent category ID preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_DtoWithParentCategoryId_When_MappedToEntity_Then_ParentCategoryIdPreserved()
@@ -55,6 +58,7 @@ public class CategoryMapperTests
         Assert.AreEqual(parentId, result.Value!.ParentCategoryId);
     }
 
+    /// <summary>Verifies that given invalid DTO, when mapped to entity, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_InvalidDto_When_MappedToEntity_Then_ReturnsFailure()

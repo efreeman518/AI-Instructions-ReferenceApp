@@ -26,6 +26,7 @@ public class TaskItemMutationSamples
 {
     private static readonly Guid TenantId = Guid.Parse("8d955af4-9444-45d6-90b6-8f4572611d82");
 
+    /// <summary>Verifies that given title at minimum length, when task item created, then succeeds.</summary>
     [TestMethod]
     public void Given_TitleAtMinimumLength_When_TaskItemCreated_Then_Succeeds()
     {
@@ -37,6 +38,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(title, result.Value!.Title);
     }
 
+    /// <summary>Verifies that given title below minimum length, when task item created, then fails with minimum length message.</summary>
     [TestMethod]
     public void Given_TitleBelowMinimumLength_When_TaskItemCreated_Then_FailsWithMinimumLengthMessage()
     {
@@ -50,6 +52,7 @@ public class TaskItemMutationSamples
             $"Title must be at least {DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN} characters.");
     }
 
+    /// <summary>Verifies that given whitespace title, when task item created, then fails with required title message.</summary>
     [TestMethod]
     public void Given_WhitespaceTitle_When_TaskItemCreated_Then_FailsWithRequiredTitleMessage()
     {
@@ -59,6 +62,7 @@ public class TaskItemMutationSamples
         StringAssert.Contains(string.Join(";", result.Errors), "Title is required.");
     }
 
+    /// <summary>Verifies that given empty tenant ID, when task item created, then fails with tenant message.</summary>
     [TestMethod]
     public void Given_EmptyTenantId_When_TaskItemCreated_Then_FailsWithTenantMessage()
     {
@@ -68,6 +72,7 @@ public class TaskItemMutationSamples
         StringAssert.Contains(string.Join(";", result.Errors), "Tenant ID cannot be empty.");
     }
 
+    /// <summary>Verifies that given allowed status transition, when rule evaluated, then passes.</summary>
     [TestMethod]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.InProgress)]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.Cancelled)]
@@ -89,6 +94,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(result.IsSuccess);
     }
 
+    /// <summary>Verifies that given disallowed status transition, when rule evaluated, then fails.</summary>
     [TestMethod]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.Blocked)]
     [DataRow(TaskItemStatus.Completed, TaskItemStatus.Blocked)]
@@ -105,6 +111,7 @@ public class TaskItemMutationSamples
         StringAssert.Contains(string.Join(";", result.Errors), $"Cannot transition from {current} to {target}.");
     }
 
+    /// <summary>Verifies that given allowed aggregate transition, when task item transitioned, then status changes.</summary>
     [TestMethod]
     [DataRow(TaskItemStatus.Open, TaskItemStatus.Cancelled)]
     [DataRow(TaskItemStatus.InProgress, TaskItemStatus.Blocked)]
@@ -124,6 +131,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(target, task.Status);
     }
 
+    /// <summary>Verifies that given disallowed aggregate transition, when task item transitioned, then fails with transition message.</summary>
     [TestMethod]
     public void Given_DisallowedAggregateTransition_When_TaskItemTransitioned_Then_FailsWithTransitionMessage()
     {
@@ -136,6 +144,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(TaskItemStatus.Open, task.Status);
     }
 
+    /// <summary>Verifies that given completed task, when reopened, then completed date cleared.</summary>
     [TestMethod]
     public void Given_CompletedTask_When_Reopened_Then_CompletedDateCleared()
     {
@@ -151,6 +160,7 @@ public class TaskItemMutationSamples
         Assert.IsNull(task.CompletedDate);
     }
 
+    /// <summary>Verifies that given completed task, when reset to none, then status and completed date reset.</summary>
     [TestMethod]
     public void Given_CompletedTask_When_ResetToNone_Then_StatusAndCompletedDateReset()
     {
@@ -166,6 +176,7 @@ public class TaskItemMutationSamples
         Assert.IsNull(task.CompletedDate);
     }
 
+    /// <summary>Verifies that given existing tag, when associated again, then tag association is idempotent.</summary>
     [TestMethod]
     public void Given_ExistingTag_When_AssociatedAgain_Then_TagAssociationIsIdempotent()
     {
@@ -181,6 +192,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(1, task.TaskItemTags.Count);
     }
 
+    /// <summary>Verifies that given all update values, when task updated, then fields and optional links change.</summary>
     [TestMethod]
     public void Given_AllUpdateValues_When_TaskUpdated_Then_FieldsAndOptionalLinksChange()
     {
@@ -216,6 +228,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(newParentId, task.ParentTaskItemId);
     }
 
+    /// <summary>Verifies that given optional links, when update uses empty guid, then links are cleared independently.</summary>
     [TestMethod]
     public void Given_OptionalLinks_When_UpdateUsesEmptyGuid_Then_LinksAreClearedIndependently()
     {
@@ -231,6 +244,7 @@ public class TaskItemMutationSamples
         Assert.IsNull(task.ParentTaskItemId);
     }
 
+    /// <summary>Verifies that given invalid updated title, when task updated, then fails with required title message.</summary>
     [TestMethod]
     public void Given_InvalidUpdatedTitle_When_TaskUpdated_Then_FailsWithRequiredTitleMessage()
     {
@@ -242,6 +256,7 @@ public class TaskItemMutationSamples
         StringAssert.Contains(string.Join(";", result.Errors), "Title is required.");
     }
 
+    /// <summary>Verifies that given valid and invalid comments, when mutated, then collection state is explicit.</summary>
     [TestMethod]
     public void Given_ValidAndInvalidComments_When_Mutated_Then_CollectionStateIsExplicit()
     {
@@ -264,6 +279,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(task.RemoveComment(Guid.Parse("34ddf67b-b0ac-4337-92f8-206372c58b33")).IsSuccess);
     }
 
+    /// <summary>Verifies that given valid and invalid checklist items, when mutated, then collection state is explicit.</summary>
     [TestMethod]
     public void Given_ValidAndInvalidChecklistItems_When_Mutated_Then_CollectionStateIsExplicit()
     {
@@ -287,6 +303,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(task.RemoveChecklistItem(Guid.Parse("d6f2f7ca-f98a-48c4-ab13-d735fe67004a")).IsSuccess);
     }
 
+    /// <summary>Verifies that given tag associations, when removed by object and ID, then collection state is explicit.</summary>
     [TestMethod]
     public void Given_TagAssociations_When_RemovedByObjectAndId_Then_CollectionStateIsExplicit()
     {
@@ -306,6 +323,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(task.RemoveTag(Guid.Parse("db295052-ae8a-417c-befe-b5cb92334589")).IsSuccess);
     }
 
+    /// <summary>Verifies that given date range and recurrence pattern, when updated, then value objects are replaced.</summary>
     [TestMethod]
     public void Given_DateRangeAndRecurrencePattern_When_Updated_Then_ValueObjectsAreReplaced()
     {
@@ -331,6 +349,7 @@ public class TaskItemMutationSamples
         Assert.IsNull(task.RecurrencePattern);
     }
 
+    /// <summary>Creates task at status used by the surrounding test cases.</summary>
     private static TaskItem CreateTaskAtStatus(TaskItemStatus status)
     {
         var task = TaskItem.Create(TenantId, "Mutation sample").Value!;
@@ -344,6 +363,7 @@ public class TaskItemMutationSamples
         return task;
     }
 
+    /// <summary>Verifies path to behavior and protects the expected test contract.</summary>
     private static TaskItemStatus[] PathTo(TaskItemStatus status) =>
         status switch
         {

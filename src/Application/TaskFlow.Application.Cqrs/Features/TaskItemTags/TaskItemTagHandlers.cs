@@ -11,6 +11,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItemTags;
 
+/// <summary>Handles get task item tag by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetTaskItemTagByIdHandler(
     ILogger<GetTaskItemTagByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -18,6 +19,7 @@ internal sealed class GetTaskItemTagByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetTaskItemTagByIdQuery, Result<DefaultResponse<TaskItemTagDto>>>
 {
+    /// <summary>Handles get task item tag by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> HandleAsync(GetTaskItemTagByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTaskItemTagAsync(query.Id, ct);
@@ -32,6 +34,7 @@ internal sealed class GetTaskItemTagByIdHandler(
     }
 }
 
+/// <summary>Handles create task item tag work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateTaskItemTagHandler(
     ILogger<CreateTaskItemTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -39,6 +42,7 @@ internal sealed class CreateTaskItemTagHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateTaskItemTagCommand, Result<DefaultResponse<TaskItemTagDto>>>
 {
+    /// <summary>Handles create task item tag requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> HandleAsync(CreateTaskItemTagCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -65,6 +69,7 @@ internal sealed class CreateTaskItemTagHandler(
     }
 }
 
+/// <summary>Handles delete task item tag work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteTaskItemTagHandler(
     ILogger<DeleteTaskItemTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -72,6 +77,7 @@ internal sealed class DeleteTaskItemTagHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<DeleteTaskItemTagCommand, Result>
 {
+    /// <summary>Handles delete task item tag requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTaskItemTagCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTaskItemTagAsync(command.Id, ct);

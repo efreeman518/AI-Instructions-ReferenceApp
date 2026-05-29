@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides checklist item behavior for the Infrastructure Configurations layer.</summary>
 public class ChecklistItemConfiguration() : EntityBaseConfiguration<ChecklistItem>(false)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<ChecklistItem> builder)
     {
         base.Configure(builder);

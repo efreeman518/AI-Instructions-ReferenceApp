@@ -12,6 +12,7 @@ public class TaskFlowSearchService(
     ILogger<TaskFlowSearchService> logger,
     SearchClient searchClient) : ITaskFlowSearchService
 {
+    /// <summary>Searches search task items and returns filtered results for callers.</summary>
     public async Task<IReadOnlyList<TaskItemSearchResult>> SearchTaskItemsAsync(
         string query, SearchMode mode, Guid? tenantId, int maxResults = 10, CancellationToken ct = default)
     {
@@ -39,6 +40,7 @@ public class TaskFlowSearchService(
         return results;
     }
 
+    /// <summary>Provides the index task item operation for task flow search service.</summary>
     public async Task IndexTaskItemAsync(TaskItemSearchDocument document, CancellationToken ct = default)
     {
         var batch = IndexDocumentsBatch.Upload([document]);
@@ -46,6 +48,7 @@ public class TaskFlowSearchService(
         logger.LogDebug("Indexed task item '{Id}' in search", document.Id);
     }
 
+    /// <summary>Removes remove task item while keeping aggregate relationship state consistent.</summary>
     public async Task RemoveTaskItemAsync(string taskItemId, CancellationToken ct = default)
     {
         var batch = IndexDocumentsBatch.Delete("Id", [taskItemId]);
@@ -53,6 +56,7 @@ public class TaskFlowSearchService(
         logger.LogDebug("Removed task item '{Id}' from search index", taskItemId);
     }
 
+    /// <summary>Builds search options from current configuration and inputs.</summary>
     private static SearchOptions BuildSearchOptions(SearchMode mode, Guid? tenantId, int maxResults, string query)
     {
         var options = new SearchOptions { Size = maxResults };

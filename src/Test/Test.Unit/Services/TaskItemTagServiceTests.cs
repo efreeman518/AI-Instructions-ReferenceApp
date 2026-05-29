@@ -26,6 +26,7 @@ public class TaskItemTagServiceTests
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -36,6 +37,7 @@ public class TaskItemTagServiceTests
             .Returns(Result.Success());
     }
 
+    /// <summary>Creates service used by the surrounding test cases.</summary>
     private TaskItemTagService CreateService() => new(
         NullLogger<TaskItemTagService>.Instance,
         _requestContextMock.Object,
@@ -43,6 +45,7 @@ public class TaskItemTagServiceTests
         _repoQueryMock.Object,
         _tenantBoundaryValidatorMock.Object);
 
+    /// <summary>Verifies that given valid DTO, when create, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ValidDto_When_CreateAsync_Then_ReturnsSuccess()
@@ -57,6 +60,7 @@ public class TaskItemTagServiceTests
         Assert.AreNotEqual(Guid.Empty, result.Value!.Item!.TaskItemId);
     }
 
+    /// <summary>Verifies that given invalid DTO, when create, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
@@ -67,6 +71,7 @@ public class TaskItemTagServiceTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing entity, when get, then returns mapped DTO.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_GetAsync_Then_ReturnsMappedDto()
@@ -81,6 +86,7 @@ public class TaskItemTagServiceTests
         Assert.AreEqual(entity.TagId, result.Value.Item.TagId);
     }
 
+    /// <summary>Verifies that given non existent ID, when get, then returns none.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
@@ -92,6 +98,7 @@ public class TaskItemTagServiceTests
         Assert.IsTrue(result.IsNone);
     }
 
+    /// <summary>Verifies that given existing entity, when delete, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
@@ -106,6 +113,7 @@ public class TaskItemTagServiceTests
         _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
     }
 
+    /// <summary>Verifies that given non existent ID, when delete, then returns success idempotent.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()

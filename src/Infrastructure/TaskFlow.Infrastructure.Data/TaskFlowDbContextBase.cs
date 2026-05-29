@@ -25,6 +25,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
         ConfigureTenantQueryFilters(modelBuilder);
     }
 
+    /// <summary>Provides the set table names operation for task flow DB context base.</summary>
     private static void SetTableNames(ModelBuilder modelBuilder)
     {
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -40,6 +41,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
         }
     }
 
+    /// <summary>Configures default data types behavior for this component.</summary>
     private static void ConfigureDefaultDataTypes(ModelBuilder modelBuilder)
     {
         var decimalProperties = modelBuilder.Model.GetEntityTypes()
@@ -57,6 +59,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
             property.SetColumnType("datetime2");
     }
 
+    /// <summary>Configures tenant query filters behavior for this component.</summary>
     private void ConfigureTenantQueryFilters(ModelBuilder modelBuilder)
     {
         var tenantEntityClrTypes = modelBuilder.Model.GetEntityTypes()

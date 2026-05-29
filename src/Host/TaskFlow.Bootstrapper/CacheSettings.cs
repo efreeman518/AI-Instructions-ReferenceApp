@@ -1,5 +1,6 @@
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures cache host behavior for TaskFlow runtime services.</summary>
 public class CacheSettings
 {
     public string Name { get; set; } = "Default";

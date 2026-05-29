@@ -12,6 +12,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class TaskItemTagTests
 {
+    /// <summary>Verifies that given valid input, when task item tag created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_TaskItemTagCreated_Then_ReturnsSuccess()
@@ -25,6 +26,7 @@ public class TaskItemTagTests
         Assert.AreEqual(tagId, result.Value.TagId);
     }
 
+    /// <summary>Verifies that given empty task item ID, when task item tag created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTaskItemId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()
@@ -33,6 +35,7 @@ public class TaskItemTagTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tag ID, when task item tag created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTagId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()
@@ -41,6 +44,7 @@ public class TaskItemTagTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tenant ID, when task item tag created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()

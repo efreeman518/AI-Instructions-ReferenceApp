@@ -6,8 +6,10 @@ using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
+    /// <summary>Registers request context dependencies in the service container.</summary>
     private static void AddRequestContext(IServiceCollection services)
     {
         services.AddHttpContextAccessor();

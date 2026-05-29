@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Storage;
 
 namespace TaskFlow.Infrastructure.Storage;
 
+/// <summary>Persists and queries blob storage data through infrastructure storage contracts.</summary>
 public class BlobStorageRepository(
     ILogger<BlobStorageRepository> logger,
     IOptions<BlobStorageSettings> settings,
@@ -20,20 +21,24 @@ public class BlobStorageRepository(
         CreateContainerIfNotExist = true
     };
 
+    /// <summary>Uploads upload to the configured storage backend and returns metadata.</summary>
     public Task UploadAsync(string containerName, string blobName, Stream content,
         string? contentType = null, IDictionary<string, string>? metadata = null,
         CancellationToken ct = default) =>
         UploadBlobStreamAsync(new ContainerInfo { ContainerName = containerName, CreateContainerIfNotExist = true },
             blobName, content, contentType, false, metadata, ct);
 
+    /// <summary>Downloads download from the configured storage backend.</summary>
     public async Task<Stream> DownloadAsync(string containerName, string blobName,
         CancellationToken ct = default) =>
         await StartDownloadBlobStreamAsync(new ContainerInfo { ContainerName = containerName }, blobName, false, ct);
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public Task DeleteAsync(string containerName, string blobName,
         CancellationToken ct = default) =>
         DeleteBlobAsync(new ContainerInfo { ContainerName = containerName }, blobName, ct);
 
+    /// <summary>Checks whether exists exists in the configured backend.</summary>
     public async Task<bool> ExistsAsync(string containerName, string blobName,
         CancellationToken ct = default)
     {
@@ -42,6 +47,7 @@ public class BlobStorageRepository(
         return blobs.Any(b => b.Name == blobName);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Uri> GetBlobUriAsync(string containerName, string blobName,
         CancellationToken ct = default)
     {

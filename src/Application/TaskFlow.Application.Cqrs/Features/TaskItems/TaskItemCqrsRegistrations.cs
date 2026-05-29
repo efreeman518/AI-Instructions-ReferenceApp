@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItems;
 
+/// <summary>Provides task item CQRS registrations behavior for the Features Task Items layer.</summary>
 internal static class TaskItemCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

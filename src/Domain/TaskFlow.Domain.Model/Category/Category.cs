@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models category domain behavior and invariants.</summary>
 public class Category : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -19,8 +20,10 @@ public class Category : EntityBase, ITenantEntity<Guid>
     // Navigation
     public ICollection<TaskItem> TaskItems { get; private set; } = [];
 
+    /// <summary>Initializes category with required dependencies and default state.</summary>
     private Category() { }
 
+    /// <summary>Initializes category with required dependencies and default state.</summary>
     private Category(Guid tenantId, string name, string? description, int sortOrder, Guid? parentCategoryId)
     {
         TenantId = tenantId;
@@ -31,12 +34,14 @@ public class Category : EntityBase, ITenantEntity<Guid>
         ParentCategoryId = parentCategoryId;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<Category> Create(Guid tenantId, string name, string? description = null, int sortOrder = 0, Guid? parentCategoryId = null)
     {
         var entity = new Category(tenantId, name, description, sortOrder, parentCategoryId);
         return entity.Valid();
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public DomainResult<Category> Update(string? name = null, string? description = null, int? sortOrder = null, bool? isActive = null, Guid? parentCategoryId = null)
     {
         if (name is not null) Name = name;
@@ -47,6 +52,7 @@ public class Category : EntityBase, ITenantEntity<Guid>
         return Valid();
     }
 
+    /// <summary>Creates a valid category instance with domain-required defaults.</summary>
     private DomainResult<Category> Valid()
     {
         var errors = new List<DomainError>();

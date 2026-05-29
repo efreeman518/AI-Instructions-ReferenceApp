@@ -4,6 +4,7 @@ using TaskFlow.Uno.Core.Business.Services;
 
 namespace TaskFlow.Uno.Presentation;
 
+/// <summary>Drives tag management state, navigation, and commands for the Uno presentation layer.</summary>
 public partial record TagManagementModel(
     INavigator Navigator,
     ITagApiService TagService,
@@ -22,6 +23,7 @@ public partial record TagManagementModel(
     public IState<string> NewTagName => State<string>.Value(this, () => string.Empty);
     public IState<string> NewTagColor => State<string>.Value(this, () => "#3B82F6");
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async ValueTask CreateTag(CancellationToken ct)
     {
         var name = await NewTagName;
@@ -33,6 +35,7 @@ public partial record TagManagementModel(
         await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async ValueTask UpdateTag(CancellationToken ct)
     {
         var editing = _editingTag;
@@ -43,6 +46,7 @@ public partial record TagManagementModel(
         await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async ValueTask DeleteTag(TagModel tag, CancellationToken ct)
     {
         if (tag.Id is null) return;
@@ -50,12 +54,14 @@ public partial record TagManagementModel(
         await TagsVersion.UpdateAsync(version => version + 1, ct);
     }
 
+    /// <summary>Provides the start edit operation for tag management model.</summary>
     public ValueTask StartEdit(TagModel tag, CancellationToken ct)
     {
         _editingTag = tag;
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>Provides the cancel edit operation for tag management model.</summary>
     public ValueTask CancelEdit(CancellationToken ct)
     {
         _editingTag = null;

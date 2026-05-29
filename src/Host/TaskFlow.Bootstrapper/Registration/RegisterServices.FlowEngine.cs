@@ -11,6 +11,7 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
     // FlowEngine v1.0.104 wiring - engine runtime + connector clients + JSON workflow seeding.

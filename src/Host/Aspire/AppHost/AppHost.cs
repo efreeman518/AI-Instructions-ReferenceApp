@@ -139,4 +139,5 @@ if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS
 
 await builder.Build().RunAsync();
 
+/// <summary>Configures program host behavior for TaskFlow runtime services.</summary>
 public partial class Program;

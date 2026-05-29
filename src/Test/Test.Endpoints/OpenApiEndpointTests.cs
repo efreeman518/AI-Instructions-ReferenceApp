@@ -3,17 +3,21 @@ using System.Text.Json;
 
 namespace Test.Endpoints;
 
+/// <summary>Covers open API endpoint behavior with focused assertions that document expected behavior and regression intent.</summary>
 [TestClass]
 public sealed class OpenApiEndpointTests
 {
     private static CustomApiFactory _factory = null!;
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Verifies that given open API enabled, when get v 1 document, then contains versioned domain routes.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_OpenApiEnabled_When_GetV1Document_Then_ContainsVersionedDomainRoutes()

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { NotificationProvider } from './NotificationProvider'
 import { ThemeModeProvider } from '../theme/ThemeModeProvider'
 
+/** Provides app providers application shell or context behavior for React children. */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>

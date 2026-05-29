@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries tag data between Uno services and presentation models.</summary>
 public record TagModel
 {
     public Guid? Id { get; init; }

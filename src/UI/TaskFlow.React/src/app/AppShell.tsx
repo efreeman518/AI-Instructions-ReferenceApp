@@ -38,6 +38,7 @@ const navItems: Array<{ label: string; path: string; icon: LucideIcon }> = [
   { label: 'Settings', path: '/settings', icon: Settings },
 ]
 
+/** Provides app shell application shell or context behavior for React children. */
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { mode, setMode } = useThemeMode()

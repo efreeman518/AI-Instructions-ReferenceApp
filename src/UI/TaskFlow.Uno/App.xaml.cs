@@ -3,16 +3,19 @@ using TaskFlow.Uno.Views;
 
 namespace TaskFlow.Uno;
 
+/// <summary>Configures Uno application startup, dependency injection, and host-specific services.</summary>
 public partial class App : Application
 {
     public static Window? MainWindow;
     public static IHost? Host { get; private set; }
 
+    /// <summary>Initializes app with required dependencies and default state.</summary>
     public App()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>Handles launched events for app.</summary>
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         var builder = this.CreateBuilder(args);

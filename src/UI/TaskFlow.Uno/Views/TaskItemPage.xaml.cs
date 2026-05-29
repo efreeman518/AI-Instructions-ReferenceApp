@@ -5,8 +5,10 @@ using TaskFlow.Uno.Presentation;
 
 namespace TaskFlow.Uno.Views;
 
+/// <summary>Hosts the task item XAML view and initializes its Uno page or control.</summary>
 public sealed partial class TaskItemPage : Page
 {
+    /// <summary>Initializes task item page with required dependencies and default state.</summary>
     public TaskItemPage()
     {
         this.InitializeComponent();
@@ -23,6 +25,7 @@ public sealed partial class TaskItemPage : Page
         });
     }
 
+    /// <summary>Provides the request reset operation for task item page.</summary>
     private static void RequestReset() =>
         App.Host?.Services.GetService<IMessenger>()?.Send(new TaskFormResetMessage());
 }

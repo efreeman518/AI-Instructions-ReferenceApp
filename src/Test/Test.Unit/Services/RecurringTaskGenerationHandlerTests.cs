@@ -20,6 +20,7 @@ public class RecurringTaskGenerationHandlerTests
     private readonly Mock<ITaskItemService> _serviceMock = new();
     private readonly RecurringTaskGenerationHandler _handler;
 
+    /// <summary>Initializes recurring task generation handler tests with required dependencies and default state.</summary>
     public RecurringTaskGenerationHandlerTests()
     {
         _handler = new RecurringTaskGenerationHandler(
@@ -27,6 +28,7 @@ public class RecurringTaskGenerationHandlerTests
             NullLogger<RecurringTaskGenerationHandler>.Instance);
     }
 
+    /// <summary>Verifies handle with recurring templates logs count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_WithRecurringTemplates_LogsCount()
@@ -50,6 +52,7 @@ public class RecurringTaskGenerationHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle no recurring templates completes with zero count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NoRecurringTemplates_CompletesWithZeroCount()
@@ -72,6 +75,7 @@ public class RecurringTaskGenerationHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle null data treats as empty behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NullData_TreatsAsEmpty()
@@ -88,6 +92,7 @@ public class RecurringTaskGenerationHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle empty string frequency filters correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_EmptyStringFrequency_FiltersCorrectly()

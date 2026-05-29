@@ -16,6 +16,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class DashboardServiceTests
 {
+    /// <summary>Verifies get summary aggregates mock data behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetSummaryAsync_AggregatesMockData()
     {

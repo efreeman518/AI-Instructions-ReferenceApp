@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries checklist item data through infrastructure storage contracts.</summary>
 public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IChecklistItemRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
@@ -21,6 +23,7 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Searches search checklist items and returns filtered results for callers.</summary>
     public async Task<PagedResponse<ChecklistItemDto>> SearchChecklistItemsAsync(SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<ChecklistItem>().ComposeIQueryable(false);

@@ -13,6 +13,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>Coordinates attachment application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 internal class AttachmentService(
     ILogger<AttachmentService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -28,11 +29,13 @@ internal class AttachmentService(
 
     #region Helpers
 
+    /// <summary>Builds response from current configuration and inputs.</summary>
     private static DefaultResponse<AttachmentDto> BuildResponse(AttachmentDto dto) =>
         new() { Item = dto, TenantInfo = null };
 
     #endregion
 
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<PagedResponse<AttachmentDto>> SearchAsync(
         SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
     {
@@ -48,6 +51,7 @@ internal class AttachmentService(
         return await repoQuery.SearchAttachmentsAsync(request, ct);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetAttachmentAsync(id, ct);
@@ -61,6 +65,7 @@ internal class AttachmentService(
         return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> CreateAsync(
         DefaultRequest<AttachmentDto> request, CancellationToken ct = default)
     {
@@ -94,6 +99,7 @@ internal class AttachmentService(
         return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Uploads upload to the configured storage backend and returns metadata.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> UploadAsync(
         Stream fileStream, string fileName, string contentType, long fileSizeBytes,
         AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)
@@ -139,6 +145,7 @@ internal class AttachmentService(
         return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> UpdateAsync(
         DefaultRequest<AttachmentDto> request, CancellationToken ct = default)
     {
@@ -177,6 +184,7 @@ internal class AttachmentService(
         return Result<DefaultResponse<AttachmentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetAttachmentAsync(id, ct);

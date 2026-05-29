@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides task item tag behavior for the Infrastructure Configurations layer.</summary>
 public class TaskItemTagConfiguration() : EntityBaseConfiguration<TaskItemTag>(false)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<TaskItemTag> builder)
     {
         base.Configure(builder);

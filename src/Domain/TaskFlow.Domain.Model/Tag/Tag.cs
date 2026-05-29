@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models tag domain behavior and invariants.</summary>
 public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
 {
     public Guid TenantId { get; init; }
@@ -12,8 +13,10 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     // Navigation
     public ICollection<TaskItemTag> TaskItemTags { get; private set; } = [];
 
+    /// <summary>Initializes tag with required dependencies and default state.</summary>
     private Tag() { }
 
+    /// <summary>Initializes tag with required dependencies and default state.</summary>
     private Tag(Guid tenantId, string name, string? color)
     {
         TenantId = tenantId;
@@ -21,12 +24,14 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
         Color = color;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<Tag> Create(Guid tenantId, string name, string? color = null)
     {
         var entity = new Tag(tenantId, name, color);
         return entity.Valid();
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public DomainResult<Tag> Update(string? name = null, string? color = null)
     {
         if (name is not null) Name = name;
@@ -34,6 +39,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
         return Valid();
     }
 
+    /// <summary>Creates a valid tag instance with domain-required defaults.</summary>
     private DomainResult<Tag> Valid()
     {
         var errors = new List<DomainError>();
@@ -54,8 +60,10 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
             && string.Equals(Normalize(Name), Normalize(other.Name), StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Provides the equals operation for tag.</summary>
     public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Tag t && Equals(t);
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public override int GetHashCode()
     {
         return HashCode.Combine(
@@ -63,5 +71,6 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
             (Normalize(Name) ?? string.Empty).ToUpperInvariant());
     }
 
+    /// <summary>Normalizes input so callers and persistence use consistent values.</summary>
     private static string? Normalize(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

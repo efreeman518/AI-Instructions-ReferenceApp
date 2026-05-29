@@ -7,10 +7,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;
 
+/// <summary>Maps task item tag CQRS HTTP routes to CQRS handlers and API contract metadata.</summary>
 public static class TaskItemTagCqrsEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers task item tag CQRS routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapTaskItemTagCqrsEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -35,6 +37,7 @@ public static class TaskItemTagCqrsEndpoints
         return group;
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] IRequestHandler<GetTaskItemTagByIdQuery, Result<DefaultResponse<TaskItemTagDto>>> handler,
         Guid id,
@@ -48,6 +51,7 @@ public static class TaskItemTagCqrsEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] IRequestHandler<CreateTaskItemTagCommand, Result<DefaultResponse<TaskItemTagDto>>> handler,
@@ -62,6 +66,7 @@ public static class TaskItemTagCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] IRequestHandler<DeleteTaskItemTagCommand, Result> handler,

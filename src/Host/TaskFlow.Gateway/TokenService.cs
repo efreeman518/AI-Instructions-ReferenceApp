@@ -16,6 +16,7 @@ public sealed class TokenService
     private readonly TokenCredential _credential;
     private readonly IConfiguration _config;
 
+    /// <summary>Converts the current value to ken service.</summary>
     public TokenService(ILogger<TokenService> logger, TokenCredential credential, IConfiguration config)
     {
         _logger = logger;
@@ -23,6 +24,7 @@ public sealed class TokenService
         _config = config;
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<string> GetAccessTokenAsync(string clusterId, CancellationToken ct = default)
     {
         if (_cache.TryGetValue(clusterId, out var cached) && cached.Expiry > DateTimeOffset.UtcNow.AddMinutes(5))

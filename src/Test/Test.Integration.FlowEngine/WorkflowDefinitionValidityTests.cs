@@ -19,6 +19,7 @@ public class WorkflowDefinitionValidityTests
     private const string DecomposerId = "ai-task-decomposer";
     private const string ComplianceId = "compliance-check";
 
+    /// <summary>Verifies all workflows behavior and protects the expected test contract.</summary>
     public static IEnumerable<object[]> AllWorkflows() =>
     [
         ["ai-task-triage.json",      TriageId,      "1.0.0"],
@@ -31,6 +32,7 @@ public class WorkflowDefinitionValidityTests
     // this same instance; reusing it here keeps the test serializer in lock-step with runtime.
     private static readonly JsonSerializerOptions JsonOpts = WorkflowDefinitionJsonOptions.Default;
 
+    /// <summary>Verifies each workflow JSON deserializes behavior and protects the expected test contract.</summary>
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
@@ -44,6 +46,7 @@ public class WorkflowDefinitionValidityTests
         Assert.IsTrue(def.Nodes.ContainsKey(def.EntryNodeId), "EntryNodeId does not reference an existing node");
     }
 
+    /// <summary>Verifies each workflow passes definition validator behavior and protects the expected test contract.</summary>
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
@@ -56,6 +59,7 @@ public class WorkflowDefinitionValidityTests
         WorkflowDefinitionValidator.ValidateAndThrow(def);
     }
 
+    /// <summary>Verifies each workflow node has explicit config for SQL registry serialization behavior and protects the expected test contract.</summary>
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
@@ -72,6 +76,7 @@ public class WorkflowDefinitionValidityTests
         }
     }
 
+    /// <summary>Verifies each workflow round trips through in memory registry behavior and protects the expected test contract.</summary>
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
@@ -97,6 +102,7 @@ public class WorkflowDefinitionValidityTests
         Assert.AreEqual(def.Nodes.Count, loaded.Nodes.Count, "Node count drifted on round-trip");
     }
 
+    /// <summary>Verifies workflow definition builder from JSON round trips behavior and protects the expected test contract.</summary>
     [TestMethod]
     [DynamicData(nameof(AllWorkflows))]
     [TestCategory("Integration")]
@@ -111,6 +117,7 @@ public class WorkflowDefinitionValidityTests
         Assert.IsTrue(def.Nodes.Count > 0, "Builder.FromJson should now hydrate Nodes");
     }
 
+    /// <summary>Verifies all three workflows are present in output behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Integration")]
     public void All_Three_Workflows_Are_Present_In_Output()
@@ -124,6 +131,7 @@ public class WorkflowDefinitionValidityTests
             Assert.IsTrue(File.Exists(Path.Combine(dir, f)), $"Missing workflow file: {f}");
     }
 
+    /// <summary>Verifies read workflow file behavior and protects the expected test contract.</summary>
     private static string ReadWorkflowFile(string fileName)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Workflows", fileName);

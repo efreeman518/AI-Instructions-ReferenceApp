@@ -24,6 +24,7 @@ public class MigrationAndRepositoryTests
     private static readonly Guid TenantA = TestConstants.TenantId;
     private static readonly Guid TenantB = Guid.Parse("00000000-0000-0000-0000-000000000099");
 
+    /// <summary>Verifies migrations apply cleanly to SQL container behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task Migrations_ApplyCleanly_ToSqlContainer()
@@ -42,6 +43,7 @@ public class MigrationAndRepositoryTests
         Assert.IsGreaterThanOrEqualTo(tableCount, 7, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
     }
 
+    /// <summary>Verifies category CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task Category_CrudOperations_WorkAgainstRealSql()
@@ -76,6 +78,7 @@ public class MigrationAndRepositoryTests
         Assert.IsNull(deleted);
     }
 
+    /// <summary>Verifies task item CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task TaskItem_CrudOperations_WorkAgainstRealSql()
@@ -111,6 +114,7 @@ public class MigrationAndRepositoryTests
         Assert.IsNull(deleted);
     }
 
+    /// <summary>Verifies tag CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task Tag_CrudOperations_WorkAgainstRealSql()
@@ -128,6 +132,7 @@ public class MigrationAndRepositoryTests
         Assert.AreEqual("#00FF00", fetched.Color);
     }
 
+    /// <summary>Verifies task item with children persists correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task TaskItem_WithChildren_PersistsCorrectly()
@@ -161,6 +166,7 @@ public class MigrationAndRepositoryTests
         Assert.HasCount(1, loaded.ChecklistItems);
     }
 
+    /// <summary>Verifies task item tag many to many works correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task TaskItemTag_ManyToMany_WorksCorrectly()
@@ -190,6 +196,7 @@ public class MigrationAndRepositoryTests
         Assert.AreEqual("M2MTag", loaded.TaskItemTags.First().Tag!.Name);
     }
 
+    /// <summary>Verifies tenant query filter filters by tenant when tenant ID set behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task TenantQueryFilter_FiltersByTenant_WhenTenantIdSet()
@@ -234,6 +241,7 @@ public class MigrationAndRepositoryTests
         Assert.IsGreaterThanOrEqualTo(allViaEf.Count, filteredCount, "Query filter should restrict results");
     }
 
+    /// <summary>Verifies attachment table and constraints exist correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     [Timeout(120000)]
     public async Task Attachment_TableAndConstraints_ExistCorrectly()

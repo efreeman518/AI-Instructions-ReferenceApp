@@ -21,6 +21,7 @@ public class AttachmentApiServiceTests
     private TaskFlowApiClient _apiClient = null!;
     private AttachmentApiService _service = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -30,6 +31,7 @@ public class AttachmentApiServiceTests
         _service = new AttachmentApiService(_apiClient, Mock.Of<INotificationService>());
     }
 
+    /// <summary>Verifies teardown behavior and protects the expected test contract.</summary>
     [TestCleanup]
     public void Teardown()
     {
@@ -37,6 +39,7 @@ public class AttachmentApiServiceTests
         _handler.Dispose();
     }
 
+    /// <summary>Verifies search returns mapped models behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
@@ -48,6 +51,7 @@ public class AttachmentApiServiceTests
         Assert.AreEqual(4096, results[0].FileSizeBytes);
     }
 
+    /// <summary>Verifies get returns mapped model behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetAsync_ReturnsMappedModel()
     {
@@ -60,6 +64,7 @@ public class AttachmentApiServiceTests
         Assert.AreEqual("TaskItem", result.OwnerType);
     }
 
+    /// <summary>Creates returns mapped model used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateAsync_ReturnsMappedModel()
     {
@@ -80,6 +85,7 @@ public class AttachmentApiServiceTests
         Assert.IsNotNull(result.Id);
     }
 
+    /// <summary>Verifies delete does not throw behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {

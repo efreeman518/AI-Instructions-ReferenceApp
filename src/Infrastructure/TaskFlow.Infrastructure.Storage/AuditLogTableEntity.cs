@@ -3,6 +3,7 @@ using Azure.Data.Tables;
 
 namespace TaskFlow.Infrastructure.Storage;
 
+/// <summary>Provides audit log table entity behavior for the Infrastructure layer.</summary>
 public class AuditLogTableEntity : ITableEntity
 {
     public string PartitionKey { get; set; } = null!;

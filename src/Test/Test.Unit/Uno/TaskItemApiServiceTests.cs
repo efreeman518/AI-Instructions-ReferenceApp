@@ -24,6 +24,7 @@ public class TaskItemApiServiceTests
     private TaskFlowApiClient _apiClient = null!;
     private TaskItemApiService _service = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -33,6 +34,7 @@ public class TaskItemApiServiceTests
         _service = new TaskItemApiService(_apiClient, Mock.Of<INotificationService>());
     }
 
+    /// <summary>Verifies teardown behavior and protects the expected test contract.</summary>
     [TestCleanup]
     public void Teardown()
     {
@@ -40,6 +42,7 @@ public class TaskItemApiServiceTests
         _handler.Dispose();
     }
 
+    /// <summary>Verifies search returns mapped models behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
@@ -51,6 +54,7 @@ public class TaskItemApiServiceTests
         Assert.AreEqual("High", results[0].Priority);
     }
 
+    /// <summary>Verifies search includes overdue task behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_IncludesOverdueTask()
     {
@@ -61,6 +65,7 @@ public class TaskItemApiServiceTests
         Assert.IsTrue(overdueTask.IsOverdue);
     }
 
+    /// <summary>Creates returns mapped model used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateAsync_ReturnsMappedModel()
     {
@@ -72,6 +77,7 @@ public class TaskItemApiServiceTests
         Assert.IsNotNull(result.Id);
     }
 
+    /// <summary>Creates with child collections does not send null task item ids used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateAsync_WithChildCollections_DoesNotSendNullTaskItemIds()
     {
@@ -104,6 +110,7 @@ public class TaskItemApiServiceTests
         Assert.AreEqual(Guid.Empty.ToString(), checklistTaskItemId.GetString());
     }
 
+    /// <summary>Verifies delete does not throw behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
@@ -111,10 +118,12 @@ public class TaskItemApiServiceTests
         // No exception = success
     }
 
+    /// <summary>Supports test execution for Test.unit Uno scenarios.</summary>
     private sealed class CaptureRequestHandler : HttpMessageHandler
     {
         public string? LastRequestBody { get; private set; }
 
+        /// <summary>Verifies send behavior and protects the expected test contract.</summary>
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastRequestBody = request.Content is null

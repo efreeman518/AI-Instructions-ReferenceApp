@@ -31,6 +31,7 @@ import { PriorityChip, StatusChip } from '../components/TaskChips'
 import { useNotifications } from '../app/notificationContext'
 import { formatDate } from '../utils/format'
 
+/** Describes task filter state data used by the React UI. */
 interface TaskFilterState {
   searchTerm: string
   status: TaskItemStatus | ''
@@ -45,6 +46,7 @@ const initialFilters: TaskFilterState = {
   status: '',
 }
 
+/** Renders the tasks page and coordinates its data operations. */
 export function TasksPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -104,17 +106,20 @@ export function TasksPage() {
     onError: (error) => showNotification(error instanceof Error ? error.message : 'Task delete failed.', 'error'),
   })
 
+  /** Applies draft filters to the task query and resets pagination. */
   function applyFilters() {
     setPage(0)
     setFilters(draftFilters)
   }
 
+  /** Clears task filters and resets pagination to the first page. */
   function clearFilters() {
     setDraftFilters(initialFilters)
     setFilters(initialFilters)
     setPage(0)
   }
 
+  /** Toggles task completion state and submits the update mutation. */
   function toggleStatus(task: TaskItem) {
     const nextStatus: TaskItemStatus = task.status === 'Completed' ? 'Open' : 'Completed'
     updateMutation.mutate({ ...task, status: nextStatus })
@@ -315,6 +320,7 @@ export function TasksPage() {
   )
 }
 
+/** Returns the category label shown in task list rows. */
 function categoryLabel(categoryId: string | null | undefined, categories: Map<string, string>) {
   if (!categoryId) return '-'
   return categories.get(categoryId) ?? '-'

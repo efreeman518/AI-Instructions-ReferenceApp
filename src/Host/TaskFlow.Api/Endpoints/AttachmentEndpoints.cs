@@ -9,10 +9,12 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps attachment HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class AttachmentEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers attachment routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapAttachmentEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -53,6 +55,7 @@ public static class AttachmentEndpoints
         return group;
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     private static async Task<IResult> Search(
         [FromServices] IAttachmentService service,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<AttachmentSearchFilter>? request,
@@ -62,6 +65,7 @@ public static class AttachmentEndpoints
         return TypedResults.Ok(items);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] IAttachmentService service, Guid id, CancellationToken ct)
     {
@@ -73,6 +77,7 @@ public static class AttachmentEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] IAttachmentService service,
@@ -87,6 +92,7 @@ public static class AttachmentEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Uploads upload to the configured storage backend and returns metadata.</summary>
     private static async Task<IResult> Upload(
         HttpContext httpContext,
         IFormFile file,
@@ -106,6 +112,7 @@ public static class AttachmentEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static async Task<IResult> Update(
         HttpContext httpContext,
         [FromServices] IAttachmentService service,
@@ -126,6 +133,7 @@ public static class AttachmentEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] IAttachmentService service, Guid id, CancellationToken ct)

@@ -21,6 +21,7 @@ public class OverdueTaskCheckHandlerTests
     private readonly Mock<ITaskItemService> _serviceMock = new();
     private readonly OverdueTaskCheckHandler _handler;
 
+    /// <summary>Initializes overdue task check handler tests with required dependencies and default state.</summary>
     public OverdueTaskCheckHandlerTests()
     {
         _handler = new OverdueTaskCheckHandler(
@@ -28,6 +29,7 @@ public class OverdueTaskCheckHandlerTests
             NullLogger<OverdueTaskCheckHandler>.Instance);
     }
 
+    /// <summary>Verifies handle with overdue tasks logs count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_WithOverdueTasks_LogsCount()
@@ -50,6 +52,7 @@ public class OverdueTaskCheckHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle no overdue items completes with zero count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NoOverdueItems_CompletesWithZeroCount()
@@ -66,6 +69,7 @@ public class OverdueTaskCheckHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle filters out completed and cancelled behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_FiltersOutCompletedAndCancelled()
@@ -90,6 +94,7 @@ public class OverdueTaskCheckHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle null data treats as empty behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NullData_TreatsAsEmpty()

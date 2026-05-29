@@ -4,8 +4,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides comment structure validator behavior for the Application Rules layer.</summary>
 internal static class CommentStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<CommentDto> ValidateCreate(CommentDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -18,6 +20,7 @@ internal static class CommentStructureValidator
         return errors.Count > 0 ? Result<CommentDto>.Failure(errors) : Result<CommentDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<CommentDto> ValidateUpdate(CommentDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

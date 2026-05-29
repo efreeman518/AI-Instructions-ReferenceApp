@@ -1,5 +1,6 @@
 namespace TaskFlow.Domain.Shared.Enums;
 
+/// <summary>Defines the supported task item status values shared across TaskFlow layers.</summary>
 public enum TaskItemStatus
 {
     None = 0,

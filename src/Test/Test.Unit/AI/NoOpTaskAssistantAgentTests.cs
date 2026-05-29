@@ -14,6 +14,7 @@ public class NoOpTaskAssistantAgentTests
 {
     private readonly NoOpTaskAssistantAgent _agent = new(NullLogger<NoOpTaskAssistantAgent>.Instance);
 
+    /// <summary>Verifies chat returns not configured response behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ChatAsync_ReturnsNotConfiguredResponse()
     {
@@ -27,6 +28,7 @@ public class NoOpTaskAssistantAgentTests
         Assert.Contains("not configured", response.Message);
     }
 
+    /// <summary>Verifies chat with conversation ID preserves ID behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ChatAsync_WithConversationId_PreservesId()
     {
@@ -38,6 +40,7 @@ public class NoOpTaskAssistantAgentTests
         Assert.AreEqual(conversationId, response.ConversationId);
     }
 
+    /// <summary>Verifies chat without conversation ID generates ID behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ChatAsync_WithoutConversationId_GeneratesId()
     {

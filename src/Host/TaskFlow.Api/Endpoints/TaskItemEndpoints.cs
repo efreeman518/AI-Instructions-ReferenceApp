@@ -8,10 +8,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps task item HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class TaskItemEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers task item routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapTaskItemEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -46,6 +48,7 @@ public static class TaskItemEndpoints
         return group;
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     private static async Task<IResult> Search(
         [FromServices] ITaskItemService service,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<TaskItemSearchFilter>? request,
@@ -55,6 +58,7 @@ public static class TaskItemEndpoints
         return TypedResults.Ok(items);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] ITaskItemService service, Guid id, CancellationToken ct)
     {
@@ -66,6 +70,7 @@ public static class TaskItemEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] ITaskItemService service,
@@ -80,6 +85,7 @@ public static class TaskItemEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static async Task<IResult> Update(
         HttpContext httpContext,
         [FromServices] ITaskItemService service,
@@ -100,6 +106,7 @@ public static class TaskItemEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] ITaskItemService service, Guid id, CancellationToken ct)

@@ -10,9 +10,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Data.Migrations
 {
+    /// <summary>Provides task flow DB context trxn model snapshot behavior for the Infrastructure Migrations layer.</summary>
     [DbContext(typeof(TaskFlowDbContextTrxn))]
     partial class TaskFlowDbContextTrxnModelSnapshot : ModelSnapshot
     {
+        /// <summary>Builds model from current configuration and inputs.</summary>
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
             modelBuilder

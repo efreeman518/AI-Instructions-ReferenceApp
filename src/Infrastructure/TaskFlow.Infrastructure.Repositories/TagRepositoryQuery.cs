@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries tag data through infrastructure storage contracts.</summary>
 public class TagRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITagRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Tag?> GetTagAsync(Guid id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
@@ -21,6 +23,7 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Searches search tags and returns filtered results for callers.</summary>
     public async Task<PagedResponse<TagDto>> SearchTagsAsync(SearchRequest<TagSearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<Tag>().ComposeIQueryable(false);

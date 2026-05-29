@@ -11,12 +11,14 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.Comments;
 
+/// <summary>Handles search comments work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchCommentsHandler(
     ILogger<SearchCommentsHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     ICommentRepositoryQuery repoQuery)
     : IRequestHandler<SearchCommentsQuery, PagedResponse<CommentDto>>
 {
+    /// <summary>Handles search comments requests and returns the application result.</summary>
     public async Task<PagedResponse<CommentDto>> HandleAsync(SearchCommentsQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -25,6 +27,7 @@ internal sealed class SearchCommentsHandler(
     }
 }
 
+/// <summary>Handles get comment by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetCommentByIdHandler(
     ILogger<GetCommentByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -32,6 +35,7 @@ internal sealed class GetCommentByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetCommentByIdQuery, Result<DefaultResponse<CommentDto>>>
 {
+    /// <summary>Handles get comment by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(GetCommentByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetCommentAsync(query.Id, ct);
@@ -46,6 +50,7 @@ internal sealed class GetCommentByIdHandler(
     }
 }
 
+/// <summary>Handles create comment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateCommentHandler(
     ILogger<CreateCommentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -53,6 +58,7 @@ internal sealed class CreateCommentHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateCommentCommand, Result<DefaultResponse<CommentDto>>>
 {
+    /// <summary>Handles create comment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(CreateCommentCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -79,6 +85,7 @@ internal sealed class CreateCommentHandler(
     }
 }
 
+/// <summary>Handles update comment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateCommentHandler(
     ILogger<UpdateCommentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -86,6 +93,7 @@ internal sealed class UpdateCommentHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateCommentCommand, Result<DefaultResponse<CommentDto>>>
 {
+    /// <summary>Handles update comment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(UpdateCommentCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -119,6 +127,7 @@ internal sealed class UpdateCommentHandler(
     }
 }
 
+/// <summary>Handles delete comment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteCommentHandler(
     ILogger<DeleteCommentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -127,6 +136,7 @@ internal sealed class DeleteCommentHandler(
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteCommentCommand, Result>
 {
+    /// <summary>Handles delete comment requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteCommentCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetCommentAsync(command.Id, ct);

@@ -8,6 +8,7 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories.Updaters;
 
+/// <summary>Provides task item updater behavior for the Infrastructure Updaters layer.</summary>
 internal static class TaskItemUpdater
 {
     /// <summary>

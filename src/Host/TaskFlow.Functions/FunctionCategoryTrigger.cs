@@ -7,10 +7,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Functions;
 
+/// <summary>Configures function category trigger host behavior for TaskFlow runtime services.</summary>
 public class FunctionCategoryTrigger(
     ILogger<FunctionCategoryTrigger> logger,
     ICategoryService categoryService)
 {
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     [Function(nameof(CreateCategory))]
     public async Task<HttpResponseData> CreateCategory(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/categories")] HttpRequestData req,
@@ -50,6 +52,7 @@ public class FunctionCategoryTrigger(
         return response;
     }
 
+    /// <summary>Carries create category request CQRS data between endpoints and handlers.</summary>
     public sealed record CreateCategoryRequest
     {
         public string Name { get; init; } = null!;

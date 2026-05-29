@@ -18,6 +18,7 @@ public class TaskViewProjectionService : ITaskViewProjectionService
     private readonly ITaskViewRepository _taskViewRepo;
     private readonly ILogger<TaskViewProjectionService> _logger;
 
+    /// <summary>Initializes task view projection service with required dependencies and default state.</summary>
     public TaskViewProjectionService(
         ITaskItemRepositoryQuery taskItemRepo,
         IAttachmentRepositoryQuery attachmentRepo,

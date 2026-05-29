@@ -3,8 +3,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace TaskFlow.Bootstrapper.HealthChecks;
 
+/// <summary>Configures memory health check host behavior for TaskFlow runtime services.</summary>
 public sealed class MemoryHealthCheck(IConfiguration config) : IHealthCheck
 {
+    /// <summary>Provides the check health operation for memory health check.</summary>
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

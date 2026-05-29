@@ -23,6 +23,7 @@ public class EntityMappingBenchmarks
     private Tag _tag = null!;
     private Comment _comment = null!;
 
+    /// <summary>Prepares the benchmark host, rate limit settings, seeded data, and HTTP client before measurement starts.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -48,18 +49,23 @@ public class EntityMappingBenchmarks
             .Build();
     }
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object CategoryToDto() => _category.ToDto();
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object TaskItemToDto() => _taskItem.ToDto();
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object TagToDto() => _tag.ToDto();
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object CommentToDto() => _comment.ToDto();
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object CategoryDtoRoundTrip()
     {
@@ -67,6 +73,7 @@ public class EntityMappingBenchmarks
         return dto.ToEntity(_category.TenantId);
     }
 
+    /// <summary>Supports benchmark execution for entity mapping benchmarks.</summary>
     [Benchmark]
     public object TaskItemDtoRoundTrip()
     {

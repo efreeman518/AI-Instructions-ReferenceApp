@@ -3,8 +3,10 @@ using TaskFlow.Application.Contracts.Storage;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps task view HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class TaskViewEndpoints
 {
+    /// <summary>Registers task view routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapTaskViewEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/task-views").WithTags("TaskViews");

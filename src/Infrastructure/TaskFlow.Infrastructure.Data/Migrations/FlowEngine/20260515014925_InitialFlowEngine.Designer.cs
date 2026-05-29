@@ -11,6 +11,7 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
 {
+    /// <summary>Provides initial flow engine behavior for the Migrations Flow Engine layer.</summary>
     [DbContext(typeof(TaskFlowFlowEngineDbContext))]
     [Migration("20260515014925_InitialFlowEngine")]
     partial class InitialFlowEngine

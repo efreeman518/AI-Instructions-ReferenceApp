@@ -1,5 +1,6 @@
 namespace TaskFlow.Infrastructure.AI.Search;
 
+/// <summary>Provides task item search document behavior for the Infrastructure Search layer.</summary>
 public class TaskItemSearchDocument
 {
     public string Id { get; set; } = null!;

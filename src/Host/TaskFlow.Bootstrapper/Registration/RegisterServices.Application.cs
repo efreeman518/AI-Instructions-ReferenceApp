@@ -10,8 +10,10 @@ using TaskFlow.Application.Services;
 
 namespace TaskFlow.Bootstrapper;
 
+/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
+    /// <summary>Registers application services dependencies in the service container.</summary>
     private static void AddApplicationServices(IServiceCollection services, IConfiguration config)
     {
         AddMessageHandlers(services);
@@ -26,12 +28,14 @@ public static partial class RegisterServices
         services.AddScoped<ITaskViewProjectionService, TaskViewProjectionService>();
     }
 
+    /// <summary>Registers shared application services dependencies in the service container.</summary>
     private static void AddSharedApplicationServices(IServiceCollection services)
     {
         services.AddScoped<ITenantBoundaryValidator, TenantBoundaryValidator>();
         services.AddSingleton<IEntityCacheProvider, NoOpEntityCacheProvider>();
     }
 
+    /// <summary>Registers service application services dependencies in the service container.</summary>
     private static void AddServiceApplicationServices(IServiceCollection services)
     {
         services.AddScoped<ICategoryService, CategoryService>();
@@ -43,6 +47,7 @@ public static partial class RegisterServices
         services.AddScoped<ITaskItemTagService, TaskItemTagService>();
     }
 
+    /// <summary>Registers message handlers dependencies in the service container.</summary>
     private static void AddMessageHandlers(IServiceCollection services)
     {
         services.AddScoped<IMessageHandler<AuditEntry<string, Guid>>, AuditHandler>();

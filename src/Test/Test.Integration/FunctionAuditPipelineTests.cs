@@ -25,6 +25,7 @@ public class FunctionAuditPipelineTests
 {
     private static readonly Guid FunctionFallbackTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
+    /// <summary>Verifies that given function category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
     [Timeout(300000)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
@@ -79,6 +80,7 @@ public class FunctionAuditPipelineTests
         Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
     }
 
+    /// <summary>Verifies post create category with retry behavior and protects the expected test contract.</summary>
     private static async Task<HttpResponseMessage> PostCreateCategoryWithRetryAsync(HttpClient client, object request, CancellationToken ct)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
@@ -113,6 +115,7 @@ public class FunctionAuditPipelineTests
         throw new InvalidOperationException("Unreachable");
     }
 
+    /// <summary>Verifies wait for audit entity behavior and protects the expected test contract.</summary>
     private static async Task<AuditLogTableEntity> WaitForAuditEntityAsync(
         TableClient tableClient,
         string partitionKey,

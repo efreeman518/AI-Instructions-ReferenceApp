@@ -20,6 +20,7 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
     // Per-conversation session tracking (scoped per user via DI)
     private AgentSession? _session;
 
+    /// <summary>Initializes task assistant agent service with required dependencies and default state.</summary>
     public TaskAssistantAgentService(
         ILogger<TaskAssistantAgentService> logger,
         AzureOpenAIClient openAiClient,
@@ -60,6 +61,7 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
                 ]);
     }
 
+    /// <summary>Provides the chat operation for task assistant agent service.</summary>
     public async Task<AgentChatResponse> ChatAsync(
         AgentChatRequest request, Guid? tenantId, CancellationToken ct = default)
     {
@@ -78,6 +80,7 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
         };
     }
 
+    /// <summary>Reads embedded prompt from the configured source.</summary>
     private static string ReadEmbeddedPrompt(string fileName)
     {
         var assembly = Assembly.GetExecutingAssembly();

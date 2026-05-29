@@ -4,8 +4,10 @@ using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides validation helper behavior for the Application Rules layer.</summary>
 internal static class ValidationHelper
 {
+    /// <summary>Validates ensure global admin rules and returns failures before work continues.</summary>
     public static Result EnsureGlobalAdmin(IReadOnlyCollection<string> callerRoles, string operation)
     {
         return callerRoles.Contains(AppConstants.ROLE_GLOBAL_ADMIN)
@@ -13,6 +15,7 @@ internal static class ValidationHelper
             : Result.Failure($"Forbidden: Only a GlobalAdmin may perform this operation: {operation}.");
     }
 
+    /// <summary>Validates ensure tenant boundary rules and returns failures before work continues.</summary>
     public static Result EnsureTenantBoundary(
         ILogger logger,
         Guid? callerTenantId,
@@ -51,6 +54,7 @@ internal static class ValidationHelper
         return Result.Failure($"Forbidden: Tenant boundary violation for operation: {operation}.");
     }
 
+    /// <summary>Provides the prevent tenant change operation for validation helper.</summary>
     public static Result PreventTenantChange(ILogger logger, Guid? existingTenantId, Guid? incomingTenantId, string entityName, Guid entityId)
     {
         if (existingTenantId != incomingTenantId)

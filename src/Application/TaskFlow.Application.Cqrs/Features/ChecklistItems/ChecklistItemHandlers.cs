@@ -11,12 +11,14 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.ChecklistItems;
 
+/// <summary>Handles search checklist items work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchChecklistItemsHandler(
     ILogger<SearchChecklistItemsHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     IChecklistItemRepositoryQuery repoQuery)
     : IRequestHandler<SearchChecklistItemsQuery, PagedResponse<ChecklistItemDto>>
 {
+    /// <summary>Handles search checklist items requests and returns the application result.</summary>
     public async Task<PagedResponse<ChecklistItemDto>> HandleAsync(SearchChecklistItemsQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -25,6 +27,7 @@ internal sealed class SearchChecklistItemsHandler(
     }
 }
 
+/// <summary>Handles get checklist item by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetChecklistItemByIdHandler(
     ILogger<GetChecklistItemByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -32,6 +35,7 @@ internal sealed class GetChecklistItemByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetChecklistItemByIdQuery, Result<DefaultResponse<ChecklistItemDto>>>
 {
+    /// <summary>Handles get checklist item by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(GetChecklistItemByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetChecklistItemAsync(query.Id, ct);
@@ -46,6 +50,7 @@ internal sealed class GetChecklistItemByIdHandler(
     }
 }
 
+/// <summary>Handles create checklist item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateChecklistItemHandler(
     ILogger<CreateChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -53,6 +58,7 @@ internal sealed class CreateChecklistItemHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>>
 {
+    /// <summary>Handles create checklist item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(CreateChecklistItemCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -79,6 +85,7 @@ internal sealed class CreateChecklistItemHandler(
     }
 }
 
+/// <summary>Handles update checklist item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateChecklistItemHandler(
     ILogger<UpdateChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -86,6 +93,7 @@ internal sealed class UpdateChecklistItemHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>>
 {
+    /// <summary>Handles update checklist item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(UpdateChecklistItemCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -119,6 +127,7 @@ internal sealed class UpdateChecklistItemHandler(
     }
 }
 
+/// <summary>Handles delete checklist item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteChecklistItemHandler(
     ILogger<DeleteChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -127,6 +136,7 @@ internal sealed class DeleteChecklistItemHandler(
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteChecklistItemCommand, Result>
 {
+    /// <summary>Handles delete checklist item requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteChecklistItemCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetChecklistItemAsync(command.Id, ct);

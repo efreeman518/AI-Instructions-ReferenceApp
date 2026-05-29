@@ -35,6 +35,7 @@ public static class RegisterGatewayServices
         return services;
     }
 
+    /// <summary>Registers authentication dependencies in the service container.</summary>
     private static void AddAuthentication(IServiceCollection services, IConfiguration config)
     {
         var entraSection = config.GetSection("EntraExternal");
@@ -79,6 +80,7 @@ public static class RegisterGatewayServices
             });
     }
 
+    /// <summary>Registers reverse proxy dependencies in the service container.</summary>
     private static void AddReverseProxy(IServiceCollection services, IConfiguration config)
     {
         services.AddReverseProxy()
@@ -102,6 +104,7 @@ public static class RegisterGatewayServices
             });
     }
 
+    /// <summary>Registers original user claims header dependencies in the service container.</summary>
     private static void AddOriginalUserClaimsHeader(RequestTransformContext ctx)
     {
         var user = ctx.HttpContext.User;
@@ -122,6 +125,7 @@ public static class RegisterGatewayServices
         ctx.ProxyRequest!.Headers.TryAddWithoutValidation("X-Orig-Request", encoded);
     }
 
+    /// <summary>Registers cors dependencies in the service container.</summary>
     private static void AddCors(IServiceCollection services, IConfiguration config)
     {
         var origins = config.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
@@ -142,6 +146,7 @@ public static class RegisterGatewayServices
         });
     }
 
+    /// <summary>Registers health checks dependencies in the service container.</summary>
     private static void AddHealthChecks(IServiceCollection services, IConfiguration config)
     {
         services.Configure<AggregateHealthCheckSettings>(
@@ -153,6 +158,7 @@ public static class RegisterGatewayServices
             .AddCheck<AggregateGatewayHealthCheck>("taskflow-api", tags: ["full", "extservice"]);
     }
 
+    /// <summary>Registers rate limiting dependencies in the service container.</summary>
     private static void AddRateLimiting(IServiceCollection services, IConfiguration config)
     {
         var memoryPermitLimit = config.GetValue<int?>("RateLimiting:Health:MemoryPermitLimit") ?? 30;
@@ -186,6 +192,7 @@ public static class RegisterGatewayServices
         });
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static string GetRequiredValue(IConfigurationSection section, string key) =>
         section[key] is { Length: > 0 } value
             ? value

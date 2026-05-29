@@ -9,8 +9,10 @@ using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>Configures extensions host behavior for TaskFlow runtime services.</summary>
 public static class Extensions
 {
+    /// <summary>Registers service defaults dependencies in the service container.</summary>
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
         builder.ConfigureOpenTelemetry();
@@ -27,6 +29,7 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>Configures open telemetry behavior for this component.</summary>
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         builder.Logging.AddOpenTelemetry(logging =>
@@ -53,6 +56,7 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>Registers open telemetry exporters dependencies in the service container.</summary>
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(
@@ -66,6 +70,7 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>Registers default health checks dependencies in the service container.</summary>
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks()
@@ -74,6 +79,7 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>Registers default routes, handlers, and response metadata.</summary>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         app.MapHealthChecks("/healthz", new HealthCheckOptions

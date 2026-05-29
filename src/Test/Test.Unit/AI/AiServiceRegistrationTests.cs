@@ -16,6 +16,7 @@ namespace Test.Unit.AI;
 [TestCategory("Unit")]
 public class AiServiceRegistrationTests
 {
+    /// <summary>Verifies add AI services with no config registers no op services behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_WithNoConfig_RegistersNoOpServices()
     {
@@ -40,6 +41,7 @@ public class AiServiceRegistrationTests
         Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
     }
 
+    /// <summary>Verifies add AI services with search enabled no endpoint registers no op search behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_WithSearchEnabled_NoEndpoint_RegistersNoOpSearch()
     {
@@ -61,6 +63,7 @@ public class AiServiceRegistrationTests
         Assert.IsInstanceOfType(searchService, typeof(NoOpSearchService));
     }
 
+    /// <summary>Verifies add AI services with agents enabled no endpoint registers no op agent behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_WithAgentsEnabled_NoEndpoint_RegistersNoOpAgent()
     {
@@ -82,6 +85,7 @@ public class AiServiceRegistrationTests
         Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
     }
 
+    /// <summary>Verifies add AI services settings bind correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_SettingsBindCorrectly()
     {

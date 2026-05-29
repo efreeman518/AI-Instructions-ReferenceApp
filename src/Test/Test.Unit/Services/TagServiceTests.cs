@@ -28,6 +28,7 @@ public class TagServiceTests
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
     private readonly Mock<IEntityCacheProvider> _cacheMock = new();
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -41,6 +42,7 @@ public class TagServiceTests
             .Returns(Result.Success());
     }
 
+    /// <summary>Creates service used by the surrounding test cases.</summary>
     private TagService CreateService() => new(
         NullLogger<TagService>.Instance,
         _requestContextMock.Object,
@@ -49,6 +51,7 @@ public class TagServiceTests
         _tenantBoundaryValidatorMock.Object,
         _cacheMock.Object);
 
+    /// <summary>Verifies that given valid DTO, when create, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ValidDto_When_CreateAsync_Then_ReturnsSuccess()
@@ -63,6 +66,7 @@ public class TagServiceTests
         Assert.AreEqual("Important", result.Value!.Item!.Name);
     }
 
+    /// <summary>Verifies that given invalid DTO, when create, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
@@ -73,6 +77,7 @@ public class TagServiceTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing entity, when get, then returns mapped DTO.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_GetAsync_Then_ReturnsMappedDto()
@@ -86,6 +91,7 @@ public class TagServiceTests
         Assert.AreEqual(entity.Name, result.Value!.Item!.Name);
     }
 
+    /// <summary>Verifies that given non existent ID, when get, then returns none.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
@@ -97,6 +103,7 @@ public class TagServiceTests
         Assert.IsTrue(result.IsNone);
     }
 
+    /// <summary>Verifies that given existing entity, when update, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
@@ -112,6 +119,7 @@ public class TagServiceTests
         Assert.AreEqual("Updated", result.Value!.Item!.Name);
     }
 
+    /// <summary>Verifies that given non existent ID, when update, then returns null item.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
@@ -125,6 +133,7 @@ public class TagServiceTests
         Assert.IsNull(result.Value?.Item);
     }
 
+    /// <summary>Verifies that given existing entity, when delete, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
@@ -139,6 +148,7 @@ public class TagServiceTests
         _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
     }
 
+    /// <summary>Verifies that given non existent ID, when delete, then returns success idempotent.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
@@ -150,6 +160,7 @@ public class TagServiceTests
         Assert.IsTrue(result.IsSuccess);
     }
 
+    /// <summary>Verifies that given search request, when search, then returns paged response.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()

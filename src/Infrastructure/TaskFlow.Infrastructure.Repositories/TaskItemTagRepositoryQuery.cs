@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries task item tag data through infrastructure storage contracts.</summary>
 public class TaskItemTagRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ITaskItemTagRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TaskItemTag?> GetTaskItemTagAsync(Guid id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<TaskItemTag>, IIncludableQueryable<TaskItemTag, object?>>>>
@@ -29,6 +31,7 @@ public class TaskItemTagRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<List<TaskItemTag>> GetByTaskItemIdAsync(Guid taskItemId, CancellationToken ct = default)
         => await DB.TaskItemTags
             .AsNoTracking()

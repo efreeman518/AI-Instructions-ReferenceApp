@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace TaskFlow.Gateway.HealthChecks;
 
+/// <summary>Configures aggregate health check host behavior for TaskFlow runtime services.</summary>
 public sealed class AggregateHealthCheckSettings
 {
     public const string ConfigSectionName = "AggregateHealthCheck";
@@ -13,11 +14,13 @@ public sealed class AggregateHealthCheckSettings
     public int TimeoutSeconds { get; set; } = 5;
 }
 
+/// <summary>Configures aggregate gateway health check host behavior for TaskFlow runtime services.</summary>
 public sealed class AggregateGatewayHealthCheck(
     IOptions<AggregateHealthCheckSettings> options,
     TokenService tokenService,
     IHttpClientFactory httpClientFactory) : IHealthCheck
 {
+    /// <summary>Provides the check health operation for aggregate gateway health check.</summary>
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

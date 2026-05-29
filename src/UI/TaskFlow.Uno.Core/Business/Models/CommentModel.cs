@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries comment data between Uno services and presentation models.</summary>
 public record CommentModel
 {
     public Guid? Id { get; init; }

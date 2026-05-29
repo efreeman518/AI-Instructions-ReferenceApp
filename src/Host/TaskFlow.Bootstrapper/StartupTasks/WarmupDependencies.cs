@@ -4,11 +4,13 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Bootstrapper.StartupTasks;
 
+/// <summary>Configures warmup dependencies host behavior for TaskFlow runtime services.</summary>
 public class WarmupDependencies(
     IDbContextFactory<TaskFlowDbContextTrxn> trxnFactory,
     IDbContextFactory<TaskFlowDbContextQuery> queryFactory,
     ILogger<WarmupDependencies> logger) : IStartupTask
 {
+    /// <summary>Provides the execute operation for warmup dependencies.</summary>
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
         try

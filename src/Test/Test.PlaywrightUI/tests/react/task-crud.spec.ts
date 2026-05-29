@@ -53,6 +53,7 @@ test.describe("TaskFlow React - Task CRUD lifecycle", () => {
     await expectNoPageErrors(pageErrors);
   });
 
+  /** Verifies the Playwright scenario for 1. create a new task. */
   test("1. create a new task", async ({ page }) => {
     await waitForReactApp(page);
     await navigateToNewTask(page);
@@ -72,6 +73,7 @@ test.describe("TaskFlow React - Task CRUD lifecycle", () => {
     await expectTaskInTable(page, taskTitle, 20_000);
   });
 
+  /** Verifies the Playwright scenario for 2. read the created task and child details. */
   test("2. read the created task and child details", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
@@ -86,6 +88,7 @@ test.describe("TaskFlow React - Task CRUD lifecycle", () => {
     await expect(page.getByText(commentBody)).toBeVisible({ timeout: 10_000 });
   });
 
+  /** Verifies the Playwright scenario for 3. update the task title and priority. */
   test("3. update the task title and priority", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
@@ -105,6 +108,7 @@ test.describe("TaskFlow React - Task CRUD lifecycle", () => {
     await expect(page.locator("tbody tr", { hasText: updatedTitle }).first()).toContainText("High");
   });
 
+  /** Verifies the Playwright scenario for 4. delete the task. */
   test("4. delete the task", async ({ page }) => {
     await navigateToTaskList(page);
     await searchForTask(page, updatedTitle);

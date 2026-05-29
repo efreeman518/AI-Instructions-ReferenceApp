@@ -25,14 +25,18 @@ public class TaskItemEndpointTests
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
+    /// <summary>Verifies that given valid payload, when post task item, then returns 201.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ValidPayload_When_PostTaskItem_Then_Returns201()
@@ -49,6 +53,7 @@ public class TaskItemEndpointTests
         Assert.IsNotNull(created.Id);
     }
 
+    /// <summary>Verifies that given existing task item, when get by ID, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTaskItem_When_GetById_Then_Returns200()
@@ -66,6 +71,7 @@ public class TaskItemEndpointTests
         Assert.AreEqual("GetTest", result.Title);
     }
 
+    /// <summary>Verifies that given non existent ID, when get task item, then returns 404.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_NonExistentId_When_GetTaskItem_Then_Returns404()
@@ -77,6 +83,7 @@ public class TaskItemEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>Verifies that given existing task item, when put update, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTaskItem_When_PutUpdate_Then_Returns200()
@@ -100,6 +107,7 @@ public class TaskItemEndpointTests
         Assert.AreEqual("After Update", updated!.Title);
     }
 
+    /// <summary>Verifies that given existing task item, when delete, then returns 204.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTaskItem_When_Delete_Then_Returns204()
@@ -118,6 +126,7 @@ public class TaskItemEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
+    /// <summary>Verifies that given existing task items, when search, then returns filtered page.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTaskItems_When_Search_Then_ReturnsFilteredPage()
@@ -147,6 +156,7 @@ public class TaskItemEndpointTests
         Assert.IsTrue(data.EnumerateArray().Any(e => e.GetProperty("title").GetString()!.Contains("SearchTarget")));
     }
 
+    /// <summary>Verifies that given empty database, when search, then returns empty page.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_EmptyDatabase_When_Search_Then_ReturnsEmptyPage()
@@ -167,6 +177,7 @@ public class TaskItemEndpointTests
         Assert.IsTrue(root.TryGetProperty("data", out _));
     }
 
+    /// <summary>Verifies that given full CRUD cycle, when all operations executed, then all succeed.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_FullCrudCycle_When_AllOperationsExecuted_Then_AllSucceed()

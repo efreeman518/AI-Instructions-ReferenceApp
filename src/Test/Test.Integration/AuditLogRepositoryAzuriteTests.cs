@@ -22,6 +22,7 @@ namespace Test.Integration;
 [DoNotParallelize]
 public class AuditLogRepositoryAzuriteTests
 {
+    /// <summary>Verifies that given audit entry, when append to azurite, then table entity persisted with expected keys.</summary>
     [TestMethod]
     [Timeout(300000)]
     public async Task Given_AuditEntry_When_AppendAsyncToAzurite_Then_TableEntityPersistedWithExpectedKeys()
@@ -86,6 +87,7 @@ public class AuditLogRepositoryAzuriteTests
         }
     }
 
+    /// <summary>Verifies read single entity behavior and protects the expected test contract.</summary>
     private static async Task<AuditLogTableEntity> ReadSingleEntityAsync(TableClient tableClient, string partitionKey)
     {
         await foreach (var entity in tableClient.QueryAsync<AuditLogTableEntity>(
@@ -98,8 +100,10 @@ public class AuditLogRepositoryAzuriteTests
         throw new InvalidOperationException("Unreachable");
     }
 
+    /// <summary>Builds test table service client test hosts with deterministic dependencies for repeatable test execution.</summary>
     private sealed class TestTableServiceClientFactory(TableServiceClient client) : IAzureClientFactory<TableServiceClient>
     {
+        /// <summary>Creates client used by the surrounding test cases.</summary>
         public TableServiceClient CreateClient(string name) => client;
     }
 }

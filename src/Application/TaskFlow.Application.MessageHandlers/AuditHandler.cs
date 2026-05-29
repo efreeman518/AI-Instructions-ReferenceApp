@@ -17,16 +17,19 @@ public class AuditHandler(
     IMessageHandler<AuditEntry<string, Guid>>,
     IMessageHandler<AuditEntry<string, Guid?>>
 {
+    /// <summary>Handles audit requests and returns the application result.</summary>
     public Task HandleAsync(AuditEntry<string, Guid> message, CancellationToken cancellationToken = default)
     {
         return HandleCoreAsync(message, cancellationToken);
     }
 
+    /// <summary>Handles audit requests and returns the application result.</summary>
     public Task HandleAsync(AuditEntry<string, Guid?> message, CancellationToken cancellationToken = default)
     {
         return HandleCoreAsync(message, cancellationToken);
     }
 
+    /// <summary>Provides the handle core operation for audit handler.</summary>
     private async Task HandleCoreAsync<TTenantId>(AuditEntry<string, TTenantId> message, CancellationToken cancellationToken)
     {
         await auditLogRepository.AppendAsync(message, cancellationToken).ConfigureAwait(false);

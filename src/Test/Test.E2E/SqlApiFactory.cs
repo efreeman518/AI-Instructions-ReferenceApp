@@ -18,6 +18,7 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
 
     private readonly string _applicationStyle;
 
+    /// <summary>Initializes SQL API factory with required dependencies and default state.</summary>
     public SqlApiFactory(string? applicationStyle = null)
     {
         _applicationStyle = applicationStyle
@@ -25,16 +26,19 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
             ?? ApplicationStyle.Service.ToString();
     }
 
+    /// <summary>Verifies start container behavior and protects the expected test contract.</summary>
     public static async Task StartContainerAsync()
     {
         await Sql.StartAsync();
     }
 
+    /// <summary>Verifies stop container behavior and protects the expected test contract.</summary>
     public static async Task StopContainerAsync()
     {
         await Sql.DisposeAsync();
     }
 
+    /// <summary>Verifies configure test configuration behavior and protects the expected test contract.</summary>
     protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
     {
         config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -43,12 +47,15 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
         });
     }
 
+    /// <summary>Builds trxn options used by focused test cases.</summary>
     protected override DbContextOptions BuildTrxnOptions() =>
         BuildSqlServerOptions<TaskFlowDbContextTrxn>(Sql.ConnectionString);
 
+    /// <summary>Builds query options used by focused test cases.</summary>
     protected override DbContextOptions BuildQueryOptions() =>
         BuildSqlServerOptions<TaskFlowDbContextQuery>(Sql.ConnectionString);
 
+    /// <summary>Builds SQL server options used by focused test cases.</summary>
     private static DbContextOptions<TContext> BuildSqlServerOptions<TContext>(string connectionString)
         where TContext : DbContext =>
         new DbContextOptionsBuilder<TContext>()

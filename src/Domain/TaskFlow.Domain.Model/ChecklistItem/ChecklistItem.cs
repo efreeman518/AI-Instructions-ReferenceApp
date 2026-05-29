@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models checklist item domain behavior and invariants.</summary>
 public class ChecklistItem : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -17,8 +18,10 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
 
+    /// <summary>Initializes checklist item with required dependencies and default state.</summary>
     private ChecklistItem() { }
 
+    /// <summary>Initializes checklist item with required dependencies and default state.</summary>
     private ChecklistItem(Guid tenantId, Guid taskItemId, string title, int sortOrder)
     {
         TenantId = tenantId;
@@ -28,12 +31,14 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
         IsCompleted = false;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<ChecklistItem> Create(Guid tenantId, Guid taskItemId, string title, int sortOrder = 0)
     {
         var entity = new ChecklistItem(tenantId, taskItemId, title, sortOrder);
         return entity.Valid();
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public DomainResult<ChecklistItem> Update(string? title = null, bool? isCompleted = null, int? sortOrder = null)
     {
         if (title is not null) Title = title;
@@ -46,6 +51,7 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
         return Valid();
     }
 
+    /// <summary>Creates a valid checklist item instance with domain-required defaults.</summary>
     private DomainResult<ChecklistItem> Valid()
     {
         var errors = new List<DomainError>();

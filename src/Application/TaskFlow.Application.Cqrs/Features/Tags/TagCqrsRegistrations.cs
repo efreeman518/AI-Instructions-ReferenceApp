@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.Tags;
 
+/// <summary>Provides tag CQRS registrations behavior for the Features Tags layer.</summary>
 internal static class TagCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

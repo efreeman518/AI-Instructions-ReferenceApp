@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace TaskFlow.Api.Auth;
 
+/// <summary>Configures gateway claims transform host behavior for TaskFlow runtime services.</summary>
 public sealed class GatewayClaimsTransformSettings
 {
     public const string ConfigSectionName = "GatewayClaimsTransform";
@@ -26,6 +27,7 @@ public sealed class GatewayClaimsTransformer(
 {
     private readonly GatewayClaimsTransformSettings _settings = options.Value;
 
+    /// <summary>Provides the transform operation for gateway claims transformer.</summary>
     public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         if (principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated)
@@ -74,6 +76,7 @@ public sealed class GatewayClaimsTransformer(
         return Task.FromResult(new ClaimsPrincipal(newIdentity));
     }
 
+    /// <summary>Provides the is trusted gateway caller operation for gateway claims transformer.</summary>
     private bool IsTrustedGatewayCaller(ClaimsPrincipal principal)
     {
         if (!_settings.RequireTrustedGateway)
@@ -88,6 +91,7 @@ public sealed class GatewayClaimsTransformer(
             && string.Equals(c.Value, _settings.GatewayAppId, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>Registers claim if missing dependencies in the service container.</summary>
     private static void AddClaimIfMissing(ClaimsIdentity identity, string type, string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -97,6 +101,7 @@ public sealed class GatewayClaimsTransformer(
             identity.AddClaim(new Claim(type, value));
     }
 
+    /// <summary>Configures forwarded claims host behavior for TaskFlow runtime services.</summary>
     private sealed record ForwardedClaims(
         [property: JsonPropertyName("sub")] string? Sub,
         [property: JsonPropertyName("tenant_id")] string? TenantId,

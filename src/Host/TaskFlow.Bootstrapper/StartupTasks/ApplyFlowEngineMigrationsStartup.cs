@@ -5,11 +5,13 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Bootstrapper.StartupTasks;
 
+/// <summary>Configures apply flow engine migrations startup host behavior for TaskFlow runtime services.</summary>
 public sealed class ApplyFlowEngineMigrationsStartup(
     IDbContextFactory<TaskFlowFlowEngineDbContext> factory,
     IConfiguration config,
     ILogger<ApplyFlowEngineMigrationsStartup> logger) : IStartupTask
 {
+    /// <summary>Provides the execute operation for apply flow engine migrations startup.</summary>
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
         var env = config["ASPNETCORE_ENVIRONMENT"] ?? config["DOTNET_ENVIRONMENT"];

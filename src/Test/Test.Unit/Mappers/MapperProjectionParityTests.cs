@@ -26,6 +26,7 @@ namespace Test.Unit.Mappers;
 [TestClass]
 public class MapperProjectionParityTests
 {
+    /// <summary>Verifies category compiled projection agrees with to DTO behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Category_CompiledProjection_AgreesWith_ToDto()
@@ -43,6 +44,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.ParentCategoryId, fromCompiled.ParentCategoryId);
     }
 
+    /// <summary>Verifies comment compiled projection agrees with to DTO behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Comment_CompiledProjection_AgreesWith_ToDto()
@@ -57,6 +59,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.TaskItemId, fromCompiled.TaskItemId);
     }
 
+    /// <summary>Verifies tag compiled projection agrees with to DTO behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Tag_CompiledProjection_AgreesWith_ToDto()
@@ -71,6 +74,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.Color, fromCompiled.Color);
     }
 
+    /// <summary>Verifies checklist item compiled projection agrees with to DTO behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void ChecklistItem_CompiledProjection_AgreesWith_ToDto()
@@ -87,6 +91,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.TaskItemId, fromCompiled.TaskItemId);
     }
 
+    /// <summary>Verifies attachment compiled projection agrees with to DTO behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Attachment_CompiledProjection_AgreesWith_ToDto()
@@ -104,6 +109,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.OwnerId, fromCompiled.OwnerId);
     }
 
+    /// <summary>Verifies task item compiled projection agrees with to DTO for scalars and owned types behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void TaskItem_CompiledProjection_AgreesWith_ToDto_ForScalarsAndOwnedTypes()
@@ -125,6 +131,7 @@ public class MapperProjectionParityTests
         Assert.AreEqual(fromToDto.DueDate, fromCompiled.DueDate);
     }
 
+    /// <summary>Verifies task item inlined children agree with child mappers behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void TaskItem_InlinedChildren_AgreeWith_ChildMappers()

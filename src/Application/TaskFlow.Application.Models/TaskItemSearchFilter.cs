@@ -2,6 +2,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Models;
 
+/// <summary>Provides task item search filter behavior for the Application layer.</summary>
 public record TaskItemSearchFilter : DefaultSearchFilter
 {
     public TaskItemStatus? Status { get; set; }

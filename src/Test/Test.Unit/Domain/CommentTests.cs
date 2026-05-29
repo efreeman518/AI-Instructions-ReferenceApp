@@ -11,6 +11,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class CommentTests
 {
+    /// <summary>Verifies that given valid input, when comment created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_CommentCreated_Then_ReturnsSuccess()
@@ -23,6 +24,7 @@ public class CommentTests
         Assert.AreEqual(taskItemId, result.Value.TaskItemId);
     }
 
+    /// <summary>Verifies that given empty body, when comment created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -34,6 +36,7 @@ public class CommentTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty task item ID, when comment created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTaskItemId_When_CommentCreated_Then_ReturnsDomainFailure()
@@ -42,6 +45,7 @@ public class CommentTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing comment, when updated, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingComment_When_Updated_Then_ReturnsUpdatedValues()
@@ -52,6 +56,7 @@ public class CommentTests
         Assert.AreEqual("Updated body", result.Value!.Body);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()

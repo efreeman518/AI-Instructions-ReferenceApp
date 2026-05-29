@@ -14,6 +14,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class AttachmentTests
 {
+    /// <summary>Verifies that given valid input, when attachment created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_AttachmentCreated_Then_ReturnsSuccess()
@@ -26,6 +27,7 @@ public class AttachmentTests
         Assert.AreEqual(1024, result.Value.FileSizeBytes);
     }
 
+    /// <summary>Verifies that given empty file name, when attachment created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -37,6 +39,7 @@ public class AttachmentTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given zero file size, when attachment created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ZeroFileSize_When_AttachmentCreated_Then_ReturnsDomainFailure()
@@ -45,6 +48,7 @@ public class AttachmentTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tenant ID, when attachment created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_AttachmentCreated_Then_ReturnsDomainFailure()
@@ -53,6 +57,7 @@ public class AttachmentTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing attachment, when updated, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingAttachment_When_Updated_Then_ReturnsUpdatedValues()
@@ -64,6 +69,7 @@ public class AttachmentTests
         Assert.AreEqual(2048, result.Value.FileSizeBytes);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()

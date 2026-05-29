@@ -5,8 +5,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Cqrs.Features.Tags;
 
+/// <summary>Provides tag structure validator behavior for the Features Tags layer.</summary>
 internal static class TagStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<TagDto> ValidateCreate(TagDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -19,6 +21,7 @@ internal static class TagStructureValidator
         return errors.Count > 0 ? Result<TagDto>.Failure(errors) : Result<TagDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<TagDto> ValidateUpdate(TagDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

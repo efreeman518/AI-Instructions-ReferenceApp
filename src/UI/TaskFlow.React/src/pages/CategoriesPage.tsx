@@ -26,6 +26,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PageHeader } from '../components/PageHeader'
 import { ErrorState, LoadingState } from '../components/StateViews'
 
+/** Renders the categories page and coordinates its data operations. */
 export function CategoriesPage() {
   const queryClient = useQueryClient()
   const { showNotification } = useNotifications()
@@ -60,6 +61,7 @@ export function CategoriesPage() {
     onError: (error) => showNotification(error instanceof Error ? error.message : 'Category delete failed.', 'error'),
   })
 
+  /** Renders save category page helper UI and keeps form or display state consistent. */
   function saveCategory() {
     if (!editing.name.trim()) {
       showNotification('Name is required.', 'warning')
@@ -204,10 +206,12 @@ export function CategoriesPage() {
   )
 }
 
+/** Describes category with depth data used by the React UI. */
 interface CategoryWithDepth extends Category {
   depth: number
 }
 
+/** Creates the default category form state for add and edit flows. */
 function emptyCategory(): Category {
   return {
     description: '',
@@ -217,6 +221,7 @@ function emptyCategory(): Category {
   }
 }
 
+/** Orders categories into a depth-aware tree for display. */
 function orderCategories(categories: Category[]): CategoryWithDepth[] {
   const children = new Map<string | null, Category[]>()
   categories.forEach((category) => {
@@ -225,6 +230,7 @@ function orderCategories(categories: Category[]): CategoryWithDepth[] {
   })
 
   const result: CategoryWithDepth[] = []
+  /** Walks category children recursively while preserving display depth. */
   const walk = (parentId: string | null, depth: number) => {
     for (const category of [...(children.get(parentId) ?? [])].sort(compareCategories)) {
       result.push({ ...category, depth })
@@ -236,15 +242,18 @@ function orderCategories(categories: Category[]): CategoryWithDepth[] {
   return result
 }
 
+/** Sorts categories by display order and name for stable rendering. */
 function compareCategories(left: Category, right: Category) {
   return left.sortOrder - right.sortOrder || left.name.localeCompare(right.name)
 }
 
+/** Resolves the parent category name for hierarchy display. */
 function parentName(parentId: string | null | undefined, categories: CategoryWithDepth[]) {
   if (!parentId) return '-'
   return categories.find((category) => category.id === parentId)?.name ?? '-'
 }
 
+/** Removes tree-depth indentation from category labels before saving. */
 function stripDepth(category: CategoryWithDepth): Category {
   return {
     description: category.description,

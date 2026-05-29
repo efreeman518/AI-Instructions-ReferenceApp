@@ -11,6 +11,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>Coordinates task item tag application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 internal class TaskItemTagService(
     ILogger<TaskItemTagService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -24,11 +25,13 @@ internal class TaskItemTagService(
 
     #region Helpers
 
+    /// <summary>Builds response from current configuration and inputs.</summary>
     private static DefaultResponse<TaskItemTagDto> BuildResponse(TaskItemTagDto dto) =>
         new() { Item = dto, TenantInfo = null };
 
     #endregion
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTaskItemTagAsync(id, ct);
@@ -42,6 +45,7 @@ internal class TaskItemTagService(
         return Result<DefaultResponse<TaskItemTagDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> CreateAsync(
         DefaultRequest<TaskItemTagDto> request, CancellationToken ct = default)
     {
@@ -75,6 +79,7 @@ internal class TaskItemTagService(
         return Result<DefaultResponse<TaskItemTagDto>>.Success(new() { Item = entity.ToDto() });
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTaskItemTagAsync(id, ct);

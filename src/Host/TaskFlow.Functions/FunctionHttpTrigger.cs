@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace TaskFlow.Functions;
 
+/// <summary>Configures function HTTP trigger host behavior for TaskFlow runtime services.</summary>
 public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
 {
+    /// <summary>Provides the health check operation for function HTTP trigger.</summary>
     [Function("HealthCheck")]
     public HttpResponseData HealthCheck(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req)
@@ -16,6 +18,7 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
         return response;
     }
 
+    /// <summary>Provides the task API proxy operation for function HTTP trigger.</summary>
     [Function("TaskApiProxy")]
     public async Task<HttpResponseData> TaskApiProxy(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/tasks")] HttpRequestData req,

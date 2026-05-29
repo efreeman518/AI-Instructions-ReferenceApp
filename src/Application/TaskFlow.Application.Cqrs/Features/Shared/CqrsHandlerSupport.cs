@@ -12,6 +12,7 @@ namespace TaskFlow.Application.Cqrs.Shared;
 /// </summary>
 internal static class CqrsHandlerSupport
 {
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public static async Task<PagedResponse<TDto>> SearchAsync<TDto>(
         Func<CancellationToken, Task<PagedResponse<TDto>>> search,
         ILogger logger,
@@ -29,6 +30,7 @@ internal static class CqrsHandlerSupport
         }
     }
 
+    /// <summary>Provides the try save operation for CQRS handler support.</summary>
     public static async Task<Result> TrySaveAsync(
         IRepositoryBase repository,
         ILogger logger,
@@ -48,6 +50,7 @@ internal static class CqrsHandlerSupport
         }
     }
 
+    /// <summary>Provides the try publish operation for CQRS handler support.</summary>
     public static async Task TryPublishAsync<TEvent>(
         IIntegrationEventPublisher eventPublisher,
         TEvent integrationEvent,
@@ -71,6 +74,7 @@ internal static class CqrsHandlerSupport
         }
     }
 
+    /// <summary>Converts the current value to validation result.</summary>
     public static RequestValidationResult ToValidationResult<T>(Result<T> result)
     {
         if (result.IsSuccess) return RequestValidationResult.Valid();

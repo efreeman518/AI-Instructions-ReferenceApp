@@ -21,6 +21,7 @@ public class ChecklistItemApiServiceTests
     private TaskFlowApiClient _apiClient = null!;
     private ChecklistItemApiService _service = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -30,6 +31,7 @@ public class ChecklistItemApiServiceTests
         _service = new ChecklistItemApiService(_apiClient, Mock.Of<INotificationService>());
     }
 
+    /// <summary>Verifies teardown behavior and protects the expected test contract.</summary>
     [TestCleanup]
     public void Teardown()
     {
@@ -37,6 +39,7 @@ public class ChecklistItemApiServiceTests
         _handler.Dispose();
     }
 
+    /// <summary>Verifies search returns mapped models behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
@@ -50,6 +53,7 @@ public class ChecklistItemApiServiceTests
         Assert.IsFalse(results[1].IsCompleted);
     }
 
+    /// <summary>Verifies search sort order is preserved behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_SortOrderIsPreserved()
     {
@@ -59,6 +63,7 @@ public class ChecklistItemApiServiceTests
         Assert.AreEqual(2, results[1].SortOrder);
     }
 
+    /// <summary>Verifies get returns mapped model behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetAsync_ReturnsMappedModel()
     {
@@ -71,6 +76,7 @@ public class ChecklistItemApiServiceTests
         Assert.IsTrue(result.IsCompleted);
     }
 
+    /// <summary>Creates returns mapped model used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateAsync_ReturnsMappedModel()
     {
@@ -83,6 +89,7 @@ public class ChecklistItemApiServiceTests
         Assert.IsNotNull(result.Id);
     }
 
+    /// <summary>Verifies update returns mapped model behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task UpdateAsync_ReturnsMappedModel()
     {
@@ -101,6 +108,7 @@ public class ChecklistItemApiServiceTests
         Assert.IsNotNull(result.Id);
     }
 
+    /// <summary>Verifies delete does not throw behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {

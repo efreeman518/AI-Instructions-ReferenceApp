@@ -1,5 +1,6 @@
 namespace TaskFlow.Application.Contracts;
 
+/// <summary>Provides error constants behavior for the Application layer.</summary>
 public static class ErrorConstants
 {
     public const string ERROR_NAME_EXISTS = "Item name '{0}' already exists";

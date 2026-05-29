@@ -4,8 +4,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides category structure validator behavior for the Application Rules layer.</summary>
 internal static class CategoryStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<CategoryDto> ValidateCreate(CategoryDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -18,6 +20,7 @@ internal static class CategoryStructureValidator
         return errors.Count > 0 ? Result<CategoryDto>.Failure(errors) : Result<CategoryDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<CategoryDto> ValidateUpdate(CategoryDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

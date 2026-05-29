@@ -47,6 +47,7 @@ public class TaskItemLoadTests
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>Verifies that given task item search endpoint, when load applied, then meets performance baseline.</summary>
     [TestMethod]
     [Ignore("Run manually - requires API host running")]
     public void Given_TaskItemSearchEndpoint_When_LoadApplied_Then_MeetsPerformanceBaseline()
@@ -93,6 +94,7 @@ public class TaskItemLoadTests
             $"P99 latency {scenarioStats.Ok.Latency.Percent99}ms exceeds 2000ms threshold");
     }
 
+    /// <summary>Verifies that given task item CRUD workflow, when load applied, then meets throughput baseline.</summary>
     [TestMethod]
     [Ignore("Run manually - requires API host running")]
     public void Given_TaskItemCrudWorkflow_When_LoadApplied_Then_MeetsThroughputBaseline()
@@ -191,6 +193,7 @@ public class TaskItemLoadTests
             $"CRUD workflow success rate {scenarioStats.Ok.Request.Percent}% below 90% threshold");
     }
 
+    /// <summary>Creates task item request used by the surrounding test cases.</summary>
     private static DefaultRequest<TaskItemDto> CreateTaskItemRequest(IScenarioContext context)
     {
         var name = $"Load test task {context.ScenarioInfo.InstanceNumber}-{context.InvocationNumber}-{Guid.NewGuid():N}";
@@ -206,6 +209,7 @@ public class TaskItemLoadTests
         };
     }
 
+    /// <summary>Verifies update task item request behavior and protects the expected test contract.</summary>
     private static DefaultRequest<TaskItemDto> UpdateTaskItemRequest(IScenarioContext context)
     {
         var current = TaskItemLoadStep.RequireItem(context, "get");
@@ -220,8 +224,10 @@ public class TaskItemLoadTests
         };
     }
 
+    /// <summary>Supports test execution for Test.load scenarios.</summary>
     private static class TaskItemLoadStep
     {
+        /// <summary>Verifies run behavior and protects the expected test contract.</summary>
         public static async Task<Response<TResponse?>> RunAsync<TRequest, TResponse>(
             IScenarioContext context,
             HttpClient httpClient,
@@ -278,6 +284,7 @@ public class TaskItemLoadTests
             });
         }
 
+        /// <summary>Verifies require item behavior and protects the expected test contract.</summary>
         public static TaskItemDto RequireItem(IScenarioContext context, string stepName)
         {
             if (context.Data.TryGetValue(stepName, out var value)
@@ -289,9 +296,11 @@ public class TaskItemLoadTests
             throw new InvalidOperationException($"Step '{stepName}' did not capture a TaskItem response.");
         }
 
+        /// <summary>Verifies fail scenario behavior and protects the expected test contract.</summary>
         public static Response<object> FailScenario(IResponse response) =>
             Response.Fail(response.Message, response.StatusCode, response.SizeBytes);
 
+        /// <summary>Verifies deserialize behavior and protects the expected test contract.</summary>
         private static T? Deserialize<T>(string body)
         {
             if (string.IsNullOrWhiteSpace(body))
@@ -309,6 +318,7 @@ public class TaskItemLoadTests
             }
         }
 
+        /// <summary>Builds failure message used by focused test cases.</summary>
         private static string BuildFailureMessage(
             HttpResponseMessage response,
             string body,

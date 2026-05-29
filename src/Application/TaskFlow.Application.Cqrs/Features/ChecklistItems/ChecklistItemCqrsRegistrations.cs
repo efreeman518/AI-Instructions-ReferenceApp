@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.ChecklistItems;
 
+/// <summary>Provides checklist item CQRS registrations behavior for the Features Checklist Items layer.</summary>
 internal static class ChecklistItemCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

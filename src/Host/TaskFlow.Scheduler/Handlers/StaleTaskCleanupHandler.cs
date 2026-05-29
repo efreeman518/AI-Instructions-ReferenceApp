@@ -6,17 +6,20 @@ using TaskFlow.Scheduler.Abstractions;
 
 namespace TaskFlow.Scheduler.Handlers;
 
+/// <summary>Handles stale task cleanup work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 public class StaleTaskCleanupHandler : IScheduledJobHandler
 {
     private readonly ITaskItemService _taskItemService;
     private readonly ILogger<StaleTaskCleanupHandler> _logger;
 
+    /// <summary>Initializes stale task cleanup handler with required dependencies and default state.</summary>
     public StaleTaskCleanupHandler(ITaskItemService taskItemService, ILogger<StaleTaskCleanupHandler> logger)
     {
         _taskItemService = taskItemService;
         _logger = logger;
     }
 
+    /// <summary>Handles stale task cleanup requests and returns the application result.</summary>
     public async Task HandleAsync(CancellationToken ct)
     {
         _logger.LogInformation("Cleaning up stale tasks...");

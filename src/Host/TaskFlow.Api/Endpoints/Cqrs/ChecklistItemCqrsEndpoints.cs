@@ -9,10 +9,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;
 
+/// <summary>Maps checklist item CQRS HTTP routes to CQRS handlers and API contract metadata.</summary>
 public static class ChecklistItemCqrsEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers checklist item CQRS routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapChecklistItemCqrsEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -47,6 +49,7 @@ public static class ChecklistItemCqrsEndpoints
         return group;
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     private static async Task<IResult> Search(
         [FromServices] IRequestHandler<SearchChecklistItemsQuery, PagedResponse<ChecklistItemDto>> handler,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<ChecklistItemSearchFilter>? request,
@@ -56,6 +59,7 @@ public static class ChecklistItemCqrsEndpoints
         return TypedResults.Ok(items);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] IRequestHandler<GetChecklistItemByIdQuery, Result<DefaultResponse<ChecklistItemDto>>> handler,
         Guid id,
@@ -69,6 +73,7 @@ public static class ChecklistItemCqrsEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] IRequestHandler<CreateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>> handler,
@@ -83,6 +88,7 @@ public static class ChecklistItemCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static async Task<IResult> Update(
         HttpContext httpContext,
         [FromServices] IRequestHandler<UpdateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>> handler,
@@ -103,6 +109,7 @@ public static class ChecklistItemCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] IRequestHandler<DeleteChecklistItemCommand, Result> handler,

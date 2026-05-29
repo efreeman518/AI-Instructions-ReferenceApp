@@ -11,6 +11,7 @@ namespace Test.Integration;
 /// </summary>
 internal static class DbContextFactory
 {
+    /// <summary>Creates trxn context used by the surrounding test cases.</summary>
     internal static TaskFlowDbContextTrxn CreateTrxnContext(string? connString = null)
     {
         var options = BuildSqlServerOptions<TaskFlowDbContextTrxn>(
@@ -18,6 +19,7 @@ internal static class DbContextFactory
         return new TaskFlowDbContextTrxn(options) { AuditId = "integration-test" };
     }
 
+    /// <summary>Creates query context used by the surrounding test cases.</summary>
     internal static TaskFlowDbContextQuery CreateQueryContext(string? connString = null)
     {
         var options = BuildSqlServerOptions<TaskFlowDbContextQuery>(
@@ -25,6 +27,7 @@ internal static class DbContextFactory
         return new TaskFlowDbContextQuery(options) { AuditId = "integration-test" };
     }
 
+    /// <summary>Builds SQL server options used by focused test cases.</summary>
     private static DbContextOptions<TContext> BuildSqlServerOptions<TContext>(string connectionString)
         where TContext : DbContext =>
         new DbContextOptionsBuilder<TContext>()

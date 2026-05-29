@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.Categories;
 
+/// <summary>Provides category CQRS registrations behavior for the Features Categories layer.</summary>
 internal static class CategoryCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

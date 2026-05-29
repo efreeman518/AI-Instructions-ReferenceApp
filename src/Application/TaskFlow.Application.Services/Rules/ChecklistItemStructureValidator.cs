@@ -4,8 +4,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides checklist item structure validator behavior for the Application Rules layer.</summary>
 internal static class ChecklistItemStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<ChecklistItemDto> ValidateCreate(ChecklistItemDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -18,6 +20,7 @@ internal static class ChecklistItemStructureValidator
         return errors.Count > 0 ? Result<ChecklistItemDto>.Failure(errors) : Result<ChecklistItemDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<ChecklistItemDto> ValidateUpdate(ChecklistItemDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

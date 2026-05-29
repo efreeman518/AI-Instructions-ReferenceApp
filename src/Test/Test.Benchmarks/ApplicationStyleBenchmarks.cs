@@ -36,6 +36,7 @@ public class ApplicationStyleBenchmarks
     [Params(nameof(ApplicationStyle.Service), nameof(ApplicationStyle.Cqrs))]
     public string Style { get; set; } = nameof(ApplicationStyle.Service);
 
+    /// <summary>Prepares the benchmark host, rate limit settings, seeded data, and HTTP client before measurement starts.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -59,6 +60,7 @@ public class ApplicationStyleBenchmarks
         SeedAsync().GetAwaiter().GetResult();
     }
 
+    /// <summary>Disposes benchmark resources and restores environment variables after measurement completes.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -69,6 +71,7 @@ public class ApplicationStyleBenchmarks
         Environment.SetEnvironmentVariable(RateLimitWindowEnvironmentVariable, _previousRateLimitWindow);
     }
 
+    /// <summary>Measures search task items throughput and allocation cost for the selected application style.</summary>
     [Benchmark]
     public async Task SearchTaskItemsAsync()
     {
@@ -77,6 +80,7 @@ public class ApplicationStyleBenchmarks
         await response.Content.ReadAsStringAsync();
     }
 
+    /// <summary>Measures create task item throughput and allocation cost for the selected application style.</summary>
     [Benchmark]
     public async Task CreateTaskItemAsync()
     {
@@ -96,6 +100,7 @@ public class ApplicationStyleBenchmarks
         await response.Content.ReadAsStringAsync();
     }
 
+    /// <summary>Supports benchmark execution for application style benchmarks.</summary>
     private async Task SeedAsync()
     {
         for (var i = 0; i < 20; i++)
@@ -115,17 +120,20 @@ public class ApplicationStyleBenchmarks
         }
     }
 
+    /// <summary>Builds application style benchmark API test hosts with deterministic dependencies for repeatable test execution.</summary>
     private sealed class ApplicationStyleBenchmarkApiFactory
         : WebApplicationFactoryBase<global::Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery>
     {
         private readonly string _applicationStyle;
         private readonly string _dbName = $"BenchmarkDb_{Guid.NewGuid()}";
 
+        /// <summary>Supports benchmark execution for application style benchmark API factory.</summary>
         public ApplicationStyleBenchmarkApiFactory(string applicationStyle)
         {
             _applicationStyle = applicationStyle;
         }
 
+        /// <summary>Supports benchmark execution for application style benchmark API factory.</summary>
         protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -136,9 +144,11 @@ public class ApplicationStyleBenchmarks
             });
         }
 
+        /// <summary>Builds trxn options for the isolated benchmark host.</summary>
         protected override DbContextOptions BuildTrxnOptions() =>
             new DbContextOptionsBuilder<TaskFlowDbContextTrxn>().UseInMemoryDatabase(_dbName).Options;
 
+        /// <summary>Builds query options for the isolated benchmark host.</summary>
         protected override DbContextOptions BuildQueryOptions() =>
             new DbContextOptionsBuilder<TaskFlowDbContextQuery>().UseInMemoryDatabase(_dbName).Options;
     }

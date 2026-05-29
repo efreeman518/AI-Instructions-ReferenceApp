@@ -4,8 +4,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides task item structure validator behavior for the Application Rules layer.</summary>
 internal static class TaskItemStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<TaskItemDto> ValidateCreate(TaskItemDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -18,6 +20,7 @@ internal static class TaskItemStructureValidator
         return errors.Count > 0 ? Result<TaskItemDto>.Failure(errors) : Result<TaskItemDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<TaskItemDto> ValidateUpdate(TaskItemDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

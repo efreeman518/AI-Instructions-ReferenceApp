@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries task item data between Uno services and presentation models.</summary>
 public record TaskItemModel
 {
     public Guid? Id { get; init; }

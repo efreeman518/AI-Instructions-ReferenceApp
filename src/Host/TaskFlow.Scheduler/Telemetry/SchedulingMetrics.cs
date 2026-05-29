@@ -2,6 +2,7 @@ using System.Diagnostics.Metrics;
 
 namespace TaskFlow.Scheduler.Telemetry;
 
+/// <summary>Configures scheduling metrics host behavior for TaskFlow runtime services.</summary>
 public sealed class SchedulingMetrics
 {
     public const string MeterName = "TaskFlow.Scheduler";
@@ -12,6 +13,7 @@ public sealed class SchedulingMetrics
     private readonly Counter<long> _jobRetriesCounter;
     private readonly Histogram<double> _jobDurationHistogram;
 
+    /// <summary>Initializes scheduling metrics with required dependencies and default state.</summary>
     public SchedulingMetrics()
     {
         _jobExecutionsCounter = _meter.CreateCounter<long>(
@@ -32,6 +34,7 @@ public sealed class SchedulingMetrics
             "Scheduler job duration in milliseconds.");
     }
 
+    /// <summary>Records job success for scheduler diagnostics.</summary>
     public void RecordJobSuccess(string jobName, double durationMs)
     {
         _jobExecutionsCounter.Add(1,
@@ -41,6 +44,7 @@ public sealed class SchedulingMetrics
             new KeyValuePair<string, object?>("job.name", jobName));
     }
 
+    /// <summary>Records job failure for scheduler diagnostics.</summary>
     public void RecordJobFailure(string jobName, string reason)
     {
         _jobExecutionsCounter.Add(1,
@@ -51,6 +55,7 @@ public sealed class SchedulingMetrics
             new KeyValuePair<string, object?>("failure.reason", reason));
     }
 
+    /// <summary>Records job retry for scheduler diagnostics.</summary>
     public void RecordJobRetry(string jobName, int attempt)
     {
         _jobRetriesCounter.Add(1,

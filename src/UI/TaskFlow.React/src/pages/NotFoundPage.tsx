@@ -3,6 +3,7 @@ import { Button } from '@mui/material'
 import { Home } from 'lucide-react'
 import { EmptyState } from '../components/StateViews'
 
+/** Renders the not found page and coordinates its data operations. */
 export function NotFoundPage() {
   return (
     <EmptyState

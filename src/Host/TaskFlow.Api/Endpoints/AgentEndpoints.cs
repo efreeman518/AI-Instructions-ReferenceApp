@@ -5,8 +5,10 @@ using TaskFlow.Infrastructure.AI.Agents;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps agent HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class AgentEndpoints
 {
+    /// <summary>Registers agent routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/agent").WithTags("Agent");

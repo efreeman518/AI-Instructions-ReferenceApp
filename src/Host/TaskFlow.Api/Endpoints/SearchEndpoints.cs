@@ -5,8 +5,10 @@ using TaskFlow.Infrastructure.AI.Search;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps search HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class SearchEndpoints
 {
+    /// <summary>Registers search routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/search").WithTags("Search");

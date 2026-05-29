@@ -8,20 +8,24 @@ export type Priority = (typeof priorities)[number]
 
 export type Id = string
 
+/** Describes default request data used by the React UI. */
 export interface DefaultRequest<T> {
   item: T
 }
 
+/** Describes default response data used by the React UI. */
 export interface DefaultResponse<T> {
   item: T | null
 }
 
+/** Describes search request data used by the React UI. */
 export interface SearchRequest<TFilter> {
   filter: TFilter
   pageIndex: number
   pageSize: number
 }
 
+/** Describes paged response data used by the React UI. */
 export interface PagedResponse<T> {
   items?: T[]
   data?: T[]
@@ -32,6 +36,7 @@ export interface PagedResponse<T> {
   pageSize?: number
 }
 
+/** Describes paged result data used by the React UI. */
 export interface PagedResult<T> {
   items: T[]
   total: number
@@ -39,11 +44,13 @@ export interface PagedResult<T> {
   pageSize: number
 }
 
+/** Describes default search filter data used by the React UI. */
 export interface DefaultSearchFilter {
   searchTerm?: string | null
   tenantId?: Id | null
 }
 
+/** Describes task item search filter data used by the React UI. */
 export interface TaskItemSearchFilter extends DefaultSearchFilter {
   status?: TaskItemStatus | null
   priority?: Priority | null
@@ -54,6 +61,7 @@ export interface TaskItemSearchFilter extends DefaultSearchFilter {
   isOverdue?: boolean | null
 }
 
+/** Describes category search filter data used by the React UI. */
 export interface CategorySearchFilter extends DefaultSearchFilter {
   isActive?: boolean | null
   parentCategoryId?: Id | null
@@ -61,24 +69,29 @@ export interface CategorySearchFilter extends DefaultSearchFilter {
 
 export type TagSearchFilter = DefaultSearchFilter
 
+/** Describes comment search filter data used by the React UI. */
 export interface CommentSearchFilter {
   taskItemId?: Id | null
 }
 
+/** Describes checklist item search filter data used by the React UI. */
 export interface ChecklistItemSearchFilter {
   taskItemId?: Id | null
   isCompleted?: boolean | null
 }
 
+/** Describes attachment search filter data used by the React UI. */
 export interface AttachmentSearchFilter {
   ownerId?: Id | null
   ownerType?: string | null
 }
 
+/** Describes entity DTO data used by the React UI. */
 export interface EntityDto {
   id?: Id | null
 }
 
+/** Describes task item data used by the React UI. */
 export interface TaskItem extends EntityDto {
   tenantId?: Id
   title: string
@@ -104,6 +117,7 @@ export interface TaskItem extends EntityDto {
   categoryName?: string | null
 }
 
+/** Describes category data used by the React UI. */
 export interface Category extends EntityDto {
   tenantId?: Id
   name: string
@@ -113,12 +127,14 @@ export interface Category extends EntityDto {
   parentCategoryId?: Id | null
 }
 
+/** Describes tag data used by the React UI. */
 export interface Tag extends EntityDto {
   tenantId?: Id
   name: string
   color?: string | null
 }
 
+/** Describes comment data used by the React UI. */
 export interface Comment extends EntityDto {
   tenantId?: Id
   body: string
@@ -126,6 +142,7 @@ export interface Comment extends EntityDto {
   attachments?: Attachment[]
 }
 
+/** Describes checklist item data used by the React UI. */
 export interface ChecklistItem extends EntityDto {
   tenantId?: Id
   title: string
@@ -135,6 +152,7 @@ export interface ChecklistItem extends EntityDto {
   taskItemId?: Id | null
 }
 
+/** Describes attachment data used by the React UI. */
 export interface Attachment extends EntityDto {
   tenantId?: Id
   fileName: string
@@ -145,6 +163,7 @@ export interface Attachment extends EntityDto {
   ownerId: Id
 }
 
+/** Describes problem details data used by the React UI. */
 export interface ProblemDetails {
   title?: string
   detail?: string

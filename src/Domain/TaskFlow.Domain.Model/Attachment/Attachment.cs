@@ -4,6 +4,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models attachment domain behavior and invariants.</summary>
 public class Attachment : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -16,8 +17,10 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
     public AttachmentOwnerType OwnerType { get; private set; }
     public Guid OwnerId { get; private set; }
 
+    /// <summary>Initializes attachment with required dependencies and default state.</summary>
     private Attachment() { }
 
+    /// <summary>Initializes attachment with required dependencies and default state.</summary>
     private Attachment(Guid tenantId, string fileName, string contentType, long fileSizeBytes, string storageUri, AttachmentOwnerType ownerType, Guid ownerId)
     {
         TenantId = tenantId;
@@ -29,6 +32,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
         OwnerId = ownerId;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<Attachment> Create(
         Guid tenantId, string fileName, string contentType,
         long fileSizeBytes, string storageUri,
@@ -38,6 +42,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
         return entity.Valid();
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public DomainResult<Attachment> Update(string? fileName = null, string? contentType = null, long? fileSizeBytes = null, string? storageUri = null)
     {
         if (fileName is not null) FileName = fileName;
@@ -47,6 +52,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
         return Valid();
     }
 
+    /// <summary>Creates a valid attachment instance with domain-required defaults.</summary>
     private DomainResult<Attachment> Valid()
     {
         var errors = new List<DomainError>();

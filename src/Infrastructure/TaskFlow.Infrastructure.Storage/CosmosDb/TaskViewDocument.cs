@@ -3,6 +3,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Infrastructure.Storage.CosmosDb;
 
+/// <summary>Provides task view document behavior for the Infrastructure Cosmos DB layer.</summary>
 public class TaskViewDocument
 {
     [JsonProperty("id")]

@@ -12,6 +12,7 @@ namespace Test.Architecture;
 [TestCategory("Architecture")]
 public class InfrastructureDependencyTests : BaseTest
 {
+    /// <summary>Verifies that given infrastructure repositories assembly, when dependencies checked, then no dependency on application services.</summary>
     [TestMethod]
     public void Given_InfrastructureRepositoriesAssembly_When_DependenciesChecked_Then_NoDependencyOnApplicationServices()
     {
@@ -24,6 +25,7 @@ public class InfrastructureDependencyTests : BaseTest
             $"Infrastructure.Repositories has forbidden dependency on Application.Services: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies that given infrastructure repositories assembly, when dependencies checked, then no dependency on hosts.</summary>
     [TestMethod]
     public void Given_InfrastructureRepositoriesAssembly_When_DependenciesChecked_Then_NoDependencyOnHosts()
     {
@@ -41,6 +43,7 @@ public class InfrastructureDependencyTests : BaseTest
             $"Infrastructure.Repositories has forbidden dependency on Hosts: {FormatFailingTypes(result)}");
     }
 
+    /// <summary>Verifies format failing types behavior and protects the expected test contract.</summary>
     private static string FormatFailingTypes(NetArchTest.Rules.TestResult result) =>
         result.FailingTypes != null
             ? string.Join(", ", result.FailingTypes.Select(t => t.FullName))

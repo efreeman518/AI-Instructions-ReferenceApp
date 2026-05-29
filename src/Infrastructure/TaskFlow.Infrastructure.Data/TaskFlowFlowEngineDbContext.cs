@@ -34,6 +34,7 @@ public sealed class TaskFlowFlowEngineDbContext(DbContextOptions<TaskFlowFlowEng
     // entries inside the same SaveChangesAsync.
     public DbSet<FlowEngineOutboxRow> Outbox => Set<FlowEngineOutboxRow>();
 
+    /// <summary>Provides the stage outbox entry operation for task flow flow engine DB context.</summary>
     public void StageOutboxEntry(OutboxEntry entry)
         => OutboxDbContextHelpers.StageOutboxEntry(this, entry);
 
@@ -41,6 +42,7 @@ public sealed class TaskFlowFlowEngineDbContext(DbContextOptions<TaskFlowFlowEng
     // and restarts so a single instance failing doesn't reset the breaker for the others.
     public DbSet<FlowEngineCircuitBreakerRow> CircuitBreakers => Set<FlowEngineCircuitBreakerRow>();
 
+    /// <summary>Handles model creating events for task flow flow engine DB context.</summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(SchemaName);

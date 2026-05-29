@@ -12,12 +12,14 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.Attachments;
 
+/// <summary>Handles search attachments work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchAttachmentsHandler(
     ILogger<SearchAttachmentsHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     IAttachmentRepositoryQuery repoQuery)
     : IRequestHandler<SearchAttachmentsQuery, PagedResponse<AttachmentDto>>
 {
+    /// <summary>Handles search attachments requests and returns the application result.</summary>
     public async Task<PagedResponse<AttachmentDto>> HandleAsync(SearchAttachmentsQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -26,6 +28,7 @@ internal sealed class SearchAttachmentsHandler(
     }
 }
 
+/// <summary>Handles get attachment by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetAttachmentByIdHandler(
     ILogger<GetAttachmentByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -33,6 +36,7 @@ internal sealed class GetAttachmentByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetAttachmentByIdQuery, Result<DefaultResponse<AttachmentDto>>>
 {
+    /// <summary>Handles get attachment by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> HandleAsync(GetAttachmentByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetAttachmentAsync(query.Id, ct);
@@ -47,6 +51,7 @@ internal sealed class GetAttachmentByIdHandler(
     }
 }
 
+/// <summary>Handles create attachment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateAttachmentHandler(
     ILogger<CreateAttachmentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -54,6 +59,7 @@ internal sealed class CreateAttachmentHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateAttachmentCommand, Result<DefaultResponse<AttachmentDto>>>
 {
+    /// <summary>Handles create attachment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> HandleAsync(CreateAttachmentCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -80,6 +86,7 @@ internal sealed class CreateAttachmentHandler(
     }
 }
 
+/// <summary>Handles upload attachment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UploadAttachmentHandler(
     ILogger<UploadAttachmentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -88,6 +95,7 @@ internal sealed class UploadAttachmentHandler(
     IBlobStorageRepository? blobStorage = null)
     : IRequestHandler<UploadAttachmentCommand, Result<DefaultResponse<AttachmentDto>>>
 {
+    /// <summary>Handles upload attachment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> HandleAsync(UploadAttachmentCommand command, CancellationToken ct = default)
     {
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
@@ -132,6 +140,7 @@ internal sealed class UploadAttachmentHandler(
     }
 }
 
+/// <summary>Handles update attachment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateAttachmentHandler(
     ILogger<UpdateAttachmentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -139,6 +148,7 @@ internal sealed class UpdateAttachmentHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateAttachmentCommand, Result<DefaultResponse<AttachmentDto>>>
 {
+    /// <summary>Handles update attachment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> HandleAsync(UpdateAttachmentCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -172,6 +182,7 @@ internal sealed class UpdateAttachmentHandler(
     }
 }
 
+/// <summary>Handles delete attachment work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteAttachmentHandler(
     ILogger<DeleteAttachmentHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -181,6 +192,7 @@ internal sealed class DeleteAttachmentHandler(
     IBlobStorageRepository? blobStorage = null)
     : IRequestHandler<DeleteAttachmentCommand, Result>
 {
+    /// <summary>Handles delete attachment requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteAttachmentCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetAttachmentAsync(command.Id, ct);

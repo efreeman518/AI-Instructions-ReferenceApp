@@ -4,8 +4,10 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
+/// <summary>Provides comment behavior for the Infrastructure Configurations layer.</summary>
 public class CommentConfiguration() : EntityBaseConfiguration<Comment>(false)
 {
+    /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<Comment> builder)
     {
         base.Configure(builder);

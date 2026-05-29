@@ -23,14 +23,18 @@ public class ChecklistItemEndpointTests
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
+    /// <summary>Creates parent task item used by the surrounding test cases.</summary>
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForChecklist", Priority = Priority.Medium };
@@ -39,6 +43,7 @@ public class ChecklistItemEndpointTests
         return created!.Id!.Value;
     }
 
+    /// <summary>Verifies that given valid payload, when post checklist item, then returns 201.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ValidPayload_When_PostChecklistItem_Then_Returns201()
@@ -55,6 +60,7 @@ public class ChecklistItemEndpointTests
         Assert.AreEqual("Step 1", created.Title);
     }
 
+    /// <summary>Verifies that given existing checklist item, when get by ID, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingChecklistItem_When_GetById_Then_Returns200()
@@ -73,6 +79,7 @@ public class ChecklistItemEndpointTests
         Assert.AreEqual("GetStep", result.Title);
     }
 
+    /// <summary>Verifies that given non existent ID, when get checklist item, then returns 404.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_NonExistentId_When_GetChecklistItem_Then_Returns404()
@@ -84,6 +91,7 @@ public class ChecklistItemEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>Verifies that given existing checklist item, when put update, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingChecklistItem_When_PutUpdate_Then_Returns200()
@@ -109,6 +117,7 @@ public class ChecklistItemEndpointTests
         Assert.AreEqual("After step", updated!.Title);
     }
 
+    /// <summary>Verifies that given existing checklist item, when delete, then returns 204.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingChecklistItem_When_Delete_Then_Returns204()

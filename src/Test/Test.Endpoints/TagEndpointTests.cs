@@ -19,14 +19,18 @@ public class TagEndpointTests
 {
     private static CustomApiFactory _factory = null!;
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
+    /// <summary>Verifies that given valid payload, when post tag, then returns 201.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ValidPayload_When_PostTag_Then_Returns201()
@@ -43,6 +47,7 @@ public class TagEndpointTests
         Assert.IsNotNull(created.Id);
     }
 
+    /// <summary>Verifies that given existing tag, when get by ID, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTag_When_GetById_Then_Returns200()
@@ -60,6 +65,7 @@ public class TagEndpointTests
         Assert.AreEqual("GetTag", result.Name);
     }
 
+    /// <summary>Verifies that given non existent ID, when get tag, then returns 404.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_NonExistentId_When_GetTag_Then_Returns404()
@@ -71,6 +77,7 @@ public class TagEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>Verifies that given existing tag, when put update, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTag_When_PutUpdate_Then_Returns200()
@@ -88,6 +95,7 @@ public class TagEndpointTests
         Assert.AreEqual("AfterTag", updated!.Name);
     }
 
+    /// <summary>Verifies that given existing tag, when delete, then returns 204.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingTag_When_Delete_Then_Returns204()

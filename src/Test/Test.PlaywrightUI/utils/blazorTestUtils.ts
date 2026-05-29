@@ -18,16 +18,19 @@ export async function waitForApp(page: Page) {
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({ timeout: 15_000 });
 }
 
+/** Provides Playwright helper logic for navigate to new task. */
 export async function navigateToNewTask(page: Page) {
   await page.getByRole("button", { name: /new task/i }).click();
   await expect(page.getByRole("heading", { name: /new task/i })).toBeVisible({ timeout: 10_000 });
 }
 
+/** Provides Playwright helper logic for navigate to task list. */
 export async function navigateToTaskList(page: Page) {
   await page.goto("/tasks", { waitUntil: "networkidle" });
   await expect(page.locator(".mud-table")).toBeVisible({ timeout: 10_000 });
 }
 
+/** Provides Playwright helper logic for search for task. */
 export async function searchForTask(page: Page, term: string) {
   const searchInput = page.getByPlaceholder(/title or description/i);
   await searchInput.click();
@@ -47,6 +50,7 @@ export async function fillTextField(page: Page, label: string, value: string) {
   await field.first().fill(value);
 }
 
+/** Provides Playwright helper logic for select option. */
 export async function selectOption(page: Page, label: string, option: string) {
   // MudSelect renders a hidden <input> inside .mud-input-control.
   // Click the visible .mud-input wrapper to open the dropdown.
@@ -57,6 +61,7 @@ export async function selectOption(page: Page, label: string, option: string) {
   await popover.locator(`.mud-list-item:has-text("${option}")`).click();
 }
 
+/** Provides Playwright helper logic for click save. */
 export async function clickSave(page: Page) {
   await page.getByRole("button", { name: /save/i }).click();
 }
@@ -69,14 +74,17 @@ export async function getTableRowByText(page: Page, text: string) {
   return page.locator(`.mud-table-body tr:has-text("${text}")`);
 }
 
+/** Provides Playwright helper logic for expect task in table. */
 export async function expectTaskInTable(page: Page, title: string, timeout = 10_000) {
   await expect(page.locator(`.mud-table-body`)).toContainText(title, { timeout });
 }
 
+/** Provides Playwright helper logic for expect task not in table. */
 export async function expectTaskNotInTable(page: Page, title: string, timeout = 10_000) {
   await expect(page.locator(`.mud-table-body`)).not.toContainText(title, { timeout });
 }
 
+/** Provides Playwright helper logic for click edit on row. */
 export async function clickEditOnRow(page: Page, title: string) {
   const row = page.locator(`.mud-table-body tr:has-text("${title}")`);
   // Actions cell has 3 icon buttons: checkmark (0), edit (1), delete (2)
@@ -84,6 +92,7 @@ export async function clickEditOnRow(page: Page, title: string) {
   await expect(page.getByRole("heading", { name: /edit task/i })).toBeVisible({ timeout: 10_000 });
 }
 
+/** Provides Playwright helper logic for click delete on row. */
 export async function clickDeleteOnRow(page: Page, title: string) {
   const row = page.locator(`.mud-table-body tr:has-text("${title}")`);
   // Actions cell has 3 icon buttons: checkmark (0), edit (1), delete (2)

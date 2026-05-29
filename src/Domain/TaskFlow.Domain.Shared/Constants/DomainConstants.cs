@@ -1,5 +1,6 @@
 namespace TaskFlow.Domain.Shared.Constants;
 
+/// <summary>Models domain constants domain behavior and invariants.</summary>
 public static class DomainConstants
 {
     // Validation rules

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace TaskFlow.Api.Auth;
 
+/// <summary>Configures authorization policies host behavior for TaskFlow runtime services.</summary>
 public static class AuthorizationPolicies
 {
     public const string TenantMatch = "TenantMatch";
@@ -10,6 +11,7 @@ public static class AuthorizationPolicies
     public const string GlobalAdmin = "GlobalAdmin";
     public const string StatusTransition = "StatusTransition";
 
+    /// <summary>Registers task flow authorization dependencies in the service container.</summary>
     public static IServiceCollection AddTaskFlowAuthorization(this IServiceCollection services)
     {
         var authenticatedUserPolicy = new AuthorizationPolicyBuilder()

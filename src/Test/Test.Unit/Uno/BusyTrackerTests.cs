@@ -14,6 +14,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class BusyTrackerTests
 {
+    /// <summary>Verifies begin increments and sets is active behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void Begin_Increments_And_Sets_IsActive()
     {
@@ -32,6 +33,7 @@ public class BusyTrackerTests
         Assert.IsFalse(tracker.IsActive);
     }
 
+    /// <summary>Verifies nested begins count correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void NestedBegins_Count_Correctly()
     {
@@ -52,6 +54,7 @@ public class BusyTrackerTests
         Assert.IsFalse(tracker.IsActive);
     }
 
+    /// <summary>Verifies double dispose only decrements once behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void DoubleDispose_Only_Decrements_Once()
     {
@@ -64,6 +67,7 @@ public class BusyTrackerTests
         Assert.AreEqual(0, tracker.Pending);
     }
 
+    /// <summary>Verifies is active property changed fires on edge only behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void IsActive_PropertyChanged_Fires_On_Edge_Only()
     {
@@ -84,6 +88,7 @@ public class BusyTrackerTests
         Assert.AreEqual(2, isActiveChanges);
     }
 
+    /// <summary>Verifies concurrent increments end at zero behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task Concurrent_Increments_End_At_Zero()
     {

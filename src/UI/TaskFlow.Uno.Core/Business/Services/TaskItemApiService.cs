@@ -5,10 +5,12 @@ using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
+/// <summary>Coordinates task item API application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 public class TaskItemApiService(
     TaskFlowApiClient client,
     INotificationService notifications) : ITaskItemApiService
 {
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<IReadOnlyList<TaskItemModel>> SearchAsync(string? searchTerm = null,
         string? status = null, string? priority = null, Guid? categoryId = null,
         CancellationToken ct = default)
@@ -31,6 +33,7 @@ public class TaskItemApiService(
         return allItems;
     }
 
+    /// <summary>Searches search page and returns filtered results for callers.</summary>
     public async Task<TaskItemSearchPage> SearchPageAsync(string? searchTerm = null,
         string? status = null, string? priority = null, Guid? categoryId = null,
         int pageNumber = 1, int pageSize = 10, CancellationToken ct = default)
@@ -50,12 +53,14 @@ public class TaskItemApiService(
         };
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TaskItemModel?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var dto = await client.Api.TaskItems[id].GetAsync(cancellationToken: ct);
         return dto is null ? null : MapToModel(dto);
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<TaskItemModel> CreateAsync(TaskItemModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -65,6 +70,7 @@ public class TaskItemApiService(
         return created;
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<TaskItemModel> UpdateAsync(TaskItemModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -74,12 +80,14 @@ public class TaskItemApiService(
         return updated;
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.TaskItems[id].DeleteAsync(cancellationToken: ct);
         await notifications.ShowSuccess("Task deleted.", ct: ct);
     }
 
+    /// <summary>Searches search core and returns filtered results for callers.</summary>
     private async Task<PagedResponse<TaskItemDto>?> SearchCoreAsync(string? searchTerm,
         string? status, string? priority, Guid? categoryId, int pageNumber,
         int pageSize, CancellationToken ct)
@@ -102,6 +110,7 @@ public class TaskItemApiService(
         }, cancellationToken: ct);
     }
 
+    /// <summary>Normalizes optional filter so callers and persistence use consistent values.</summary>
     private static string? NormalizeOptionalFilter(string? value, params string[] emptyAliases)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -115,6 +124,7 @@ public class TaskItemApiService(
             : normalized;
     }
 
+    /// <summary>Maps to model into the target contract used by callers.</summary>
     private static TaskItemModel MapToModel(TaskItemDto dto) => new()
     {
         Id = dto.Id, Title = dto.Title ?? string.Empty, Description = dto.Description,
@@ -145,6 +155,7 @@ public class TaskItemApiService(
         SubTasks = dto.SubTasks?.Select(MapToModel).ToList()
     };
 
+    /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static TaskItemDto MapToDto(TaskItemModel model) => new()
     {
         Id = model.Id, Title = model.Title, Description = model.Description,

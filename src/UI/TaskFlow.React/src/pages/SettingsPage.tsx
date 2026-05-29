@@ -11,6 +11,7 @@ import { apiRuntime } from '../api/client'
 import { PageHeader } from '../components/PageHeader'
 import { useThemeMode } from '../theme/themeModeContext'
 
+/** Renders the settings page and coordinates its data operations. */
 export function SettingsPage() {
   const { mode, setMode } = useThemeMode()
   const isDark = mode === 'dark'
@@ -43,6 +44,7 @@ export function SettingsPage() {
   )
 }
 
+/** Renders one runtime setting row on the settings page. */
 function RuntimeRow({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: '1fr', sm: '160px minmax(0, 1fr)' } }}>

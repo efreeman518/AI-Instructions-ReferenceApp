@@ -10,9 +10,11 @@ using Test.Support;
 
 namespace Test.Unit.Cqrs;
 
+/// <summary>Covers task item CQRS validation behavior with focused assertions that document expected behavior and regression intent.</summary>
 [TestClass]
 public sealed class TaskItemCqrsValidationTests
 {
+    /// <summary>Verifies that given invalid task item create, when validation decorator runs, then handler is not called.</summary>
     [TestMethod]
     public async Task Given_InvalidTaskItemCreate_When_ValidationDecoratorRuns_Then_HandlerIsNotCalled()
     {
@@ -42,11 +44,13 @@ public sealed class TaskItemCqrsValidationTests
         StringAssert.Contains(string.Join(";", result.Errors), "Title is required");
     }
 
+    /// <summary>Supports test execution for Test.unit CQRS scenarios.</summary>
     private sealed class TrackingHandler
         : IRequestHandler<CreateTaskItemCommand, Result<DefaultResponse<TaskItemDto>>>
     {
         public bool WasCalled { get; private set; }
 
+        /// <summary>Verifies handle behavior and protects the expected test contract.</summary>
         public Task<Result<DefaultResponse<TaskItemDto>>> HandleAsync(
             CreateTaskItemCommand request,
             CancellationToken ct = default)

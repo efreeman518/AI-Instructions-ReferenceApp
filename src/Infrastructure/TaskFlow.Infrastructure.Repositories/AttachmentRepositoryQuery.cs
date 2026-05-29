@@ -11,9 +11,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries attachment data through infrastructure storage contracts.</summary>
 public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IAttachmentRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
@@ -23,6 +25,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Searches search attachments and returns filtered results for callers.</summary>
     public async Task<PagedResponse<AttachmentDto>> SearchAttachmentsAsync(SearchRequest<AttachmentSearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<Attachment>().ComposeIQueryable(false);
@@ -69,6 +72,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
         };
     }
 
+    /// <summary>Provides the count by owner operation for attachment repository query.</summary>
     public async Task<int> CountByOwnerAsync(AttachmentOwnerType ownerType, Guid ownerId, CancellationToken ct = default)
         => await DB.Attachments.AsNoTracking().CountAsync(a => a.OwnerType == ownerType && a.OwnerId == ownerId, ct);
 }

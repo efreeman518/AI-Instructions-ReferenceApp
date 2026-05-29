@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.Attachments;
 
+/// <summary>Provides attachment CQRS registrations behavior for the Features Attachments layer.</summary>
 internal static class AttachmentCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

@@ -47,6 +47,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
 
     private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
 
+        /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
         private static List<TaskItemDto> CreateSeedTasks()
         {
         var now = DateTimeOffset.UtcNow;
@@ -112,6 +113,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         ];
         }
 
+    /// <summary>Processes HTTP requests through mock HTTP message handler and applies its cross-cutting policy.</summary>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var path = request.RequestUri?.PathAndQuery ?? "";
@@ -207,6 +209,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
     private string? FindCategoryName(Guid? categoryId) =>
         categoryId.HasValue ? _categories.FirstOrDefault(c => c.Id == categoryId)?.Name : null;
 
+    /// <summary>Provides the try extract ID operation for mock HTTP message handler.</summary>
     private static bool TryExtractId(string path, string prefix, out Guid id)
     {
         id = Guid.Empty;
@@ -216,6 +219,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return Guid.TryParse(segment, out id);
     }
 
+    /// <summary>Searches search task items and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchTaskItems(HttpRequestMessage request)
     {
         var rawBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
@@ -243,6 +247,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Searches search categories and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchCategories(HttpRequestMessage request)
     {
         var searchRequest = ReadBody<SearchRequest<CategorySearchFilter>>(request) ?? new SearchRequest<CategorySearchFilter>();
@@ -261,6 +266,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Searches search tags and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchTags(HttpRequestMessage request)
     {
         var searchRequest = ReadBody<SearchRequest<TagSearchFilter>>(request) ?? new SearchRequest<TagSearchFilter>();
@@ -274,6 +280,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Searches search comments and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchComments(HttpRequestMessage request)
     {
         var searchRequest = ReadBody<SearchRequest<CommentSearchFilter>>(request) ?? new SearchRequest<CommentSearchFilter>();
@@ -286,6 +293,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Searches search checklist items and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchChecklistItems(HttpRequestMessage request)
     {
         var searchRequest = ReadBody<SearchRequest<ChecklistItemSearchFilter>>(request) ?? new SearchRequest<ChecklistItemSearchFilter>();
@@ -301,6 +309,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Searches search attachments and returns filtered results for callers.</summary>
     private HttpResponseMessage SearchAttachments(HttpRequestMessage request)
     {
         var searchRequest = ReadBody<SearchRequest<AttachmentSearchFilter>>(request) ?? new SearchRequest<AttachmentSearchFilter>();
@@ -315,6 +324,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return PagedResult(filtered, searchRequest.PageNumber, searchRequest.PageSize);
     }
 
+    /// <summary>Provides the paged result operation for mock HTTP message handler.</summary>
     private static HttpResponseMessage PagedResult<T>(IReadOnlyList<T> items, int pageNumber, int pageSize) where T : class
     {
         var normalizedPageNumber = Math.Max(1, pageNumber);
@@ -330,12 +340,14 @@ public class MockHttpMessageHandler : HttpMessageHandler
         });
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static HttpResponseMessage GetById<T>(List<T> list, Guid id) where T : class
     {
         var item = list.FirstOrDefault(i => GetId(i) == id);
         return item is null ? new HttpResponseMessage(HttpStatusCode.NotFound) : JsonResponse(new DefaultResponse<T> { Item = item });
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static HttpResponseMessage CreateEntity<T>(List<T> list, HttpRequestMessage request, Action<T>? postProcess = null, bool prepend = false) where T : class
     {
         var body = ReadBody<DefaultRequest<T>>(request);
@@ -352,6 +364,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return JsonResponse(new DefaultResponse<T> { Item = body.Item }, HttpStatusCode.Created);
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static HttpResponseMessage UpdateEntity<T>(List<T> list, Guid id, HttpRequestMessage request, Action<T>? postProcess = null) where T : class
     {
         var body = ReadBody<DefaultRequest<T>>(request);
@@ -364,12 +377,14 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return JsonResponse(new DefaultResponse<T> { Item = body.Item });
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static HttpResponseMessage DeleteEntity<T>(List<T> list, Guid id) where T : class
     {
         list.RemoveAll(i => GetId(i) == id);
         return new HttpResponseMessage(HttpStatusCode.NoContent);
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private HttpResponseMessage DeleteTask(Guid taskId)
     {
         _tasks.RemoveAll(task => task.Id == taskId);
@@ -380,11 +395,13 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return new HttpResponseMessage(HttpStatusCode.NoContent);
     }
 
+    /// <summary>Provides the contains operation for mock HTTP message handler.</summary>
     private static bool Contains(string? source, string? value) =>
         !string.IsNullOrWhiteSpace(source)
         && !string.IsNullOrWhiteSpace(value)
         && source.Contains(value, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static Guid? GetId<T>(T item) where T : class =>
         item switch
         {
@@ -397,6 +414,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
             _ => null
         };
 
+    /// <summary>Provides the set ID operation for mock HTTP message handler.</summary>
     private static void SetId<T>(T item, Guid id) where T : class
     {
         switch (item)
@@ -410,6 +428,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         }
     }
 
+    /// <summary>Reads body from the configured source.</summary>
     private static T? ReadBody<T>(HttpRequestMessage request)
     {
         if (request.Content is null) return default;
@@ -417,6 +436,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
         return JsonSerializer.Deserialize<T>(json, _jsonOpts);
     }
 
+    /// <summary>Provides the JSON response operation for mock HTTP message handler.</summary>
     private static HttpResponseMessage JsonResponse<T>(T data, HttpStatusCode status = HttpStatusCode.OK) =>
         new(status) { Content = JsonContent.Create(data, options: _jsonOpts) };
 }

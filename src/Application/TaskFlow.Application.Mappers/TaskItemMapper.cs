@@ -6,6 +6,7 @@ using TaskFlow.Domain.Model.ValueObjects;
 
 namespace TaskFlow.Application.Mappers;
 
+/// <summary>Maps task item mapper domain objects and DTOs across application boundaries.</summary>
 public static class TaskItemMapper
 {
     // Canonical full shape. EF translates this server-side; the same expression is compiled
@@ -75,8 +76,10 @@ public static class TaskItemMapper
 
     private static readonly Func<TaskItem, TaskItemDto> Compiled = Projection.Compile();
 
+    /// <summary>Converts the current value to DTO.</summary>
     public static TaskItemDto ToDto(this TaskItem entity) => Compiled(entity);
 
+    /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<TaskItem> ToEntity(this TaskItemDto dto, Guid tenantId)
     {
         var result = TaskItem.Create(tenantId, dto.Title, dto.Description, dto.Priority, dto.CategoryId, dto.ParentTaskItemId);

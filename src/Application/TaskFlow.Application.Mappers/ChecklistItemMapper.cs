@@ -5,6 +5,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Mappers;
 
+/// <summary>Maps checklist item mapper domain objects and DTOs across application boundaries.</summary>
 public static class ChecklistItemMapper
 {
     // Canonical full shape. EF translates this server-side; the same expression is compiled
@@ -23,8 +24,10 @@ public static class ChecklistItemMapper
 
     private static readonly Func<ChecklistItem, ChecklistItemDto> Compiled = Projection.Compile();
 
+    /// <summary>Converts the current value to DTO.</summary>
     public static ChecklistItemDto ToDto(this ChecklistItem entity) => Compiled(entity);
 
+    /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<ChecklistItem> ToEntity(this ChecklistItemDto dto, Guid tenantId)
         => ChecklistItem.Create(tenantId, dto.TaskItemId, dto.Title, dto.SortOrder);
 }

@@ -13,6 +13,7 @@ public class FloatService
     private readonly ISnackbar _snackbar;
     private int _pendingRequests;
 
+    /// <summary>Initializes float service with required dependencies and default state.</summary>
     public FloatService(ISnackbar snackbar)
     {
         _snackbar = snackbar;
@@ -28,13 +29,17 @@ public class FloatService
     public event Action? CategoriesChanged;
     public event Action? TagsChanged;
 
+    /// <summary>Provides the notify task items changed operation for float service.</summary>
     public void NotifyTaskItemsChanged() => TaskItemsChanged?.Invoke();
+    /// <summary>Provides the notify categories changed operation for float service.</summary>
     public void NotifyCategoriesChanged() => CategoriesChanged?.Invoke();
+    /// <summary>Provides the notify tags changed operation for float service.</summary>
     public void NotifyTagsChanged() => TagsChanged?.Invoke();
 
     // The layout subscribes so AppBar repaints whenever RequestIsActive flips.
     public Action? StateHasChanged { get; set; }
 
+    /// <summary>Provides the execute with progress operation for float service.</summary>
     public async Task<T?> ExecuteWithProgressAsync<T>(Func<Task<T>> call, string? errorMessage = null)
     {
         try
@@ -65,6 +70,7 @@ public class FloatService
         }
     }
 
+    /// <summary>Provides the execute with progress operation for float service.</summary>
     public async Task<bool> ExecuteWithProgressAsync(Func<Task> call, string? errorMessage = null)
     {
         try
@@ -96,6 +102,7 @@ public class FloatService
         }
     }
 
+    /// <summary>Provides the show snack operation for float service.</summary>
     public void ShowSnack(string message, Severity severity = Severity.Normal)
         => _snackbar.Add(message, severity);
 }

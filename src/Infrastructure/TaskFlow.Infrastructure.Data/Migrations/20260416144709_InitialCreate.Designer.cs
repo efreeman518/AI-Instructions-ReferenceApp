@@ -11,6 +11,7 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Data.Migrations
 {
+    /// <summary>Provides initial create behavior for the Infrastructure Migrations layer.</summary>
     [DbContext(typeof(TaskFlowDbContextTrxn))]
     [Migration("20260416144709_InitialCreate")]
     partial class InitialCreate

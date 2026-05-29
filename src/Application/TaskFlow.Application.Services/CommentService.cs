@@ -11,6 +11,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Services;
 
+/// <summary>Coordinates comment application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 internal class CommentService(
     ILogger<CommentService> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -25,11 +26,13 @@ internal class CommentService(
 
     #region Helpers
 
+    /// <summary>Builds response from current configuration and inputs.</summary>
     private static DefaultResponse<CommentDto> BuildResponse(CommentDto dto) =>
         new() { Item = dto, TenantInfo = null };
 
     #endregion
 
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<PagedResponse<CommentDto>> SearchAsync(
         SearchRequest<CommentSearchFilter> request, CancellationToken ct = default)
     {
@@ -45,6 +48,7 @@ internal class CommentService(
         return await repoQuery.SearchCommentsAsync(request, ct);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetCommentAsync(id, ct);
@@ -58,6 +62,7 @@ internal class CommentService(
         return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> CreateAsync(
         DefaultRequest<CommentDto> request, CancellationToken ct = default)
     {
@@ -91,6 +96,7 @@ internal class CommentService(
         return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> UpdateAsync(
         DefaultRequest<CommentDto> request, CancellationToken ct = default)
     {
@@ -129,6 +135,7 @@ internal class CommentService(
         return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetCommentAsync(id, ct);

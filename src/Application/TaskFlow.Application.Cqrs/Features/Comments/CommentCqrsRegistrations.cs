@@ -4,6 +4,7 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Application.Cqrs.Features.Comments;
 
+/// <summary>Provides comment CQRS registrations behavior for the Features Comments layer.</summary>
 internal static class CommentCqrsRegistrations
 {
     public static IReadOnlyList<CqrsHandlerRegistration> Registrations { get; } =

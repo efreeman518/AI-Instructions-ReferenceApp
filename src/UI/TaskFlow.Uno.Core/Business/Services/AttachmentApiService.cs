@@ -4,10 +4,12 @@ using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
+/// <summary>Coordinates attachment API application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 public class AttachmentApiService(
     TaskFlowApiClient client,
     INotificationService notifications) : IAttachmentApiService
 {
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<IReadOnlyList<AttachmentModel>> SearchAsync(Guid? ownerId = null,
         string? ownerType = null, CancellationToken ct = default)
     {
@@ -21,12 +23,14 @@ public class AttachmentApiService(
         return response?.Items?.Select(MapToModel).ToList() ?? [];
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<AttachmentModel?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var dto = await client.Api.Attachments[id].GetAsync(cancellationToken: ct);
         return dto is null ? null : MapToModel(dto);
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<AttachmentModel> CreateAsync(AttachmentModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -36,12 +40,14 @@ public class AttachmentApiService(
         return created;
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Attachments[id].DeleteAsync(cancellationToken: ct);
         await notifications.ShowSuccess("Attachment deleted.", ct: ct);
     }
 
+    /// <summary>Maps to model into the target contract used by callers.</summary>
     private static AttachmentModel MapToModel(AttachmentDto dto) => new()
     {
         Id = dto.Id, FileName = dto.FileName ?? string.Empty,
@@ -50,6 +56,7 @@ public class AttachmentApiService(
         OwnerType = dto.OwnerType ?? "TaskItem", OwnerId = dto.OwnerId ?? Guid.Empty
     };
 
+    /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static AttachmentDto MapToDto(AttachmentModel model) => new()
     {
         FileName = model.FileName, ContentType = model.ContentType,

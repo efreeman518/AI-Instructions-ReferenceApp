@@ -3,8 +3,10 @@ using Microsoft.UI.Xaml.Data;
 
 namespace TaskFlow.Uno.Converters;
 
+/// <summary>Converts bool to visibility values for Uno XAML binding and display.</summary>
 public sealed class BoolToVisibilityConverter : IValueConverter
 {
+    /// <summary>Converts values for XAML binding or display logic.</summary>
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var invert = parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
@@ -13,6 +15,7 @@ public sealed class BoolToVisibilityConverter : IValueConverter
         return boolValue ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>Converts values back from UI bindings when reverse conversion is supported.</summary>
     public object ConvertBack(object value, Type targetType, object parameter, string language)
     {
         var invert = parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase);

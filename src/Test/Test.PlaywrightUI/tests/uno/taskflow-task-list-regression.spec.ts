@@ -4,6 +4,7 @@ import {
   navigateToTaskList,
 } from "../../utils/unoTestUtils";
 
+/** Verifies the Playwright scenario for TaskFlow UI - task list regression coverage. */
 test.describe("TaskFlow UI - task list regression coverage", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -22,6 +23,7 @@ test.describe("TaskFlow UI - task list regression coverage", () => {
     await sharedContext.close();
   });
 
+  /** Verifies the Playwright scenario for desktop task list renders the richer pager and wide layout. */
   test("desktop task list renders the richer pager and wide layout", async () => {
     await navigateToTaskList(sharedPage);
 
@@ -38,6 +40,7 @@ test.describe("TaskFlow UI - task list regression coverage", () => {
     ]);
   });
 
+  /** Verifies the Playwright scenario for task detail still opens from the list after the layout changes. */
   test("task detail still opens from the list after the layout changes", async () => {
     await navigateToTaskList(sharedPage);
     // Click first E2E-prefixed task title - these are always present from prior test runs
@@ -67,6 +70,7 @@ test.describe("TaskFlow UI - task list regression coverage", () => {
   });
 });
 
+/** Verifies the Playwright scenario for TaskFlow UI - mobile task list. */
 test.describe("TaskFlow UI - mobile task list", () => {
   let sharedPage: Page;
   let sharedContext: BrowserContext;
@@ -86,6 +90,7 @@ test.describe("TaskFlow UI - mobile task list", () => {
     await sharedContext.close();
   });
 
+  /** Verifies the Playwright scenario for mobile task list renders stacked metadata labels. */
   test("mobile task list renders stacked metadata labels", async () => {
     await navigateToTaskList(sharedPage);
 

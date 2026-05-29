@@ -2,11 +2,13 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Alert, Snackbar } from '@mui/material'
 import { NotificationContext, type NotificationSeverity } from './notificationContext'
 
+/** Describes notification state data used by the React UI. */
 interface NotificationState {
   message: string
   severity: NotificationSeverity
 }
 
+/** Provides notification state to React children. */
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notification, setNotification] = useState<NotificationState | null>(null)
 

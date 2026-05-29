@@ -3,9 +3,11 @@ using TaskFlow.Application.Cqrs.Registration;
 
 namespace Test.Architecture;
 
+/// <summary>Covers CQRS architecture behavior with focused assertions that document expected behavior and regression intent.</summary>
 [TestClass]
 public sealed class CqrsArchitectureTests : BaseTest
 {
+    /// <summary>Verifies EF CQRS package does not depend on task flow or mediat r behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void EfCqrsPackage_DoesNotDependOn_TaskFlowOrMediatR()
     {
@@ -31,6 +33,7 @@ public sealed class CqrsArchitectureTests : BaseTest
         Assert.AreEqual(0, forbiddenTypes.Count, string.Join(Environment.NewLine, forbiddenTypes));
     }
 
+    /// <summary>Verifies CQRS application does not depend on host or infrastructure behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void CqrsApplication_DoesNotDependOn_HostOrInfrastructure()
     {
@@ -49,6 +52,7 @@ public sealed class CqrsArchitectureTests : BaseTest
         Assert.AreEqual(0, forbidden.Count, string.Join(Environment.NewLine, forbidden));
     }
 
+    /// <summary>Verifies CQRS application uses no dispatcher or mediat r behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void CqrsApplication_UsesNoDispatcherOrMediatR()
     {
@@ -65,6 +69,7 @@ public sealed class CqrsArchitectureTests : BaseTest
         Assert.AreEqual(0, offenders.Count, string.Join(Environment.NewLine, offenders));
     }
 
+    /// <summary>Verifies CQRS handlers implement exactly one request handler contract behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void CqrsHandlers_ImplementExactlyOneRequestHandlerContract()
     {
@@ -84,6 +89,7 @@ public sealed class CqrsArchitectureTests : BaseTest
         }
     }
 
+    /// <summary>Verifies CQRS types do not implement application service contracts behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void CqrsTypes_DoNotImplementApplicationServiceContracts()
     {
@@ -97,6 +103,7 @@ public sealed class CqrsArchitectureTests : BaseTest
         Assert.AreEqual(0, offenders.Count, string.Join(Environment.NewLine, offenders));
     }
 
+    /// <summary>Verifies CQRS handler catalog has one registration per request behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void CqrsHandlerCatalog_HasOneRegistrationPerRequest()
     {

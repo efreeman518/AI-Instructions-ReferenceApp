@@ -5,6 +5,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Mappers;
 
+/// <summary>Maps category mapper domain objects and DTOs across application boundaries.</summary>
 public static class CategoryMapper
 {
     public static readonly Expression<Func<Category, CategoryDto>> Projection =
@@ -21,8 +22,10 @@ public static class CategoryMapper
 
     private static readonly Func<Category, CategoryDto> Compiled = Projection.Compile();
 
+    /// <summary>Converts the current value to DTO.</summary>
     public static CategoryDto ToDto(this Category entity) => Compiled(entity);
 
+    /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<Category> ToEntity(this CategoryDto dto, Guid tenantId)
         => Category.Create(tenantId, dto.Name, dto.Description, dto.SortOrder, dto.ParentCategoryId);
 }

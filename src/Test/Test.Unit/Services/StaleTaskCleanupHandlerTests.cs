@@ -21,6 +21,7 @@ public class StaleTaskCleanupHandlerTests
     private readonly Mock<ITaskItemService> _serviceMock = new();
     private readonly StaleTaskCleanupHandler _handler;
 
+    /// <summary>Initializes stale task cleanup handler tests with required dependencies and default state.</summary>
     public StaleTaskCleanupHandlerTests()
     {
         _handler = new StaleTaskCleanupHandler(
@@ -28,6 +29,7 @@ public class StaleTaskCleanupHandlerTests
             NullLogger<StaleTaskCleanupHandler>.Instance);
     }
 
+    /// <summary>Verifies handle with stale tasks logs count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_WithStaleTasks_LogsCount()
@@ -50,6 +52,7 @@ public class StaleTaskCleanupHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle no stale tasks completes with zero count behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NoStaleTasks_CompletesWithZeroCount()
@@ -66,6 +69,7 @@ public class StaleTaskCleanupHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle recent cancelled not considered stale behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_RecentCancelled_NotConsideredStale()
@@ -89,6 +93,7 @@ public class StaleTaskCleanupHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle null due date not considered stale behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NullDueDate_NotConsideredStale()
@@ -111,6 +116,7 @@ public class StaleTaskCleanupHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Verifies handle null data treats as empty behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_NullData_TreatsAsEmpty()

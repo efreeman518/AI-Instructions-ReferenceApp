@@ -18,10 +18,12 @@ public class AuditHandlerTests
 {
     private readonly Mock<IAuditLogRepository> _auditLogRepositoryMock = new();
 
+    /// <summary>Creates handler used by the surrounding test cases.</summary>
     private AuditHandler CreateHandler() => new(
         NullLogger<AuditHandler>.Instance,
         _auditLogRepositoryMock.Object);
 
+    /// <summary>Verifies handle with guid tenant persists audit entry behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_WithGuidTenant_PersistsAuditEntry()
@@ -52,6 +54,7 @@ public class AuditHandlerTests
             Times.Once);
     }
 
+    /// <summary>Verifies handle with nullable guid tenant persists audit entry behavior and protects the expected test contract.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task HandleAsync_WithNullableGuidTenant_PersistsAuditEntry()

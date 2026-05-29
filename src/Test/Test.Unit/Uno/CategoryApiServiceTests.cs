@@ -21,6 +21,7 @@ public class CategoryApiServiceTests
     private TaskFlowApiClient _apiClient = null!;
     private CategoryApiService _service = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -30,6 +31,7 @@ public class CategoryApiServiceTests
         _service = new CategoryApiService(_apiClient, Mock.Of<INotificationService>());
     }
 
+    /// <summary>Verifies teardown behavior and protects the expected test contract.</summary>
     [TestCleanup]
     public void Teardown()
     {
@@ -37,6 +39,7 @@ public class CategoryApiServiceTests
         _handler.Dispose();
     }
 
+    /// <summary>Verifies search returns mapped categories behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedCategories()
     {
@@ -47,6 +50,7 @@ public class CategoryApiServiceTests
         Assert.IsTrue(results[0].IsActive);
     }
 
+    /// <summary>Creates returns mapped model used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateAsync_ReturnsMappedModel()
     {

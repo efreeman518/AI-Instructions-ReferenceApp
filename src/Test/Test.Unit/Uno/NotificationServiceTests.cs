@@ -13,6 +13,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class NotificationServiceTests
 {
+    /// <summary>Verifies show success appends item behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ShowSuccess_Appends_Item()
     {
@@ -25,6 +26,7 @@ public class NotificationServiceTests
         Assert.AreEqual("Done", svc.Items[0].Title);
     }
 
+    /// <summary>Verifies show error persists no auto dismiss behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ShowError_Persists_NoAutoDismiss()
     {
@@ -35,6 +37,7 @@ public class NotificationServiceTests
         Assert.IsNull(svc.Items[0].AutoDismissAfter);
     }
 
+    /// <summary>Verifies show problem uses problem title and detail behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ShowProblem_Uses_ProblemTitle_And_Detail()
     {
@@ -56,6 +59,7 @@ public class NotificationServiceTests
         Assert.AreEqual("400:Validation failed", n.DedupeKey);
     }
 
+    /// <summary>Verifies show problem dedupes by status and title behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task ShowProblem_Dedupes_By_Status_And_Title()
     {
@@ -71,6 +75,7 @@ public class NotificationServiceTests
         Assert.AreEqual("second", svc.Items[0].Message);
     }
 
+    /// <summary>Verifies dismiss removes item by ID behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task Dismiss_Removes_Item_By_Id()
     {
@@ -87,6 +92,7 @@ public class NotificationServiceTests
         Assert.AreEqual(idToKeep, svc.Items[0].Id);
     }
 
+    /// <summary>Verifies dismiss unknown ID is no op behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task Dismiss_Unknown_Id_IsNoOp()
     {

@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 
 namespace TaskFlow.Domain.Model;
 
+/// <summary>Models task item tag domain behavior and invariants.</summary>
 public class TaskItemTag : EntityBase, ITenantEntity<Guid>
 {
     public Guid TenantId { get; init; }
@@ -15,8 +16,10 @@ public class TaskItemTag : EntityBase, ITenantEntity<Guid>
     public TaskItem TaskItem { get; private set; } = null!;
     public Tag Tag { get; private set; } = null!;
 
+    /// <summary>Initializes task item tag with required dependencies and default state.</summary>
     private TaskItemTag() { }
 
+    /// <summary>Initializes task item tag with required dependencies and default state.</summary>
     private TaskItemTag(Guid tenantId, Guid taskItemId, Guid tagId)
     {
         TenantId = tenantId;
@@ -24,12 +27,14 @@ public class TaskItemTag : EntityBase, ITenantEntity<Guid>
         TagId = tagId;
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<TaskItemTag> Create(Guid tenantId, Guid taskItemId, Guid tagId)
     {
         var entity = new TaskItemTag(tenantId, taskItemId, tagId);
         return entity.Valid();
     }
 
+    /// <summary>Creates a valid task item tag instance with domain-required defaults.</summary>
     private DomainResult<TaskItemTag> Valid()
     {
         var errors = new List<DomainError>();

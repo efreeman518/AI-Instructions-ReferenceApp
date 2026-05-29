@@ -2,18 +2,22 @@ import { expect, Page } from "@playwright/test";
 
 export const WasmBootMs = 20_000;
 
+/** Provides Playwright helper logic for normalize uno text. */
 export function normalizeUnoText(value: string) {
   return value.replace(/\u200B/g, "").replace(/\s+/g, " ").trim();
 }
 
+/** Provides Playwright helper logic for get body text. */
 export async function getBodyText(page: Page) {
   return normalizeUnoText(await page.locator("body").innerText());
 }
 
+/** Provides Playwright helper logic for expect body to contain. */
 export async function expectBodyToContain(page: Page, expectedText: string, timeout = 30_000) {
   await expect.poll(() => getBodyText(page), { timeout }).toContain(expectedText);
 }
 
+/** Provides Playwright helper logic for expect body to contain all. */
 export async function expectBodyToContainAll(page: Page, expectedTexts: string[], timeout = 30_000) {
   await expect.poll(async () => {
     const bodyText = await getBodyText(page);
@@ -23,6 +27,7 @@ export async function expectBodyToContainAll(page: Page, expectedTexts: string[]
 
 type Occurrence = "first" | "last";
 
+/** Provides Playwright helper logic for click uno button by text. */
 async function clickUnoButtonByText(page: Page, text: string, occurrence: Occurrence) {
   // Uno WASM renders Button as <div xamltype="Microsoft.UI.Xaml.Controls.Button">; filter to
   // the visible buttons whose textContent matches the requested label exactly.
@@ -55,6 +60,7 @@ async function clickUnoButtonByText(page: Page, text: string, occurrence: Occurr
   return false;
 }
 
+/** Provides Playwright helper logic for click visible text. */
 export async function clickVisibleText(page: Page, text: string, occurrence: Occurrence = "first") {
   const ok = await clickUnoButtonByText(page, text, occurrence);
   if (ok) return;
@@ -67,11 +73,13 @@ export async function clickVisibleText(page: Page, text: string, occurrence: Occ
   await target.click({ force: true });
 }
 
+/** Provides Playwright helper logic for wait for app. */
 export async function waitForApp(page: Page) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expectBodyToContain(page, "TaskFlow", WasmBootMs);
 }
 
+/** Provides Playwright helper logic for navigate to task list. */
 export async function navigateToTaskList(page: Page) {
   await waitForApp(page);
   await clickVisibleText(page, "Tasks", "last");

@@ -16,6 +16,7 @@ public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
     private readonly ILogger<ServiceBusIntegrationEventPublisher> _logger;
     private const string DefaultTopic = "DomainEvents";
 
+    /// <summary>Initializes service bus integration event publisher with required dependencies and default state.</summary>
     public ServiceBusIntegrationEventPublisher(
         IAzureClientFactory<ServiceBusClient> clientFactory,
         ILogger<ServiceBusIntegrationEventPublisher> logger)
@@ -24,6 +25,7 @@ public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
         _logger = logger;
     }
 
+    /// <summary>Publishes publish through service bus integration event publisher.</summary>
     public Task PublishAsync<TEvent>(TEvent integrationEvent, string? correlationId = null,
         CancellationToken ct = default) where TEvent : class
         => PublishAsync(integrationEvent, DefaultTopic, correlationId, ct);

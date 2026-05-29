@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries task item tag data through infrastructure storage contracts.</summary>
 public class TaskItemTagRepositoryTrxn(TaskFlowDbContextTrxn db)
     : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITaskItemTagRepositoryTrxn
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<TaskItemTag?> GetTaskItemTagAsync(Guid id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<TaskItemTag>, IIncludableQueryable<TaskItemTag, object?>>>>

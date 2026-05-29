@@ -24,6 +24,7 @@ public class ConventionTests : BaseTest
         typeof(TaskFlow.Domain.Model.TaskItemTag)
     ];
 
+    /// <summary>Verifies that given domain entities, when checked, then all implement i tenant entity.</summary>
     [TestMethod]
     public void Given_DomainEntities_When_Checked_Then_AllImplementITenantEntity()
     {
@@ -36,6 +37,7 @@ public class ConventionTests : BaseTest
             $"Entities missing ITenantEntity<Guid>: {string.Join(", ", nonTenantEntities.Select(t => t.Name))}");
     }
 
+    /// <summary>Verifies that given service implementations, when checked, then all implement their interface.</summary>
     [TestMethod]
     public void Given_ServiceImplementations_When_Checked_Then_AllImplementTheirInterface()
     {
@@ -60,6 +62,7 @@ public class ConventionTests : BaseTest
             $"Service convention violations: {string.Join("; ", failures)}");
     }
 
+    /// <summary>Verifies that given domain entities, when checked, then all have private setters.</summary>
     [TestMethod]
     public void Given_DomainEntities_When_Checked_Then_AllHavePrivateSetters()
     {

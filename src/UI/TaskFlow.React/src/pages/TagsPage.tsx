@@ -26,6 +26,7 @@ import { ErrorState, LoadingState } from '../components/StateViews'
 
 const defaultColors = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b']
 
+/** Renders the tags page and coordinates its data operations. */
 export function TagsPage() {
   const queryClient = useQueryClient()
   const { showNotification } = useNotifications()
@@ -57,6 +58,7 @@ export function TagsPage() {
     onError: (error) => showNotification(error instanceof Error ? error.message : 'Tag delete failed.', 'error'),
   })
 
+  /** Renders save tag page helper UI and keeps form or display state consistent. */
   function saveTag() {
     if (!editing.name.trim()) {
       showNotification('Name is required.', 'warning')
@@ -192,6 +194,7 @@ export function TagsPage() {
   )
 }
 
+/** Creates the default tag form state for add and edit flows. */
 function emptyTag(): Tag {
   return {
     color: defaultColors[0],

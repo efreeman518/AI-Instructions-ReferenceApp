@@ -11,12 +11,14 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Cqrs.Features.Categories;
 
+/// <summary>Handles search categories work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchCategoriesHandler(
     ILogger<SearchCategoriesHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     ICategoryRepositoryQuery repoQuery)
     : IRequestHandler<SearchCategoriesQuery, PagedResponse<CategoryDto>>
 {
+    /// <summary>Handles search categories requests and returns the application result.</summary>
     public async Task<PagedResponse<CategoryDto>> HandleAsync(SearchCategoriesQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -25,6 +27,7 @@ internal sealed class SearchCategoriesHandler(
     }
 }
 
+/// <summary>Handles get category by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetCategoryByIdHandler(
     ILogger<GetCategoryByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -32,6 +35,7 @@ internal sealed class GetCategoryByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetCategoryByIdQuery, Result<DefaultResponse<CategoryDto>>>
 {
+    /// <summary>Handles get category by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CategoryDto>>> HandleAsync(GetCategoryByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetCategoryAsync(query.Id, ct);
@@ -46,6 +50,7 @@ internal sealed class GetCategoryByIdHandler(
     }
 }
 
+/// <summary>Handles create category work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateCategoryHandler(
     ILogger<CreateCategoryHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -53,6 +58,7 @@ internal sealed class CreateCategoryHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateCategoryCommand, Result<DefaultResponse<CategoryDto>>>
 {
+    /// <summary>Handles create category requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CategoryDto>>> HandleAsync(CreateCategoryCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -79,6 +85,7 @@ internal sealed class CreateCategoryHandler(
     }
 }
 
+/// <summary>Handles update category work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateCategoryHandler(
     ILogger<UpdateCategoryHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -86,6 +93,7 @@ internal sealed class UpdateCategoryHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateCategoryCommand, Result<DefaultResponse<CategoryDto>>>
 {
+    /// <summary>Handles update category requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CategoryDto>>> HandleAsync(UpdateCategoryCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -119,6 +127,7 @@ internal sealed class UpdateCategoryHandler(
     }
 }
 
+/// <summary>Handles delete category work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteCategoryHandler(
     ILogger<DeleteCategoryHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -127,6 +136,7 @@ internal sealed class DeleteCategoryHandler(
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteCategoryCommand, Result>
 {
+    /// <summary>Handles delete category requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteCategoryCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetCategoryAsync(command.Id, ct);

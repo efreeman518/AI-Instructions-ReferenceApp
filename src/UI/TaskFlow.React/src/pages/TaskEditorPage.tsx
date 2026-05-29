@@ -30,6 +30,7 @@ import { formatDate, fromDateInputValue, toDateInputValue } from '../utils/forma
 
 const emptyGuid = '00000000-0000-0000-0000-000000000000'
 
+/** Renders the task editor page and coordinates its data operations. */
 export function TaskEditorPage() {
   const { id } = useParams()
   const isCreate = !id
@@ -65,12 +66,14 @@ export function TaskEditorPage() {
   ) : null
 }
 
+/** Describes task editor content props data used by the React UI. */
 interface TaskEditorContentProps {
   initialTask: TaskItem
   isCreate: boolean
   routeId?: string
 }
 
+/** Renders the task editor form and coordinates task save, checklist, and comment mutations. */
 function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -154,6 +157,7 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
     setForm((current) => ({ ...current, [key]: value }))
   }
 
+  /** Adds an empty checklist row to the task editor form state. */
   function addChecklistItem() {
     const title = newChecklistTitle.trim()
     if (!title) return
@@ -178,6 +182,7 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
     }))
   }
 
+  /** Removes a checklist row from the task editor form state. */
   function removeChecklistItem(index: number) {
     setForm((current) => ({
       ...current,
@@ -185,6 +190,7 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
     }))
   }
 
+  /** Adds an empty comment row to the task editor form state. */
   function addComment() {
     const body = newCommentBody.trim()
     if (!body) return
@@ -195,6 +201,7 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
     setNewCommentBody('')
   }
 
+  /** Removes a comment row from the task editor form state. */
   function removeComment(comment: Comment) {
     setForm((current) => ({
       ...current,
@@ -448,6 +455,7 @@ function TaskEditorContent({ initialTask, isCreate, routeId }: TaskEditorContent
   )
 }
 
+/** Renders a label-value row for task editor metadata. */
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: '96px minmax(0, 1fr)' }}>
@@ -457,6 +465,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Builds create empty task values for API or UI code. */
 function createEmptyTask(): TaskItem {
   return {
     checklistItems: [],
@@ -468,6 +477,7 @@ function createEmptyTask(): TaskItem {
   }
 }
 
+/** Normalizes task form state into the API payload shape. */
 function normalizeTask(task: TaskItem): TaskItem {
   return {
     ...task,

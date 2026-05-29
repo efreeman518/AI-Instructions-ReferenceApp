@@ -46,6 +46,7 @@ public class FunctionServiceBusTrigger(
         }
     }
 
+    /// <summary>Extracts task item ID from the supplied message or payload.</summary>
     private static Guid? ExtractTaskItemId(string messageBody)
     {
         try

@@ -4,10 +4,12 @@ using TaskFlow.Uno.Core.Business.Services;
 
 namespace TaskFlow.Uno.Presentation;
 
+/// <summary>Drives task list state, navigation, and commands for the Uno presentation layer.</summary>
 public partial record TaskListModel
 {
     private const int DefaultPageSize = 10;
 
+    /// <summary>Initializes task list model with required dependencies and default state.</summary>
     public TaskListModel(
         INavigator navigator,
         ITaskItemApiService taskItemService,
@@ -67,12 +69,14 @@ public partial record TaskListModel
     public IListFeed<CategoryModel> Categories => ListFeed.Async(async ct =>
         (IImmutableList<CategoryModel>)(await CategoryService.SearchAsync(isActive: true, ct: ct)).ToImmutableList());
 
+    /// <summary>Refreshes refresh from the backing service.</summary>
     public async ValueTask RefreshAsync(CancellationToken ct = default)
     {
         var page = await CurrentPage;
         await LoadPageAsync(page, ct);
     }
 
+    /// <summary>Loads load page from the backing service.</summary>
     public async ValueTask LoadPageAsync(int targetPage, CancellationToken ct = default)
     {
         var page = Math.Max(1, targetPage);
@@ -116,6 +120,7 @@ public partial record TaskListModel
         await VisiblePageNumbers.UpdateAsync(_ => result.VisiblePageNumbers.ToImmutableList(), noCt);
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     public async ValueTask Search(CancellationToken ct)
     {
         var term = (await SearchTerm) ?? string.Empty;
@@ -126,12 +131,15 @@ public partial record TaskListModel
         await LoadPageAsync(1, ct);
     }
 
+    /// <summary>Opens open detail for editing or viewing.</summary>
     public async ValueTask OpenDetail(TaskItemModel item, CancellationToken ct) =>
         await Navigator.NavigateRouteAsync(this, "TaskItem", data: item, cancellation: ct);
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async ValueTask CreateNew(CancellationToken ct) =>
         await Navigator.NavigateRouteAsync(this, "TaskItem", cancellation: ct);
 
+    /// <summary>Converts the current value to ggle status.</summary>
     public async ValueTask ToggleStatus(TaskItemModel item, CancellationToken ct)
     {
         var newStatus = item.Status switch
@@ -146,6 +154,7 @@ public partial record TaskListModel
         Messenger.Send(new TaskItemsChangedMessage());
     }
 
+    /// <summary>Moves task list paging state to the requested page.</summary>
     public async ValueTask PreviousPage(CancellationToken ct)
     {
         var current = await CurrentPage;
@@ -153,6 +162,7 @@ public partial record TaskListModel
         await LoadPageAsync(current - 1, ct);
     }
 
+    /// <summary>Moves task list paging state to the requested page.</summary>
     public async ValueTask NextPage(CancellationToken ct)
     {
         var current = await CurrentPage;
@@ -161,17 +171,21 @@ public partial record TaskListModel
         await LoadPageAsync(current + 1, ct);
     }
 
+    /// <summary>Moves task list paging state to the requested page.</summary>
     public async ValueTask FirstPage(CancellationToken ct) =>
         await LoadPageAsync(1, ct);
 
+    /// <summary>Moves task list paging state to the requested page.</summary>
     public async ValueTask LastPage(CancellationToken ct)
     {
         var total = await TotalPages;
         await LoadPageAsync(total, ct);
     }
 
+    /// <summary>Moves task list paging state to the requested page.</summary>
     public async ValueTask GoToPage(int pageNumber, CancellationToken ct) =>
         await LoadPageAsync(pageNumber, ct);
 
+    /// <summary>Normalizes page size so callers and persistence use consistent values.</summary>
     private static int NormalizePageSize(int pageSize) => pageSize is 10 or 20 or 50 ? pageSize : DefaultPageSize;
 }

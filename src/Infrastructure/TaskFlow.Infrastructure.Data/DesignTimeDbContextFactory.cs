@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace TaskFlow.Infrastructure.Data;
 
+/// <summary>Provides design time DB context factory trxn behavior for the Infrastructure layer.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryTrxn : IDesignTimeDbContextFactory<TaskFlowDbContextTrxn>
 {
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowDbContextTrxn CreateDbContext(string[] args)
     {
         string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
@@ -20,9 +22,11 @@ public class DesignTimeDbContextFactoryTrxn : IDesignTimeDbContextFactory<TaskFl
     }
 }
 
+/// <summary>Carries design time DB context factory query CQRS data between endpoints and handlers.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskFlowDbContextQuery>
 {
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowDbContextQuery CreateDbContext(string[] args)
     {
         string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
@@ -36,9 +40,11 @@ public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskF
     }
 }
 
+/// <summary>Provides design time DB context factory flow engine behavior for the Infrastructure layer.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryFlowEngine : IDesignTimeDbContextFactory<TaskFlowFlowEngineDbContext>
 {
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowFlowEngineDbContext CreateDbContext(string[] args)
     {
         string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");

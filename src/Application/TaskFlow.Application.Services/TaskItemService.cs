@@ -35,11 +35,13 @@ internal class TaskItemService(
 
     #region Helpers
 
+    /// <summary>Builds response from current configuration and inputs.</summary>
     private static DefaultResponse<TaskItemDto> BuildResponse(TaskItemDto dto) =>
         new() { Item = dto, TenantInfo = null };
 
     #endregion
 
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<PagedResponse<TaskItemDto>> SearchAsync(
         SearchRequest<TaskItemSearchFilter> request, CancellationToken ct = default)
     {
@@ -63,6 +65,7 @@ internal class TaskItemService(
         }
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTaskItemAsync(id, ct);
@@ -219,6 +222,7 @@ internal class TaskItemService(
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTaskItemAsync(id, ct: ct);

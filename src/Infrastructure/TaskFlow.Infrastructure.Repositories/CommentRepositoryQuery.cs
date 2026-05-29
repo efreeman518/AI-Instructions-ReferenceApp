@@ -9,9 +9,11 @@ using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
+/// <summary>Persists and queries comment data through infrastructure storage contracts.</summary>
 public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
     : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICommentRepositoryQuery
 {
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
@@ -21,6 +23,7 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    /// <summary>Searches search comments and returns filtered results for callers.</summary>
     public async Task<PagedResponse<CommentDto>> SearchCommentsAsync(SearchRequest<CommentSearchFilter> request, CancellationToken ct = default)
     {
         var q = DB.Set<Comment>().ComposeIQueryable(false);

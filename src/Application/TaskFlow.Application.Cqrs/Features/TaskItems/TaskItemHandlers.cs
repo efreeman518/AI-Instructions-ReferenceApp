@@ -15,12 +15,14 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItems;
 
+/// <summary>Handles search task items work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class SearchTaskItemsHandler(
     ILogger<SearchTaskItemsHandler> logger,
     IRequestContext<string, Guid?> requestContext,
     ITaskItemRepositoryQuery repoQuery)
     : IRequestHandler<SearchTaskItemsQuery, PagedResponse<TaskItemDto>>
 {
+    /// <summary>Handles search task items requests and returns the application result.</summary>
     public async Task<PagedResponse<TaskItemDto>> HandleAsync(SearchTaskItemsQuery query, CancellationToken ct = default)
     {
         var request = query.Request;
@@ -30,6 +32,7 @@ internal sealed class SearchTaskItemsHandler(
     }
 }
 
+/// <summary>Handles get task item by ID work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class GetTaskItemByIdHandler(
     ILogger<GetTaskItemByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -37,6 +40,7 @@ internal sealed class GetTaskItemByIdHandler(
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetTaskItemByIdQuery, Result<DefaultResponse<TaskItemDto>>>
 {
+    /// <summary>Handles get task item by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> HandleAsync(GetTaskItemByIdQuery query, CancellationToken ct = default)
     {
         var entity = await repoQuery.GetTaskItemAsync(query.Id, ct);
@@ -51,6 +55,7 @@ internal sealed class GetTaskItemByIdHandler(
     }
 }
 
+/// <summary>Handles create task item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class CreateTaskItemHandler(
     ILogger<CreateTaskItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -59,6 +64,7 @@ internal sealed class CreateTaskItemHandler(
     IIntegrationEventPublisher eventPublisher)
     : IRequestHandler<CreateTaskItemCommand, Result<DefaultResponse<TaskItemDto>>>
 {
+    /// <summary>Handles create task item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> HandleAsync(CreateTaskItemCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -94,6 +100,7 @@ internal sealed class CreateTaskItemHandler(
     }
 }
 
+/// <summary>Handles update task item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class UpdateTaskItemHandler(
     ILogger<UpdateTaskItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -102,6 +109,7 @@ internal sealed class UpdateTaskItemHandler(
     IIntegrationEventPublisher eventPublisher)
     : IRequestHandler<UpdateTaskItemCommand, Result<DefaultResponse<TaskItemDto>>>
 {
+    /// <summary>Handles update task item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> HandleAsync(UpdateTaskItemCommand command, CancellationToken ct = default)
     {
         var dto = command.Request.Item;
@@ -175,6 +183,7 @@ internal sealed class UpdateTaskItemHandler(
     }
 }
 
+/// <summary>Handles delete task item work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 internal sealed class DeleteTaskItemHandler(
     ILogger<DeleteTaskItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
@@ -183,6 +192,7 @@ internal sealed class DeleteTaskItemHandler(
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteTaskItemCommand, Result>
 {
+    /// <summary>Handles delete task item requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTaskItemCommand command, CancellationToken ct = default)
     {
         var entity = await repoTrxn.GetTaskItemAsync(command.Id, ct: ct);

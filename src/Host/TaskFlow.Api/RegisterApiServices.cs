@@ -40,12 +40,14 @@ public static class RegisterApiServices
         return services;
     }
 
+    /// <summary>Registers JSON options dependencies in the service container.</summary>
     private static void AddJsonOptions(IServiceCollection services)
     {
         services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     }
 
+    /// <summary>Registers cors dependencies in the service container.</summary>
     private static void AddCors(IServiceCollection services, IConfiguration config)
     {
         var allowedOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>();
@@ -63,6 +65,7 @@ public static class RegisterApiServices
         });
     }
 
+    /// <summary>Registers authentication dependencies in the service container.</summary>
     private static void AddAuthentication(IServiceCollection services, IConfiguration config, ILogger logger)
     {
         services.AddTaskFlowAuth(config);
@@ -71,11 +74,13 @@ public static class RegisterApiServices
         services.AddTransient<IClaimsTransformation, GatewayClaimsTransformer>();
     }
 
+    /// <summary>Registers authorization dependencies in the service container.</summary>
     private static void AddAuthorization(IServiceCollection services)
     {
         services.AddTaskFlowAuthorization();
     }
 
+    /// <summary>Registers exception handling dependencies in the service container.</summary>
     private static void AddExceptionHandling(IServiceCollection services)
     {
         services.AddExceptionHandler<DefaultExceptionHandler>();
@@ -86,6 +91,7 @@ public static class RegisterApiServices
         });
     }
 
+    /// <summary>Registers rate limiting dependencies in the service container.</summary>
     private static void AddRateLimiting(IServiceCollection services, IConfiguration config)
     {
         var permitLimit = config.GetValue<int?>("RateLimiting:PerTenant:PermitLimit") ?? 100;
@@ -160,6 +166,7 @@ public static class RegisterApiServices
         });
     }
 
+    /// <summary>Registers versioned open API dependencies in the service container.</summary>
     private static void AddVersionedOpenApi(IServiceCollection services, IConfiguration config)
     {
         services.AddEfVersionedOpenApi(options =>

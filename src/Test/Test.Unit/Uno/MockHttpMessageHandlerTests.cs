@@ -18,6 +18,7 @@ public class MockHttpMessageHandlerTests
     private MockHttpMessageHandler _handler = null!;
     private HttpClient _httpClient = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -25,6 +26,7 @@ public class MockHttpMessageHandlerTests
         _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("https://localhost:7200") };
     }
 
+    /// <summary>Verifies teardown behavior and protects the expected test contract.</summary>
     [TestCleanup]
     public void Teardown()
     {
@@ -32,6 +34,7 @@ public class MockHttpMessageHandlerTests
         _handler.Dispose();
     }
 
+    /// <summary>Verifies search task items returns mock data behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchTaskItems_ReturnsMockData()
     {
@@ -46,6 +49,7 @@ public class MockHttpMessageHandlerTests
         Assert.AreEqual("Build dashboard UI", result.Items![0].Title);
     }
 
+    /// <summary>Verifies search categories returns mock data behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchCategories_ReturnsMockData()
     {
@@ -60,6 +64,7 @@ public class MockHttpMessageHandlerTests
         Assert.AreEqual("Development", result.Items![0].Name);
     }
 
+    /// <summary>Verifies search tags returns mock data behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchTags_ReturnsMockData()
     {
@@ -75,6 +80,7 @@ public class MockHttpMessageHandlerTests
         Assert.AreEqual("backend", result.Items![0].Name);
     }
 
+    /// <summary>Verifies delete task item returns no content behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task DeleteTaskItem_ReturnsNoContent()
     {
@@ -83,6 +89,7 @@ public class MockHttpMessageHandlerTests
         Assert.AreEqual(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 
+    /// <summary>Verifies unknown route returns not found behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task UnknownRoute_ReturnsNotFound()
     {

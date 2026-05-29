@@ -30,6 +30,7 @@ public class TaskItemCrudE2ETests
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
@@ -42,6 +43,7 @@ public class TaskItemCrudE2ETests
         await db.Database.MigrateAsync();
     }
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static async Task ClassCleanup()
     {
@@ -49,6 +51,7 @@ public class TaskItemCrudE2ETests
         await SqlApiFactory.StopContainerAsync();
     }
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
     // -- TaskItem full CRUD ------------------------------------
@@ -198,6 +201,7 @@ public class TaskItemCrudE2ETests
         CollectionAssert.Contains(titles, $"{searchMarker} Task");
     }
 
+    /// <summary>Verifies task item search paginates distinct pages against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task TaskItem_Search_PaginatesDistinctPages_AgainstRealSql()
     {

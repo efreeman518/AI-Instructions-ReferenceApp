@@ -6,6 +6,7 @@ const baseShape = {
   borderRadius: 8,
 }
 
+/** Builds create task flow theme values for API or UI code. */
 export function createTaskFlowTheme(mode: ThemeMode) {
   const isDark = mode === 'dark'
 

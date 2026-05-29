@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries attachment data between Uno services and presentation models.</summary>
 public record AttachmentModel
 {
     public Guid? Id { get; init; }

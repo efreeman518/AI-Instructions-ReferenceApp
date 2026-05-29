@@ -34,6 +34,7 @@ public class TaskItemServiceTests
     private readonly Mock<IEntityCacheProvider> _cacheMock = new();
     private readonly Mock<IIntegrationEventPublisher> _eventPublisherMock = new();
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -47,6 +48,7 @@ public class TaskItemServiceTests
             .Returns(Result.Success());
     }
 
+    /// <summary>Creates service used by the surrounding test cases.</summary>
     private TaskItemService CreateService() => new(
         NullLogger<TaskItemService>.Instance,
         _requestContextMock.Object,
@@ -56,6 +58,7 @@ public class TaskItemServiceTests
         _cacheMock.Object,
         _eventPublisherMock.Object);
 
+    /// <summary>Verifies that given valid DTO, when create, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ValidDto_When_CreateAsync_Then_ReturnsSuccess()
@@ -73,6 +76,7 @@ public class TaskItemServiceTests
         Assert.AreEqual(TaskItemStatus.Open, result.Value.Item.Status);
     }
 
+    /// <summary>Verifies that given invalid DTO, when create, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
@@ -83,6 +87,7 @@ public class TaskItemServiceTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing entity, when get, then returns mapped DTO.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_GetAsync_Then_ReturnsMappedDto()
@@ -96,6 +101,7 @@ public class TaskItemServiceTests
         Assert.AreEqual(entity.Title, result.Value!.Item!.Title);
     }
 
+    /// <summary>Verifies that given non existent ID, when get, then returns none.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
@@ -107,6 +113,7 @@ public class TaskItemServiceTests
         Assert.IsTrue(result.IsNone);
     }
 
+    /// <summary>Verifies that given existing entity, when update, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
@@ -124,6 +131,7 @@ public class TaskItemServiceTests
         Assert.AreEqual("Updated Title", result.Value!.Item!.Title);
     }
 
+    /// <summary>Verifies that given existing entity, when update with status transition, then status updated.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_UpdateWithStatusTransition_Then_StatusUpdated()
@@ -141,6 +149,7 @@ public class TaskItemServiceTests
         Assert.AreEqual(TaskItemStatus.InProgress, result.Value!.Item!.Status);
     }
 
+    /// <summary>Verifies that given existing entity, when update with invalid transition, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_UpdateWithInvalidTransition_Then_ReturnsFailure()
@@ -154,6 +163,7 @@ public class TaskItemServiceTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given non existent ID, when update, then returns null item.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
@@ -167,6 +177,7 @@ public class TaskItemServiceTests
         Assert.IsNull(result.Value?.Item);
     }
 
+    /// <summary>Verifies that given existing entity, when delete, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
@@ -181,6 +192,7 @@ public class TaskItemServiceTests
         _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
     }
 
+    /// <summary>Verifies that given non existent ID, when delete, then returns success idempotent.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
@@ -192,6 +204,7 @@ public class TaskItemServiceTests
         Assert.IsTrue(result.IsSuccess);
     }
 
+    /// <summary>Verifies that given search request, when search, then returns paged response.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public async Task Given_SearchRequest_When_SearchAsync_Then_ReturnsPagedResponse()

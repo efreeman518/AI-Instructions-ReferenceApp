@@ -3,8 +3,10 @@ using OpenQA.Selenium.Appium;
 
 namespace Test.Mobile;
 
+/// <summary>Supports test execution for Test.mobile scenarios.</summary>
 internal static class MobileTestArtifacts
 {
+    /// <summary>Verifies save screenshot behavior and protects the expected test contract.</summary>
     public static string SaveScreenshot(AppiumDriver driver, MobileTestSettings settings, TestContext context, string name)
     {
         Directory.CreateDirectory(settings.ScreenshotDirectory);
@@ -19,6 +21,7 @@ internal static class MobileTestArtifacts
         return screenshotPath;
     }
 
+    /// <summary>Verifies save page source behavior and protects the expected test contract.</summary>
     public static void SavePageSource(AppiumDriver driver, MobileTestSettings settings, TestContext context, string name)
     {
         Directory.CreateDirectory(settings.ScreenshotDirectory);

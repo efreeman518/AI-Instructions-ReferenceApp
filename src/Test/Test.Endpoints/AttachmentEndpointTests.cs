@@ -25,14 +25,18 @@ public class AttachmentEndpointTests
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static void ClassInit(TestContext _) => _factory = new CustomApiFactory();
 
+    /// <summary>Disposes shared test fixtures after the class-level test run finishes.</summary>
     [ClassCleanup]
     public static void ClassCleanup() => _factory?.Dispose();
 
+    /// <summary>Creates client used by the surrounding test cases.</summary>
     private HttpClient CreateClient() => _factory.CreateClient();
 
+    /// <summary>Creates parent task item used by the surrounding test cases.</summary>
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForAttachment", Priority = Priority.Medium };
@@ -41,6 +45,7 @@ public class AttachmentEndpointTests
         return created!.Id!.Value;
     }
 
+    /// <summary>Verifies that given valid payload, when post attachment, then returns 201.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ValidPayload_When_PostAttachment_Then_Returns201()
@@ -65,6 +70,7 @@ public class AttachmentEndpointTests
         Assert.AreEqual("test.pdf", created.FileName);
     }
 
+    /// <summary>Verifies that given existing attachment, when get by ID, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingAttachment_When_GetById_Then_Returns200()
@@ -91,6 +97,7 @@ public class AttachmentEndpointTests
         Assert.AreEqual("get-test.docx", result.FileName);
     }
 
+    /// <summary>Verifies that given non existent ID, when get attachment, then returns 404.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_NonExistentId_When_GetAttachment_Then_Returns404()
@@ -102,6 +109,7 @@ public class AttachmentEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>Verifies that given existing attachment, when put update, then returns 200.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingAttachment_When_PutUpdate_Then_Returns200()
@@ -137,6 +145,7 @@ public class AttachmentEndpointTests
         Assert.AreEqual("after.png", updated!.FileName);
     }
 
+    /// <summary>Verifies that given existing attachment, when delete, then returns 204.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_ExistingAttachment_When_Delete_Then_Returns204()
@@ -163,6 +172,7 @@ public class AttachmentEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
+    /// <summary>Verifies that given file upload, when post upload, then returns 201 with blob uri.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
     public async Task Given_FileUpload_When_PostUpload_Then_Returns201WithBlobUri()
@@ -197,10 +207,12 @@ public class AttachmentEndpointTests
     }
 }
 
+/// <summary>Supports test execution for Test.endpoints scenarios.</summary>
 internal class InMemoryBlobStorageRepository : IBlobStorageRepository
 {
     private readonly Dictionary<string, byte[]> _blobs = new();
 
+    /// <summary>Verifies upload behavior and protects the expected test contract.</summary>
     public async Task UploadAsync(string containerName, string blobName, Stream content,
         string? contentType = null, IDictionary<string, string>? metadata = null,
         CancellationToken ct = default)
@@ -210,6 +222,7 @@ internal class InMemoryBlobStorageRepository : IBlobStorageRepository
         _blobs[$"{containerName}/{blobName}"] = ms.ToArray();
     }
 
+    /// <summary>Verifies download behavior and protects the expected test contract.</summary>
     public Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken ct = default)
     {
         var key = $"{containerName}/{blobName}";
@@ -218,15 +231,18 @@ internal class InMemoryBlobStorageRepository : IBlobStorageRepository
         return Task.FromResult<Stream>(new MemoryStream(data));
     }
 
+    /// <summary>Verifies delete behavior and protects the expected test contract.</summary>
     public Task DeleteAsync(string containerName, string blobName, CancellationToken ct = default)
     {
         _blobs.Remove($"{containerName}/{blobName}");
         return Task.CompletedTask;
     }
 
+    /// <summary>Verifies exists behavior and protects the expected test contract.</summary>
     public Task<bool> ExistsAsync(string containerName, string blobName, CancellationToken ct = default)
         => Task.FromResult(_blobs.ContainsKey($"{containerName}/{blobName}"));
 
+    /// <summary>Verifies get blob uri behavior and protects the expected test contract.</summary>
     public Task<Uri> GetBlobUriAsync(string containerName, string blobName, CancellationToken ct = default)
         => Task.FromResult(new Uri($"https://inmemory.blob.local/{containerName}/{blobName}"));
 }

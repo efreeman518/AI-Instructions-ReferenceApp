@@ -15,6 +15,7 @@ namespace Test.Unit.Uno;
 [TestCategory("Uno")]
 public class BusyDelegatingHandlerTests
 {
+    /// <summary>Verifies send increments during request decrements after behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SendAsync_Increments_During_Request_Decrements_After()
     {
@@ -40,6 +41,7 @@ public class BusyDelegatingHandlerTests
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
+    /// <summary>Verifies send decrements on inner exception behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SendAsync_Decrements_On_Inner_Exception()
     {
@@ -54,9 +56,11 @@ public class BusyDelegatingHandlerTests
         Assert.AreEqual(0, tracker.Pending);
     }
 
+    /// <summary>Supports test execution for Test.unit Uno scenarios.</summary>
     private sealed class StubHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond)
         : HttpMessageHandler
     {
+        /// <summary>Verifies send behavior and protects the expected test contract.</summary>
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
             respond(request);
     }

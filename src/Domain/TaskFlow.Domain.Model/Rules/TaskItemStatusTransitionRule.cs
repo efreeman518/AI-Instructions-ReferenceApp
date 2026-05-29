@@ -3,6 +3,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model.Rules;
 
+/// <summary>Models task item status transition rule domain behavior and invariants.</summary>
 public class TaskItemStatusTransitionRule : RuleBase<(TaskItemStatus Current, TaskItemStatus Target)>
 {
     private static readonly HashSet<(TaskItemStatus, TaskItemStatus)> ValidTransitions =
@@ -18,6 +19,7 @@ public class TaskItemStatusTransitionRule : RuleBase<(TaskItemStatus Current, Ta
         (TaskItemStatus.Cancelled, TaskItemStatus.Open),
     ];
 
+    /// <summary>Evaluates the supplied value against task item status transition rule and returns pass or failure state.</summary>
     public override DomainResult Evaluate((TaskItemStatus Current, TaskItemStatus Target) input)
     {
         if (input.Target == TaskItemStatus.None)

@@ -24,6 +24,7 @@ public class TaskItemToolsTests
     private readonly Mock<ITaskFlowSearchService> _searchServiceMock = new();
     private TaskItemTools _tools = null!;
 
+    /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
     public void Setup()
     {
@@ -33,6 +34,7 @@ public class TaskItemToolsTests
             _searchServiceMock.Object);
     }
 
+    /// <summary>Verifies search tasks returns formatted results behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchTasks_ReturnsFormattedResults()
     {
@@ -58,6 +60,7 @@ public class TaskItemToolsTests
         Assert.Contains("High", result);
     }
 
+    /// <summary>Verifies search tasks no results returns not found message behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SearchTasks_NoResults_ReturnsNotFoundMessage()
     {
@@ -70,6 +73,7 @@ public class TaskItemToolsTests
         Assert.AreEqual("No tasks found matching your query.", result);
     }
 
+    /// <summary>Verifies get task details returns task info behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetTaskDetails_ReturnsTaskInfo()
     {
@@ -93,6 +97,7 @@ public class TaskItemToolsTests
         Assert.Contains("InProgress", result);
     }
 
+    /// <summary>Verifies get task details invalid ID returns error behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetTaskDetails_InvalidId_ReturnsError()
     {
@@ -101,6 +106,7 @@ public class TaskItemToolsTests
         Assert.Contains("Invalid task ID", result);
     }
 
+    /// <summary>Verifies get task details not found returns not found behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task GetTaskDetails_NotFound_ReturnsNotFound()
     {
@@ -115,6 +121,7 @@ public class TaskItemToolsTests
         Assert.Contains("not found", result);
     }
 
+    /// <summary>Creates task calls service returns confirmation used by the surrounding test cases.</summary>
     [TestMethod]
     public async Task CreateTask_CallsService_ReturnsConfirmation()
     {
@@ -130,6 +137,7 @@ public class TaskItemToolsTests
         Assert.Contains(newId.ToString(), result);
     }
 
+    /// <summary>Verifies summarize backlog returns status breakdown behavior and protects the expected test contract.</summary>
     [TestMethod]
     public async Task SummarizeBacklog_ReturnsStatusBreakdown()
     {

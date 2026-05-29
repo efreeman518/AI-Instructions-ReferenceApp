@@ -26,6 +26,7 @@ public class DomainEventPipelineTests
 {
     private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
+    /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
@@ -33,6 +34,7 @@ public class DomainEventPipelineTests
         await db.Database.MigrateAsync();
     }
 
+    /// <summary>Verifies that given task item created, when projection runs, then task view produced.</summary>
     [TestMethod]
     [TestCategory("Integration")]
     [Timeout(120000)]
@@ -80,6 +82,7 @@ public class DomainEventPipelineTests
         Assert.AreEqual(0, taskView.AttachmentCount);
     }
 
+    /// <summary>Verifies that given task item with children, when projection runs, then counts included.</summary>
     [TestMethod]
     [TestCategory("Integration")]
     [Timeout(120000)]
@@ -126,6 +129,7 @@ public class DomainEventPipelineTests
         Assert.AreEqual(0, taskView.ChecklistCompleted);
     }
 
+    /// <summary>Verifies that given service bus message body, when parsed, then task item ID extracted.</summary>
     [TestMethod]
     [TestCategory("Integration")]
     [Timeout(120000)]
@@ -154,18 +158,21 @@ internal class InMemoryTaskViewRepository : ITaskViewRepository
 {
     private readonly Dictionary<string, TaskViewDto> _store = new();
 
+    /// <summary>Verifies upsert behavior and protects the expected test contract.</summary>
     public Task UpsertAsync(TaskViewDto taskView, CancellationToken ct = default)
     {
         _store[$"{taskView.TenantId}:{taskView.Id}"] = taskView;
         return Task.CompletedTask;
     }
 
+    /// <summary>Verifies get behavior and protects the expected test contract.</summary>
     public Task<TaskViewDto?> GetAsync(string id, string tenantId, CancellationToken ct = default)
     {
         _store.TryGetValue($"{tenantId}:{id}", out var result);
         return Task.FromResult(result);
     }
 
+    /// <summary>Verifies query by tenant behavior and protects the expected test contract.</summary>
     public Task<IReadOnlyList<TaskViewDto>> QueryByTenantAsync(string tenantId,
         int pageSize = 20, string? continuationToken = null, CancellationToken ct = default)
     {
@@ -177,6 +184,7 @@ internal class InMemoryTaskViewRepository : ITaskViewRepository
         return Task.FromResult<IReadOnlyList<TaskViewDto>>(results);
     }
 
+    /// <summary>Verifies delete behavior and protects the expected test contract.</summary>
     public Task DeleteAsync(string id, string tenantId, CancellationToken ct = default)
     {
         _store.Remove($"{tenantId}:{id}");

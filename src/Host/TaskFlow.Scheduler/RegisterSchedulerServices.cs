@@ -197,6 +197,7 @@ public static class RegisterSchedulerServices
         }
     }
 
+    /// <summary>Verifies ticker q schema before startup continues.</summary>
     private static async Task<bool> VerifyTickerQSchemaAsync(TickerQDbContext db, ILogger logger)
     {
         try
@@ -211,6 +212,7 @@ public static class RegisterSchedulerServices
         }
     }
 
+    /// <summary>Provides the execute create script operation for register scheduler services.</summary>
     private static async Task ExecuteCreateScriptAsync(TickerQDbContext db)
     {
         var script = db.Database.GenerateCreateScript();
@@ -223,6 +225,7 @@ public static class RegisterSchedulerServices
         }
     }
 
+    /// <summary>Generates deployment script from current configuration.</summary>
     private static async Task GenerateDeploymentScriptAsync(TickerQDbContext db, ILogger logger)
     {
         var scriptPath = Path.Combine(AppContext.BaseDirectory, "TickerQ_Deployment.sql");

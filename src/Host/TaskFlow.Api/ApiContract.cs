@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 namespace TaskFlow.Api;
 
+/// <summary>Configures API contract host behavior for TaskFlow runtime services.</summary>
 internal static class ApiContract
 {
     public const string Title = "TaskFlow API";
@@ -16,6 +17,7 @@ internal static class ApiContract
     public static string DefaultGroupName => V1.GroupName;
 }
 
+/// <summary>Configures API document host behavior for TaskFlow runtime services.</summary>
 internal sealed record ApiDocument(ApiVersion Version, string GroupName)
 {
     public string DisplayName => GroupName;

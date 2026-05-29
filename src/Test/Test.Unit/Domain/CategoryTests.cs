@@ -11,6 +11,7 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class CategoryTests
 {
+    /// <summary>Verifies that given valid input, when category created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_CategoryCreated_Then_ReturnsSuccess()
@@ -22,6 +23,7 @@ public class CategoryTests
         Assert.IsTrue(result.Value.IsActive);
     }
 
+    /// <summary>Verifies that given empty name, when category created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     [DataRow(null)]
@@ -33,6 +35,7 @@ public class CategoryTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given empty tenant ID, when category created, then returns domain failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_CategoryCreated_Then_ReturnsDomainFailure()
@@ -41,6 +44,7 @@ public class CategoryTests
         Assert.IsTrue(result.IsFailure);
     }
 
+    /// <summary>Verifies that given existing category, when updated, then returns updated values.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ExistingCategory_When_Updated_Then_ReturnsUpdatedValues()
@@ -52,6 +56,7 @@ public class CategoryTests
         Assert.AreEqual("New desc", result.Value.Description);
     }
 
+    /// <summary>Verifies that given null update, when updated, then original values preserved.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()
@@ -63,6 +68,7 @@ public class CategoryTests
         Assert.AreEqual("Desc", result.Value.Description);
     }
 
+    /// <summary>Verifies that given category with parent, when created, then parent ID set.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_CategoryWithParent_When_Created_Then_ParentIdSet()

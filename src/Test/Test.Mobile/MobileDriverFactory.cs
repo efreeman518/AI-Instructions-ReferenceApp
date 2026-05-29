@@ -4,8 +4,10 @@ using OpenQA.Selenium.Appium.iOS;
 
 namespace Test.Mobile;
 
+/// <summary>Builds mobile driver test hosts with deterministic dependencies for repeatable test execution.</summary>
 internal static class MobileDriverFactory
 {
+    /// <summary>Creates test dependencies used by the surrounding test cases.</summary>
     public static AppiumDriver Create(MobileTestSettings settings)
     {
         return settings.Platform switch
@@ -16,6 +18,7 @@ internal static class MobileDriverFactory
         };
     }
 
+    /// <summary>Creates android used by the surrounding test cases.</summary>
     private static AndroidDriver CreateAndroid(MobileTestSettings settings)
     {
         var options = new AppiumOptions
@@ -35,6 +38,7 @@ internal static class MobileDriverFactory
         return new AndroidDriver(settings.AppiumServerUri, options, settings.StartupTimeout);
     }
 
+    /// <summary>Creates ios used by the surrounding test cases.</summary>
     private static IOSDriver CreateIos(MobileTestSettings settings)
     {
         var options = new AppiumOptions

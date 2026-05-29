@@ -1,5 +1,6 @@
 namespace TaskFlow.Domain.Shared.Enums;
 
+/// <summary>Defines the supported priority values shared across TaskFlow layers.</summary>
 public enum Priority
 {
     None = 0,

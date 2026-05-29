@@ -5,6 +5,7 @@ using TaskFlow.Domain.Model;
 
 namespace TaskFlow.Application.Mappers;
 
+/// <summary>Maps attachment mapper domain objects and DTOs across application boundaries.</summary>
 public static class AttachmentMapper
 {
     public static readonly Expression<Func<Attachment, AttachmentDto>> Projection =
@@ -22,8 +23,10 @@ public static class AttachmentMapper
 
     private static readonly Func<Attachment, AttachmentDto> Compiled = Projection.Compile();
 
+    /// <summary>Converts the current value to DTO.</summary>
     public static AttachmentDto ToDto(this Attachment entity) => Compiled(entity);
 
+    /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<Attachment> ToEntity(this AttachmentDto dto, Guid tenantId)
         => Attachment.Create(tenantId, dto.FileName, dto.ContentType, dto.FileSizeBytes, dto.StorageUri, dto.OwnerType, dto.OwnerId);
 }

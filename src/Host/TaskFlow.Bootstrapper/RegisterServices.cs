@@ -85,6 +85,7 @@ public static partial class RegisterServices
         services.AddScoped<IStartupTask, WarmupDependencies>();
     }
 
+    /// <summary>Registers support services dependencies in the service container.</summary>
     private static IServiceCollection AddSupportServices(this IServiceCollection services)
     {
         services.AddChannelBackgroundTaskQueueWithShutdownHandling();

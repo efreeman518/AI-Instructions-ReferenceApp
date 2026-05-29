@@ -1,5 +1,6 @@
 namespace TaskFlow.Uno.Core.Business.Models;
 
+/// <summary>Carries task item search data between Uno services and presentation models.</summary>
 public record TaskItemSearchPage
 {
     public IReadOnlyList<TaskItemModel> Items { get; init; } = [];
@@ -17,6 +18,7 @@ public record TaskItemSearchPage
     public bool ShowPager => TotalPages > 1;
     public IReadOnlyList<int> VisiblePageNumbers => [.. GetVisiblePageNumbers()];
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private IEnumerable<int> GetVisiblePageNumbers()
     {
         if (TotalPages <= 1)

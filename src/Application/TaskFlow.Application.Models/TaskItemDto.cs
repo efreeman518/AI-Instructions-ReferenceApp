@@ -3,6 +3,7 @@ using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Models;
 
+/// <summary>Carries task item data across API, application, and UI boundaries.</summary>
 public record TaskItemDto : EntityBaseDto, ITenantEntityDto
 {
     public Guid TenantId { get; set; }

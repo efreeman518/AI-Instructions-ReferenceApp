@@ -4,10 +4,12 @@ using TaskFlow.Uno.Core.Client;
 
 namespace TaskFlow.Uno.Core.Business.Services;
 
+/// <summary>Coordinates comment API application use cases with validation, tenant checks, repositories, and response shaping.</summary>
 public class CommentApiService(
     TaskFlowApiClient client,
     INotificationService notifications) : ICommentApiService
 {
+    /// <summary>Searches search and returns filtered results for callers.</summary>
     public async Task<IReadOnlyList<CommentModel>> SearchAsync(Guid? taskItemId = null,
         CancellationToken ct = default)
     {
@@ -21,12 +23,14 @@ public class CommentApiService(
         return response?.Items?.Select(MapToModel).ToList() ?? [];
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<CommentModel?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var dto = await client.Api.Comments[id].GetAsync(cancellationToken: ct);
         return dto is null ? null : MapToModel(dto);
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public async Task<CommentModel> CreateAsync(CommentModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -36,6 +40,7 @@ public class CommentApiService(
         return created;
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     public async Task<CommentModel> UpdateAsync(CommentModel model, CancellationToken ct = default)
     {
         var dto = MapToDto(model);
@@ -45,12 +50,14 @@ public class CommentApiService(
         return updated;
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await client.Api.Comments[id].DeleteAsync(cancellationToken: ct);
         await notifications.ShowSuccess("Comment deleted.", ct: ct);
     }
 
+    /// <summary>Maps to model into the target contract used by callers.</summary>
     private static CommentModel MapToModel(CommentDto dto) => new()
     {
         Id = dto.Id, Body = dto.Body ?? string.Empty, TaskItemId = dto.TaskItemId ?? Guid.Empty,
@@ -62,6 +69,7 @@ public class CommentApiService(
         }).ToList()
     };
 
+    /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static CommentDto MapToDto(CommentModel model) => new()
     {
         Id = model.Id, Body = model.Body, TaskItemId = model.TaskItemId

@@ -14,6 +14,7 @@ namespace Test.Unit.Mappers;
 [TestClass]
 public class ChecklistItemMapperTests
 {
+    /// <summary>Verifies that given valid entity, when mapped to DTO, then all properties mapped.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidEntity_When_MappedToDto_Then_AllPropertiesMapped()
@@ -30,6 +31,7 @@ public class ChecklistItemMapperTests
         Assert.AreEqual(entity.TaskItemId, dto.TaskItemId);
     }
 
+    /// <summary>Verifies that given valid DTO, when mapped to entity, then returns success domain result.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidDto_When_MappedToEntity_Then_ReturnsSuccessDomainResult()
@@ -44,6 +46,7 @@ public class ChecklistItemMapperTests
         Assert.AreEqual(1, result.Value.SortOrder);
     }
 
+    /// <summary>Verifies that given invalid DTO, when mapped to entity, then returns failure.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_InvalidDto_When_MappedToEntity_Then_ReturnsFailure()

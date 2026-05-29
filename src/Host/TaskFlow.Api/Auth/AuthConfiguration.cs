@@ -52,6 +52,7 @@ public static class AuthConfiguration
         return services;
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static string GetRequiredValue(IConfigurationSection section, string key) =>
         section[key] is { Length: > 0 } value
             ? value

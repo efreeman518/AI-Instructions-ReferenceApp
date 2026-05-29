@@ -4,8 +4,10 @@ using TaskFlow.Domain.Shared.Constants;
 
 namespace TaskFlow.Application.Services.Rules;
 
+/// <summary>Provides attachment structure validator behavior for the Application Rules layer.</summary>
 internal static class AttachmentStructureValidator
 {
+    /// <summary>Validates validate create rules and returns failures before work continues.</summary>
     public static Result<AttachmentDto> ValidateCreate(AttachmentDto dto)
     {
         var common = StructureValidators.ValidateCreate(dto);
@@ -23,6 +25,7 @@ internal static class AttachmentStructureValidator
         return errors.Count > 0 ? Result<AttachmentDto>.Failure(errors) : Result<AttachmentDto>.Success(dto);
     }
 
+    /// <summary>Validates validate update rules and returns failures before work continues.</summary>
     public static Result<AttachmentDto> ValidateUpdate(AttachmentDto dto)
     {
         var common = StructureValidators.ValidateUpdate(dto);

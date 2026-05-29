@@ -9,10 +9,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints.Cqrs;
 
+/// <summary>Maps comment CQRS HTTP routes to CQRS handlers and API contract metadata.</summary>
 public static class CommentCqrsEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers comment CQRS routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapCommentCqrsEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -47,6 +49,7 @@ public static class CommentCqrsEndpoints
         return group;
     }
 
+    /// <summary>Handles search requests and returns a paged application response.</summary>
     private static async Task<IResult> Search(
         [FromServices] IRequestHandler<SearchCommentsQuery, PagedResponse<CommentDto>> handler,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SearchRequest<CommentSearchFilter>? request,
@@ -56,6 +59,7 @@ public static class CommentCqrsEndpoints
         return TypedResults.Ok(items);
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] IRequestHandler<GetCommentByIdQuery, Result<DefaultResponse<CommentDto>>> handler,
         Guid id,
@@ -69,6 +73,7 @@ public static class CommentCqrsEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] IRequestHandler<CreateCommentCommand, Result<DefaultResponse<CommentDto>>> handler,
@@ -83,6 +88,7 @@ public static class CommentCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     private static async Task<IResult> Update(
         HttpContext httpContext,
         [FromServices] IRequestHandler<UpdateCommentCommand, Result<DefaultResponse<CommentDto>>> handler,
@@ -103,6 +109,7 @@ public static class CommentCqrsEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] IRequestHandler<DeleteCommentCommand, Result> handler,

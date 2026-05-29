@@ -5,6 +5,7 @@ using TaskFlow.Uno.Core.Business.Services;
 
 namespace TaskFlow.Uno.Presentation;
 
+/// <summary>Drives category tree state, navigation, and commands for the Uno presentation layer.</summary>
 public partial record CategoryTreeModel(
     INavigator Navigator,
     ICategoryApiService CategoryService,
@@ -30,6 +31,7 @@ public partial record CategoryTreeModel(
     public IState<string> NewCategoryDescription => State<string>.Value(this, () => string.Empty);
     public IState<Guid?> SelectedParentId => State<Guid?>.Value(this, () => null);
 
+    /// <summary>Provides the save category operation for category tree model.</summary>
     public async ValueTask SaveCategory(CancellationToken ct)
     {
         var name = await NewCategoryName;
@@ -61,6 +63,7 @@ public partial record CategoryTreeModel(
         await CategoriesVersion.UpdateAsync(version => version + 1, ct);
     }
 
+    /// <summary>Provides the start edit operation for category tree model.</summary>
     public async ValueTask StartEdit(CategoryModel category, CancellationToken ct)
     {
         _editingCategory = category;
@@ -71,8 +74,10 @@ public partial record CategoryTreeModel(
         await IsCreating.UpdateAsync(_ => false, ct);
     }
 
+    /// <summary>Provides the cancel edit operation for category tree model.</summary>
     public async ValueTask CancelEdit(CancellationToken ct) => await ResetEditor(ct);
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async ValueTask DeleteCategory(CategoryModel category, CancellationToken ct)
     {
         if (category.Id is null) return;
@@ -80,6 +85,7 @@ public partial record CategoryTreeModel(
         await CategoriesVersion.UpdateAsync(version => version + 1, ct);
     }
 
+    /// <summary>Provides the reset editor operation for category tree model.</summary>
     private async ValueTask ResetEditor(CancellationToken ct)
     {
         _editingCategory = null;

@@ -6,10 +6,12 @@ using TaskFlow.Application.Models;
 
 namespace TaskFlow.Api.Endpoints;
 
+/// <summary>Maps task item tag HTTP routes to the selected application implementation and API contract metadata.</summary>
 public static class TaskItemTagEndpoints
 {
     private static bool _problemDetailsIncludeStackTrace;
 
+    /// <summary>Registers task item tag routes, handlers, and response metadata.</summary>
     public static IEndpointRouteBuilder MapTaskItemTagEndpoints(this IEndpointRouteBuilder group, bool problemDetailsIncludeStackTrace)
     {
         _problemDetailsIncludeStackTrace = problemDetailsIncludeStackTrace;
@@ -34,6 +36,7 @@ public static class TaskItemTagEndpoints
         return group;
     }
 
+    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     private static async Task<IResult> GetById(
         [FromServices] ITaskItemTagService service, Guid id, CancellationToken ct)
     {
@@ -45,6 +48,7 @@ public static class TaskItemTagEndpoints
             () => TypedResults.NotFound(id));
     }
 
+    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     private static async Task<IResult> Create(
         HttpContext httpContext,
         [FromServices] ITaskItemTagService service,
@@ -59,6 +63,7 @@ public static class TaskItemTagEndpoints
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
+    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     private static async Task<IResult> Delete(
         HttpContext httpContext,
         [FromServices] ITaskItemTagService service, Guid id, CancellationToken ct)

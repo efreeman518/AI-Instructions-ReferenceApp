@@ -2,6 +2,7 @@ import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from '
 import { RefreshCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+/** Renders the loading state component with consistent TaskFlow UI state. */
 export function LoadingState({ label = 'Loading' }: { label?: string }) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', py: 4 }}>
@@ -11,6 +12,7 @@ export function LoadingState({ label = 'Loading' }: { label?: string }) {
   )
 }
 
+/** Renders the empty state component with consistent TaskFlow UI state. */
 export function EmptyState({
   title,
   detail,
@@ -45,6 +47,7 @@ export function EmptyState({
   )
 }
 
+/** Renders the error state component with consistent TaskFlow UI state. */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const message = error instanceof Error ? error.message : 'Request failed.'
   return (

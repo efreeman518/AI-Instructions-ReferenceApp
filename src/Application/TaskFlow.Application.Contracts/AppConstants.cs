@@ -1,5 +1,6 @@
 namespace TaskFlow.Application.Contracts;
 
+/// <summary>Provides app constants behavior for the Application layer.</summary>
 public static class AppConstants
 {
     public const string DEFAULT_TIMEZONE = "America/New_York";

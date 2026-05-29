@@ -3,11 +3,13 @@ using TaskFlow.Uno.Core.Business.Notifications;
 
 namespace TaskFlow.Uno.Core.Client.Http;
 
+/// <summary>Handles problem details delegating work by coordinating validation, tenant boundaries, persistence, and response mapping.</summary>
 public sealed class ProblemDetailsDelegatingHandler(INotificationService notifications) : DelegatingHandler
 {
     private const string ProblemContentType = "application/problem+json";
     private const int ClientCancelledStatus = 499;
 
+    /// <summary>Processes HTTP requests through problem details delegating handler and applies its cross-cutting policy.</summary>
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {

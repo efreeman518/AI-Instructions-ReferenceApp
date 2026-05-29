@@ -2,6 +2,7 @@ using TaskFlow.Application.Models.Shared;
 
 namespace TaskFlow.Application.Models;
 
+/// <summary>Carries category data across API, application, and UI boundaries.</summary>
 public record CategoryDto : EntityBaseDto, ITenantEntityDto
 {
     public Guid TenantId { get; set; }

@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { expectNoPageErrors, waitForReactApp } from "../../utils/reactTestUtils";
 
+/** Verifies the Playwright scenario for TaskFlow React - shell behavior. */
 test.describe("TaskFlow React - shell behavior", () => {
+  /** Verifies the Playwright scenario for persists theme choice and exposes primary navigation. */
   test("persists theme choice and exposes primary navigation", async ({ page }) => {
     const pageErrors: Error[] = [];
     page.on("pageerror", (error) => pageErrors.push(error));
