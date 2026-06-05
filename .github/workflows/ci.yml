@@ -12,7 +12,11 @@ on:
       includeIntegration:
         type: boolean
         default: false
-        description: "Run integration tests (requires Docker for TestContainers)"
+        description: "Run Test.Integration component tests (standalone Testcontainers SQL + Azurite; requires Docker)"
+      includeAspireMesh:
+        type: boolean
+        default: false
+        description: "Run Test.Aspire distributed-app mesh tests (full AppHost graph; requires Docker)"
 
 jobs:
   build-and-test:
@@ -65,13 +69,22 @@ jobs:
           --logger "trx;LogFileName=endpoint-results.trx"
           --results-directory ./TestResults
 
-      - name: Integration Tests (manual)
+      - name: Integration Tests (manual, component)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true }}
         timeout-minutes: 20
         run: >
           dotnet test src/Test/Test.Integration/Test.Integration.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=integration-results.trx"
+          --results-directory ./TestResults
+
+      - name: Aspire Mesh Tests (manual, full graph)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeAspireMesh == true }}
+        timeout-minutes: 30
+        run: >
+          dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=aspire-results.trx"
           --results-directory ./TestResults
 
       - name: Upload Test Results

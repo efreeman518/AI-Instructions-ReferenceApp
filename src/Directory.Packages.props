@@ -29,6 +29,7 @@
     <PackageVersion Include="EF.AzureOpenAI" Version="1.0.58" />
     <PackageVersion Include="EF.MSGraph" Version="1.0.58" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.Azurite" Version="4.12.0" />
   </ItemGroup>
   <ItemGroup Label="EF.Packages.Enterprise (Private Feed)">
     <PackageVersion Include="EF.FilterBuilder" Version="1.0.104" />

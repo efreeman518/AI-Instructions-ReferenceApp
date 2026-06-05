@@ -1,0 +1,58 @@
+using EF.IntegrationTesting.Testcontainers;
+using Microsoft.EntityFrameworkCore;
+using TaskFlow.Infrastructure.Data;
+
+namespace Test.Integration.Infrastructure;
+
+/// <summary>
+/// Standalone SQL Server Testcontainer for the component tier. Wraps the shared EF.IntegrationTesting
+/// <c>MsSqlContainerFixture</c> so SQL-only repository/migration/projection tests run against a real
+/// database without booting the Aspire AppHost graph. Started once by <see cref="IntegrationTestSetup"/>;
+/// <see cref="StartupError"/> is captured (not thrown) so a container failure marks only the dependent
+/// tests Inconclusive instead of aborting the whole assembly.
+/// </summary>
+internal static class SqlContainerFixture
+{
+    private static readonly MsSqlContainerFixture Sql = new();
+
+    /// <summary>Startup failure captured by <see cref="StartAsync"/>; null when the container started cleanly.</summary>
+    internal static Exception? StartupError { get; private set; }
+
+    /// <summary>Connection string for the running SQL container. Only valid once startup succeeded.</summary>
+    internal static string ConnectionString => Sql.ConnectionString;
+
+    /// <summary>Starts the SQL container, capturing any failure for the Inconclusive-on-failure pattern.</summary>
+    internal static async Task StartAsync()
+    {
+        try
+        {
+            await Sql.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            StartupError = ex;
+        }
+    }
+
+    /// <summary>Disposes the SQL container.</summary>
+    internal static async Task StopAsync() => await Sql.DisposeAsync();
+
+    /// <summary>Builds a trxn context against the standalone SQL container.</summary>
+    internal static TaskFlowDbContextTrxn CreateTrxnContext(string? connString = null) =>
+        new(BuildSqlServerOptions<TaskFlowDbContextTrxn>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
+
+    /// <summary>Builds a query context against the standalone SQL container.</summary>
+    internal static TaskFlowDbContextQuery CreateQueryContext(string? connString = null) =>
+        new(BuildSqlServerOptions<TaskFlowDbContextQuery>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
+
+    /// <summary>Builds SQL server options used by focused test cases.</summary>
+    private static DbContextOptions<TContext> BuildSqlServerOptions<TContext>(string connectionString)
+        where TContext : DbContext =>
+        new DbContextOptionsBuilder<TContext>()
+            .UseSqlServer(connectionString, sql =>
+            {
+                sql.UseLatestCompatibilityLevel();
+                sql.EnableRetryOnFailure();
+            })
+            .Options;
+}

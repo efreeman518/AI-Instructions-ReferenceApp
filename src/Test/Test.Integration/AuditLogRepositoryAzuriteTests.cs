@@ -1,27 +1,32 @@
-using Aspire.Hosting.Testing;
 using Azure.Data.Tables;
 using EF.Common.Contracts;
-using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TaskFlow.Infrastructure.Storage;
+using Test.Integration.Infrastructure;
 
 namespace Test.Integration;
 
 /// <summary>
 /// Validates <c>AuditLogRepository.AppendAsync</c> against real Azurite Table Storage: partition key,
 /// row key shape (<c>..._{Id:N}</c>), and round-trip of audit metadata.
-/// Aspire tier by reuse: only Azurite is exercised - no API, no Function - but the test piggybacks on
-/// the shared <c>AspireTestHost</c> <c>TableStorage1</c> resource instead of starting its own Azurite
-/// container. A dedicated Testcontainers Azurite fixture would also work; reusing Aspire avoids a second
-/// container per test run.
+/// Component tier: exercises only Azurite via a standalone <c>AzuriteContainerFixture</c> (started by
+/// <c>IntegrationTestSetup</c>) - no API, no Function, no Aspire graph.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
 [DoNotParallelize]
 public class AuditLogRepositoryAzuriteTests
 {
+    /// <summary>Marks the test Inconclusive when the Azurite container failed to start (assembly-init safety).</summary>
+    [TestInitialize]
+    public void TestSetup()
+    {
+        if (AzuriteContainerFixture.StartupError != null)
+            Assert.Inconclusive($"Azurite container startup failed: {AzuriteContainerFixture.StartupError.Message}");
+    }
+
     /// <summary>Verifies that given audit entry, when append to azurite, then table entity persisted with expected keys.</summary>
     [TestMethod]
     [Timeout(300000)]
@@ -29,12 +34,7 @@ public class AuditLogRepositoryAzuriteTests
     {
         var ct = CancellationToken.None;
 
-        await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
-
-        var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
-            "TableStorage1",
-            AspireTestHost.DefaultTimeout,
-            ct);
+        var connectionString = AzuriteContainerFixture.ConnectionString;
         Assert.IsFalse(string.IsNullOrWhiteSpace(connectionString));
 
         var tableName = $"audit{Guid.NewGuid():N}"[..31];

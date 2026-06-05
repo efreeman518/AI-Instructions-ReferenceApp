@@ -8,7 +8,7 @@ using EF.IntegrationTesting.Aspire;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
 
-namespace Test.Integration;
+namespace Test.Aspire;
 
 /// <summary>
 /// End-to-end audit pipeline test for the Functions host: POST /api/v1/categories on the
@@ -24,6 +24,10 @@ namespace Test.Integration;
 public class FunctionAuditPipelineTests
 {
     private static readonly Guid FunctionFallbackTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    /// <summary>Boots the Aspire graph lazily on first mesh-test class to run; teardown is owned by <c>AspireMeshLifecycle</c>.</summary>
+    [ClassInitialize]
+    public static Task ClassInit(TestContext context) => AspireTestHost.EnsureStartedAsync(context);
 
     /// <summary>Verifies that given function category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]

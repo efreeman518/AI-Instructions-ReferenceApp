@@ -9,6 +9,7 @@ using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories;
+using Test.Integration.Infrastructure;
 
 namespace Test.Integration;
 
@@ -16,10 +17,10 @@ namespace Test.Integration;
 /// Validates the domain-event projection pipeline: a TaskItem persisted to SQL is read by
 /// <c>TaskViewProjectionService</c> through the query-side repositories and emitted as a TaskView
 /// document with correct counts (comments, attachments, checklist totals/completed).
-/// Aspire tier by reuse: only SQL is exercised here (the Service Bus -> Function -> projection hop is
-/// covered separately in <c>FunctionAuditPipelineTests</c>), but the test piggybacks on the shared
-/// <c>AspireTestHost</c> SQL container rather than starting its own. The TaskView store is in-memory
-/// (<c>InMemoryTaskViewRepository</c>) - real Cosmos behavior is out of scope for this test.
+/// Component tier: only SQL is exercised here (the Service Bus -> Function -> projection hop is covered
+/// by the mesh tier in <c>Test.Aspire</c>); contexts are built against a standalone SQL Testcontainer via
+/// <c>SqlContainerFixture</c> (started by <c>IntegrationTestSetup</c>) - no Aspire graph. The TaskView
+/// store is in-memory (<c>InMemoryTaskViewRepository</c>) - real Cosmos behavior is out of scope.
 /// </summary>
 [TestClass]
 public class DomainEventPipelineTests
@@ -30,8 +31,18 @@ public class DomainEventPipelineTests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        await using var db = DbContextFactory.CreateTrxnContext();
+        if (SqlContainerFixture.StartupError != null)
+            return; // tests mark themselves Inconclusive in TestSetup
+        await using var db = SqlContainerFixture.CreateTrxnContext();
         await db.Database.MigrateAsync();
+    }
+
+    /// <summary>Marks the test Inconclusive when the SQL container failed to start (assembly-init safety).</summary>
+    [TestInitialize]
+    public void TestSetup()
+    {
+        if (SqlContainerFixture.StartupError != null)
+            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
     }
 
     /// <summary>Verifies that given task item created, when projection runs, then task view produced.</summary>
@@ -41,8 +52,8 @@ public class DomainEventPipelineTests
     public async Task Given_TaskItemCreated_When_ProjectionRuns_Then_TaskViewProduced()
     {
         // Arrange - real SQL via TestContainers
-        var connStr = AspireTestHost.ConnectionString;
-        var ctx = DbContextFactory.CreateTrxnContext(connStr);
+        var connStr = SqlContainerFixture.ConnectionString;
+        var ctx = SqlContainerFixture.CreateTrxnContext(connStr);
 
         var category = Category.Create(TenantId, "Work").Value!;
         ctx.Categories.Add(category);
@@ -56,7 +67,7 @@ public class DomainEventPipelineTests
         await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
         // Create a query context for the repo
-        var queryCtx = DbContextFactory.CreateQueryContext(connStr);
+        var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
         var taskItemRepo = new TaskItemRepositoryQuery(queryCtx);
         var attachmentRepo = new AttachmentRepositoryQuery(queryCtx);
 
@@ -88,8 +99,8 @@ public class DomainEventPipelineTests
     [Timeout(120000)]
     public async Task Given_TaskItemWithChildren_When_ProjectionRuns_Then_CountsIncluded()
     {
-        var connStr = AspireTestHost.ConnectionString;
-        var ctx = DbContextFactory.CreateTrxnContext(connStr);
+        var connStr = SqlContainerFixture.ConnectionString;
+        var ctx = SqlContainerFixture.CreateTrxnContext(connStr);
 
         var taskResult = TaskItem.Create(TenantId, "Task With Children");
         var task = taskResult.Value!;
@@ -111,7 +122,7 @@ public class DomainEventPipelineTests
 
         await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
-        var queryCtx = DbContextFactory.CreateQueryContext(connStr);
+        var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
         var taskViewRepo = new InMemoryTaskViewRepository();
         var projectionService = new TaskViewProjectionService(
             new TaskItemRepositoryQuery(queryCtx),
