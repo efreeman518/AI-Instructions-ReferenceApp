@@ -21,7 +21,7 @@ namespace Test.Unit.Services;
 [TestClass]
 public class ChecklistItemServiceTests
 {
-    private readonly Mock<IChecklistItemRepositoryTrxn> _repoTrxnMock = new();
+    private readonly Mock<IRepositoryTrxn<ChecklistItem>> _repoTrxnMock = new();
     private readonly Mock<IChecklistItemRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
@@ -108,7 +108,7 @@ public class ChecklistItemServiceTests
     public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
     {
         var entity = new ChecklistItemBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetChecklistItemAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var dto = new ChecklistItemDto { Id = entity.Id, Title = "Updated Step", TaskItemId = entity.TaskItemId, IsCompleted = true };
@@ -124,7 +124,7 @@ public class ChecklistItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetChecklistItemAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
 
         var dto = new ChecklistItemDto { Id = Guid.NewGuid(), Title = "Updated" };
         var result = await CreateService().UpdateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto });
@@ -139,7 +139,7 @@ public class ChecklistItemServiceTests
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
     {
         var entity = new ChecklistItemBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetChecklistItemAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var result = await CreateService().DeleteAsync(entity.Id);
@@ -153,7 +153,7 @@ public class ChecklistItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetChecklistItemAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

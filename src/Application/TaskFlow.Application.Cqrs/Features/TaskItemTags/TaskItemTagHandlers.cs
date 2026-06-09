@@ -15,14 +15,14 @@ namespace TaskFlow.Application.Cqrs.Features.TaskItemTags;
 internal sealed class GetTaskItemTagByIdHandler(
     ILogger<GetTaskItemTagByIdHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    ITaskItemTagRepositoryQuery repoQuery,
+    IRepositoryQuery<TaskItemTag> repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<GetTaskItemTagByIdQuery, Result<DefaultResponse<TaskItemTagDto>>>
 {
     /// <summary>Handles get task item tag by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> HandleAsync(GetTaskItemTagByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetTaskItemTagAsync(query.Id, ct);
+        var entity = await repoQuery.GetAsync(query.Id, ct);
         if (entity is null) return Result<DefaultResponse<TaskItemTagDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
@@ -38,7 +38,7 @@ internal sealed class GetTaskItemTagByIdHandler(
 internal sealed class CreateTaskItemTagHandler(
     ILogger<CreateTaskItemTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    ITaskItemTagRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<TaskItemTag> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateTaskItemTagCommand, Result<DefaultResponse<TaskItemTagDto>>>
 {
@@ -73,14 +73,14 @@ internal sealed class CreateTaskItemTagHandler(
 internal sealed class DeleteTaskItemTagHandler(
     ILogger<DeleteTaskItemTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    ITaskItemTagRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<TaskItemTag> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<DeleteTaskItemTagCommand, Result>
 {
     /// <summary>Handles delete task item tag requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTaskItemTagCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemTagAsync(command.Id, ct);
+        var entity = await repoTrxn.GetAsync(command.Id, ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

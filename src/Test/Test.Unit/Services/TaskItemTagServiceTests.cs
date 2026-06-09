@@ -21,8 +21,8 @@ namespace Test.Unit.Services;
 [TestClass]
 public class TaskItemTagServiceTests
 {
-    private readonly Mock<ITaskItemTagRepositoryTrxn> _repoTrxnMock = new();
-    private readonly Mock<ITaskItemTagRepositoryQuery> _repoQueryMock = new();
+    private readonly Mock<IRepositoryTrxn<TaskItemTag>> _repoTrxnMock = new();
+    private readonly Mock<IRepositoryQuery<TaskItemTag>> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
 
@@ -77,7 +77,7 @@ public class TaskItemTagServiceTests
     public async Task Given_ExistingEntity_When_GetAsync_Then_ReturnsMappedDto()
     {
         var entity = new TaskItemTagBuilder().Build();
-        _repoQueryMock.Setup(r => r.GetTaskItemTagAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoQueryMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
         var result = await CreateService().GetAsync(entity.Id);
 
@@ -91,7 +91,7 @@ public class TaskItemTagServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetTaskItemTagAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItemTag?)null);
+        _repoQueryMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItemTag?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
@@ -104,7 +104,7 @@ public class TaskItemTagServiceTests
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
     {
         var entity = new TaskItemTagBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetTaskItemTagAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var result = await CreateService().DeleteAsync(entity.Id);
@@ -118,7 +118,7 @@ public class TaskItemTagServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetTaskItemTagAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItemTag?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItemTag?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

@@ -15,7 +15,7 @@ namespace TaskFlow.Application.Services;
 internal class TagService(
     ILogger<TagService> logger,
     IRequestContext<string, Guid?> requestContext,
-    ITagRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<Tag> repoTrxn,
     ITagRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache) : ITagService
@@ -106,7 +106,7 @@ internal class TagService(
         var validation = TagStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetTagAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
         if (entity == null)
             return Result<DefaultResponse<TagDto>>.Success(new DefaultResponse<TagDto> { Item = null });
 
@@ -138,7 +138,7 @@ internal class TagService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTagAsync(id, ct);
+        var entity = await repoTrxn.GetAsync(id, ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

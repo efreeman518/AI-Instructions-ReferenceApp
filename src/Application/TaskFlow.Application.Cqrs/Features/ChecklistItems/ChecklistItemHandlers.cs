@@ -54,7 +54,7 @@ internal sealed class GetChecklistItemByIdHandler(
 internal sealed class CreateChecklistItemHandler(
     ILogger<CreateChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IChecklistItemRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<ChecklistItem> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>>
 {
@@ -89,7 +89,7 @@ internal sealed class CreateChecklistItemHandler(
 internal sealed class UpdateChecklistItemHandler(
     ILogger<UpdateChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IChecklistItemRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<ChecklistItem> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateChecklistItemCommand, Result<DefaultResponse<ChecklistItemDto>>>
 {
@@ -102,7 +102,7 @@ internal sealed class UpdateChecklistItemHandler(
         var validation = ChecklistItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetChecklistItemAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
         if (entity is null)
         {
             return HandlerHelpers.NotFoundResponse<ChecklistItemDto>();
@@ -131,7 +131,7 @@ internal sealed class UpdateChecklistItemHandler(
 internal sealed class DeleteChecklistItemHandler(
     ILogger<DeleteChecklistItemHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IChecklistItemRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<ChecklistItem> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteChecklistItemCommand, Result>
@@ -139,7 +139,7 @@ internal sealed class DeleteChecklistItemHandler(
     /// <summary>Handles delete checklist item requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteChecklistItemCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetChecklistItemAsync(command.Id, ct);
+        var entity = await repoTrxn.GetAsync(command.Id, ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

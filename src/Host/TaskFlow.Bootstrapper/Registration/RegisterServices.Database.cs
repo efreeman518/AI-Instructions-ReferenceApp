@@ -1,4 +1,5 @@
 using EF.Data;
+using EF.Data.Contracts;
 using EF.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -56,20 +57,26 @@ public static partial class RegisterServices
             ConfigureFlowEngineSqlOptions(options, dbConnectionStringTrxn, maxRetryCount, maxRetryDelaySeconds);
         });
 
+        // Generic repository pair (open-generic) - serves every entity with no bespoke read/write
+        // logic: CRUD-only / append-only / join entities resolve IRepositoryTrxn<T> / IRepositoryQuery<T>
+        // with no per-entity class (TaskItemTag both sides; the write side of Tag, Comment,
+        // ChecklistItem). Backed by the EF.Data package via the closed-over-context subclasses.
+        services.AddScoped(typeof(IRepositoryTrxn<>), typeof(TaskFlowRepositoryTrxn<>));
+        services.AddScoped(typeof(IRepositoryQuery<>), typeof(TaskFlowRepositoryQuery<>));
+
+        // Bespoke repositories - entity-specific read/write logic the generic pair does not cover
+        // (multi-include loads, child-collection sync, polymorphic/hierarchy queries).
         services.AddScoped<ICategoryRepositoryTrxn, CategoryRepositoryTrxn>();
         services.AddScoped<ICategoryRepositoryQuery, CategoryRepositoryQuery>();
-        services.AddScoped<ITagRepositoryTrxn, TagRepositoryTrxn>();
-        services.AddScoped<ITagRepositoryQuery, TagRepositoryQuery>();
         services.AddScoped<ITaskItemRepositoryTrxn, TaskItemRepositoryTrxn>();
         services.AddScoped<ITaskItemRepositoryQuery, TaskItemRepositoryQuery>();
-        services.AddScoped<ICommentRepositoryTrxn, CommentRepositoryTrxn>();
-        services.AddScoped<ICommentRepositoryQuery, CommentRepositoryQuery>();
-        services.AddScoped<IChecklistItemRepositoryTrxn, ChecklistItemRepositoryTrxn>();
-        services.AddScoped<IChecklistItemRepositoryQuery, ChecklistItemRepositoryQuery>();
         services.AddScoped<IAttachmentRepositoryTrxn, AttachmentRepositoryTrxn>();
         services.AddScoped<IAttachmentRepositoryQuery, AttachmentRepositoryQuery>();
-        services.AddScoped<ITaskItemTagRepositoryTrxn, TaskItemTagRepositoryTrxn>();
-        services.AddScoped<ITaskItemTagRepositoryQuery, TaskItemTagRepositoryQuery>();
+
+        // Read side only - paged Search projections; write side folded into the generic pair above.
+        services.AddScoped<ITagRepositoryQuery, TagRepositoryQuery>();
+        services.AddScoped<ICommentRepositoryQuery, CommentRepositoryQuery>();
+        services.AddScoped<IChecklistItemRepositoryQuery, ChecklistItemRepositoryQuery>();
     }
 
     /// <summary>

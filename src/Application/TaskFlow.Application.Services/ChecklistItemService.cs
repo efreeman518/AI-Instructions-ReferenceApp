@@ -15,7 +15,7 @@ namespace TaskFlow.Application.Services;
 internal class ChecklistItemService(
     ILogger<ChecklistItemService> logger,
     IRequestContext<string, Guid?> requestContext,
-    IChecklistItemRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<ChecklistItem> repoTrxn,
     IChecklistItemRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache) : IChecklistItemService
@@ -106,7 +106,7 @@ internal class ChecklistItemService(
         var validation = ChecklistItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetChecklistItemAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
         if (entity == null)
             return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
 
@@ -138,7 +138,7 @@ internal class ChecklistItemService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetChecklistItemAsync(id, ct);
+        var entity = await repoTrxn.GetAsync(id, ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

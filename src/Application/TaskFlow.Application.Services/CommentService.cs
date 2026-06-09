@@ -15,7 +15,7 @@ namespace TaskFlow.Application.Services;
 internal class CommentService(
     ILogger<CommentService> logger,
     IRequestContext<string, Guid?> requestContext,
-    ICommentRepositoryTrxn repoTrxn,
+    IRepositoryTrxn<Comment> repoTrxn,
     ICommentRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache) : ICommentService
@@ -106,7 +106,7 @@ internal class CommentService(
         var validation = CommentStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetCommentAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
         if (entity == null)
             return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
 
@@ -138,7 +138,7 @@ internal class CommentService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetCommentAsync(id, ct);
+        var entity = await repoTrxn.GetAsync(id, ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

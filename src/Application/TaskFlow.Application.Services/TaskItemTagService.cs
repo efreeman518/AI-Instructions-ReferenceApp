@@ -15,8 +15,8 @@ namespace TaskFlow.Application.Services;
 internal class TaskItemTagService(
     ILogger<TaskItemTagService> logger,
     IRequestContext<string, Guid?> requestContext,
-    ITaskItemTagRepositoryTrxn repoTrxn,
-    ITaskItemTagRepositoryQuery repoQuery,
+    IRepositoryTrxn<TaskItemTag> repoTrxn,
+    IRepositoryQuery<TaskItemTag> repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator) : ITaskItemTagService
 {
     private Guid? RequestTenantId => requestContext.TenantId;
@@ -34,7 +34,7 @@ internal class TaskItemTagService(
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetTaskItemTagAsync(id, ct);
+        var entity = await repoQuery.GetAsync(id, ct);
         if (entity == null) return Result<DefaultResponse<TaskItemTagDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
@@ -82,7 +82,7 @@ internal class TaskItemTagService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemTagAsync(id, ct);
+        var entity = await repoTrxn.GetAsync(id, ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

@@ -21,7 +21,7 @@ namespace Test.Unit.Services;
 [TestClass]
 public class CommentServiceTests
 {
-    private readonly Mock<ICommentRepositoryTrxn> _repoTrxnMock = new();
+    private readonly Mock<IRepositoryTrxn<Comment>> _repoTrxnMock = new();
     private readonly Mock<ICommentRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
@@ -108,7 +108,7 @@ public class CommentServiceTests
     public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
     {
         var entity = new CommentBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetCommentAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var dto = new CommentDto { Id = entity.Id, Body = "Updated body", TaskItemId = entity.TaskItemId };
@@ -123,7 +123,7 @@ public class CommentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetCommentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
 
         var dto = new CommentDto { Id = Guid.NewGuid(), Body = "Updated" };
         var result = await CreateService().UpdateAsync(new DefaultRequest<CommentDto> { Item = dto });
@@ -138,7 +138,7 @@ public class CommentServiceTests
     public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
     {
         var entity = new CommentBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetCommentAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var result = await CreateService().DeleteAsync(entity.Id);
@@ -152,7 +152,7 @@ public class CommentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetCommentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 
