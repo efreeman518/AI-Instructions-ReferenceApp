@@ -129,7 +129,6 @@ public static class WebApplicationBuilderExtensions
             api.MapCommentCqrsEndpoints(ProblemDetailsIncludeStackTrace);
             api.MapChecklistItemCqrsEndpoints(ProblemDetailsIncludeStackTrace);
             api.MapAttachmentCqrsEndpoints(ProblemDetailsIncludeStackTrace);
-            api.MapTaskItemTagCqrsEndpoints(ProblemDetailsIncludeStackTrace);
         }
         else
         {
@@ -139,7 +138,6 @@ public static class WebApplicationBuilderExtensions
             api.MapCommentEndpoints(ProblemDetailsIncludeStackTrace);
             api.MapChecklistItemEndpoints(ProblemDetailsIncludeStackTrace);
             api.MapAttachmentEndpoints(ProblemDetailsIncludeStackTrace);
-            api.MapTaskItemTagEndpoints(ProblemDetailsIncludeStackTrace);
         }
 
         api.MapSearchEndpoints();

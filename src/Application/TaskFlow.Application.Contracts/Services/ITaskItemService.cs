@@ -16,4 +16,28 @@ public interface ITaskItemService
     Task<Result<DefaultResponse<TaskItemDto>>> UpdateAsync(DefaultRequest<TaskItemDto> request, CancellationToken ct = default);
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
+
+    // Nested child operations. Comment, ChecklistItem, and the Tag association are internal to the
+    // TaskItem aggregate, so they are mutated only through the root (GR-15) - there is no
+    // ICommentService.CreateAsync etc. The service loads the aggregate, calls its domain methods,
+    // and saves the whole graph in one transaction.
+
+    /// <summary>Adds a comment to a TaskItem through the aggregate root.</summary>
+    Task<Result<DefaultResponse<CommentDto>>> AddCommentAsync(Guid taskItemId, CommentDto comment, CancellationToken ct = default);
+    /// <summary>Updates a comment owned by a TaskItem through the aggregate root.</summary>
+    Task<Result<DefaultResponse<CommentDto>>> UpdateCommentAsync(Guid taskItemId, Guid commentId, CommentDto comment, CancellationToken ct = default);
+    /// <summary>Removes a comment from a TaskItem through the aggregate root.</summary>
+    Task<Result> RemoveCommentAsync(Guid taskItemId, Guid commentId, CancellationToken ct = default);
+
+    /// <summary>Adds a checklist item to a TaskItem through the aggregate root.</summary>
+    Task<Result<DefaultResponse<ChecklistItemDto>>> AddChecklistItemAsync(Guid taskItemId, ChecklistItemDto checklistItem, CancellationToken ct = default);
+    /// <summary>Updates a checklist item owned by a TaskItem through the aggregate root.</summary>
+    Task<Result<DefaultResponse<ChecklistItemDto>>> UpdateChecklistItemAsync(Guid taskItemId, Guid checklistItemId, ChecklistItemDto checklistItem, CancellationToken ct = default);
+    /// <summary>Removes a checklist item from a TaskItem through the aggregate root.</summary>
+    Task<Result> RemoveChecklistItemAsync(Guid taskItemId, Guid checklistItemId, CancellationToken ct = default);
+
+    /// <summary>Associates an existing Tag with a TaskItem through the aggregate root.</summary>
+    Task<Result<DefaultResponse<TaskItemTagDto>>> AssociateTagAsync(Guid taskItemId, Guid tagId, CancellationToken ct = default);
+    /// <summary>Removes a Tag association from a TaskItem through the aggregate root.</summary>
+    Task<Result> RemoveTagAsync(Guid taskItemId, Guid tagId, CancellationToken ct = default);
 }

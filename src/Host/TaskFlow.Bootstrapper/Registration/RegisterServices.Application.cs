@@ -44,7 +44,6 @@ public static partial class RegisterServices
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IChecklistItemService, ChecklistItemService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
-        services.AddScoped<ITaskItemTagService, TaskItemTagService>();
     }
 
     /// <summary>Registers message handlers dependencies in the service container.</summary>

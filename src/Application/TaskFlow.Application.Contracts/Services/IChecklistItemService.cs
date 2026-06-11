@@ -10,10 +10,4 @@ public interface IChecklistItemService
     Task<PagedResponse<ChecklistItemDto>> SearchAsync(SearchRequest<ChecklistItemSearchFilter> request, CancellationToken ct = default);
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     Task<Result<DefaultResponse<ChecklistItemDto>>> GetAsync(Guid id, CancellationToken ct = default);
-    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
-    Task<Result<DefaultResponse<ChecklistItemDto>>> CreateAsync(DefaultRequest<ChecklistItemDto> request, CancellationToken ct = default);
-    /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
-    Task<Result<DefaultResponse<ChecklistItemDto>>> UpdateAsync(DefaultRequest<ChecklistItemDto> request, CancellationToken ct = default);
-    /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
-    Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
 }

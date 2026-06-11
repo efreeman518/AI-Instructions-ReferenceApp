@@ -45,6 +45,53 @@ public static class TaskItemEndpoints
             .ProducesValidationProblem()
             .WithSummary("Delete a TaskItem");
 
+        // Nested child routes - Comment, ChecklistItem, and the Tag association are internal to the
+        // TaskItem aggregate and mutated only through the root (GR-15). No standalone child write routes.
+        g.MapPost("/{id:guid}/comments", AddComment)
+            .Produces<DefaultResponse<CommentDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Add a Comment to a TaskItem");
+
+        g.MapPut("/{id:guid}/comments/{commentId:guid}", UpdateComment)
+            .Produces<DefaultResponse<CommentDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update a Comment on a TaskItem");
+
+        g.MapDelete("/{id:guid}/comments/{commentId:guid}", RemoveComment)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Remove a Comment from a TaskItem");
+
+        g.MapPost("/{id:guid}/checklist-items", AddChecklistItem)
+            .Produces<DefaultResponse<ChecklistItemDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Add a ChecklistItem to a TaskItem");
+
+        g.MapPut("/{id:guid}/checklist-items/{checklistItemId:guid}", UpdateChecklistItem)
+            .Produces<DefaultResponse<ChecklistItemDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update a ChecklistItem on a TaskItem");
+
+        g.MapDelete("/{id:guid}/checklist-items/{checklistItemId:guid}", RemoveChecklistItem)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Remove a ChecklistItem from a TaskItem");
+
+        g.MapPost("/{id:guid}/tags/{tagId:guid}", AssociateTag)
+            .Produces<DefaultResponse<TaskItemTagDto>>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Associate a Tag with a TaskItem");
+
+        g.MapDelete("/{id:guid}/tags/{tagId:guid}", RemoveTag)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem()
+            .WithSummary("Remove a Tag association from a TaskItem");
+
         return group;
     }
 
@@ -118,5 +165,141 @@ public static class TaskItemEndpoints
                 ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
                     messages: errors, traceId: httpContext.TraceIdentifier,
                     includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Adds a comment to the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> AddComment(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        [FromBody] DefaultRequest<CommentDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.AddCommentAsync(id, request.Item, ct);
+        return result.Match(
+            response => response.Item is null
+                ? Results.NotFound(id)
+                : TypedResults.Created($"{httpContext.Request.Path}/{response.Item.Id}", response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Updates a comment owned by the TaskItem aggregate.</summary>
+    private static async Task<IResult> UpdateComment(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid commentId,
+        [FromBody] DefaultRequest<CommentDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.UpdateCommentAsync(id, commentId, request.Item, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(commentId) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Removes a comment from the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> RemoveComment(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid commentId,
+        CancellationToken ct)
+    {
+        var result = await service.RemoveCommentAsync(id, commentId, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Adds a checklist item to the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> AddChecklistItem(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        [FromBody] DefaultRequest<ChecklistItemDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.AddChecklistItemAsync(id, request.Item, ct);
+        return result.Match(
+            response => response.Item is null
+                ? Results.NotFound(id)
+                : TypedResults.Created($"{httpContext.Request.Path}/{response.Item.Id}", response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Updates a checklist item owned by the TaskItem aggregate.</summary>
+    private static async Task<IResult> UpdateChecklistItem(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid checklistItemId,
+        [FromBody] DefaultRequest<ChecklistItemDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.UpdateChecklistItemAsync(id, checklistItemId, request.Item, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(checklistItemId) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Removes a checklist item from the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> RemoveChecklistItem(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid checklistItemId,
+        CancellationToken ct)
+    {
+        var result = await service.RemoveChecklistItemAsync(id, checklistItemId, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Associates an existing Tag with the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> AssociateTag(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid tagId,
+        CancellationToken ct)
+    {
+        var result = await service.AssociateTagAsync(id, tagId, ct);
+        return result.Match(
+            response => response.Item is null
+                ? Results.NotFound(id)
+                : TypedResults.Created($"{httpContext.Request.Path}", response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Removes a Tag association from the TaskItem aggregate through the root.</summary>
+    private static async Task<IResult> RemoveTag(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        Guid tagId,
+        CancellationToken ct)
+    {
+        var result = await service.RemoveTagAsync(id, tagId, ct);
+        return result.Match<IResult>(
+            () => TypedResults.NoContent(),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

@@ -2,7 +2,6 @@ using Moq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EF.Common.Contracts;
-using EF.Data.Contracts;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
@@ -15,17 +14,15 @@ namespace Test.Unit.Services;
 
 /// <summary>
 /// Validates <see cref="TaskFlow.Application.Services.ChecklistItemService"/> orchestration with mocked
-/// dependencies: CRUD success/failure paths and the IsCompleted flag flow on update.
+/// dependencies: read-side (search and get) success/failure paths.
 /// Pure-unit tier (Moq only).
 /// </summary>
 [TestClass]
 public class ChecklistItemServiceTests
 {
-    private readonly Mock<IRepositoryTrxn<ChecklistItem>> _repoTrxnMock = new();
     private readonly Mock<IChecklistItemRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
-    private readonly Mock<IEntityCacheProvider> _cacheMock = new();
 
     /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
@@ -45,36 +42,12 @@ public class ChecklistItemServiceTests
     private ChecklistItemService CreateService() => new(
         NullLogger<ChecklistItemService>.Instance,
         _requestContextMock.Object,
-        _repoTrxnMock.Object,
         _repoQueryMock.Object,
-        _tenantBoundaryValidatorMock.Object,
-        _cacheMock.Object);
+        _tenantBoundaryValidatorMock.Object);
 
-    /// <summary>Verifies that given valid DTO, when create, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ValidDto_When_CreateAsync_Then_ReturnsSuccess()
-    {
-        _repoTrxnMock.Setup(r => r.Create(ref It.Ref<ChecklistItem>.IsAny));
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var dto = new ChecklistItemDto { Title = "Step 1", TaskItemId = Guid.NewGuid(), SortOrder = 0 };
-        var result = await CreateService().CreateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("Step 1", result.Value!.Item!.Title);
-    }
-
-    /// <summary>Verifies that given invalid DTO, when create, then returns failure.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
-    {
-        var dto = new ChecklistItemDto { Title = "", TaskItemId = Guid.Empty };
-        var result = await CreateService().CreateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto });
-
-        Assert.IsTrue(result.IsFailure);
-    }
+    // TODO(phase-c): Create/Update/Delete unit tests were removed because the standalone write path on
+    // ChecklistItemService was deleted to enforce the TaskItem aggregate boundary. Re-add coverage against
+    // the nested TaskItem aggregate write operations once they exist.
 
     /// <summary>Verifies that given existing entity, when get, then returns mapped DTO.</summary>
     [TestMethod]
@@ -100,64 +73,6 @@ public class ChecklistItemServiceTests
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
         Assert.IsTrue(result.IsNone);
-    }
-
-    /// <summary>Verifies that given existing entity, when update, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
-    {
-        var entity = new ChecklistItemBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var dto = new ChecklistItemDto { Id = entity.Id, Title = "Updated Step", TaskItemId = entity.TaskItemId, IsCompleted = true };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("Updated Step", result.Value!.Item!.Title);
-        Assert.IsTrue(result.Value.Item.IsCompleted);
-    }
-
-    /// <summary>Verifies that given non existent ID, when update, then returns null item.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
-    {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
-
-        var dto = new ChecklistItemDto { Id = Guid.NewGuid(), Title = "Updated" };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<ChecklistItemDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsNull(result.Value?.Item);
-    }
-
-    /// <summary>Verifies that given existing entity, when delete, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
-    {
-        var entity = new ChecklistItemBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var result = await CreateService().DeleteAsync(entity.Id);
-
-        Assert.IsTrue(result.IsSuccess);
-        _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
-    }
-
-    /// <summary>Verifies that given non existent ID, when delete, then returns success idempotent.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
-    {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
-
-        var result = await CreateService().DeleteAsync(Guid.NewGuid());
-
-        Assert.IsTrue(result.IsSuccess);
     }
 
     /// <summary>Verifies that given search request, when search, then returns paged response.</summary>

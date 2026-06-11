@@ -11,8 +11,5 @@ internal static class CommentCqrsRegistrations
     [
         new(typeof(SearchCommentsQuery), typeof(PagedResponse<CommentDto>), typeof(SearchCommentsHandler)),
         new(typeof(GetCommentByIdQuery), typeof(Result<DefaultResponse<CommentDto>>), typeof(GetCommentByIdHandler)),
-        new(typeof(CreateCommentCommand), typeof(Result<DefaultResponse<CommentDto>>), typeof(CreateCommentHandler)),
-        new(typeof(UpdateCommentCommand), typeof(Result<DefaultResponse<CommentDto>>), typeof(UpdateCommentHandler)),
-        new(typeof(DeleteCommentCommand), typeof(Result), typeof(DeleteCommentHandler)),
     ];
 }

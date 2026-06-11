@@ -275,9 +275,9 @@ public class TaskItemCrudE2ETests
             new DefaultRequest<TaskItemDto> { Item = taskDto });
         var taskId = (await taskResp.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_json))!.Item!.Id!.Value;
 
-        // Create comment
+        // Add comment through the aggregate root (nested route - GR-15)
         var commentDto = new CommentDto { Body = "E2E Comment", TaskItemId = taskId };
-        var createResp = await client.PostAsJsonAsync("/api/v1/comments",
+        var createResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/comments",
             new DefaultRequest<CommentDto> { Item = commentDto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
@@ -285,13 +285,16 @@ public class TaskItemCrudE2ETests
         Assert.IsNotNull(created);
         var commentId = created.Id!.Value;
 
-        // Read
+        // Read (child read endpoint is retained)
         var getResp = await client.GetAsync($"/api/v1/comments/{commentId}");
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
 
-        // Delete
-        var delResp = await client.DeleteAsync($"/api/v1/comments/{commentId}");
+        // Remove through the aggregate root; the orphaned row is hard-deleted
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/comments/{commentId}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        var verifyResp = await client.GetAsync($"/api/v1/comments/{commentId}");
+        Assert.AreEqual(HttpStatusCode.NotFound, verifyResp.StatusCode);
     }
 
     // -- ChecklistItem CRUD (child of TaskItem) ----------------
@@ -307,17 +310,17 @@ public class TaskItemCrudE2ETests
             new DefaultRequest<TaskItemDto> { Item = taskDto });
         var taskId = (await taskResp.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_json))!.Item!.Id!.Value;
 
-        // Create checklist item
+        // Add checklist item through the aggregate root (nested route - GR-15)
         var dto = new ChecklistItemDto { Title = "E2E Checklist Item", IsCompleted = false, SortOrder = 1, TaskItemId = taskId };
-        var createResp = await client.PostAsJsonAsync("/api/v1/checklist-items",
+        var createResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items",
             new DefaultRequest<ChecklistItemDto> { Item = dto });
         Assert.AreEqual(HttpStatusCode.Created, createResp.StatusCode,
             $"Create failed: {await createResp.Content.ReadAsStringAsync()}");
         var created = (await createResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_json))!.Item;
         Assert.IsNotNull(created);
 
-        // Delete
-        var delResp = await client.DeleteAsync($"/api/v1/checklist-items/{created.Id}");
+        // Remove through the aggregate root
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/checklist-items/{created.Id}");
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
     }
 }

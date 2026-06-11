@@ -42,41 +42,9 @@ public class CommentEndpointTests
         return created!.Id!.Value;
     }
 
-    /// <summary>Verifies that given valid payload, when post comment, then returns 201.</summary>
-    [TestCategory("Endpoint")]
-    [TestMethod]
-    public async Task Given_ValidPayload_When_PostComment_Then_Returns201()
-    {
-        using var client = CreateClient();
-        var taskId = await CreateParentTaskItem(client);
-        var dto = new CommentDto { Body = "Test comment", TaskItemId = taskId };
-
-        var response = await client.PostAsJsonAsync("/api/v1/comments", new DefaultRequest<CommentDto> { Item = dto });
-
-        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
-        Assert.IsNotNull(created);
-        Assert.AreEqual("Test comment", created.Body);
-    }
-
-    /// <summary>Verifies that given existing comment, when get by ID, then returns 200.</summary>
-    [TestCategory("Endpoint")]
-    [TestMethod]
-    public async Task Given_ExistingComment_When_GetById_Then_Returns200()
-    {
-        using var client = CreateClient();
-        var taskId = await CreateParentTaskItem(client);
-        var dto = new CommentDto { Body = "GetComment body", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/comments", new DefaultRequest<CommentDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
-
-        var response = await client.GetAsync($"/api/v1/comments/{created!.Id}");
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
-        Assert.IsNotNull(result);
-        Assert.AreEqual("GetComment body", result.Body);
-    }
+    // Comments are internal to the TaskItem aggregate (GR-15): they are created, updated, and removed
+    // only through the nested /task-items/{id}/comments routes on the root, never a standalone
+    // /comments write route. Reads still live on /comments.
 
     /// <summary>Verifies that given non existent ID, when get comment, then returns 404.</summary>
     [TestCategory("Endpoint")]
@@ -90,41 +58,63 @@ public class CommentEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    /// <summary>Verifies that given existing comment, when put update, then returns 200.</summary>
+    /// <summary>Verifies that adding a comment through the TaskItem root returns 201 and is readable.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
-    public async Task Given_ExistingComment_When_PutUpdate_Then_Returns200()
+    public async Task Given_ValidPayload_When_AddCommentToTaskItem_Then_Returns201AndReadable()
     {
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
-        var dto = new CommentDto { Body = "Before update", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/comments", new DefaultRequest<CommentDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
 
-        var updateDto = new CommentDto { Id = created!.Id, Body = "After update", TaskItemId = taskId };
-        var response = await client.PutAsJsonAsync($"/api/v1/comments/{created.Id}", new DefaultRequest<CommentDto> { Item = updateDto });
+        var dto = new CommentDto { Body = "Nested add", TaskItemId = taskId };
+        var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/comments",
+            new DefaultRequest<CommentDto> { Item = dto });
+        Assert.AreEqual(HttpStatusCode.Created, addResp.StatusCode,
+            $"Add failed: {await addResp.Content.ReadAsStringAsync()}");
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
-        Assert.AreEqual("After update", updated!.Body);
+        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item;
+        Assert.IsNotNull(created);
+        Assert.AreEqual("Nested add", created.Body);
+
+        var getResp = await client.GetAsync($"/api/v1/comments/{created.Id}");
+        Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
     }
 
-    /// <summary>Verifies that given existing comment, when delete, then returns 204.</summary>
+    /// <summary>Verifies the add/update/remove comment lifecycle through the TaskItem root.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
-    public async Task Given_ExistingComment_When_Delete_Then_Returns204()
+    public async Task Given_Comment_When_UpdatedAndRemovedThroughRoot_Then_ReflectsState()
     {
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
-        var dto = new CommentDto { Body = "ToDelete comment", TaskItemId = taskId };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/comments", new DefaultRequest<CommentDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>())!.Item;
 
-        var response = await client.DeleteAsync($"/api/v1/comments/{created!.Id}");
+        var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/comments",
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Original", TaskItemId = taskId } });
+        var commentId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item!.Id!.Value;
 
-        Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+        var updResp = await client.PutAsJsonAsync($"/api/v1/task-items/{taskId}/comments/{commentId}",
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Edited", TaskItemId = taskId } });
+        Assert.AreEqual(HttpStatusCode.OK, updResp.StatusCode);
+        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item;
+        Assert.AreEqual("Edited", updated!.Body);
 
-        var getResponse = await client.GetAsync($"/api/v1/comments/{created.Id}");
-        Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/comments/{commentId}");
+        Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        var getResp = await client.GetAsync($"/api/v1/comments/{commentId}");
+        Assert.AreEqual(HttpStatusCode.NotFound, getResp.StatusCode);
+    }
+
+    /// <summary>Verifies that adding a comment to a missing TaskItem returns 404.</summary>
+    [TestCategory("Endpoint")]
+    [TestMethod]
+    public async Task Given_MissingTaskItem_When_AddComment_Then_Returns404()
+    {
+        using var client = CreateClient();
+
+        var response = await client.PostAsJsonAsync($"/api/v1/task-items/{Guid.NewGuid()}/comments",
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Orphan" } });
+
+        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

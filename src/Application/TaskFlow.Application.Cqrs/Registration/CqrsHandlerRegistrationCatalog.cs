@@ -4,7 +4,6 @@ using TaskFlow.Application.Cqrs.Features.ChecklistItems;
 using TaskFlow.Application.Cqrs.Features.Comments;
 using TaskFlow.Application.Cqrs.Features.Tags;
 using TaskFlow.Application.Cqrs.Features.TaskItems;
-using TaskFlow.Application.Cqrs.Features.TaskItemTags;
 
 namespace TaskFlow.Application.Cqrs.Registration;
 
@@ -25,6 +24,5 @@ public static class CqrsHandlerRegistrationCatalog
         ..CommentCqrsRegistrations.Registrations,
         ..ChecklistItemCqrsRegistrations.Registrations,
         ..AttachmentCqrsRegistrations.Registrations,
-        ..TaskItemTagCqrsRegistrations.Registrations,
     ];
 }

@@ -1,8 +1,10 @@
 using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
+using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
+using TaskFlow.Infrastructure.Repositories;
 using Test.Integration.Infrastructure;
 using Test.Support;
 using Test.Support.Builders;
@@ -171,6 +173,67 @@ public class MigrationAndRepositoryTests
         Assert.IsNotNull(loaded);
         Assert.HasCount(1, loaded.Comments);
         Assert.HasCount(1, loaded.ChecklistItems);
+    }
+
+    /// <summary>
+    /// Drives a real <c>repo.UpdateFromDto(reloadedParent, dto)</c> round-trip that adds NEW children to an
+    /// already-persisted, freshly-loaded (tracked) parent - the exact aggregate-edit path the API uses.
+    /// This is the only thing that catches the "navigation-add inferred as Modified -> DbUpdateConcurrencyException"
+    /// trap; seeding children via <c>db.Set&lt;Child&gt;().Add(...)</c> (as the test above does) masks it. The
+    /// updater must <c>db.Add(child)</c> on the create path to force EF Added state.
+    /// </summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task TaskItem_UpdateFromDto_AddsChildrenToReloadedParent_AgainstRealSql()
+    {
+        Guid parentId;
+
+        // Seed a bare parent task.
+        await using (var seed = SqlContainerFixture.CreateTrxnContext())
+        {
+            await seed.Database.MigrateAsync();
+            var seeded = new TaskItemBuilder().WithTenantId(TenantA).WithTitle("Updater Parent").Build();
+            seed.TaskItems.Add(seeded);
+            await seed.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            parentId = seeded.Id;
+        }
+
+        // Reload the parent (tracked, with children) in a fresh context - mirrors the handler/service path.
+        await using var db = SqlContainerFixture.CreateTrxnContext();
+        var loaded = await db.TaskItems
+            .IgnoreQueryFilters()
+            .Include(t => t.Comments)
+            .Include(t => t.ChecklistItems)
+            .FirstAsync(t => t.Id == parentId);
+
+        // Desired-state DTO adds a NEW comment + checklist item (no Ids -> create path).
+        var dto = new TaskItemDto
+        {
+            Id = parentId,
+            Title = "Updater Parent",
+            Comments = [new CommentDto { Body = "Added via updater", TaskItemId = parentId }],
+            ChecklistItems = [new ChecklistItemDto { Title = "Added step", SortOrder = 1, TaskItemId = parentId }]
+        };
+
+        var repo = new TaskItemRepositoryTrxn(db);
+        var sync = repo.UpdateFromDto(loaded, dto, RelatedDeleteBehavior.RelationshipAndEntity);
+        Assert.IsTrue(sync.IsSuccess, $"UpdateFromDto failed: {sync.ErrorMessage}");
+
+        // Before the db.Add(child) fix this throws DbUpdateConcurrencyException (UPDATE against a non-existent row).
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+
+        // Verify the children actually persisted via a clean reload.
+        await using var verify = SqlContainerFixture.CreateTrxnContext();
+        var reloaded = await verify.TaskItems
+            .IgnoreQueryFilters()
+            .Include(t => t.Comments)
+            .Include(t => t.ChecklistItems)
+            .FirstAsync(t => t.Id == parentId);
+
+        Assert.HasCount(1, reloaded.Comments);
+        Assert.AreEqual("Added via updater", reloaded.Comments.First().Body);
+        Assert.HasCount(1, reloaded.ChecklistItems);
+        Assert.AreEqual("Added step", reloaded.ChecklistItems.First().Title);
     }
 
     /// <summary>Verifies task item tag many to many works correctly behavior and protects the expected test contract.</summary>

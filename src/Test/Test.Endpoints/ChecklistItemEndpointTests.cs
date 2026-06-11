@@ -43,41 +43,9 @@ public class ChecklistItemEndpointTests
         return created!.Id!.Value;
     }
 
-    /// <summary>Verifies that given valid payload, when post checklist item, then returns 201.</summary>
-    [TestCategory("Endpoint")]
-    [TestMethod]
-    public async Task Given_ValidPayload_When_PostChecklistItem_Then_Returns201()
-    {
-        using var client = CreateClient();
-        var taskId = await CreateParentTaskItem(client);
-        var dto = new ChecklistItemDto { Title = "Step 1", TaskItemId = taskId, SortOrder = 0 };
-
-        var response = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
-
-        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
-        Assert.IsNotNull(created);
-        Assert.AreEqual("Step 1", created.Title);
-    }
-
-    /// <summary>Verifies that given existing checklist item, when get by ID, then returns 200.</summary>
-    [TestCategory("Endpoint")]
-    [TestMethod]
-    public async Task Given_ExistingChecklistItem_When_GetById_Then_Returns200()
-    {
-        using var client = CreateClient();
-        var taskId = await CreateParentTaskItem(client);
-        var dto = new ChecklistItemDto { Title = "GetStep", TaskItemId = taskId, SortOrder = 1 };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
-
-        var response = await client.GetAsync($"/api/v1/checklist-items/{created!.Id}");
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
-        Assert.IsNotNull(result);
-        Assert.AreEqual("GetStep", result.Title);
-    }
+    // ChecklistItems are internal to the TaskItem aggregate (GR-15): created, updated, and removed
+    // only through the nested /task-items/{id}/checklist-items routes on the root. Reads still live
+    // on /checklist-items.
 
     /// <summary>Verifies that given non existent ID, when get checklist item, then returns 404.</summary>
     [TestCategory("Endpoint")]
@@ -91,48 +59,50 @@ public class ChecklistItemEndpointTests
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    /// <summary>Verifies that given existing checklist item, when put update, then returns 200.</summary>
+    /// <summary>Verifies that adding a checklist item through the TaskItem root returns 201 and is readable.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
-    public async Task Given_ExistingChecklistItem_When_PutUpdate_Then_Returns200()
+    public async Task Given_ValidPayload_When_AddChecklistItemToTaskItem_Then_Returns201AndReadable()
     {
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
-        var dto = new ChecklistItemDto { Title = "Before step", TaskItemId = taskId, SortOrder = 0 };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
 
-        var updateDto = new ChecklistItemDto
-        {
-            Id = created!.Id,
-            Title = "After step",
-            TaskItemId = taskId,
-            SortOrder = 1,
-            IsCompleted = true
-        };
-        var response = await client.PutAsJsonAsync($"/api/v1/checklist-items/{created.Id}", new DefaultRequest<ChecklistItemDto> { Item = updateDto });
+        var dto = new ChecklistItemDto { Title = "Nested step", SortOrder = 1, IsCompleted = false, TaskItemId = taskId };
+        var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items",
+            new DefaultRequest<ChecklistItemDto> { Item = dto });
+        Assert.AreEqual(HttpStatusCode.Created, addResp.StatusCode,
+            $"Add failed: {await addResp.Content.ReadAsStringAsync()}");
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
-        Assert.AreEqual("After step", updated!.Title);
+        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item;
+        Assert.IsNotNull(created);
+        Assert.AreEqual("Nested step", created.Title);
+
+        var getResp = await client.GetAsync($"/api/v1/checklist-items/{created.Id}");
+        Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
     }
 
-    /// <summary>Verifies that given existing checklist item, when delete, then returns 204.</summary>
+    /// <summary>Verifies the add/update/remove checklist-item lifecycle through the TaskItem root.</summary>
     [TestCategory("Endpoint")]
     [TestMethod]
-    public async Task Given_ExistingChecklistItem_When_Delete_Then_Returns204()
+    public async Task Given_ChecklistItem_When_UpdatedAndRemovedThroughRoot_Then_ReflectsState()
     {
         using var client = CreateClient();
         var taskId = await CreateParentTaskItem(client);
-        var dto = new ChecklistItemDto { Title = "ToDelete step", TaskItemId = taskId, SortOrder = 0 };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/checklist-items", new DefaultRequest<ChecklistItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>())!.Item;
 
-        var response = await client.DeleteAsync($"/api/v1/checklist-items/{created!.Id}");
+        var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items",
+            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step", SortOrder = 1, TaskItemId = taskId } });
+        var itemId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item!.Id!.Value;
 
-        Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+        var updResp = await client.PutAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items/{itemId}",
+            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step done", IsCompleted = true, SortOrder = 1, TaskItemId = taskId } });
+        Assert.AreEqual(HttpStatusCode.OK, updResp.StatusCode);
+        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item;
+        Assert.IsTrue(updated!.IsCompleted);
 
-        var getResponse = await client.GetAsync($"/api/v1/checklist-items/{created.Id}");
-        Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/checklist-items/{itemId}");
+        Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        var getResp = await client.GetAsync($"/api/v1/checklist-items/{itemId}");
+        Assert.AreEqual(HttpStatusCode.NotFound, getResp.StatusCode);
     }
 }

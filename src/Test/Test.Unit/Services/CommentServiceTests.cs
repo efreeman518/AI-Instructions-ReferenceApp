@@ -2,7 +2,6 @@ using Moq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EF.Common.Contracts;
-using EF.Data.Contracts;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
@@ -15,17 +14,15 @@ namespace Test.Unit.Services;
 
 /// <summary>
 /// Validates <see cref="TaskFlow.Application.Services.CommentService"/> orchestration with mocked
-/// dependencies: CRUD success/failure paths and idempotent delete.
+/// dependencies: read-side (search and get) success/failure paths.
 /// Pure-unit tier (Moq only).
 /// </summary>
 [TestClass]
 public class CommentServiceTests
 {
-    private readonly Mock<IRepositoryTrxn<Comment>> _repoTrxnMock = new();
     private readonly Mock<ICommentRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
-    private readonly Mock<IEntityCacheProvider> _cacheMock = new();
 
     /// <summary>Prepares per-test fixtures so each test starts from a predictable state.</summary>
     [TestInitialize]
@@ -45,36 +42,12 @@ public class CommentServiceTests
     private CommentService CreateService() => new(
         NullLogger<CommentService>.Instance,
         _requestContextMock.Object,
-        _repoTrxnMock.Object,
         _repoQueryMock.Object,
-        _tenantBoundaryValidatorMock.Object,
-        _cacheMock.Object);
+        _tenantBoundaryValidatorMock.Object);
 
-    /// <summary>Verifies that given valid DTO, when create, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ValidDto_When_CreateAsync_Then_ReturnsSuccess()
-    {
-        _repoTrxnMock.Setup(r => r.Create(ref It.Ref<Comment>.IsAny));
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var dto = new CommentDto { Body = "Test comment", TaskItemId = Guid.NewGuid() };
-        var result = await CreateService().CreateAsync(new DefaultRequest<CommentDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("Test comment", result.Value!.Item!.Body);
-    }
-
-    /// <summary>Verifies that given invalid DTO, when create, then returns failure.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
-    {
-        var dto = new CommentDto { Body = "", TaskItemId = Guid.Empty };
-        var result = await CreateService().CreateAsync(new DefaultRequest<CommentDto> { Item = dto });
-
-        Assert.IsTrue(result.IsFailure);
-    }
+    // TODO(phase-c): Create/Update/Delete unit tests were removed because the standalone write path on
+    // CommentService was deleted to enforce the TaskItem aggregate boundary. Re-add coverage against the
+    // nested TaskItem aggregate write operations once they exist.
 
     /// <summary>Verifies that given existing entity, when get, then returns mapped DTO.</summary>
     [TestMethod]
@@ -100,63 +73,6 @@ public class CommentServiceTests
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
         Assert.IsTrue(result.IsNone);
-    }
-
-    /// <summary>Verifies that given existing entity, when update, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ExistingEntity_When_UpdateAsync_Then_ReturnsSuccess()
-    {
-        var entity = new CommentBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var dto = new CommentDto { Id = entity.Id, Body = "Updated body", TaskItemId = entity.TaskItemId };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<CommentDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("Updated body", result.Value!.Item!.Body);
-    }
-
-    /// <summary>Verifies that given non existent ID, when update, then returns null item.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
-    {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
-
-        var dto = new CommentDto { Id = Guid.NewGuid(), Body = "Updated" };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<CommentDto> { Item = dto });
-
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsNull(result.Value?.Item);
-    }
-
-    /// <summary>Verifies that given existing entity, when delete, then returns success.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_ExistingEntity_When_DeleteAsync_Then_ReturnsSuccess()
-    {
-        var entity = new CommentBuilder().Build();
-        _repoTrxnMock.Setup(r => r.GetAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
-        _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-
-        var result = await CreateService().DeleteAsync(entity.Id);
-
-        Assert.IsTrue(result.IsSuccess);
-        _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
-    }
-
-    /// <summary>Verifies that given non existent ID, when delete, then returns success idempotent.</summary>
-    [TestMethod]
-    [TestCategory("Unit")]
-    public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
-    {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
-
-        var result = await CreateService().DeleteAsync(Guid.NewGuid());
-
-        Assert.IsTrue(result.IsSuccess);
     }
 
     /// <summary>Verifies that given search request, when search, then returns paged response.</summary>

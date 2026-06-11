@@ -11,8 +11,5 @@ internal static class ChecklistItemCqrsRegistrations
     [
         new(typeof(SearchChecklistItemsQuery), typeof(PagedResponse<ChecklistItemDto>), typeof(SearchChecklistItemsHandler)),
         new(typeof(GetChecklistItemByIdQuery), typeof(Result<DefaultResponse<ChecklistItemDto>>), typeof(GetChecklistItemByIdHandler)),
-        new(typeof(CreateChecklistItemCommand), typeof(Result<DefaultResponse<ChecklistItemDto>>), typeof(CreateChecklistItemHandler)),
-        new(typeof(UpdateChecklistItemCommand), typeof(Result<DefaultResponse<ChecklistItemDto>>), typeof(UpdateChecklistItemHandler)),
-        new(typeof(DeleteChecklistItemCommand), typeof(Result), typeof(DeleteChecklistItemHandler)),
     ];
 }

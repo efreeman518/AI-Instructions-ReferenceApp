@@ -30,6 +30,14 @@ internal static class TaskItemUpdater
             actualEffort: dto.ActualEffort,
             categoryId: dto.CategoryId)
         .Bind(updatedEntity => DomainResult.Combine(
+            // Children are mutated through the aggregate root's own methods (AddComment /
+            // RemoveComment etc.), never by touching the navigation collections directly.
+            // The updater then sets the EF change-tracker state explicitly: db.Add(child) on
+            // create, db.Delete(child) on remove. db.Add is REQUIRED on the update path - a
+            // navigation-add on an already-tracked, persisted parent can be inferred as Modified
+            // (the key is a client-set Guid with no ValueGeneratedNever), which makes SaveChanges
+            // emit an UPDATE against a non-existent row and throw DbUpdateConcurrencyException.
+            // createFunc runs only for genuinely new children, so db.Add never double-inserts.
             CollectionUtility.SyncCollectionWithResult<Comment, CommentDto, Guid>(
                 updatedEntity.Comments,
                 dto.Comments ?? [],
@@ -37,16 +45,16 @@ internal static class TaskItemUpdater
                 i => i.Id,
                 incomingDto =>
                 {
-                    var result = Comment.Create(updatedEntity.TenantId, updatedEntity.Id, incomingDto.Body);
-                    if (result.IsSuccess) updatedEntity.Comments.Add(result.Value!);
-                    return result;
+                    var added = updatedEntity.AddComment(incomingDto.Body);
+                    if (added.IsSuccess) db.Add(added.Value!);
+                    return added;
                 },
                 (existing, incomingDto) => existing.Update(incomingDto.Body),
                 toRemove =>
                 {
                     if (relatedDeleteBehavior == RelatedDeleteBehavior.None) return DomainResult.Success();
+                    updatedEntity.RemoveComment(toRemove);
                     db.Delete(toRemove);
-                    updatedEntity.Comments.Remove(toRemove);
                     return DomainResult.Success();
                 }
             ),
@@ -57,26 +65,23 @@ internal static class TaskItemUpdater
                 i => i.Id,
                 incomingDto =>
                 {
-                    var result = ChecklistItem.Create(updatedEntity.TenantId, updatedEntity.Id, incomingDto.Title, incomingDto.SortOrder);
-                    if (result.IsSuccess)
+                    var added = updatedEntity.AddChecklistItem(incomingDto.Title, incomingDto.SortOrder);
+                    if (added.IsSuccess)
                     {
-                        // Apply IsCompleted immediately - Create() doesn't take it,
-                        // so a buffered "checked" item from the client would lose
-                        // that state without this follow-up Update.
-                        if (incomingDto.IsCompleted)
-                        {
-                            result.Value!.Update(isCompleted: true);
-                        }
-                        updatedEntity.ChecklistItems.Add(result.Value!);
+                        // Apply IsCompleted immediately - AddChecklistItem/Create don't take it,
+                        // so a buffered "checked" item from the client would lose that state
+                        // without this follow-up Update on the newly created child.
+                        if (incomingDto.IsCompleted) added.Value!.Update(isCompleted: true);
+                        db.Add(added.Value!);
                     }
-                    return result;
+                    return added;
                 },
                 (existing, incomingDto) => existing.Update(incomingDto.Title, incomingDto.IsCompleted, incomingDto.SortOrder),
                 toRemove =>
                 {
                     if (relatedDeleteBehavior == RelatedDeleteBehavior.None) return DomainResult.Success();
+                    updatedEntity.RemoveChecklistItem(toRemove);
                     db.Delete(toRemove);
-                    updatedEntity.ChecklistItems.Remove(toRemove);
                     return DomainResult.Success();
                 }
             ),
@@ -87,15 +92,15 @@ internal static class TaskItemUpdater
                 i => i.Id,
                 incomingDto =>
                 {
-                    var result = TaskItemTag.Create(updatedEntity.TenantId, updatedEntity.Id, incomingDto.Id!.Value);
-                    if (result.IsSuccess) updatedEntity.TaskItemTags.Add(result.Value!);
-                    return result;
+                    var added = updatedEntity.AssociateTag(incomingDto.Id!.Value);
+                    if (added.IsSuccess) db.Add(added.Value!);
+                    return added;
                 },
                 removeFunc: toRemove =>
                 {
                     if (relatedDeleteBehavior == RelatedDeleteBehavior.None) return DomainResult.Success();
+                    updatedEntity.RemoveTag(toRemove);
                     db.Delete(toRemove);
-                    updatedEntity.TaskItemTags.Remove(toRemove);
                     return DomainResult.Success();
                 }
             ))

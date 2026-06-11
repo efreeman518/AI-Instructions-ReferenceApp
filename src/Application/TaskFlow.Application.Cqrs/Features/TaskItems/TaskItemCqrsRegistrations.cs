@@ -14,5 +14,15 @@ internal static class TaskItemCqrsRegistrations
         new(typeof(CreateTaskItemCommand), typeof(Result<DefaultResponse<TaskItemDto>>), typeof(CreateTaskItemHandler)),
         new(typeof(UpdateTaskItemCommand), typeof(Result<DefaultResponse<TaskItemDto>>), typeof(UpdateTaskItemHandler)),
         new(typeof(DeleteTaskItemCommand), typeof(Result), typeof(DeleteTaskItemHandler)),
+
+        // Nested children mutated through the aggregate root (GR-15) - no standalone child handlers.
+        new(typeof(AddTaskItemCommentCommand), typeof(Result<DefaultResponse<CommentDto>>), typeof(AddTaskItemCommentHandler)),
+        new(typeof(UpdateTaskItemCommentCommand), typeof(Result<DefaultResponse<CommentDto>>), typeof(UpdateTaskItemCommentHandler)),
+        new(typeof(RemoveTaskItemCommentCommand), typeof(Result), typeof(RemoveTaskItemCommentHandler)),
+        new(typeof(AddTaskItemChecklistItemCommand), typeof(Result<DefaultResponse<ChecklistItemDto>>), typeof(AddTaskItemChecklistItemHandler)),
+        new(typeof(UpdateTaskItemChecklistItemCommand), typeof(Result<DefaultResponse<ChecklistItemDto>>), typeof(UpdateTaskItemChecklistItemHandler)),
+        new(typeof(RemoveTaskItemChecklistItemCommand), typeof(Result), typeof(RemoveTaskItemChecklistItemHandler)),
+        new(typeof(AssociateTaskItemTagCommand), typeof(Result<DefaultResponse<TaskItemTagDto>>), typeof(AssociateTaskItemTagHandler)),
+        new(typeof(RemoveTaskItemTagCommand), typeof(Result), typeof(RemoveTaskItemTagHandler)),
     ];
 }

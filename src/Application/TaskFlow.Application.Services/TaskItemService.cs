@@ -248,4 +248,154 @@ internal class TaskItemService(
         await cache.RemoveAsync($"TaskItem:{id}", ct);
         return Result.Success();
     }
+
+    #region Nested children (mutated through the aggregate root - GR-15)
+
+    /// <summary>Saves the tracked aggregate graph and maps failures to a Result.</summary>
+    private async Task<Result> SaveAggregateAsync(string errorMessage, CancellationToken ct, params object?[] args)
+    {
+        try
+        {
+            await repoTrxn.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, ct);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, errorMessage, args);
+            return Result.Failure(ex.GetBaseException().Message);
+        }
+    }
+
+    /// <summary>Loads the aggregate and enforces the caller tenant boundary before a child mutation.</summary>
+    private async Task<(TaskItem? Entity, string? Error)> LoadForChildMutationAsync(Guid taskItemId, string operation, CancellationToken ct)
+    {
+        var entity = await repoTrxn.GetTaskItemAsync(taskItemId, ct: ct);
+        if (entity is null) return (null, null);
+
+        var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
+            logger, RequestTenantId, RequestRoles, entity.TenantId, operation, nameof(TaskItem), entity.Id);
+        return boundary.IsFailure ? (null, boundary.ErrorMessage!) : (entity, null);
+    }
+
+    /// <summary>Adds a comment to a TaskItem through the aggregate root.</summary>
+    public async Task<Result<DefaultResponse<CommentDto>>> AddCommentAsync(Guid taskItemId, CommentDto comment, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:AddComment", ct);
+        if (error is not null) return Result<DefaultResponse<CommentDto>>.Failure(error);
+        if (entity is null) return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
+
+        var addResult = entity.AddComment(comment.Body);
+        if (addResult.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(addResult.ErrorMessage!);
+
+        var save = await SaveAggregateAsync("Error adding Comment to TaskItem {Id}", ct, taskItemId);
+        if (save.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(save.ErrorMessage!);
+
+        return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = addResult.Value!.ToDto() });
+    }
+
+    /// <summary>Updates a comment owned by a TaskItem through the aggregate root.</summary>
+    public async Task<Result<DefaultResponse<CommentDto>>> UpdateCommentAsync(Guid taskItemId, Guid commentId, CommentDto comment, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:UpdateComment", ct);
+        if (error is not null) return Result<DefaultResponse<CommentDto>>.Failure(error);
+        if (entity is null) return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
+
+        var target = entity.Comments.FirstOrDefault(c => c.Id == commentId);
+        if (target is null) return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
+
+        var updateResult = target.Update(comment.Body);
+        if (updateResult.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(updateResult.ErrorMessage!);
+
+        var save = await SaveAggregateAsync("Error updating Comment {CommentId} on TaskItem {Id}", ct, commentId, taskItemId);
+        if (save.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(save.ErrorMessage!);
+
+        return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = target.ToDto() });
+    }
+
+    /// <summary>Removes a comment from a TaskItem through the aggregate root.</summary>
+    public async Task<Result> RemoveCommentAsync(Guid taskItemId, Guid commentId, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:RemoveComment", ct);
+        if (error is not null) return Result.Failure(error);
+        if (entity is null) return Result.Success();
+
+        entity.RemoveComment(commentId);
+        return await SaveAggregateAsync("Error removing Comment {CommentId} from TaskItem {Id}", ct, commentId, taskItemId);
+    }
+
+    /// <summary>Adds a checklist item to a TaskItem through the aggregate root.</summary>
+    public async Task<Result<DefaultResponse<ChecklistItemDto>>> AddChecklistItemAsync(Guid taskItemId, ChecklistItemDto checklistItem, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:AddChecklistItem", ct);
+        if (error is not null) return Result<DefaultResponse<ChecklistItemDto>>.Failure(error);
+        if (entity is null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
+
+        var addResult = entity.AddChecklistItem(checklistItem.Title, checklistItem.SortOrder);
+        if (addResult.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(addResult.ErrorMessage!);
+        if (checklistItem.IsCompleted) addResult.Value!.Update(isCompleted: true);
+
+        var save = await SaveAggregateAsync("Error adding ChecklistItem to TaskItem {Id}", ct, taskItemId);
+        if (save.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(save.ErrorMessage!);
+
+        return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = addResult.Value!.ToDto() });
+    }
+
+    /// <summary>Updates a checklist item owned by a TaskItem through the aggregate root.</summary>
+    public async Task<Result<DefaultResponse<ChecklistItemDto>>> UpdateChecklistItemAsync(Guid taskItemId, Guid checklistItemId, ChecklistItemDto checklistItem, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:UpdateChecklistItem", ct);
+        if (error is not null) return Result<DefaultResponse<ChecklistItemDto>>.Failure(error);
+        if (entity is null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
+
+        var target = entity.ChecklistItems.FirstOrDefault(c => c.Id == checklistItemId);
+        if (target is null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
+
+        var updateResult = target.Update(checklistItem.Title, checklistItem.IsCompleted, checklistItem.SortOrder);
+        if (updateResult.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(updateResult.ErrorMessage!);
+
+        var save = await SaveAggregateAsync("Error updating ChecklistItem {ChecklistItemId} on TaskItem {Id}", ct, checklistItemId, taskItemId);
+        if (save.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(save.ErrorMessage!);
+
+        return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = target.ToDto() });
+    }
+
+    /// <summary>Removes a checklist item from a TaskItem through the aggregate root.</summary>
+    public async Task<Result> RemoveChecklistItemAsync(Guid taskItemId, Guid checklistItemId, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:RemoveChecklistItem", ct);
+        if (error is not null) return Result.Failure(error);
+        if (entity is null) return Result.Success();
+
+        entity.RemoveChecklistItem(checklistItemId);
+        return await SaveAggregateAsync("Error removing ChecklistItem {ChecklistItemId} from TaskItem {Id}", ct, checklistItemId, taskItemId);
+    }
+
+    /// <summary>Associates an existing Tag with a TaskItem through the aggregate root.</summary>
+    public async Task<Result<DefaultResponse<TaskItemTagDto>>> AssociateTagAsync(Guid taskItemId, Guid tagId, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:AssociateTag", ct);
+        if (error is not null) return Result<DefaultResponse<TaskItemTagDto>>.Failure(error);
+        if (entity is null) return Result<DefaultResponse<TaskItemTagDto>>.Success(new DefaultResponse<TaskItemTagDto> { Item = null });
+
+        var associateResult = entity.AssociateTag(tagId);
+        if (associateResult.IsFailure) return Result<DefaultResponse<TaskItemTagDto>>.Failure(associateResult.ErrorMessage!);
+
+        var save = await SaveAggregateAsync("Error associating Tag {TagId} with TaskItem {Id}", ct, tagId, taskItemId);
+        if (save.IsFailure) return Result<DefaultResponse<TaskItemTagDto>>.Failure(save.ErrorMessage!);
+
+        return Result<DefaultResponse<TaskItemTagDto>>.Success(new DefaultResponse<TaskItemTagDto> { Item = associateResult.Value!.ToDto() });
+    }
+
+    /// <summary>Removes a Tag association from a TaskItem through the aggregate root.</summary>
+    public async Task<Result> RemoveTagAsync(Guid taskItemId, Guid tagId, CancellationToken ct = default)
+    {
+        var (entity, error) = await LoadForChildMutationAsync(taskItemId, "TaskItem:RemoveTag", ct);
+        if (error is not null) return Result.Failure(error);
+        if (entity is null) return Result.Success();
+
+        entity.RemoveTag(tagId);
+        return await SaveAggregateAsync("Error removing Tag {TagId} from TaskItem {Id}", ct, tagId, taskItemId);
+    }
+
+    #endregion
 }
