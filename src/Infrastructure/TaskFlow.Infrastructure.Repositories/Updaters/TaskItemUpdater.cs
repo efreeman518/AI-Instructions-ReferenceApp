@@ -32,23 +32,17 @@ internal static class TaskItemUpdater
         .Bind(updatedEntity => DomainResult.Combine(
             // Children are mutated through the aggregate root's own methods (AddComment /
             // RemoveComment etc.), never by touching the navigation collections directly.
-            // The updater then sets the EF change-tracker state explicitly: db.Add(child) on
-            // create, db.Delete(child) on remove. db.Add is REQUIRED on the update path - a
-            // navigation-add on an already-tracked, persisted parent can be inferred as Modified
-            // (the key is a client-set Guid with no ValueGeneratedNever), which makes SaveChanges
-            // emit an UPDATE against a non-existent row and throw DbUpdateConcurrencyException.
-            // createFunc runs only for genuinely new children, so db.Add never double-inserts.
+            // New children added to the loaded, tracked parent are inferred as Added on save
+            // because EntityBase.Id is configured ValueGeneratedNever (EntityBaseConfiguration) -
+            // EF treats the client-set Guid v7 key as application-assigned, not store-generated, so
+            // a navigation-add is not mistaken for an UPDATE. removeFunc still calls db.Delete() so
+            // EF detaches the orphaned row from the change tracker.
             CollectionUtility.SyncCollectionWithResult<Comment, CommentDto, Guid>(
                 updatedEntity.Comments,
                 dto.Comments ?? [],
                 e => e.Id,
                 i => i.Id,
-                incomingDto =>
-                {
-                    var added = updatedEntity.AddComment(incomingDto.Body);
-                    if (added.IsSuccess) db.Add(added.Value!);
-                    return added;
-                },
+                incomingDto => updatedEntity.AddComment(incomingDto.Body),
                 (existing, incomingDto) => existing.Update(incomingDto.Body),
                 toRemove =>
                 {
@@ -65,16 +59,15 @@ internal static class TaskItemUpdater
                 i => i.Id,
                 incomingDto =>
                 {
-                    var added = updatedEntity.AddChecklistItem(incomingDto.Title, incomingDto.SortOrder);
-                    if (added.IsSuccess)
+                    var result = updatedEntity.AddChecklistItem(incomingDto.Title, incomingDto.SortOrder);
+                    // Apply IsCompleted immediately - AddChecklistItem/Create don't take it,
+                    // so a buffered "checked" item from the client would lose that state
+                    // without this follow-up Update on the newly created child.
+                    if (result.IsSuccess && incomingDto.IsCompleted)
                     {
-                        // Apply IsCompleted immediately - AddChecklistItem/Create don't take it,
-                        // so a buffered "checked" item from the client would lose that state
-                        // without this follow-up Update on the newly created child.
-                        if (incomingDto.IsCompleted) added.Value!.Update(isCompleted: true);
-                        db.Add(added.Value!);
+                        result.Value!.Update(isCompleted: true);
                     }
-                    return added;
+                    return result;
                 },
                 (existing, incomingDto) => existing.Update(incomingDto.Title, incomingDto.IsCompleted, incomingDto.SortOrder),
                 toRemove =>
@@ -90,12 +83,7 @@ internal static class TaskItemUpdater
                 dto.Tags ?? [],
                 e => e.TagId,
                 i => i.Id,
-                incomingDto =>
-                {
-                    var added = updatedEntity.AssociateTag(incomingDto.Id!.Value);
-                    if (added.IsSuccess) db.Add(added.Value!);
-                    return added;
-                },
+                incomingDto => updatedEntity.AssociateTag(incomingDto.Id!.Value),
                 removeFunc: toRemove =>
                 {
                     if (relatedDeleteBehavior == RelatedDeleteBehavior.None) return DomainResult.Success();

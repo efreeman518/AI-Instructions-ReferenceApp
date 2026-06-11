@@ -177,10 +177,13 @@ public class MigrationAndRepositoryTests
 
     /// <summary>
     /// Drives a real <c>repo.UpdateFromDto(reloadedParent, dto)</c> round-trip that adds NEW children to an
-    /// already-persisted, freshly-loaded (tracked) parent - the exact aggregate-edit path the API uses.
-    /// This is the only thing that catches the "navigation-add inferred as Modified -> DbUpdateConcurrencyException"
-    /// trap; seeding children via <c>db.Set&lt;Child&gt;().Add(...)</c> (as the test above does) masks it. The
-    /// updater must <c>db.Add(child)</c> on the create path to force EF Added state.
+    /// already-persisted, freshly-loaded (tracked) parent - the exact aggregate-edit path the API uses, and the
+    /// only path that exercises EF's add-vs-update state inference for navigation-added children (seeding via
+    /// <c>db.Set&lt;Child&gt;().Add(...)</c>, as the test above does, bypasses it). Here the inserts succeed
+    /// because <c>EntityBase.Id</c> is configured <c>ValueGeneratedNever</c> (EntityBaseConfiguration), so EF
+    /// treats the client-set Guid v7 key as application-assigned and infers the navigation-added child as Added.
+    /// This test is the regression guard for that baseline: drop the global <c>ValueGeneratedNever</c> (or add a
+    /// child whose config skips it) and the save would throw <c>DbUpdateConcurrencyException</c>.
     /// </summary>
     [TestMethod]
     [Timeout(120000)]
@@ -219,7 +222,8 @@ public class MigrationAndRepositoryTests
         var sync = repo.UpdateFromDto(loaded, dto, RelatedDeleteBehavior.RelationshipAndEntity);
         Assert.IsTrue(sync.IsSuccess, $"UpdateFromDto failed: {sync.ErrorMessage}");
 
-        // Before the db.Add(child) fix this throws DbUpdateConcurrencyException (UPDATE against a non-existent row).
+        // Inserts the navigation-added children. Succeeds because the key is ValueGeneratedNever;
+        // without that baseline EF would emit an UPDATE against a non-existent row and throw.
         await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
         // Verify the children actually persisted via a clean reload.
