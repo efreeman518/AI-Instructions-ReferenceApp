@@ -1,3 +1,4 @@
+using System.Linq;
 using AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -32,15 +33,25 @@ if (!isTesting)
 // Azure Storage (Blob) - emulator
 // Not using ContainerLifetime.Persistent - persistent emulator containers survive Aspire restarts
 // but get stranded on deleted Podman networks, causing netavark "eth2 already exists" errors.
-var storage = builder.AddAzureStorage("AzureStorage").RunAsEmulator();
+var storage = builder.AddAzureStorage("AzureStorage")
+    .RunAsEmulator(emulator => emulator.WithImageTag("latest"));
 var blobs = storage.AddBlobs("BlobStorage1");
 var tables = storage.AddTables("TableStorage1");
 
 // Azure Service Bus - emulator
-var serviceBus = builder.AddAzureServiceBus("ServiceBus1").RunAsEmulator();
+var serviceBus = builder.AddAzureServiceBus("ServiceBus1")
+    .RunAsEmulator(emulator => emulator.WithImageTag("latest"));
 var domainEventsTopic = serviceBus.AddServiceBusTopic("DomainEvents");
 domainEventsTopic.AddServiceBusSubscription("function-processor");
 serviceBus.AddServiceBusQueue("TaskCommands");
+
+// The Service Bus emulator bundles its own SQL Server sidecar (ServiceBus1-mssql); the Aspire package
+// hardcodes that image to an older tag, and RunAsEmulator's callback cannot reach it. Override it here so
+// it matches the `sql` container's 2025-latest tag - keeps the image set on latest and lets Docker share
+// layers instead of pulling a second SQL Server major version (cuts CI disk usage).
+builder.CreateResourceBuilder(
+        (ContainerResource)builder.Resources.Single(r => r.Name == "ServiceBus1-mssql"))
+    .WithImageTag("2025-latest");
 
 // Azure Cosmos DB - emulator (see AzureStorage comment re: Persistent lifetime)
 // Skipped in Testing: the emulator is heavy (~1.3 GB) and not needed for audit pipeline tests.

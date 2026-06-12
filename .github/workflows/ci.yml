@@ -24,6 +24,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Aspire/Integration tests pull several large container images (two SQL Server tags, azurite,
+      # service bus emulator, redis). The hosted runner's ~14 GB free disk overflows mid-pull
+      # ("no space left on device"), which surfaces as an AppHost resource-wait TimeoutException.
+      # Reclaim ~20+ GB (Android SDK, Haskell, large apt packages) before the Docker-backed steps run.
+      # Keep dotnet and the tool cache - the build depends on them.
+      - name: Free disk space
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includeIntegration || inputs.includeAspireMesh) }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          dotnet: false
+          android: true
+          haskell: true
+          large-packages: true
+          swap-storage: false
+
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: src/global.json
