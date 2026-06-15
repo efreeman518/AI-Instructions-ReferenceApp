@@ -25,12 +25,13 @@ Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bi
 
 ## AI Demos (Azure AI Foundry via Aspire)
 
-The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.IChatClient` backs every AI demo, including the FlowEngine `ai-agent` connector used by D9. The AppHost chooses the model source at startup:
+The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.IChatClient` backs every AI demo, including the FlowEngine `ai-agent` connector used by D9. Two independent axes apply: **lifecycle** (where the Foundry resource comes from) and **consumption** (this app consumes raw model inference; Foundry projects + server-hosted agents are an Azure-only escalation, documented as commented opt-ins - see *Projects and agents* below). The AppHost chooses the lifecycle/model source at startup:
 
 | Mode | How to enable | Model |
 |------|---------------|-------|
 | Foundry Local (on-device, no Azure) | set `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true` before `dotnet run --project src/Host/Aspire/AppHost` | `FoundryModel.Local.Qwen2505b` |
-| Real Azure AI Foundry | set `AiServices:FoundryEndpoint` (config/user-secrets) or `TASKFLOW_USE_AZURE_FOUNDRY=true` with Azure provisioning configured | `FoundryModel.OpenAI.Gpt4oMini` |
+| Provision new Azure AI Foundry | set `AiServices:FoundryEndpoint` (config/user-secrets) or `TASKFLOW_USE_AZURE_FOUNDRY=true` with Azure provisioning configured | `FoundryModel.OpenAI.Gpt4oMini` |
+| Connect to existing Azure AI Foundry | uncomment the `RunAsExisting` block in `AppHost.cs` and set `AiServices:FoundryResourceName` + `AiServices:FoundryResourceGroup` (the `chat` deployment must already exist there) | `FoundryModel.OpenAI.Gpt4oMini` |
 | Disabled (default) | neither variable set | no-op `IChatClient` (app boots; demos return "not configured") |
 | Publish | always | provisions a real Azure Foundry resource |
 
@@ -70,6 +71,25 @@ In this mode the AppHost calls `AddFoundry("foundry").AddDeployment("chat", Foun
 ### Run With AI Disabled
 
 Do nothing. When neither Foundry Local nor Azure Foundry is configured, the app still boots and registers a no-op `IChatClient`. D1-D8 return a "not configured" response instead of calling a model. D9 can start, but schema-constrained FlowEngine agent output is expected to fault because the no-op response is not valid model JSON.
+
+### Projects and agents (opt-in, Azure-only)
+
+The demos above use **code-hosted** agents - a `ChatClientAgent` running in-process over the injected `IChatClient`. That works with every lifecycle mode and boots offline. **Server-hosted** Foundry agents are an Azure-only escalation for hosted memory, centralized tools, or portal/IaC-managed agent definitions. They are documented and wired as commented opt-ins; nothing here runs by default.
+
+- **Aspire-modeled project + prompt agent** (commented in `AppHost.cs`). A project (`foundry.AddProject(...)`) is the container for server-hosted agents, deployments, and tool connections. A prompt agent (`project.AddPromptAgent(model, "name", instructions).WithTool(...)`) is declarative. Tools are project-level resources (code interpreter, web/AI-Search/Bing grounding, function calling). Note: **prompt agents always deploy to Azure Foundry, even under `aspire run`** - there is no offline path. Referencing the project injects `PROJ_URI` (the project endpoint) into the consuming host.
+
+- **Pre-existing agents via the client SDK** (commented in `TaskFlow.Api/Program.cs` `ConfigureChatClient`). When an agent is created in the Foundry portal or by IaC, connect to the existing project endpoint and drive it with `AIProjectClient.AsAIAgent(...)`. Add `Azure.AI.Projects` + `Microsoft.Agents.AI.Foundry`, set `AiServices:FoundryProjectEndpoint` (or read the Aspire-injected `PROJ_URI`) and `AiServices:FoundryAgentName`:
+
+  ```csharp
+  var project = new AIProjectClient(new Uri(projectEndpoint), credential);
+  // code-first responses agent (no server-side resource created):
+  AIAgent agent = project.AsAIAgent(model: deploymentName, name: "TaskAssistant", instructions: prompt);
+  // or bind to a pre-existing versioned agent by name:
+  var record = await project.AgentAdministrationClient.GetAgentAsync(agentName);
+  AIAgent agent = project.AsAIAgent(record);
+  ```
+
+  Both results are `Microsoft.Agents.AI.AIAgent`, so `ITaskAssistantAgent` can wrap either path - only construction differs from the code-hosted `ChatClientAgent`.
 
 Use the Aspire dashboard to discover the Gateway and Blazor URLs. Do not hardcode ports; Aspire allocates them per run. D4/D5/D6/D9 write or enqueue side effects and require the normal tenant/auth context. Local scaffold auth provides a predictable development tenant, but production verification should use a real authenticated tenant.
 

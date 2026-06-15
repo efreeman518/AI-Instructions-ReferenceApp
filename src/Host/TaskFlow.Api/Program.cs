@@ -94,6 +94,18 @@ void ConfigureChatClient()
     // over it. The deployment/model is taken from the connection string.
     builder.AddAzureChatCompletionsClient("chat")
         .AddChatClient();
+
+    // ALTERNATIVE (Azure-only, opt-in): instead of raw inference, consume a Foundry project +
+    // server-hosted agent. Set AiServices:FoundryProjectEndpoint (or read the Aspire-injected PROJ_URI)
+    // and add Azure.AI.Projects + Microsoft.Agents.AI.Foundry. Both results are Microsoft.Agents.AI.AIAgent,
+    // so ITaskAssistantAgent can wrap either path - only construction differs:
+    //
+    //   var project = new AIProjectClient(new Uri(projectEndpoint), CreateAzureCredential(config));
+    //   // code-first responses agent (no server-side resource created):
+    //   AIAgent agent = project.AsAIAgent(model: deploymentName, name: "TaskAssistant", instructions: prompt);
+    //   // or bind to a pre-existing agent created in the portal/IaC, by name:
+    //   var record = await project.AgentAdministrationClient.GetAgentAsync(config["AiServices:FoundryAgentName"]);
+    //   AIAgent agent = project.AsAIAgent(record);
 }
 
 void ConfigureDataProtection()

@@ -21,4 +21,18 @@ public class TaskFlowAiSettings
     // TODO: [CONFIGURE] Set to your Azure AI Search endpoint
     public string? SearchEndpoint { get; set; }
     public string SearchIndexName { get; set; } = "taskitems-index";
+
+    // OPT-IN: connect to an EXISTING Azure AI Foundry account instead of provisioning a new one.
+    // These feed the AppHost RunAsExisting/PublishAsExisting parameters (commented in AppHost.cs).
+    // TODO: [CONFIGURE] Existing Foundry account name + resource group
+    public string? FoundryResourceName { get; set; }
+    public string? FoundryResourceGroup { get; set; }
+
+    // OPT-IN (Azure-only): consume a Foundry project / server-hosted (prompt or pre-existing) agent.
+    // FoundryProjectEndpoint is the project URI (or the Aspire-injected PROJ_URI); FoundryAgentName is
+    // the id/name of a pre-existing agent created in the portal/IaC. Both empty -> the app uses the
+    // code-hosted ChatClientAgent over the injected IChatClient. See TaskFlow.Api Program.cs.
+    // TODO: [CONFIGURE] Foundry project endpoint + pre-existing agent name
+    public string? FoundryProjectEndpoint { get; set; }
+    public string? FoundryAgentName { get; set; }
 }

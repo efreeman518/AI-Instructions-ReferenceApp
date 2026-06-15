@@ -63,6 +63,8 @@ hostGates:
 
 Tracked in [REFERENCE-STATUS.md Section  Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
 
+AI Foundry option surfaces beyond the default inference path are documented as commented opt-ins, not wired: existing-account `RunAsExisting` and a Foundry project + prompt agent in `AppHost.cs`, and the pre-existing-agent client path (`AIProjectClient.AsAIAgent`) in `TaskFlow.Api/Program.cs`. See README "AI Demos" -> "Projects and agents". Enabling any requires Azure (prompt agents deploy to Azure even under `aspire run`).
+
 ## Resume Protocol
 
 To start a new scaffold session against this repo, the next AI session loads `START-AI.md` (from the sister scaffold install) + this file. Because all phases are complete, a new session should treat this as a maintenance run: update `.scaffold/REFERENCE-STATUS.md` after any change that moves build/test/vulnerability state, and commit in the same commit.

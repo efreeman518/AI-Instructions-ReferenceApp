@@ -63,11 +63,22 @@ if (!isTesting)
         .RunAsEmulator();
 }
 
-// AI: Azure AI Foundry chat model. Three run-mode behaviors, one publish behavior:
-//  - Publish, OR a real Azure Foundry endpoint configured -> provision/connect an Azure deployment.
-//  - Else, Foundry Local opted in -> run a model on-device (no Azure subscription needed).
-//  - Else -> no "chat" resource is wired; the API registers a no-op IChatClient and still boots.
-// The "chat" deployment resource name is the connection name consumers bind to (CHAT_ENDPOINT/etc.).
+// AI: Azure AI Foundry. Two independent axes - lifecycle x consumption.
+//
+// Axis 1 - lifecycle (where the Foundry resource comes from):
+//  - Foundry Local       -> RunAsFoundryLocal(), runs a model on-device (no Azure subscription).
+//  - Provision new       -> AddFoundry(...).AddDeployment(...), Bicep creates account + model on publish
+//                           (and in run mode when Azure provisioning secrets are set).
+//  - Connect to existing -> RunAsExisting/PublishAsExisting against an already-provisioned account
+//                           (see the commented block below). Deployment name must already exist there.
+//  - Disabled            -> no "chat" resource; the API registers a no-op IChatClient and still boots.
+//
+// Axis 2 - consumption: this app consumes raw model inference (IChatClient over the "chat" deployment;
+// the resource name is the connection name consumers bind to, CHAT_ENDPOINT/etc.). Foundry projects +
+// server-hosted agents (AddProject/AddPromptAgent, or pre-existing agents via the client SDK) are an
+// Azure-only escalation - see the commented "Foundry project + prompt agent" block after the API host
+// and README "AI Demos" -> "Projects and agents". They are documented but not wired by default.
+//
 // Skipped entirely in Testing to keep Aspire integration tests fast and Azure-free.
 IResourceBuilder<FoundryDeploymentResource>? chat = null;
 if (!isTesting)
@@ -84,6 +95,16 @@ if (!isTesting)
         // when Azure provisioning is configured (azd / user secrets).
         var foundry = builder.AddFoundry("foundry");
         chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
+
+        // OPT-IN: connect to an EXISTING Azure Foundry account instead of provisioning a new one.
+        // The "chat" deployment must already exist in that account. RunAsExisting binds in run mode;
+        // PublishAsExisting binds the published graph. Parameters resolve from config/user-secrets
+        // (Parameters:foundry-name / Parameters:foundry-rg). Uncomment and set AiServices:FoundryResourceName
+        // + AiServices:FoundryResourceGroup to use it.
+        // var foundryName = builder.AddParameter("foundry-name");
+        // var foundryRg = builder.AddParameter("foundry-rg");
+        // chat = builder.AddFoundry("foundry").RunAsExisting(foundryName, foundryRg)
+        //     .AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
     }
     else if (foundryLocalEnabled)
     {
@@ -113,6 +134,24 @@ if (chat is not null)
 {
     api = api.WithReference(chat);
 }
+
+// OPT-IN (Azure-only): Foundry project + server-hosted prompt agent.
+// A project is the container for server-hosted agents, deployments, and tool connections. A prompt
+// agent is a declarative agent (model + instructions + tools). Prompt agents ALWAYS deploy to Azure
+// Foundry, even under `aspire run` - there is no offline path - so this stays commented by default.
+// Referencing the project injects PROJ_URI (the project endpoint) into the API; consume pre-existing
+// agents at runtime with AIProjectClient.AsAIAgent(...) (see TaskFlow.Api Program.cs ConfigureChatClient).
+//
+// var foundry = builder.AddFoundry("foundry");
+// var project = foundry.AddProject("taskflow-project");
+// var projectChat = project.AddModelDeployment("chat", FoundryModel.OpenAI.Gpt41);
+// var codeInterp = project.AddCodeInterpreterTool("code-interp");
+// var webSearch = project.AddWebSearchTool("web-search");
+// var assistant = project.AddPromptAgent(projectChat, "task-assistant",
+//         instructions: "You are an assistant for TaskFlow.")
+//     .WithTool(codeInterp)
+//     .WithTool(webSearch);
+// api = api.WithReference(project);   // or .WithReference(assistant)
 
 if (isTesting)
 {
