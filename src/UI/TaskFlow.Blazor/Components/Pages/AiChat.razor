@@ -1,0 +1,186 @@
+@page "/ai-chat"
+@using System.Text
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IHttpClientFactory HttpClientFactory
+@inject ISnackbar Snackbar
+
+<PageTitle>AI Chat</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">AI Demos</MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Talks to the Azure AI Foundry demo endpoints through the gateway. Chat and Stream use a raw
+    IChatClient; Agent uses the tool-calling TaskAssistant; Next action uses the read-only advisor.
+</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="ChatMode" @bind-Value="_mode" Label="Mode" Dense="true">
+                <MudSelectItem Value="ChatMode.Chat">Chat (one-shot)</MudSelectItem>
+                <MudSelectItem Value="ChatMode.Stream">Chat (streaming)</MudSelectItem>
+                <MudSelectItem Value="ChatMode.Agent">Agent (tools)</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="8" Class="d-flex align-end">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Lightbulb"
+                       OnClick="SuggestNextActionAsync" Disabled="_busy" Class="ml-auto">
+                Suggest next action
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTextField @bind-Value="_input" Label="Message" Lines="2" Class="mt-3"
+                  Variant="Variant.Outlined" Immediate="true"
+                  OnKeyDown="@(e => { if (e.Key == "Enter" && e.CtrlKey) _ = SendAsync(); })" />
+
+    <div class="d-flex mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Send"
+                   OnClick="SendAsync" Disabled="@(_busy || string.IsNullOrWhiteSpace(_input))">
+            Send
+        </MudButton>
+        @if (_busy)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ml-3 align-self-center" />
+        }
+    </div>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="1" Style="min-height: 240px;">
+    @if (_messages.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">No messages yet.</MudText>
+    }
+    @foreach (var m in _messages)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@m.Role</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3" Style="white-space: pre-wrap;">@m.Text</MudText>
+    }
+</MudPaper>
+
+@code {
+    private enum ChatMode { Chat, Stream, Agent }
+
+    private record ChatLine(string Role, string Text);
+
+    private ChatMode _mode = ChatMode.Chat;
+    private string _input = string.Empty;
+    private bool _busy;
+    private string? _conversationId;
+    private readonly List<ChatLine> _messages = [];
+
+    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
+
+    private async Task SendAsync()
+    {
+        if (_busy || string.IsNullOrWhiteSpace(_input))
+            return;
+
+        var message = _input.Trim();
+        _input = string.Empty;
+        _messages.Add(new ChatLine("You", message));
+        _busy = true;
+
+        try
+        {
+            switch (_mode)
+            {
+                case ChatMode.Chat:
+                    await SendChatAsync(message);
+                    break;
+                case ChatMode.Stream:
+                    await SendStreamAsync(message);
+                    break;
+                case ChatMode.Agent:
+                    await SendAgentAsync(message);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"AI request failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SendChatAsync(string message)
+    {
+        var client = HttpClientFactory.CreateClient("TaskFlowAi");
+        var resp = await client.PostAsJsonAsync("/api/v1/ai/chat", new { message });
+        var body = await resp.Content.ReadFromJsonAsync<ChatResult>(Json);
+        _messages.Add(new ChatLine("AI", body?.Message ?? "(no response)"));
+    }
+
+    private async Task SendStreamAsync(string message)
+    {
+        var client = HttpClientFactory.CreateClient("TaskFlowAi");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/chat/stream")
+        {
+            Content = JsonContent.Create(new { message })
+        };
+        using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+        resp.EnsureSuccessStatusCode();
+
+        var line = new ChatLine("AI", string.Empty);
+        _messages.Add(line);
+        var sb = new StringBuilder();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        string? raw;
+        while ((raw = await reader.ReadLineAsync()) is not null)
+        {
+            // Server-Sent Events: accumulate the text from each "data:" line.
+            if (raw.StartsWith("data:", StringComparison.Ordinal))
+            {
+                sb.Append(raw.AsSpan(5).TrimStart());
+                var index = _messages.IndexOf(line);
+                line = line with { Text = sb.ToString() };
+                _messages[index] = line;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task SendAgentAsync(string message)
+    {
+        var client = HttpClientFactory.CreateClient("TaskFlowAi");
+        var resp = await client.PostAsJsonAsync("/api/v1/agent/chat",
+            new { message, conversationId = _conversationId });
+        var body = await resp.Content.ReadFromJsonAsync<AgentResult>(Json);
+        _conversationId = body?.ConversationId ?? _conversationId;
+        _messages.Add(new ChatLine("Agent", body?.Message ?? "(no response)"));
+    }
+
+    private async Task SuggestNextActionAsync()
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("TaskFlowAi");
+            var resp = await client.PostAsync("/api/v1/ai/next-action", content: null);
+            var body = await resp.Content.ReadFromJsonAsync<NextActionResult>(Json);
+            _messages.Add(new ChatLine("Advisor", body?.Recommendation ?? "(no recommendation)"));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Next-action request failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private record ChatResult(string Message, bool IsConfigured);
+    private record AgentResult(string Message, string ConversationId, bool IsConfigured);
+    private record NextActionResult(string Recommendation, bool IsConfigured);
+}

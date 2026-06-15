@@ -1,5 +1,6 @@
 using System.Linq;
 using AppHost;
+using Aspire.Hosting.Foundry;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -62,12 +63,37 @@ if (!isTesting)
         .RunAsEmulator();
 }
 
-// AI resources (deployment-only - no emulator available)
-// TODO: [CONFIGURE] Uncomment when Azure AI resources are provisioned
-// var openai = builder.AddAzureOpenAI("openai")
-//     .AddDeployment(new("gpt-4o-deploy", "gpt-4o", "2024-08-06", "GlobalStandard", 10))
-//     .AddDeployment(new("embedding-deploy", "text-embedding-3-small", "1", "GlobalStandard", 10));
-// var search = builder.AddAzureSearch("search");
+// AI: Azure AI Foundry chat model. Three run-mode behaviors, one publish behavior:
+//  - Publish, OR a real Azure Foundry endpoint configured -> provision/connect an Azure deployment.
+//  - Else, Foundry Local opted in -> run a model on-device (no Azure subscription needed).
+//  - Else -> no "chat" resource is wired; the API registers a no-op IChatClient and still boots.
+// The "chat" deployment resource name is the connection name consumers bind to (CHAT_ENDPOINT/etc.).
+// Skipped entirely in Testing to keep Aspire integration tests fast and Azure-free.
+IResourceBuilder<FoundryDeploymentResource>? chat = null;
+if (!isTesting)
+{
+    var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
+        || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
+        || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true";
+    var foundryLocalEnabled =
+        Environment.GetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL") == "true";
+
+    if (azureFoundryConfigured)
+    {
+        // Provisions an Azure AI Foundry account + deployment on publish; connects to it in run mode
+        // when Azure provisioning is configured (azd / user secrets).
+        var foundry = builder.AddFoundry("foundry");
+        chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
+    }
+    else if (foundryLocalEnabled)
+    {
+        // Runs the model locally via Foundry Local (requires the Foundry Local runtime installed:
+        // `winget install Microsoft.FoundryLocal`). No Azure subscription required. Use a
+        // tool-capable model so ChatClientAgent demos can exercise function calling on-device.
+        var foundry = builder.AddFoundry("foundry").RunAsFoundryLocal();
+        chat = foundry.AddDeployment("chat", FoundryModel.Local.Qwen2505b);
+    }
+}
 
 // API host
 var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
@@ -77,11 +103,16 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WithReference(tables)
     .WithReference(blobs)
     .WithReference(serviceBus)
-    // .WithReference(openai)
-    // .WithReference(search)
     .WaitFor(sql)
     .WaitFor(redis)
     .WaitFor(serviceBus);
+
+// Wire the Foundry chat model into the API when a deployment was created (injects CHAT_ENDPOINT,
+// CHAT_APIKEY, CHAT_DEPLOYMENT). Absent -> the API falls back to a no-op IChatClient.
+if (chat is not null)
+{
+    api = api.WithReference(chat);
+}
 
 if (isTesting)
 {
@@ -122,6 +153,12 @@ if (!isTesting)
         .WaitFor(gateway)
         .WithExternalHttpEndpoints();
 
+    builder.AddProject<Projects.TaskFlow_Blazor>("taskflowblazor")
+        .WithReference(gateway)
+        .WithEnvironment("Gateway__BaseUrl", gateway.GetEndpoint("http"))
+        .WaitFor(gateway)
+        .WithExternalHttpEndpoints();
+
     builder.AddProject<Projects.TaskFlow_Uno_WasmHost>("taskflowuno")
         .WithReference(gateway)
         .WaitFor(gateway)
@@ -145,6 +182,12 @@ if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS
     if (!string.IsNullOrWhiteSpace(applicationStyle))
     {
         functions.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
+    }
+
+    // Wire the Foundry chat model into Functions for the event-driven AI readiness review (D6).
+    if (chat is not null)
+    {
+        functions.WithReference(chat);
     }
 }
 

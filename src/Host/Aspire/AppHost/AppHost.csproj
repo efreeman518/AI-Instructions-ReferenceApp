@@ -15,6 +15,7 @@
     <PackageReference Include="Aspire.Hosting.Azure.Functions" />
     <PackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
     <PackageReference Include="Aspire.Hosting.Azure.Search" />
+    <PackageReference Include="Aspire.Hosting.Foundry" />
     <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <PackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
@@ -27,6 +28,7 @@
     <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />
+    <ProjectReference Include="..\..\..\UI\TaskFlow.Blazor\TaskFlow.Blazor.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Uno.WasmHost\TaskFlow.Uno.WasmHost.csproj" />
   </ItemGroup>
 

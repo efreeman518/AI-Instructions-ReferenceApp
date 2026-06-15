@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace TaskFlow.Infrastructure.Data;
 
-// FlowEngine v1.0.104 composition pattern: this context inherits the standard DbContext and
+// FlowEngine SQL composition pattern: this context inherits the standard DbContext and
 // opts into state + outbox + circuit-breaker by implementing the matching interfaces and
 // applying the mixin extensions in OnModelCreating. The same SaveChangesAsync persists
 // workflow execution rows alongside the outbox staging rows, preserving the atomic

@@ -1,12 +1,11 @@
-using Azure.AI.OpenAI;
 using EF.FlowEngine;
 using EF.FlowEngine.AdminApi;
+using EF.FlowEngine.Clients.AI;
 using EF.FlowEngine.Clients.Http;
-using EF.FlowEngine.Clients.OpenAI;
 using EF.FlowEngine.Clients.ServiceBus;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Bootstrapper;
@@ -14,14 +13,14 @@ namespace TaskFlow.Bootstrapper;
 /// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
 public static partial class RegisterServices
 {
-    // FlowEngine v1.0.104 wiring - engine runtime + connector clients + JSON workflow seeding.
+    // FlowEngine wiring - engine runtime + connector clients + JSON workflow seeding.
     // The 19 built-in node executors are auto-registered by AddFlowEngine() in this version.
     // Engine state + outbox live in TaskFlowFlowEngineDbContext (separate schema, shared SQL connection).
     // The Dashboard + Designer live in TaskFlow.Blazor and call into MapFlowEngineAdmin via the gateway.
     /// <summary>
     /// Wires FlowEngine runtime state, locks, registry, human tasks, outbox, circuit breaker,
     /// connector clients, JSON workflow seeding, and admin policies. It is registered after AI
-    /// services so agent connectors can resolve AzureOpenAIClient when live AI is configured.
+    /// services so agent connectors can resolve the Aspire-wired chat client.
     /// </summary>
     private static void AddFlowEngineServices(IServiceCollection services, IConfiguration config)
     {
@@ -48,7 +47,7 @@ public static partial class RegisterServices
     /// <summary>
     /// Registers external connectors used by workflow nodes. Self-call HTTP goes through the public
     /// API to preserve auth, validation, audit, and integration events; Service Bus shares the app
-    /// event connection; Azure OpenAI is optional and only registered when Foundry config exists.
+    /// event connection; the agent client uses the shared IChatClient for local and Azure models.
     /// </summary>
     private static void AddTaskFlowConnectorClients(
         FlowEngineBuilder fe,
@@ -73,25 +72,16 @@ public static partial class RegisterServices
             fe.AddServiceBusClient("integration-events", sbConnStr, topic);
         }
 
-        // Azure OpenAI agent client - v1.0.104 introduces AddAzureOpenAIAgentClient,
-        // which takes the AzureOpenAIClient factory + deployment/model names directly
-        // instead of an Microsoft.Extensions.AI.IChatClient adapter.
-        var foundryEndpoint = config[$"{TaskFlowAiSettings.ConfigSectionName}:FoundryEndpoint"];
-        var chatDeployment = config[$"{TaskFlowAiSettings.ConfigSectionName}:ChatDeployment"] ?? "gpt-4o";
-        if (!string.IsNullOrWhiteSpace(foundryEndpoint))
-        {
-            fe.AddAzureOpenAIAgentClient(
-                clientRef: "ai-agent",
-                azureClientFactory: sp => sp.GetRequiredService<AzureOpenAIClient>(),
-                deploymentName: chatDeployment,
-                modelName: chatDeployment);
-        }
+        // Agent workflow nodes share the same host-provided IChatClient as the rest of the AI demos.
+        fe.AddChatClientAgentClient(
+            clientRef: "ai-agent",
+            chatClientFactory: sp => sp.GetRequiredService<IChatClient>());
     }
 
     // JSON workflow definitions live in TaskFlow.Api/Workflows/. The seeding service is a
     // hosted service that runs once at startup, skipping the directory if it does not exist
     // (e.g. when this assembly is loaded by TaskFlow.Functions or TaskFlow.Scheduler).
-    // Replaces the bespoke WorkflowSeedStartupTask in pre-1.0.104 versions.
+    // Replaces the bespoke WorkflowSeedStartupTask used by older local wiring.
     /// <summary>
     /// Seeds workflow definitions from TaskFlow.Api/Workflows when that directory is present in
     /// the running host output. Other hosts can load this assembly without requiring workflow files.

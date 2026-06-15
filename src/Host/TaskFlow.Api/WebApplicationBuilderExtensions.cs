@@ -142,6 +142,7 @@ public static class WebApplicationBuilderExtensions
 
         api.MapSearchEndpoints();
         api.MapAgentEndpoints();
+        api.MapAiDemoEndpoints();
         api.MapTaskViewEndpoints();
     }
 }

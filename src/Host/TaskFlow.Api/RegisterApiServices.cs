@@ -34,7 +34,7 @@ public static class RegisterApiServices
         AddVersionedOpenApi(services, config);
 
         // Workflow JSON seeding is now configured in the bootstrapper via
-        // FlowEngineBuilder.AddWorkflowJsonSeeding (EF.FlowEngine v1.0.104+).
+        // FlowEngineBuilder.AddWorkflowJsonSeeding.
         // The seeding hosted service auto-discovers ./Workflows at startup.
 
         return services;

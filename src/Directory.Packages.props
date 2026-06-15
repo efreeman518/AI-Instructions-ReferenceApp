@@ -33,19 +33,19 @@
   </ItemGroup>
   <ItemGroup Label="EF.Packages.Enterprise (Private Feed)">
     <PackageVersion Include="EF.FilterBuilder" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Clients.OpenAI" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.129" />
+    <PackageVersion Include="EF.FlowEngine" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Clients.AI" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.132" />
+    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.132" />
   </ItemGroup>
   <ItemGroup Label="Microsoft Entity Framework Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
@@ -85,7 +85,7 @@
     <PackageVersion Include="KubernetesClient" Version="19.0.2" />
   </ItemGroup>
   <ItemGroup Label="YARP">
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.2" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.3" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.7.0" />
   </ItemGroup>
@@ -105,8 +105,8 @@
   </ItemGroup>
   <ItemGroup Label="OpenTelemetry">
     <PackageVersion Include="OpenTelemetry.Api" Version="1.11.2" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
@@ -159,9 +159,14 @@
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Search.Documents" Version="12.0.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.9.0" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.10.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.4.3" />
     <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.4.3" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.3" />
+    <!-- Foundry hosting + Azure AI Inference client are preview-only (no stable release exists); pinned to the 13.4.3 Aspire train to match the other Aspire.Hosting.* packages. -->
+    <PackageVersion Include="Aspire.Hosting.Foundry" Version="13.4.3-preview.1.26305.13" />
+    <PackageVersion Include="Aspire.Azure.AI.Inference" Version="13.4.3-preview.1.26305.13" />
   </ItemGroup>
 </Project>

@@ -46,6 +46,14 @@ builder.Services
     // No auth handler yet - gateway dev mode accepts unauthenticated requests.
     .AddStandardResilienceHandler();
 
+// Raw HTTP client for the AI demo endpoints (the typed Refit client does not cover the AI routes,
+// and the streaming chat demo needs raw Server-Sent Events). Points at the gateway like the others.
+builder.Services.AddHttpClient("TaskFlowAi", client =>
+{
+    client.BaseAddress = new Uri(gatewayBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(2);
+});
+
 // FlowEngine Dashboard - talks to TaskFlow.Api's MapFlowEngineAdmin via the gateway.
 // Pages contributed by the package are picked up via Routes.razor's AdditionalAssemblies.
 var flowEngineAdminBaseUrl = builder.Configuration["FlowEngine:AdminApiBaseUrl"]

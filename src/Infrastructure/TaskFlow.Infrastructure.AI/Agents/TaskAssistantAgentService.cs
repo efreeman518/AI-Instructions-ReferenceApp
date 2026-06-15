@@ -1,15 +1,13 @@
 using System.Reflection;
-using Azure.AI.OpenAI;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OpenAI.Chat;
 
 namespace TaskFlow.Infrastructure.AI.Agents;
 
 /// <summary>
-/// Live task assistant backed by Azure OpenAI and Microsoft Agents. It loads the embedded
+/// Live task assistant backed by a Microsoft.Extensions.AI <see cref="IChatClient"/> (wired by Aspire
+/// to Foundry Local or Azure AI Foundry) and the Microsoft Agent Framework. It loads the embedded
 /// system prompt, exposes TaskItemTools as function tools, and keeps one agent session per DI scope.
 /// </summary>
 public class TaskAssistantAgentService : ITaskAssistantAgent
@@ -23,42 +21,43 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
     /// <summary>Initializes task assistant agent service with required dependencies and default state.</summary>
     public TaskAssistantAgentService(
         ILogger<TaskAssistantAgentService> logger,
-        AzureOpenAIClient openAiClient,
-        IOptions<TaskFlowAiSettings> settings,
+        IChatClient chatClient,
         Tools.TaskItemTools tools)
     {
         _logger = logger;
 
         var systemPrompt = ReadEmbeddedPrompt("TaskAssistant.system-prompt.txt");
 
-        _agent = openAiClient
-            .GetChatClient(settings.Value.AgentModelDeployment)
-            .AsAIAgent(
-                instructions: systemPrompt,
-                name: "TaskAssistant",
-                tools:
-                [
-                    AIFunctionFactory.Create(
-                        tools.SearchTasks,
-                        "SearchTasks",
-                        "Search for tasks by keyword, with optional status and priority filters"),
-                    AIFunctionFactory.Create(
-                        tools.GetTaskDetails,
-                        "GetTaskDetails",
-                        "Get full details of a specific task by its ID"),
-                    AIFunctionFactory.Create(
-                        tools.CreateTask,
-                        "CreateTask",
-                        "Create a new task with a title, optional description, and optional priority"),
-                    AIFunctionFactory.Create(
-                        tools.UpdateTaskStatus,
-                        "UpdateTaskStatus",
-                        "Update the status of an existing task (Open, InProgress, Completed, Cancelled, Blocked)"),
-                    AIFunctionFactory.Create(
-                        tools.SummarizeBacklog,
-                        "SummarizeBacklog",
-                        "Get a summary of all tasks grouped by status with overdue count")
-                ]);
+        // ChatClientAgent runs the agent loop (including function-tool invocation) over the injected
+        // IChatClient, so the same agent works against any Foundry model the host wired.
+        _agent = new ChatClientAgent(
+            chatClient,
+            instructions: systemPrompt,
+            name: "TaskAssistant",
+            description: "Assists with TaskFlow task management.",
+            tools:
+            [
+                AIFunctionFactory.Create(
+                    tools.SearchTasks,
+                    "SearchTasks",
+                    "Search for tasks by keyword, with optional status and priority filters"),
+                AIFunctionFactory.Create(
+                    tools.GetTaskDetails,
+                    "GetTaskDetails",
+                    "Get full details of a specific task by its ID"),
+                AIFunctionFactory.Create(
+                    tools.CreateTask,
+                    "CreateTask",
+                    "Create a new task with a title, optional description, and optional priority"),
+                AIFunctionFactory.Create(
+                    tools.UpdateTaskStatus,
+                    "UpdateTaskStatus",
+                    "Update the status of an existing task (Open, InProgress, Completed, Cancelled, Blocked)"),
+                AIFunctionFactory.Create(
+                    tools.SummarizeBacklog,
+                    "SummarizeBacklog",
+                    "Get a summary of all tasks grouped by status with overdue count")
+            ]);
     }
 
     /// <summary>Provides the chat operation for task assistant agent service.</summary>

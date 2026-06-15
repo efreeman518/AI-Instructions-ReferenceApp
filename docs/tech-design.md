@@ -1,7 +1,7 @@
 # TaskFlow - Technical Design Document
 
 > **Audience**: Developers onboarding to the project  
-> **Last updated**: May 2026
+> **Last updated**: June 2026
 
 ---
 
@@ -43,8 +43,8 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 | **Messaging** | Azure Service Bus (topics + queues) |
 | **Read Model** | Azure Cosmos DB (denormalized projections) |
 | **File Storage** | Azure Blob Storage |
-| **AI** | Azure AI Search + Azure OpenAI (stubs) |
-| **Workflow Orchestration** | EF.FlowEngine 1.0.104 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
+| **AI** | Azure AI Search + Azure AI Foundry / Foundry Local via `IChatClient` (no-op fallback) |
+| **Workflow Orchestration** | EF.FlowEngine 1.0.132 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
 | **Auth** | Microsoft Entra ID (External) / Scaffold mode |
 | **Observability** | OpenTelemetry (OTLP), Aspire Dashboard |
 | **Testing** | MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, Stryker.NET, BenchmarkDotNet, NBomber, Playwright |
@@ -57,7 +57,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 - **Multi-Tenant First** - Tenant isolation at query filter, service, and authorization layers
 - **Event-Driven** - Integration events flow through Service Bus to Azure Functions for async processing
 - **Config-Driven Auth** - Single build, multiple deployment profiles (dev scaffold vs Entra ID prod)
-- **Emulator-Ready** - All Azure services run as local emulators via Aspire; no cloud account needed for development
+- **Local-First Runtime** - Core infrastructure runs through Aspire emulators; AI can run fully local through Foundry Local, against real Azure AI Foundry, or as a no-op fallback with no cloud credentials
 
 ---
 
@@ -78,13 +78,13 @@ C4Context
 
     System_Ext(entra, "Microsoft Entra ID", "Identity & access management")
     System_Ext(aisearch, "Azure AI Search", "Hybrid/vector task search")
-    System_Ext(openai, "Azure OpenAI", "Agent chat, AI features")
+    System_Ext(openai, "Azure AI Foundry / Foundry Local", "Chat model, tool-calling agent features")
 
     Rel(user, taskflow, "Uses", "HTTPS")
     Rel(admin, taskflow, "Administers", "HTTPS")
     Rel(taskflow, entra, "Authenticates via", "OAuth 2.0 / OIDC")
     Rel(taskflow, aisearch, "Searches tasks", "REST")
-    Rel(taskflow, openai, "AI agent chat", "REST")
+    Rel(taskflow, openai, "AI chat and agent calls", "REST")
 
     UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
@@ -820,7 +820,7 @@ graph TB
         subgraph identity["Identity & AI"]
             ENTRA["Microsoft Entra ID"]
             SEARCH["Azure AI Search"]
-            OAI["Azure OpenAI"]
+            OAI["Azure AI Foundry"]
         end
     end
 
@@ -1366,7 +1366,7 @@ The YARP Gateway acts as a **Backend-for-Frontend (BFF)**:
 
 ## 14. Workflow Orchestration (FlowEngine)
 
-TaskFlow embeds **EF.FlowEngine 1.0.104** as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:
+TaskFlow embeds **EF.FlowEngine 1.0.132** as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:
 
 - **Domain events + Service Bus + Functions** still own per-event side effects (Cosmos projection, AI search indexing, blob processing).
 - **TickerQ scheduler** still owns timer-driven cron jobs (overdue checks, recurring task generation, stale cleanup).
@@ -1377,7 +1377,7 @@ TaskFlow embeds **EF.FlowEngine 1.0.104** as a long-running, durable, human-in-t
 | Capability | What it gives the reference app |
 |---|---|
 | **Stateful suspend/resume** | A workflow waiting on a 24-hour human approval survives API restarts, deploys, and scale-out. |
-| **AI agent nodes** | `agent` node type wraps Azure OpenAI with output-schema validation, retry, idempotency keys, prompt versioning. |
+| **AI agent nodes** | `agent` node type wraps the Aspire-wired `IChatClient` with output-schema validation, retry, idempotency keys, prompt versioning. |
 | **Human task nodes** | `human` node type produces durable records (assignee role, due date, quorum, escalation) consumed by the dashboard's human-task UI. |
 | **Saga compensation** | `compensationNodeId` on a node provides an inverse action invoked when a later node in the same instance faults. |
 | **Atomic outbox** | `message` / `integration` / `agent` side effects are staged in the same `SaveChangesAsync` that persists workflow state - no torn-write between state save and external dispatch. |
@@ -1390,7 +1390,7 @@ All 13 FlowEngine packages are pinned at the same version in `Directory.Packages
 
 | Package | Project that references it | Purpose |
 |---|---|---|
-| `EF.FlowEngine` | Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine | Core runtime: engine, executor pipeline, definition model, built-in node executors (auto-registered in 1.0.104). |
+| `EF.FlowEngine` | Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine | Core runtime: engine, executor pipeline, definition model, built-in node executors. |
 | `EF.FlowEngine.StateStore.Sql` | Infrastructure.Data | `IFlowEngineStateDbContext` mixin + `SqlExecutionStateStore`. |
 | `EF.FlowEngine.Locks.Sql` | Bootstrapper | SQL-backed distributed lock provider for engine sweeps + leases. |
 | `EF.FlowEngine.WorkflowRegistry.Sql` | Bootstrapper, Infrastructure.Data | `IWorkflowRegistry` over SQL. |
@@ -1399,7 +1399,7 @@ All 13 FlowEngine packages are pinned at the same version in `Directory.Packages
 | `EF.FlowEngine.CircuitBreaker.Sql` | Bootstrapper, Infrastructure.Data | `IFlowEngineCircuitBreakerDbContext` mixin - durable breaker state. |
 | `EF.FlowEngine.Clients.Http` | Bootstrapper | Resilient HTTP client for `integration` nodes. |
 | `EF.FlowEngine.Clients.ServiceBus` | Bootstrapper | Service Bus client for `message` nodes. |
-| `EF.FlowEngine.Clients.OpenAI` | Bootstrapper | Azure OpenAI client for `agent` nodes. |
+| `EF.FlowEngine.Clients.AI` | Bootstrapper | `Microsoft.Extensions.AI.IChatClient` connector for `agent` nodes. |
 | `EF.FlowEngine.AdminApi` | Bootstrapper, TaskFlow.Api | REST endpoints under `/api/flowengine/*` + auth policies. |
 | `EF.FlowEngine.Dashboard` | TaskFlow.Blazor | Blazor pages (registry, designer, run, instances, human tasks, breakers). |
 | `EF.FlowEngine.Testing` | Test.Integration.FlowEngine | In-memory registry and helpers for fast unit/integration tests. |
@@ -1447,7 +1447,7 @@ graph LR
 
 | Workflow | Trigger | Params | Notable patterns |
 |---|---|---|---|
-| **ai-task-triage** | Manual today; intended to fire on `TaskItemCreatedEvent` via `IWorkflowTrigger` (see Section 14.6) | `tenantId`, `taskId`, `description` (required) | 2-of-3 human quorum, 12 h escalation, saga `compensationNodeId` revert on downstream fault, idempotency keys on every side-effect node |
+| **ai-task-triage** | Automatic on `TaskItemCreatedEvent` via Functions + `IWorkflowTrigger`; manual dashboard runs still supported | `tenantId`, `taskId`, `description` (required) | 2-of-3 human quorum, 12 h escalation, saga `compensationNodeId` revert on downstream fault, idempotency keys on every side-effect node |
 | **ai-task-decomposer** | Manual / dashboard | `tenantId`, `taskId`, `description`, `requireApproval` (optional) | Conditional human review, sequential `loop` to create N children via API |
 | **compliance-check** | Manual / dashboard / future cron via TickerQ | `tenantId`, `windowDays` (default 7) | Parallel `loop` with bounded concurrency (max 5), `query` node using FilterBuilder, `document` node for evidence retrieval |
 
@@ -1500,19 +1500,58 @@ Three connector clients are registered in `AddTaskFlowConnectorClients`:
 |---|---|---|
 | `taskflow-api` | Resilient HTTP | Base URL = `FlowEngine:TaskFlowApiBaseUrl` ?? `Gateway:BaseUrl`. Self-call - workflows mutate TaskItems through the public API to preserve auth, validation, audit, and event publishing. Used by `n-apply-priority`, `n-compensate-reject`, `n-create-subtasks`, `n-revert-priority`. |
 | `integration-events` | Service Bus | Connection from `ServiceBus1`; topic from `FlowEngine:ServiceBusTopic` (default `taskflow-integration-events`). Registers only when the connection string is present. Used by `n-publish-event`, `n-publish-decomposed`. |
-| `ai-agent` | Azure OpenAI | Resolves the existing DI-registered `AzureOpenAIClient` from `Infrastructure.AI` via factory lambda; reads `TaskFlowAiSettings:ChatDeployment` (default `gpt-4o`) and `:FoundryEndpoint`. Registers only when `FoundryEndpoint` is set. Used by `n-classify`, `n-propose-subtasks`, `n-extract`. |
+| `ai-agent` | `IChatClient` | Resolves the shared host-registered `Microsoft.Extensions.AI.IChatClient` via `EF.FlowEngine.Clients.AI`. The client is real when Aspire wires a `chat` deployment and no-op otherwise. Used by `n-classify`, `n-propose-subtasks`, `n-extract`. |
 
-The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate the OpenAI client; it borrows the one already registered in `Infrastructure.AI.AddAiServices()`. When `FoundryEndpoint` is absent the `agent` nodes will not register and any workflow with an `agent` step will fault on `n-classify` - that's the expected scaffold-mode posture.
+The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate model configuration; it uses the same `IChatClient` as chat, streaming, code-hosted agent, and inference demos. When no model is wired, the no-op `IChatClient` lets the app boot and the workflow start, but schema-constrained agent output is expected to route to the workflow fault path.
+
+#### Foundry Model Modes and Configuration
+
+The AppHost owns model selection. The API and Functions hosts only look for a `chat` connection and register `AddAzureChatCompletionsClient("chat").AddChatClient()` when that connection exists. This keeps D1-D9 on one `IChatClient` contract.
+
+| Mode | AppHost condition | Runtime behavior |
+|---|---|---|
+| **Foundry Local** | `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true` and no Azure Foundry mode selected | `AddFoundry("foundry").RunAsFoundryLocal().AddDeployment("chat", FoundryModel.Local.Qwen2505b)` runs the model on-device and injects `ConnectionStrings:chat` / `CHAT_ENDPOINT` / `CHAT_APIKEY` / `CHAT_DEPLOYMENT` into API and Functions. |
+| **Real Azure AI Foundry** | publish mode, `AiServices:FoundryEndpoint`, or `TASKFLOW_USE_AZURE_FOUNDRY=true` | `AddFoundry("foundry").AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini)` provisions or connects to an Azure deployment and injects the same `chat` connection contract. |
+| **Disabled** | no Foundry Local or Azure Foundry setting | No `chat` resource is wired. `TaskFlow.Infrastructure.AI` registers `NoOpChatClient`, so the app starts without model credentials. |
+
+Local setup for a fully local AI run:
+
+```powershell
+winget install Microsoft.FoundryLocal
+foundry --version
+foundry service status
+foundry model info qwen2.5-0.5b
+foundry model download qwen2.5-0.5b
+
+$env:TASKFLOW_ENABLE_FOUNDRY_LOCAL = "true"
+dotnet run --project src/Host/Aspire/AppHost
+```
+
+`qwen2.5-0.5b` is used because the FlowEngine agent nodes and the code-hosted agent demos need a local model whose Foundry Local task list includes `tools`. In Foundry Local `0.8.119`, `phi-4` is `chat` only, so it works for basic chat but fails the tool-calling path. Some Foundry Local versions can log catalog errors from `foundry model list`; use explicit `foundry model info qwen2.5-0.5b` plus `foundry service status` as the pragmatic check.
+
+Real Azure Foundry setup for local runs:
+
+```powershell
+dotnet user-secrets set "AiServices:FoundryEndpoint" "https://<your-foundry-resource>.services.ai.azure.com/" --project src/Host/Aspire/AppHost
+# or
+$env:TASKFLOW_USE_AZURE_FOUNDRY = "true"
+
+dotnet run --project src/Host/Aspire/AppHost
+```
+
+`aspire publish` always selects the real Azure path and provisions an Azure AI Foundry resource/deployment. If the target environment requires keyless managed-identity inference instead of the generated connection secret, update the host-side `AddAzureChatCompletionsClient("chat")` registration to use the required credential overload before testing model behavior.
+
+When AI is disabled, D1-D8 return the no-op "not configured" response. D9 can still start a workflow instance, but the schema-constrained `agent` node should land on the fault path because the no-op text is not valid structured model output.
 
 ### 14.6 Workflow Triggering
 
 `Application.MessageHandlers.WorkflowTriggerHandler` implements `IWorkflowTrigger` with a single method `OnTaskItemCreatedAsync(TaskItemCreatedEvent)` that calls `engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })`.
 
-> **It is intentionally not wired to `IInternalMessageBus` today.** `TaskItemCreatedEvent` is an integration event traveling over Service Bus, not an in-process `IMessage`. The class exists as a one-line addition wherever the event is raised - typically in `TaskItemService` (Service style), `CreateTaskItemCommandHandler` (CQRS style) after `eventPublisher.PublishAsync`, or in a custom Service Bus subscriber inside `TaskFlow.Functions`. For the reference-app demo, manual invocation via the dashboard's `/workflows/run` page is sufficient.
+`TaskFlow.Functions.FunctionServiceBusTrigger` invokes that trigger when it consumes `TaskItemCreatedEvent`, after updating projections and running the D6 readiness reviewer. `TaskItemCreatedEvent` travels over Service Bus, not the in-process `IInternalMessageBus`, so Functions is the single automatic D9 entrypoint.
 
-Wiring options when a downstream consumer wants automatic triggering:
+Other workflow-start patterns can reuse the same trigger shape:
 
-1. **Service Bus subscriber in `TaskFlow.Functions`** - add a topic subscription, deserialize `TaskItemCreatedEvent`, call `IWorkflowTrigger.OnTaskItemCreatedAsync`. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.
+1. **Service Bus subscriber in `TaskFlow.Functions`** - current D9 path; deserialize `TaskItemCreatedEvent`, call `IWorkflowTrigger.OnTaskItemCreatedAsync`. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.
 2. **Inline call in the active create-task use case** - DI-resolve `IWorkflowTrigger`, call after `eventPublisher.PublishAsync` in `TaskItemService` or `CreateTaskItemCommandHandler`. Simpler but ties the request thread to engine startup.
 3. **TickerQ job for `compliance-check`** - a cron-triggered scheduler job that calls `engine.StartBackgroundAsync` with the `compliance-check` workflow id and a fresh `windowDays` param.
 
@@ -1531,14 +1570,20 @@ Authentication and authorization use the same pipeline as the rest of the API (`
 
 ### 14.8 Operational Notes
 
-- **First-instance-start gotcha.** If a workflow JSON references a `clientRef` that hasn't been registered (e.g. `ai-agent` when `FoundryEndpoint` is unset), the failure surfaces on the first instance start, not at boot. The `Test.Integration.FlowEngine` suite validates definition shape but cannot validate connector registration - that requires a live AppHost. Confirm via the demo verification checklist in Section 14.9.
+- **First-instance-start gotcha.** Workflow JSON connector references are validated when an instance starts. The `ai-agent` connector is always registered through `IChatClient`, but schema-constrained output only succeeds with a real model. The `Test.Integration.FlowEngine` suite validates definition shape but cannot validate live connector behavior - that requires a live AppHost. Confirm via the demo verification checklist in Section 14.9.
 - **Sweep cadence.** Engine options: `SweepInterval=30s`, `SweepBatchSize=50`, `DefaultLeaseDuration=30s`, `LeaseRenewalInterval=13s`. Tuned for the reference app's load profile; production deployments should profile against expected concurrent-instance counts.
 - **Replicas.** The SQL lock provider lets multiple API replicas safely share the engine; only one replica leases an instance at a time. The Dashboard does not lease anything - it's pure read-side over the admin API.
 - **Backpressure.** Outbox publishing runs on a background drain; if Service Bus is unavailable the outbox grows. Monitor `flowengine.Outbox` row count in the dashboard / a metric.
 
 ### 14.9 Demo Verification
 
-With the Aspire AppHost running, the gateway URL visible in the Aspire dashboard:
+Start the Aspire AppHost in one of the model modes above, then read the Gateway and Blazor URLs from the Aspire dashboard. Do not hardcode ports; Aspire assigns them per run.
+
+```powershell
+dotnet run --project src/Host/Aspire/AppHost
+```
+
+With the gateway URL from the Aspire dashboard:
 
 ```bash
 GW="https://localhost:<gateway-port>"
@@ -1570,9 +1615,11 @@ Browser verification (Blazor + Dashboard, run separately from AppHost):
 1. `https://<blazor-host>/workflows/registry` - three workflows Active.
 2. `/workflows/new` - drag a few tiles; Import JSON of `ai-task-triage.json` and confirm parse.
 3. `/workflows/run` - pick `ai-task-triage`, paste params, fire; see it appear under `/instances`.
-4. `/human-tasks` - only populated once an instance reaches a `human` node (the Critical branch of triage, or the optional review in decomposer). Requires `FoundryEndpoint` configured for the upstream `agent` step to succeed.
+4. `/human-tasks` - only populated once an instance reaches a `human` node (the Critical branch of triage, or the optional review in decomposer). Requires a real Foundry Local or Azure model for the upstream `agent` step to produce schema-valid output.
 
-**Without `FoundryEndpoint` configured**, the `n-classify` agent step will fault and the instance will land at `n-faulted` immediately - that's the expected no-AI scaffold posture and matches the reference app's "no-op stub" pattern.
+**Without a real model wired**, the no-op `IChatClient` response is not schema-valid for `n-classify`, so the instance lands at `n-faulted` immediately. That is the expected no-AI scaffold posture and matches the reference app's no-op stub pattern.
+
+D4/D5/D6/D9 exercise write or enqueue paths. Local scaffold auth supplies a predictable development tenant and admin/member roles, but persistent side-effect verification in production should use a real authenticated tenant context so the tenant-boundary validator and audit path are exercised.
 
 ---
 

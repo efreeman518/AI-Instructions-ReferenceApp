@@ -23,6 +23,13 @@ try
     // 2. Data Protection (Azure Blob key storage + Key Vault key encryption)
     ConfigureDataProtection();
 
+    // 2b. AI chat client (Aspire-wired Azure AI Foundry / Foundry Local).
+    // Connection name "chat" must match the Foundry deployment resource in the AppHost. When the
+    // AppHost injected a "chat" reference (CHAT_ENDPOINT / ConnectionStrings:chat), register the
+    // Microsoft.Extensions.AI IChatClient here at the host. Otherwise AddAiServices registers a
+    // no-op IChatClient so the AI demo endpoints still resolve and the app boots without a model.
+    ConfigureChatClient();
+
     // 3. Registration chain - order matters for dependency resolution
     services
         .RegisterInfrastructureServices(config)
@@ -71,6 +78,22 @@ static DefaultAzureCredential CreateAzureCredential(IConfiguration config)
     if (sharedTokenCacheTenantId is not null)
         options.SharedTokenCacheTenantId = sharedTokenCacheTenantId;
     return new DefaultAzureCredential(options);
+}
+
+void ConfigureChatClient()
+{
+    // Aspire injects the deployment connection string as ConnectionStrings:chat when the AppHost
+    // wired a Foundry deployment named "chat" (local Foundry Local or real Azure Foundry).
+    var chatConnection = config.GetConnectionString("chat");
+    if (string.IsNullOrWhiteSpace(chatConnection))
+        return;
+
+    startupLogger.LogInformation("{AppName} {Environment} - Configure AI chat client.", appName, env);
+
+    // Registers Azure.AI.Inference ChatCompletionsClient, then a Microsoft.Extensions.AI IChatClient
+    // over it. The deployment/model is taken from the connection string.
+    builder.AddAzureChatCompletionsClient("chat")
+        .AddChatClient();
 }
 
 void ConfigureDataProtection()

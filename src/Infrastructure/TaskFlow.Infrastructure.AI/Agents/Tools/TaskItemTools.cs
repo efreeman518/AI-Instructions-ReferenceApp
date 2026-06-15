@@ -21,7 +21,7 @@ public class TaskItemTools(
     /// Status and priority parameters are accepted for agent affordance but not yet pushed into the
     /// search filter.
     /// </summary>
-    public async Task<string> SearchTasks(string query, string? status = null, string? priority = null)
+    public async Task<string> SearchTasks(string query, string status = "", string priority = "")
     {
         logger.LogDebug("Agent tool: SearchTasks query='{Query}' status={Status} priority={Priority}", query, status, priority);
 
@@ -68,7 +68,7 @@ public class TaskItemTools(
     /// Creates a task through the application service. The request context supplies tenant and user
     /// metadata; the agent only provides business fields.
     /// </summary>
-    public async Task<string> CreateTask(string title, string? description = null, string? priority = null)
+    public async Task<string> CreateTask(string title, string description = "", string priority = "")
     {
         logger.LogDebug("Agent tool: CreateTask title='{Title}'", title);
 

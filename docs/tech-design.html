@@ -70,7 +70,7 @@
   <li><a href="#ui">UI Architecture</a></li>
   <li><a href="#flowengine">Workflow Orchestration (FlowEngine)</a></li>
 </ol>
-<p class="subtitle" style="margin-top:1rem;margin-bottom:0">Last updated: May 2026</p>
+<p class="subtitle" style="margin-top:1rem;margin-bottom:0">Last updated: June 2026</p>
 </div>
 
 <!-- ============================================================ -->
@@ -93,8 +93,8 @@
   <tr><td>Messaging</td><td>Azure Service Bus (topics + queues)</td></tr>
   <tr><td>Read Model</td><td>Azure Cosmos DB (denormalized projections)</td></tr>
   <tr><td>File Storage</td><td>Azure Blob Storage</td></tr>
-  <tr><td>AI</td><td>Azure AI Search + Azure OpenAI (stubs)</td></tr>
-  <tr><td>Workflow Orchestration</td><td>EF.FlowEngine 1.0.104 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard</td></tr>
+  <tr><td>AI</td><td>Azure AI Search + Azure AI Foundry / Foundry Local via <code>IChatClient</code> (no-op fallback)</td></tr>
+  <tr><td>Workflow Orchestration</td><td>EF.FlowEngine 1.0.132 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard</td></tr>
   <tr><td>Auth</td><td>Microsoft Entra ID (External) / Scaffold mode</td></tr>
   <tr><td>Observability</td><td>OpenTelemetry (OTLP), Aspire Dashboard</td></tr>
   <tr><td>Testing</td><td>MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, Stryker.NET, BenchmarkDotNet, NBomber, Playwright</td></tr>
@@ -108,7 +108,7 @@
   <li><strong>Multi-Tenant First</strong> - Tenant isolation at query filter, service, and authorization layers</li>
   <li><strong>Event-Driven</strong> - Integration events flow through Service Bus to Azure Functions for async processing</li>
   <li><strong>Config-Driven Auth</strong> - Single build, multiple deployment profiles (dev scaffold vs Entra ID prod)</li>
-  <li><strong>Emulator-Ready</strong> - All Azure services run as local emulators via Aspire; no cloud account needed for development</li>
+  <li><strong>Local-First Runtime</strong> - Core infrastructure runs through Aspire emulators; AI can run fully local through Foundry Local, against real Azure AI Foundry, or as a no-op fallback with no cloud credentials</li>
 </ul>
 
 <!-- SECTION 1 END -->
@@ -154,8 +154,9 @@
   <text x="640" y="272" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Azure AI Search</text>
   <text x="640" y="292" text-anchor="middle" fill="#8b949e" font-size="11">Hybrid/vector task search</text>
   <rect x="530" y="340" width="220" height="70" rx="10" fill="rgba(136,136,136,0.1)" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="6,3"/>
-  <text x="640" y="372" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Azure OpenAI</text>
-  <text x="640" y="392" text-anchor="middle" fill="#8b949e" font-size="11">Agent chat, AI features</text>
+  <text x="640" y="366" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Azure AI Foundry</text>
+  <text x="640" y="382" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">/ Foundry Local</text>
+  <text x="640" y="402" text-anchor="middle" fill="#8b949e" font-size="11">Chat model, tool-calling agents</text>
   <!-- Arrows: users to system -->
   <line x1="140" y1="135" x2="200" y2="200" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
   <line x1="350" y1="135" x2="300" y2="200" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
@@ -1304,7 +1305,7 @@
   <rect x="280" y="360" width="100" height="35" rx="5" fill="rgba(188,140,255,0.1)" stroke="#bc8cff" stroke-width="1"/>
   <text x="330" y="382" text-anchor="middle" fill="#e6edf3" font-size="9">AI Search</text>
   <rect x="395" y="360" width="100" height="35" rx="5" fill="rgba(188,140,255,0.1)" stroke="#bc8cff" stroke-width="1"/>
-  <text x="445" y="382" text-anchor="middle" fill="#e6edf3" font-size="9">Azure OpenAI</text>
+  <text x="445" y="382" text-anchor="middle" fill="#e6edf3" font-size="9">AI Foundry</text>
 
   <!-- Users -->
   <rect x="15" y="80" width="80" height="35" rx="6" fill="rgba(188,140,255,0.1)" stroke="#bc8cff" stroke-width="1"/>
@@ -2127,7 +2128,7 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 <!-- ============================================================ -->
 <h2 id="flowengine">14. Workflow Orchestration (FlowEngine)</h2>
 
-<p>TaskFlow embeds <strong>EF.FlowEngine 1.0.104</strong> as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:</p>
+<p>TaskFlow embeds <strong>EF.FlowEngine 1.0.132</strong> as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:</p>
 <ul>
   <li><strong>Domain events + Service Bus + Functions</strong> still own per-event side effects (Cosmos projection, AI search indexing, blob processing).</li>
   <li><strong>TickerQ scheduler</strong> still owns timer-driven cron jobs (overdue checks, recurring task generation, stale cleanup).</li>
@@ -2138,7 +2139,7 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 <table>
   <tr><th>Capability</th><th>What it gives the reference app</th></tr>
   <tr><td><strong>Stateful suspend/resume</strong></td><td>A workflow waiting on a 24-hour human approval survives API restarts, deploys, and scale-out.</td></tr>
-  <tr><td><strong>AI agent nodes</strong></td><td><code>agent</code> node type wraps Azure OpenAI with output-schema validation, retry, idempotency keys, prompt versioning.</td></tr>
+  <tr><td><strong>AI agent nodes</strong></td><td><code>agent</code> node type wraps the Aspire-wired <code>IChatClient</code> with output-schema validation, retry, idempotency keys, prompt versioning.</td></tr>
   <tr><td><strong>Human task nodes</strong></td><td><code>human</code> node type produces durable records (assignee role, due date, quorum, escalation) consumed by the dashboard's human-task UI.</td></tr>
   <tr><td><strong>Saga compensation</strong></td><td><code>compensationNodeId</code> on a node provides an inverse action invoked when a later node in the same instance faults.</td></tr>
   <tr><td><strong>Atomic outbox</strong></td><td><code>message</code> / <code>integration</code> / <code>agent</code> side effects are staged in the same <code>SaveChangesAsync</code> that persists workflow state - no torn-write between state save and external dispatch.</td></tr>
@@ -2150,7 +2151,7 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 <p>All 13 FlowEngine packages are pinned at the same version in <code>Directory.Packages.props</code>:</p>
 <table>
   <tr><th>Package</th><th>Project</th><th>Purpose</th></tr>
-  <tr><td><code>EF.FlowEngine</code></td><td>Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine</td><td>Core runtime: engine, executor pipeline, definition model, built-in node executors (auto-registered in 1.0.104).</td></tr>
+  <tr><td><code>EF.FlowEngine</code></td><td>Bootstrapper, App.MessageHandlers, Test.Integration.FlowEngine</td><td>Core runtime: engine, executor pipeline, definition model, built-in node executors.</td></tr>
   <tr><td><code>EF.FlowEngine.StateStore.Sql</code></td><td>Infrastructure.Data</td><td><code>IFlowEngineStateDbContext</code> mixin + <code>SqlExecutionStateStore</code>.</td></tr>
   <tr><td><code>EF.FlowEngine.Locks.Sql</code></td><td>Bootstrapper</td><td>SQL-backed distributed lock provider for engine sweeps + leases.</td></tr>
   <tr><td><code>EF.FlowEngine.WorkflowRegistry.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td><code>IWorkflowRegistry</code> over SQL.</td></tr>
@@ -2159,7 +2160,7 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
   <tr><td><code>EF.FlowEngine.CircuitBreaker.Sql</code></td><td>Bootstrapper, Infrastructure.Data</td><td><code>IFlowEngineCircuitBreakerDbContext</code> mixin - durable breaker state.</td></tr>
   <tr><td><code>EF.FlowEngine.Clients.Http</code></td><td>Bootstrapper</td><td>Resilient HTTP client for <code>integration</code> nodes.</td></tr>
   <tr><td><code>EF.FlowEngine.Clients.ServiceBus</code></td><td>Bootstrapper</td><td>Service Bus client for <code>message</code> nodes.</td></tr>
-  <tr><td><code>EF.FlowEngine.Clients.OpenAI</code></td><td>Bootstrapper</td><td>Azure OpenAI client for <code>agent</code> nodes.</td></tr>
+  <tr><td><code>EF.FlowEngine.Clients.AI</code></td><td>Bootstrapper</td><td><code>Microsoft.Extensions.AI.IChatClient</code> connector for <code>agent</code> nodes.</td></tr>
   <tr><td><code>EF.FlowEngine.AdminApi</code></td><td>Bootstrapper, TaskFlow.Api</td><td>REST endpoints under <code>/api/flowengine/*</code> + auth policies.</td></tr>
   <tr><td><code>EF.FlowEngine.Dashboard</code></td><td>TaskFlow.Blazor</td><td>Blazor pages (registry, designer, run, instances, human tasks, breakers).</td></tr>
   <tr><td><code>EF.FlowEngine.Testing</code></td><td>Test.Integration.FlowEngine</td><td>In-memory registry and helpers for fast unit/integration tests.</td></tr>
@@ -2296,7 +2297,7 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 
 <table>
   <tr><th>Workflow</th><th>Trigger</th><th>Params</th><th>Notable patterns</th></tr>
-  <tr><td><strong>ai-task-triage</strong></td><td>Manual today; intended to fire on <code>TaskItemCreatedEvent</code> via <code>IWorkflowTrigger</code> (see Section 14.6)</td><td><code>tenantId</code>, <code>taskId</code>, <code>description</code> (required)</td><td>2-of-3 human quorum, 12 h escalation, saga <code>compensationNodeId</code> revert on downstream fault, idempotency keys on every side-effect node</td></tr>
+  <tr><td><strong>ai-task-triage</strong></td><td>Automatic on <code>TaskItemCreatedEvent</code> via Functions + <code>IWorkflowTrigger</code>; manual dashboard runs still supported</td><td><code>tenantId</code>, <code>taskId</code>, <code>description</code> (required)</td><td>2-of-3 human quorum, 12 h escalation, saga <code>compensationNodeId</code> revert on downstream fault, idempotency keys on every side-effect node</td></tr>
   <tr><td><strong>ai-task-decomposer</strong></td><td>Manual / dashboard</td><td><code>tenantId</code>, <code>taskId</code>, <code>description</code>, <code>requireApproval</code> (optional)</td><td>Conditional human review, sequential <code>loop</code> to create N children via API</td></tr>
   <tr><td><strong>compliance-check</strong></td><td>Manual / dashboard / future cron via TickerQ</td><td><code>tenantId</code>, <code>windowDays</code> (default 7)</td><td>Parallel <code>loop</code> with bounded concurrency (max 5), <code>query</code> node using FilterBuilder, <code>document</code> node for evidence retrieval</td></tr>
 </table>
@@ -2374,16 +2375,43 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
   <tr><th><code>clientRef</code></th><th>Type</th><th>Wiring</th></tr>
   <tr><td><code>taskflow-api</code></td><td>Resilient HTTP</td><td>Base URL = <code>FlowEngine:TaskFlowApiBaseUrl</code> ?? <code>Gateway:BaseUrl</code>. Self-call - workflows mutate TaskItems through the public API to preserve auth, validation, audit, and event publishing. Used by <code>n-apply-priority</code>, <code>n-compensate-reject</code>, <code>n-create-subtasks</code>, <code>n-revert-priority</code>.</td></tr>
   <tr><td><code>integration-events</code></td><td>Service Bus</td><td>Connection from <code>ServiceBus1</code>; topic from <code>FlowEngine:ServiceBusTopic</code> (default <code>taskflow-integration-events</code>). Registers only when the connection string is present. Used by <code>n-publish-event</code>, <code>n-publish-decomposed</code>.</td></tr>
-  <tr><td><code>ai-agent</code></td><td>Azure OpenAI</td><td>Resolves the existing DI-registered <code>AzureOpenAIClient</code> from <code>Infrastructure.AI</code> via factory lambda; reads <code>TaskFlowAiSettings:ChatDeployment</code> (default <code>gpt-4o</code>) and <code>:FoundryEndpoint</code>. Registers only when <code>FoundryEndpoint</code> is set. Used by <code>n-classify</code>, <code>n-propose-subtasks</code>, <code>n-extract</code>.</td></tr>
+  <tr><td><code>ai-agent</code></td><td><code>IChatClient</code></td><td>Resolves the shared host-registered <code>Microsoft.Extensions.AI.IChatClient</code> via <code>EF.FlowEngine.Clients.AI</code>. The client is real when Aspire wires a <code>chat</code> deployment and no-op otherwise. Used by <code>n-classify</code>, <code>n-propose-subtasks</code>, <code>n-extract</code>.</td></tr>
 </table>
-<p>The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate the OpenAI client; it borrows the one already registered in <code>Infrastructure.AI.AddAiServices()</code>. When <code>FoundryEndpoint</code> is absent the <code>agent</code> nodes will not register and any workflow with an <code>agent</code> step will fault on <code>n-classify</code> - that's the expected scaffold-mode posture.</p>
+<p>The agent-client wiring is the integration point with the existing AI stack: FlowEngine does not duplicate model configuration; it uses the same <code>IChatClient</code> as chat, streaming, code-hosted agent, and inference demos. When no model is wired, the no-op <code>IChatClient</code> lets the app boot and the workflow start, but schema-constrained agent output is expected to route to the workflow fault path.</p>
+
+<h4>Foundry Model Modes and Configuration</h4>
+<p>The AppHost owns model selection. The API and Functions hosts only look for a <code>chat</code> connection and register <code>AddAzureChatCompletionsClient("chat").AddChatClient()</code> when that connection exists. This keeps D1-D9 on one <code>IChatClient</code> contract.</p>
+<table>
+  <tr><th>Mode</th><th>AppHost condition</th><th>Runtime behavior</th></tr>
+  <tr><td><strong>Foundry Local</strong></td><td><code>TASKFLOW_ENABLE_FOUNDRY_LOCAL=true</code> and no Azure Foundry mode selected</td><td><code>AddFoundry("foundry").RunAsFoundryLocal().AddDeployment("chat", FoundryModel.Local.Qwen2505b)</code> runs the model on-device and injects <code>ConnectionStrings:chat</code> / <code>CHAT_ENDPOINT</code> / <code>CHAT_APIKEY</code> / <code>CHAT_DEPLOYMENT</code> into API and Functions.</td></tr>
+  <tr><td><strong>Real Azure AI Foundry</strong></td><td>publish mode, <code>AiServices:FoundryEndpoint</code>, or <code>TASKFLOW_USE_AZURE_FOUNDRY=true</code></td><td><code>AddFoundry("foundry").AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini)</code> provisions or connects to an Azure deployment and injects the same <code>chat</code> connection contract.</td></tr>
+  <tr><td><strong>Disabled</strong></td><td>no Foundry Local or Azure Foundry setting</td><td>No <code>chat</code> resource is wired. <code>TaskFlow.Infrastructure.AI</code> registers <code>NoOpChatClient</code>, so the app starts without model credentials.</td></tr>
+</table>
+<p>Local setup for a fully local AI run:</p>
+<pre><code>winget install Microsoft.FoundryLocal
+foundry --version
+foundry service status
+foundry model info qwen2.5-0.5b
+foundry model download qwen2.5-0.5b
+
+$env:TASKFLOW_ENABLE_FOUNDRY_LOCAL = "true"
+dotnet run --project src/Host/Aspire/AppHost</code></pre>
+<p><code>qwen2.5-0.5b</code> is used because the FlowEngine agent nodes and the code-hosted agent demos need a local model whose Foundry Local task list includes <code>tools</code>. In Foundry Local <code>0.8.119</code>, <code>phi-4</code> is <code>chat</code> only, so it works for basic chat but fails the tool-calling path. Some Foundry Local versions can log catalog errors from <code>foundry model list</code>; use explicit <code>foundry model info qwen2.5-0.5b</code> plus <code>foundry service status</code> as the pragmatic check.</p>
+<p>Real Azure Foundry setup for local runs:</p>
+<pre><code>dotnet user-secrets set "AiServices:FoundryEndpoint" "https://&lt;your-foundry-resource&gt;.services.ai.azure.com/" --project src/Host/Aspire/AppHost
+# or
+$env:TASKFLOW_USE_AZURE_FOUNDRY = "true"
+
+dotnet run --project src/Host/Aspire/AppHost</code></pre>
+<p><code>aspire publish</code> always selects the real Azure path and provisions an Azure AI Foundry resource/deployment. If the target environment requires keyless managed-identity inference instead of the generated connection secret, update the host-side <code>AddAzureChatCompletionsClient("chat")</code> registration to use the required credential overload before testing model behavior.</p>
+<p>When AI is disabled, D1-D8 return the no-op "not configured" response. D9 can still start a workflow instance, but the schema-constrained <code>agent</code> node should land on the fault path because the no-op text is not valid structured model output.</p>
 
 <h3>14.6 Workflow Triggering</h3>
 <p><code>Application.MessageHandlers.WorkflowTriggerHandler</code> implements <code>IWorkflowTrigger</code> with a single method <code>OnTaskItemCreatedAsync(TaskItemCreatedEvent)</code> that calls <code>engine.StartBackgroundAsync(StartRequest { WorkflowId = "ai-task-triage", ... })</code>.</p>
-<div class="callout"><strong>It is intentionally not wired to <code>IInternalMessageBus</code> today.</strong> <code>TaskItemCreatedEvent</code> is an integration event traveling over Service Bus, not an in-process <code>IMessage</code>. The class exists as a one-line addition wherever the event is raised - typically in <code>TaskItemService</code> (Service style), <code>CreateTaskItemCommandHandler</code> (CQRS style) after <code>eventPublisher.PublishAsync</code>, or in a custom Service Bus subscriber inside <code>TaskFlow.Functions</code>. For the reference-app demo, manual invocation via the dashboard's <code>/workflows/run</code> page is sufficient.</div>
-<p>Wiring options when a downstream consumer wants automatic triggering:</p>
+<p><code>TaskFlow.Functions.FunctionServiceBusTrigger</code> invokes that trigger when it consumes <code>TaskItemCreatedEvent</code>, after updating projections and running the D6 readiness reviewer. <code>TaskItemCreatedEvent</code> travels over Service Bus, not the in-process <code>IInternalMessageBus</code>, so Functions is the single automatic D9 entrypoint.</p>
+<p>Other workflow-start patterns can reuse the same trigger shape:</p>
 <ol>
-  <li><strong>Service Bus subscriber in <code>TaskFlow.Functions</code></strong> - add a topic subscription, deserialize <code>TaskItemCreatedEvent</code>, call <code>IWorkflowTrigger.OnTaskItemCreatedAsync</code>. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.</li>
+  <li><strong>Service Bus subscriber in <code>TaskFlow.Functions</code></strong> - current D9 path; deserialize <code>TaskItemCreatedEvent</code>, call <code>IWorkflowTrigger.OnTaskItemCreatedAsync</code>. Preserves the existing event-driven architecture and keeps the API host free of workflow start latency.</li>
   <li><strong>Inline call in the active create-task use case</strong> - DI-resolve <code>IWorkflowTrigger</code>, call after <code>eventPublisher.PublishAsync</code> in <code>TaskItemService</code> or <code>CreateTaskItemCommandHandler</code>. Simpler but ties the request thread to engine startup.</li>
   <li><strong>TickerQ job for <code>compliance-check</code></strong> - a cron-triggered scheduler job that calls <code>engine.StartBackgroundAsync</code> with the <code>compliance-check</code> workflow id and a fresh <code>windowDays</code> param.</li>
 </ol>
@@ -2401,14 +2429,16 @@ cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 
 <h3>14.8 Operational Notes</h3>
 <ul>
-  <li><strong>First-instance-start gotcha.</strong> If a workflow JSON references a <code>clientRef</code> that hasn't been registered (e.g. <code>ai-agent</code> when <code>FoundryEndpoint</code> is unset), the failure surfaces on the first instance start, not at boot. The <code>Test.Integration.FlowEngine</code> suite validates definition shape but cannot validate connector registration - that requires a live AppHost. Confirm via the demo verification checklist in Section 14.9.</li>
+  <li><strong>First-instance-start gotcha.</strong> Workflow JSON connector references are validated when an instance starts. The <code>ai-agent</code> connector is always registered through <code>IChatClient</code>, but schema-constrained output only succeeds with a real model. The <code>Test.Integration.FlowEngine</code> suite validates definition shape but cannot validate live connector behavior - that requires a live AppHost. Confirm via the demo verification checklist in Section 14.9.</li>
   <li><strong>Sweep cadence.</strong> Engine options: <code>SweepInterval=30s</code>, <code>SweepBatchSize=50</code>, <code>DefaultLeaseDuration=30s</code>, <code>LeaseRenewalInterval=13s</code>. Tuned for the reference app's load profile; production deployments should profile against expected concurrent-instance counts.</li>
   <li><strong>Replicas.</strong> The SQL lock provider lets multiple API replicas safely share the engine; only one replica leases an instance at a time. The Dashboard does not lease anything - it's pure read-side over the admin API.</li>
   <li><strong>Backpressure.</strong> Outbox publishing runs on a background drain; if Service Bus is unavailable the outbox grows. Monitor <code>flowengine.Outbox</code> row count in the dashboard / a metric.</li>
 </ul>
 
 <h3>14.9 Demo Verification</h3>
-<p>With the Aspire AppHost running, the gateway URL visible in the Aspire dashboard:</p>
+<p>Start the Aspire AppHost in one of the model modes above, then read the Gateway and Blazor URLs from the Aspire dashboard. Do not hardcode ports; Aspire assigns them per run.</p>
+<pre><code>dotnet run --project src/Host/Aspire/AppHost</code></pre>
+<p>With the gateway URL from the Aspire dashboard:</p>
 <pre><code>GW="https://localhost:&lt;gateway-port&gt;"
 
 # 1. Verify seeding ran - three workflows present, status Active
@@ -2436,9 +2466,10 @@ curl -sk "$GW/api/flowengine/instances/$INSTANCE_ID" | jq '{ status, history }'<
   <li><code>https://&lt;blazor-host&gt;/workflows/registry</code> - three workflows Active.</li>
   <li><code>/workflows/new</code> - drag a few tiles; Import JSON of <code>ai-task-triage.json</code> and confirm parse.</li>
   <li><code>/workflows/run</code> - pick <code>ai-task-triage</code>, paste params, fire; see it appear under <code>/instances</code>.</li>
-  <li><code>/human-tasks</code> - only populated once an instance reaches a <code>human</code> node (the Critical branch of triage, or the optional review in decomposer). Requires <code>FoundryEndpoint</code> configured for the upstream <code>agent</code> step to succeed.</li>
+  <li><code>/human-tasks</code> - only populated once an instance reaches a <code>human</code> node (the Critical branch of triage, or the optional review in decomposer). Requires a real Foundry Local or Azure model for the upstream <code>agent</code> step to produce schema-valid output.</li>
 </ol>
-<p><strong>Without <code>FoundryEndpoint</code> configured</strong>, the <code>n-classify</code> agent step will fault and the instance will land at <code>n-faulted</code> immediately - that's the expected no-AI scaffold posture and matches the reference app's "no-op stub" pattern.</p>
+<p><strong>Without a real model wired</strong>, the no-op <code>IChatClient</code> response is not schema-valid for <code>n-classify</code>, so the instance lands at <code>n-faulted</code> immediately. That is the expected no-AI scaffold posture and matches the reference app's no-op stub pattern.</p>
+<p>D4/D5/D6/D9 exercise write or enqueue paths. Local scaffold auth supplies a predictable development tenant and admin/member roles, but persistent side-effect verification in production should use a real authenticated tenant context so the tenant-boundary validator and audit path are exercised.</p>
 
 <!-- ============================================================ -->
 <!-- APPENDIX -->

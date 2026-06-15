@@ -51,5 +51,6 @@ public static partial class RegisterServices
     {
         services.AddScoped<IMessageHandler<AuditEntry<string, Guid>>, AuditHandler>();
         services.AddScoped<IMessageHandler<AuditEntry<string, Guid?>>, AuditHandler>();
+        services.AddScoped<IWorkflowTrigger, WorkflowTriggerHandler>();
     }
 }

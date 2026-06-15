@@ -108,7 +108,7 @@ public class WorkflowDefinitionValidityTests
     [TestCategory("Integration")]
     public void WorkflowDefinitionBuilder_FromJson_Round_Trips(string fileName, string expectedId, string expectedVersion)
     {
-        // v1.0.104: WorkflowDefinitionBuilder.FromJson now uses WorkflowDefinitionJsonOptions.Default
+        // WorkflowDefinitionBuilder.FromJson uses WorkflowDefinitionJsonOptions.Default.
         // and fails fast on shape mismatch. The blank-shell bug previously documented here is fixed.
         var def = WorkflowDefinitionBuilder.FromJson(ReadWorkflowFile(fileName)).Build();
 

@@ -8,12 +8,12 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Field | Value |
 |---|---|
-| Last verified | 2026-05-14 |
+| Last verified | 2026-06-13 |
 | Solution | `src/TaskFlow.slnx` |
 | Target framework | .NET 10 |
-| Projects | 33 (Test.Integration.FlowEngine added with the FlowEngine integration) |
+| Projects | 38 |
 | Errors | 0 |
-| Warnings | 28 (all NU1902/NU1903 - vulnerable transitive packages; tracked under Vulnerability Status) |
+| Warnings | 9 (`MessagePack` NU1903 - known transitive vulnerability; tracked under Vulnerability Status) |
 
 > Note: `src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj` builds separately because Uno.Sdk requires explicit invocation: `dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj`.
 
@@ -21,17 +21,17 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Project | Category filter | Verified count | Notes |
 |---|---|---:|---|
-| Test.Unit | `TestCategory=Unit` | 245 | mocked unit tests |
+| Test.Unit | `TestCategory=Unit` | 240 | mocked unit tests |
 | Test.Architecture | `TestCategory=Architecture` | 12 | NetArchTest layering rules |
 | Test.Endpoints | `TestCategory=Endpoint` | 36 | WebApplicationFactory in-memory contract tests |
 | Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains (~40s) |
 | Test.Integration | `TestCategory=Integration` | 14 | service-level vs real SQL via Testcontainers (~170s) |
-| Test.Integration.FlowEngine | `TestCategory=Integration` | 13 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; sub-second |
+| Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; sub-second |
 | Test.PlaywrightUI | n/a (Node.js) | - | hosted-stack required (see below) |
 | Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
-**Total automated:** 327 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine.
+**Total automated:** 325 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine.
 
 ### Playwright (`src/Test/Test.PlaywrightUI/`)
 
@@ -45,7 +45,7 @@ Run `dotnet list package --vulnerable --include-transitive` and capture findings
 - **Moderate:** logged here, tracked but not blocking
 - **Low:** team discretion
 
-Last audited: 2026-05-14 (build-time NU1902/NU1903 warnings; no new advisories introduced by EF.FlowEngine 1.0.104 packages).
+Last audited: 2026-06-13 (build-time NU1903 warnings; no new advisories introduced by EF.FlowEngine 1.0.132 packages during focused restore/build verification).
 
 | Package | Version | Severity | Direct/Transitive | Advisory | Notes |
 |---|---|---|---|---|---|
@@ -69,7 +69,18 @@ Per the consolidated 5-sub-phase taxonomy:
 | 5c - Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI, Blazor) |
 | 5d - Quality + Delivery | complete (architecture/load/benchmark tests, Dockerfiles, CI/CD, IaC Bicep) |
 | 5e - Integration (Auth + AI) | complete (scaffold mode; live Entra/Foundry deployment-only) |
-| 5e+ - Workflow Orchestration | complete (EF.FlowEngine 1.0.104, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes require `TaskFlowAiSettings:FoundryEndpoint` - deployment-only) |
+| 5e+ - Workflow Orchestration | complete (EF.FlowEngine 1.0.132, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes use the Aspire `IChatClient`, with no-op fallback when AI is disabled) |
+
+## AI Runtime Status
+
+Foundry Local verified on 2026-06-13 with:
+
+- Foundry Local `0.8.119`
+- Aspire CLI `13.4.3`
+- .NET SDK `10.0.300`
+- local model `qwen2.5-0.5b` / `FoundryModel.Local.Qwen2505b` (`chat, tools`)
+
+Verified through the Aspire Gateway: D1 basic chat, D2 streaming chat, D3 code-hosted agent, D7 read-only advisor. The Aspire graph now also starts `TaskFlow.Blazor`; `/ai-chat` rendered against the live Gateway URL. D4/D5/D6/D9 side effects still require an authenticated tenant context before they can persist changes.
 
 ## Infrastructure as Code (IaC)
 

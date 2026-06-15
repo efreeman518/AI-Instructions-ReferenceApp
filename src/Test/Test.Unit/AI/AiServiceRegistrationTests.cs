@@ -1,5 +1,7 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.AI.Agents;
 using TaskFlow.Infrastructure.AI.Search;
@@ -8,7 +10,8 @@ namespace Test.Unit.AI;
 
 /// <summary>
 /// Validates <c>AddAiServices</c> DI wiring against an in-memory <see cref="Microsoft.Extensions.Configuration.IConfiguration"/>:
-/// without endpoints, the No-Op search and agent implementations are registered; settings bind to
+/// without a registered <see cref="IChatClient"/>, the No-Op search/agent and a no-op IChatClient are
+/// registered; with a real IChatClient, the live agent is wired; settings bind to
 /// <c>TaskFlowAiSettings</c>.
 /// Pure-unit tier (in-memory ServiceCollection): no Azure client, no real endpoint.
 /// </summary>
@@ -36,9 +39,38 @@ public class AiServiceRegistrationTests
 
         var searchService = provider.GetRequiredService<ITaskFlowSearchService>();
         var agentService = provider.GetRequiredService<ITaskAssistantAgent>();
+        var chatClient = provider.GetRequiredService<IChatClient>();
 
         Assert.IsInstanceOfType(searchService, typeof(NoOpSearchService));
         Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
+        Assert.IsInstanceOfType(chatClient, typeof(NoOpChatClient));
+    }
+
+    /// <summary>With a real IChatClient registered, the live agent is wired.</summary>
+    [TestMethod]
+    public void AddAiServices_WithChatClient_RegistersLiveAgent()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AiServices:UseAgents"] = "false"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        // Simulate the host having wired a Foundry IChatClient before AddAiServices runs.
+        services.AddSingleton(new Mock<IChatClient>().Object);
+
+        services.AddAiServices(config);
+
+        // Assert the descriptor (do not build/resolve - constructing the agent would require the full
+        // application service graph that TaskItemTools depends on).
+        var descriptor = services.Single(d => d.ServiceType == typeof(ITaskAssistantAgent));
+        Assert.AreEqual(typeof(TaskAssistantAgentService), descriptor.ImplementationType);
+
+        // The real IChatClient must be left in place (no NoOpChatClient added on top).
+        Assert.IsFalse(services.Any(d => d.ImplementationType == typeof(NoOpChatClient)));
     }
 
     /// <summary>Verifies add AI services with search enabled no endpoint registers no op search behavior and protects the expected test contract.</summary>

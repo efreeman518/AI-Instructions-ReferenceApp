@@ -51,14 +51,14 @@ public static partial class RegisterServices
 
     /// <summary>
     /// Registers application services, optional AI services, and FlowEngine. AI registration
-    /// comes before FlowEngine because FlowEngine agent connectors can resolve AzureOpenAIClient.
+    /// comes before FlowEngine because FlowEngine agent connectors resolve the shared IChatClient.
     /// </summary>
     public static IServiceCollection RegisterApplicationServices(
         this IServiceCollection services, IConfiguration config)
     {
         AddApplicationServices(services, config);
         services.AddAiServices(config);
-        // FlowEngine registered after AI so the agent client can resolve AzureOpenAIClient.
+        // FlowEngine registered after AI so the agent client can resolve IChatClient.
         AddFlowEngineServices(services, config);
         return services;
     }

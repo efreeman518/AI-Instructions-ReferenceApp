@@ -1,6 +1,6 @@
-using Azure.AI.OpenAI;
 using Azure.Identity;
 using Azure.Search.Documents;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,14 +23,6 @@ public static class AiServiceCollectionExtensions
             .ValidateOnStart();
 
         var settings = aiSection.Get<TaskFlowAiSettings>() ?? new TaskFlowAiSettings();
-
-        // Azure OpenAI / Foundry Models client - conditional on endpoint config
-        if (!string.IsNullOrWhiteSpace(settings.FoundryEndpoint))
-        {
-            services.AddSingleton(new AzureOpenAIClient(
-                new Uri(settings.FoundryEndpoint),
-                new DefaultAzureCredential()));
-        }
 
         // Azure AI Search (if configured)
         if (settings.UseSearch)
@@ -58,23 +50,34 @@ public static class AiServiceCollectionExtensions
         // Agent function tools (always registered - agents and tests both need them)
         services.AddScoped<TaskItemTools>();
 
-        // Agent services
-        if (settings.UseAgents)
+        // A live IChatClient is registered at the host (Aspire AddAzureChatCompletionsClient) only
+        // when a Foundry "chat" deployment was wired. Its presence - not raw config - gates live AI.
+        var hasChatClient = services.Any(d => d.ServiceType == typeof(IChatClient));
+
+        // Agent services - live agent follows the host-wired IChatClient. Without a model, keep the
+        // no-op stub so default local runs still boot without Foundry or cloud credentials.
+        if (hasChatClient)
         {
-            if (!string.IsNullOrWhiteSpace(settings.FoundryEndpoint))
-            {
-                services.AddScoped<ITaskAssistantAgent, TaskAssistantAgentService>();
-            }
-            else
-            {
-                // TODO: [CONFIGURE] Foundry endpoint required for live agents
-                services.AddScoped<ITaskAssistantAgent, NoOpTaskAssistantAgent>();
-            }
+            services.AddScoped<ITaskAssistantAgent, TaskAssistantAgentService>();
         }
         else
         {
             services.AddScoped<ITaskAssistantAgent, NoOpTaskAssistantAgent>();
         }
+
+        // IChatClient fallback - if the host wired no Foundry model, register a no-op so the AI demo
+        // endpoints and any IChatClient consumers resolve and the app boots without a model.
+        if (!hasChatClient)
+        {
+            services.AddSingleton<IChatClient, NoOpChatClient>();
+        }
+
+        // Inference demo services (each demonstrates a distinct concept; all resolve over the
+        // registered IChatClient - real or no-op):
+        services.AddScoped<Demos.ITaskTriageService, Demos.TaskTriageService>();       // D4: structured classification
+        services.AddScoped<Demos.ITaskDraftService, Demos.TaskDraftService>();         // D5: generative enrichment on create
+        services.AddScoped<Demos.IAiTaskReviewer, Demos.AiTaskReviewer>();             // D6: async event-driven inference
+        services.AddScoped<Demos.INextActionAdvisor, Demos.NextActionAdvisor>();       // D7: read-only multi-tool reasoning
 
         return services;
     }
