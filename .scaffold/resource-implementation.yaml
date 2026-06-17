@@ -13,7 +13,13 @@ scaffoldMode: full
 testingProfile: comprehensive
 functionProfile: full
 unoProfile: full
-customNugetFeeds: []
+
+# Package strategy: TaskFlow consumes the EF.* layers from the private feed.
+packageStrategy: feed
+packagePrefix: "EF"
+customNugetFeeds:
+  - "https://nuget.pkg.github.com/efreeman518/index.json"
+localPackageLayers: []
 
 # ---------------------------------------------------------------------------
 # Hosting

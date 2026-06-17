@@ -143,12 +143,14 @@
                         Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}"
                         uen:Region.Attached="True"
                         Style="{StaticResource BottomTabBarStyle}">
-                <utu:TabBarItem uen:Region.Name="Dashboard" Content="Home">
+                <utu:TabBarItem uen:Region.Name="Dashboard" Content="Home"
+                                AutomationProperties.AutomationId="NavDashboard">
                     <utu:TabBarItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
                     </utu:TabBarItem.Icon>
                 </utu:TabBarItem>
-                <utu:TabBarItem uen:Region.Name="TaskList" Content="Tasks">
+                <utu:TabBarItem uen:Region.Name="TaskList" Content="Tasks"
+                                AutomationProperties.AutomationId="NavTasks">
                     <utu:TabBarItem.Icon>
                         <FontIcon Glyph="&#xE9D5;" />
                     </utu:TabBarItem.Icon>
@@ -179,6 +181,7 @@
                 Margin="16,0,16,82"
                 Visibility="{utu:Responsive Normal=Visible, Wide=Collapsed}"
                 AutomationProperties.Name="Create new task"
+                AutomationProperties.AutomationId="NewTaskButton"
                 ToolTipService.ToolTip="New Task">
             <ut:ControlExtensions.Icon>
                 <FontIcon Glyph="&#xE710;" />

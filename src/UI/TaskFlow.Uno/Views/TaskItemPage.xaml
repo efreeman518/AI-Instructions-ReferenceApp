@@ -28,10 +28,14 @@
                             Orientation="{utu:Responsive Normal=Vertical, Wide=Horizontal}"
                             Spacing="8" VerticalAlignment="Top">
                     <Button Content="{Binding SaveButtonText}" Command="{Binding Save}"
-                            Style="{StaticResource FormActionButtonStyle}" />
+                            Style="{StaticResource FormActionButtonStyle}"
+                            AutomationProperties.AutomationId="SaveTaskButton"
+                            AutomationProperties.Name="Save task" />
                     <Button Content="Delete" Command="{Binding DeleteTask}"
                             Style="{StaticResource DangerButtonStyle}"
-                            Visibility="{Binding IsEditMode}" />
+                            Visibility="{Binding IsEditMode}"
+                            AutomationProperties.AutomationId="DeleteTaskButton"
+                            AutomationProperties.Name="Delete task" />
                 </StackPanel>
             </Grid>
 
@@ -41,13 +45,17 @@
                     <TextBox Header="Title"
                              Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              PlaceholderText="What needs to be done?"
-                             Style="{StaticResource FormTextBoxStyle}" />
+                             Style="{StaticResource FormTextBoxStyle}"
+                             AutomationProperties.AutomationId="TaskTitleBox"
+                             AutomationProperties.Name="Task title" />
 
                     <TextBox Header="Description"
                              Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100"
                              PlaceholderText="Add details, context, or notes..."
-                             Style="{StaticResource FormTextBoxStyle}" />
+                             Style="{StaticResource FormTextBoxStyle}"
+                             AutomationProperties.AutomationId="TaskDescriptionBox"
+                             AutomationProperties.Name="Task description" />
 
                     <!-- Narrow lists side-by-side when wide, stacked when narrow -->
                     <StackPanel Orientation="{utu:Responsive Normal=Vertical, Wide=Horizontal}"
@@ -55,7 +63,9 @@
                         <ComboBox Header="Priority" PlaceholderText="Select priority"
                                   SelectedItem="{Binding Priority, Mode=TwoWay}"
                                   HorizontalAlignment="Stretch"
-                                  MinWidth="180">
+                                  MinWidth="180"
+                                  AutomationProperties.AutomationId="TaskPriorityCombo"
+                                  AutomationProperties.Name="Task priority">
                             <x:String>None</x:String>
                             <x:String>Low</x:String>
                             <x:String>Medium</x:String>
@@ -66,7 +76,9 @@
                         <ComboBox Header="Status" PlaceholderText="Select status"
                                   SelectedItem="{Binding Status, Mode=TwoWay}"
                                   HorizontalAlignment="Stretch"
-                                  MinWidth="180">
+                                  MinWidth="180"
+                                  AutomationProperties.AutomationId="TaskStatusCombo"
+                                  AutomationProperties.Name="Task status">
                             <x:String>Open</x:String>
                             <x:String>InProgress</x:String>
                             <x:String>Completed</x:String>
@@ -149,11 +161,15 @@
                         </Grid.ColumnDefinitions>
                         <TextBox PlaceholderText="Add checklist item..."
                                  Text="{Binding NewChecklistTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource FormTextBoxStyle}" />
+                                 Style="{StaticResource FormTextBoxStyle}"
+                                 AutomationProperties.AutomationId="ChecklistInput"
+                                 AutomationProperties.Name="New checklist item" />
                         <Button Grid.Column="1" Content="Add"
                                 Command="{Binding AddChecklistItem}"
                                 Style="{StaticResource FormActionButtonStyle}"
-                                VerticalAlignment="Bottom" />
+                                VerticalAlignment="Bottom"
+                                AutomationProperties.AutomationId="AddChecklistButton"
+                                AutomationProperties.Name="Add checklist item" />
                     </Grid>
                 </utu:AutoLayout>
             </Border>
@@ -212,11 +228,15 @@
                         <TextBox PlaceholderText="Write a comment..."
                                  Text="{Binding NewCommentBody, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"
-                                 Style="{StaticResource FormTextBoxStyle}" />
+                                 Style="{StaticResource FormTextBoxStyle}"
+                                 AutomationProperties.AutomationId="CommentInput"
+                                 AutomationProperties.Name="New comment" />
                         <Button Grid.Column="1" Content="Post"
                                 Command="{Binding AddComment}"
                                 Style="{StaticResource FormActionButtonStyle}"
-                                VerticalAlignment="Bottom" />
+                                VerticalAlignment="Bottom"
+                                AutomationProperties.AutomationId="AddCommentButton"
+                                AutomationProperties.Name="Add comment" />
                     </Grid>
                 </utu:AutoLayout>
             </Border>
