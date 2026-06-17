@@ -119,7 +119,16 @@ public partial class App : Application
         return gatewayUrl;
     }
 
-    /// <summary>Processes credentials through app.</summary>
+    /// <summary>
+    /// Dev/sample login stub: issues a local token for any non-empty username so the UI gets
+    /// past the login gate without an interactive IdP flow. This is NOT a security bypass - the
+    /// real boundary is the backend, which is config-gated: the API's <c>AuthMode</c> (default
+    /// "Scaffold" = dev passthrough; else real Entra JWT) and the Gateway's <c>EntraExternal</c>
+    /// section (absent = dev passthrough; present = real Entra validation). In a configured
+    /// (production) backend, the token minted here is rejected. A real app replaces this stub with
+    /// an interactive MSAL/Entra login. Intentionally left ungated so the normal non-mocked dev
+    /// loop (UI + Aspire dev gateway) can log in; do not gate it behind USE_MOCKS.
+    /// </summary>
     private async ValueTask<IDictionary<string, string>?> ProcessCredentials(
         IDictionary<string, string> credentials)
     {
