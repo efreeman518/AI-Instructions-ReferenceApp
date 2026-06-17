@@ -4,24 +4,24 @@
   </PropertyGroup>
   <ItemGroup Label="EF.Packages (Private Feed - github.com/efreeman518/EF.Packages)">
     <!-- Core packages - always available -->
-    <PackageVersion Include="EF.CQRS" Version="1.0.75" />
-    <PackageVersion Include="EF.Domain" Version="1.0.75" />
-    <PackageVersion Include="EF.Domain.Contracts" Version="1.0.75" />
-    <PackageVersion Include="EF.Data" Version="1.0.75" />
-    <PackageVersion Include="EF.Data.Contracts" Version="1.0.75" />
-    <PackageVersion Include="EF.Common" Version="1.0.75" />
-    <PackageVersion Include="EF.Common.Contracts" Version="1.0.75" />
-    <PackageVersion Include="EF.Host" Version="1.0.75" />
-    <PackageVersion Include="EF.AspNetCore" Version="1.0.75" />
-    <PackageVersion Include="EF.BackgroundServices" Version="1.0.75" />
+    <PackageVersion Include="EF.CQRS" Version="1.0.76" />
+    <PackageVersion Include="EF.Domain" Version="1.0.76" />
+    <PackageVersion Include="EF.Domain.Contracts" Version="1.0.76" />
+    <PackageVersion Include="EF.Data" Version="1.0.76" />
+    <PackageVersion Include="EF.Data.Contracts" Version="1.0.76" />
+    <PackageVersion Include="EF.Common" Version="1.0.76" />
+    <PackageVersion Include="EF.Common.Contracts" Version="1.0.76" />
+    <PackageVersion Include="EF.Host" Version="1.0.76" />
+    <PackageVersion Include="EF.AspNetCore" Version="1.0.76" />
+    <PackageVersion Include="EF.BackgroundServices" Version="1.0.76" />
     <PackageVersion Include="EF.Cache" Version="1.0.68" />
     <PackageVersion Include="EF.Test.Unit" Version="1.0.68" />
-    <PackageVersion Include="EF.IntegrationTesting" Version="1.0.75" />
+    <PackageVersion Include="EF.IntegrationTesting" Version="1.0.76" />
     <!-- Extended packages - add to individual .csproj when needed -->
     <PackageVersion Include="EF.Auth" Version="1.0.68" />
-    <PackageVersion Include="EF.Messaging" Version="1.0.75" />
-    <PackageVersion Include="EF.Storage" Version="1.0.75" />
-    <PackageVersion Include="EF.Table" Version="1.0.75" />
+    <PackageVersion Include="EF.Messaging" Version="1.0.76" />
+    <PackageVersion Include="EF.Storage" Version="1.0.76" />
+    <PackageVersion Include="EF.Table" Version="1.0.76" />
     <PackageVersion Include="EF.CosmosDb" Version="1.0.68" />
     <PackageVersion Include="EF.KeyVault" Version="1.0.68" />
     <PackageVersion Include="EF.Grpc" Version="1.0.68" />
@@ -33,19 +33,19 @@
   </ItemGroup>
   <ItemGroup Label="EF.Packages.Enterprise (Private Feed)">
     <PackageVersion Include="EF.FilterBuilder" Version="1.0.129" />
-    <PackageVersion Include="EF.FlowEngine" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Clients.AI" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.134" />
-    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.134" />
+    <PackageVersion Include="EF.FlowEngine" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.StateStore.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Locks.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.WorkflowRegistry.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.HumanTaskStore.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Outbox.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.CircuitBreaker.Sql" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Clients.AI" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Clients.Http" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Clients.ServiceBus" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.AdminApi" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Dashboard" Version="1.0.135" />
+    <PackageVersion Include="EF.FlowEngine.Testing" Version="1.0.135" />
   </ItemGroup>
   <ItemGroup Label="Microsoft Entity Framework Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
@@ -77,15 +77,15 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
   </ItemGroup>
   <ItemGroup Label="Aspire">
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.4.4" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.4.5" />
     <PackageVersion Include="KubernetesClient" Version="19.0.2" />
   </ItemGroup>
   <ItemGroup Label="YARP">
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.3" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.4" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.7.0" />
   </ItemGroup>
@@ -129,8 +129,8 @@
   <ItemGroup Label="UI">
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="MudBlazor" Version="9.5.0" />
-    <PackageVersion Include="Refit" Version="11.0.1" />
-    <PackageVersion Include="Refit.HttpClientFactory" Version="11.0.1" />
+    <PackageVersion Include="Refit" Version="11.1.0" />
+    <PackageVersion Include="Refit.HttpClientFactory" Version="11.1.0" />
     <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup Label="Security transitive overrides">
@@ -140,16 +140,16 @@
     <PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.29.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.14.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.4.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.4.5" />
   </ItemGroup>
   <ItemGroup Label="Azure Service Bus">
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.4.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.4.5" />
   </ItemGroup>
   <ItemGroup Label="Azure Cosmos DB">
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.61.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.4.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.4.5" />
   </ItemGroup>
   <ItemGroup Label="Data Protection">
     <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.3" />
@@ -162,9 +162,9 @@
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.10.0" />
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.4.4" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.4.5" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.5" />
     <!-- Foundry hosting + Azure AI Inference client are preview-only (no stable release exists); pinned to the 13.4.3 Aspire train to match the other Aspire.Hosting.* packages. -->
     <PackageVersion Include="Aspire.Hosting.Foundry" Version="13.4.3-preview.1.26305.13" />
     <PackageVersion Include="Aspire.Azure.AI.Inference" Version="13.4.3-preview.1.26305.13" />
