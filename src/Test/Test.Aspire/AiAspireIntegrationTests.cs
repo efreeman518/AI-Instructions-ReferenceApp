@@ -6,12 +6,11 @@ using Aspire.Hosting.Testing;
 namespace Test.Aspire;
 
 /// <summary>
-/// Aspire mesh tests for the AI integration default path. The testing AppHost intentionally does not
-/// start Foundry Local or provision Azure Foundry; these tests prove the real API resource still boots
-/// and routes AI endpoints through the no-op <c>IChatClient</c> fallback.
+/// Aspire mesh tests for the AI integration no-model path. The testing AppHost can now wire Foundry
+/// Local or Azure Foundry when available, so these assertions run only when no model was configured.
 /// Run this deterministic tier from repo root with:
 /// <c>dotnet test src\Test\Test.Aspire\Test.Aspire.csproj --filter FullyQualifiedName~AiAspireIntegrationTests</c>.
-/// Use <see cref="AiFoundryLiveSmokeTests"/> for opt-in model-backed smoke coverage.
+/// Use <see cref="AiFoundryLiveSmokeTests"/> for model-backed smoke coverage.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -27,6 +26,8 @@ public class AiAspireIntegrationTests
     [Timeout(300000)]
     public async Task Given_AppHostWithoutFoundry_When_ChatEndpointCalled_Then_NoOpChatClientResponds()
     {
+        SkipWhenLiveAiConfigured();
+
         var ct = CancellationToken.None;
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
 
@@ -50,6 +51,8 @@ public class AiAspireIntegrationTests
     [Timeout(300000)]
     public async Task Given_AppHostWithoutFoundry_When_DraftTaskCalled_Then_NoTaskIsCreated()
     {
+        SkipWhenLiveAiConfigured();
+
         var ct = CancellationToken.None;
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
 
@@ -72,5 +75,14 @@ public class AiAspireIntegrationTests
     {
         var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+    }
+
+    private static void SkipWhenLiveAiConfigured()
+    {
+        if (AspireTestHost.AiProvider != AspireAiProvider.None)
+        {
+            Assert.Inconclusive(
+                $"No-model AI assertion skipped because the Aspire test graph is using {AspireTestHost.AiProvider}.");
+        }
     }
 }

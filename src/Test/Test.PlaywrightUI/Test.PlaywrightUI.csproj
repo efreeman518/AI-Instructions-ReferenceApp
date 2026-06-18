@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <EnableMSTestRunner>false</EnableMSTestRunner>
+    <MSTestParallelizeAssembly>false</MSTestParallelizeAssembly>
+    <MSTestParallelizeTestClasses>false</MSTestParallelizeTestClasses>
+    <StartupObject>Test.PlaywrightUI.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Host\Aspire\AppHost\AppHost.csproj" AdditionalProperties="SkipUnoWasmBuild=true" />
+  </ItemGroup>
+
+</Project>

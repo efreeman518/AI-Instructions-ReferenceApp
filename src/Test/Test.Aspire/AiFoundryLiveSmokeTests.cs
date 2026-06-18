@@ -1,29 +1,20 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Aspire.Hosting.Testing;
 
 namespace Test.Aspire;
 
 /// <summary>
-/// Opt-in smoke tests for the model-backed AI endpoints running through the real Aspire-hosted API or
-/// gateway. These are not normal CI tests: they require a live AppHost already started with either
-/// Foundry Local or Azure Foundry wiring, and they assert response contracts instead of exact model text.
+/// Smoke tests for model-backed AI endpoints running through the Aspire-hosted gateway by default.
+/// They assert response contracts instead of exact model text.
 ///
-/// Foundry Local setup:
-/// 1. Install Foundry Local: <c>winget install Microsoft.FoundryLocal</c>.
-/// 2. Start or verify the service: <c>foundry service status</c>.
-/// 3. Download the local model used by AppHost: <c>foundry model download qwen2.5-0.5b</c>.
-/// 4. From repo root, start AppHost with local model wiring:
-///    <c>$env:TASKFLOW_ENABLE_FOUNDRY_LOCAL="true"; dotnet run --project src\Host\Aspire\AppHost\AppHost.csproj</c>.
-/// 5. In another PowerShell window, point tests at the Aspire gateway or taskflowapi HTTP/HTTPS endpoint:
-///    <c>$env:TASKFLOW_TEST_FOUNDRY_LOCAL="true"; $env:TASKFLOW_LIVE_AI_BASE_URL="https://localhost:51600"; dotnet test src\Test\Test.Aspire\Test.Aspire.csproj --filter "TestCategory=LiveAI&amp;FullyQualifiedName~FoundryLocal"</c>.
+/// Selection:
+/// 1. Azure Foundry runs when explicit Azure config is present.
+/// 2. Foundry Local runs when Azure config is absent and the local foundry CLI/service/model probe succeeds.
+/// 3. With no model provider, these tests are inconclusive and the no-model AI tests assert the fallback path.
 ///
-/// Azure Foundry setup, once enabled:
-/// 1. Configure the AppHost Azure Foundry endpoint through user secrets, azd, or environment values.
-/// 2. Start AppHost with <c>TASKFLOW_USE_AZURE_FOUNDRY=true</c>.
-/// 3. Set <c>TASKFLOW_LIVE_AI_BASE_URL</c> to the gateway or taskflowapi endpoint.
-/// 4. Remove the <c>[Ignore]</c> attribute from the Azure smoke test and run:
-///    <c>dotnet test src\Test\Test.Aspire\Test.Aspire.csproj --filter "TestCategory=AzureFoundry"</c>.
+/// <c>TASKFLOW_LIVE_AI_BASE_URL</c> can override the request target for manual runs, but it is not an opt-in.
 /// </summary>
 [TestClass]
 [TestCategory("LiveAI")]
@@ -31,12 +22,14 @@ namespace Test.Aspire;
 public class AiFoundryLiveSmokeTests
 {
     private const string LiveBaseUrlVariable = "TASKFLOW_LIVE_AI_BASE_URL";
-    private const string FoundryLocalOptInVariable = "TASKFLOW_TEST_FOUNDRY_LOCAL";
-    private const string AzureFoundryOptInVariable = "TASKFLOW_TEST_AZURE_FOUNDRY";
     private const string ApiPrefix = "api/v1/";
 
-    /// <summary>Gets MSTest context so opt-in guard messages show in local test output.</summary>
+    /// <summary>Gets MSTest context for cancellation and diagnostic output.</summary>
     public TestContext TestContext { get; set; } = null!;
+
+    /// <summary>Boots the shared Aspire graph before model-backed endpoint checks run.</summary>
+    [ClassInitialize]
+    public static Task ClassInit(TestContext context) => AspireTestHost.EnsureStartedAsync(context);
 
     /// <summary>Verifies D1 reaches a configured local model and returns non-empty assistant text.</summary>
     [TestMethod]
@@ -44,9 +37,7 @@ public class AiFoundryLiveSmokeTests
     [Timeout(180000)]
     public async Task Given_FoundryLocalAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
-        using var client = CreateOptInClientOrSkip(FoundryLocalOptInVariable, "Foundry Local");
-        if (client is null)
-            return;
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
 
         await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
     }
@@ -57,9 +48,7 @@ public class AiFoundryLiveSmokeTests
     [Timeout(180000)]
     public async Task Given_FoundryLocalAppHost_When_TaskTriageCalled_Then_TriageContractReturned()
     {
-        using var client = CreateOptInClientOrSkip(FoundryLocalOptInVariable, "Foundry Local");
-        if (client is null)
-            return;
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
 
         var ct = TestContext.CancellationTokenSource.Token;
         var taskId = await CreateTaskAsync(client, "Live AI triage smoke " + Guid.NewGuid().ToString("N"), ct);
@@ -83,9 +72,7 @@ public class AiFoundryLiveSmokeTests
     [Timeout(180000)]
     public async Task Given_FoundryLocalAppHost_When_DraftTaskCalled_Then_ModelBackedPathIsStable()
     {
-        using var client = CreateOptInClientOrSkip(FoundryLocalOptInVariable, "Foundry Local");
-        if (client is null)
-            return;
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
 
         var ct = TestContext.CancellationTokenSource.Token;
         using var response = await client.PostAsJsonAsync(
@@ -113,9 +100,7 @@ public class AiFoundryLiveSmokeTests
     [Timeout(180000)]
     public async Task Given_FoundryLocalAppHost_When_NextActionCalled_Then_RecommendationReturned()
     {
-        using var client = CreateOptInClientOrSkip(FoundryLocalOptInVariable, "Foundry Local");
-        if (client is null)
-            return;
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
 
         var ct = TestContext.CancellationTokenSource.Token;
         using var response = await client.PostAsync(ApiPath(client, "api/v1/ai/next-action"), null, ct);
@@ -127,19 +112,14 @@ public class AiFoundryLiveSmokeTests
     }
 
     /// <summary>
-    /// Azure Foundry smoke stays ignored until the Azure connection contract has been validated end to end.
-    /// Once wired, remove <c>[Ignore]</c>, set <c>TASKFLOW_TEST_AZURE_FOUNDRY=true</c>, and point
-    /// <c>TASKFLOW_LIVE_AI_BASE_URL</c> at the Aspire gateway or taskflowapi endpoint.
+    /// Verifies D1 against Azure Foundry when the Aspire test graph detects an Azure-backed chat connection.
     /// </summary>
     [TestMethod]
     [TestCategory("AzureFoundry")]
-    [Ignore("Enable after Azure Foundry endpoint wiring is validated for AppHost run mode.")]
     [Timeout(180000)]
     public async Task Given_AzureFoundryAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
-        using var client = CreateOptInClientOrSkip(AzureFoundryOptInVariable, "Azure Foundry");
-        if (client is null)
-            return;
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.AzureFoundry, "Azure Foundry");
 
         await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
     }
@@ -157,20 +137,18 @@ public class AiFoundryLiveSmokeTests
         StringAssert.DoesNotMatch(assistantMessage, new("not configured", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
     }
 
-    private HttpClient? CreateOptInClientOrSkip(string optInVariable, string providerName)
+    private async Task<HttpClient> CreateClientOrSkipAsync(AspireAiProvider requiredProvider, string providerName)
     {
-        if (!string.Equals(Environment.GetEnvironmentVariable(optInVariable), "true", StringComparison.OrdinalIgnoreCase))
+        if (AspireTestHost.AiProvider != requiredProvider)
         {
-            TestContext.WriteLine($"{providerName} smoke skipped. Set {optInVariable}=true and {LiveBaseUrlVariable}=<AppHost endpoint> to run it.");
-            return null;
+            Assert.Inconclusive(
+                $"{providerName} smoke skipped. Active AI provider: {AspireTestHost.AiProvider}.");
+            throw new InvalidOperationException("Unreachable");
         }
 
         var baseUrl = Environment.GetEnvironmentVariable(LiveBaseUrlVariable);
         if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            TestContext.WriteLine($"{providerName} smoke skipped. Set {LiveBaseUrlVariable} to the Aspire gateway or taskflowapi endpoint.");
-            return null;
-        }
+            return await CreateAspireGatewayClientAsync();
 
         var baseUri = new Uri(baseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         var handler = new HttpClientHandler();
@@ -184,6 +162,14 @@ public class AiFoundryLiveSmokeTests
             BaseAddress = baseUri,
             Timeout = TimeSpan.FromMinutes(3)
         };
+    }
+
+    private async Task<HttpClient> CreateAspireGatewayClientAsync()
+    {
+        var ct = TestContext.CancellationTokenSource.Token;
+        await AspireTestHost.WaitForResourceHealthyAsync("taskflowgateway", ct);
+
+        return AspireTestHost.AspireApp!.CreateHttpClient("taskflowgateway", "http");
     }
 
     private static string ApiPath(HttpClient client, string apiPath)
@@ -213,9 +199,31 @@ public class AiFoundryLiveSmokeTests
 
     private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            Assert.Fail(
+                $"Expected JSON success response, got {(int)response.StatusCode} {response.ReasonPhrase}. Body: {Truncate(body)}");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            Assert.Fail($"Expected JSON response, got empty body from {response.RequestMessage?.RequestUri}.");
+        }
+
+        try
+        {
+            return JsonDocument.Parse(body);
+        }
+        catch (JsonException ex)
+        {
+            Assert.Fail($"Expected JSON response. Parse error: {ex.Message}. Body: {Truncate(body)}");
+            throw;
+        }
     }
+
+    private static string Truncate(string value) =>
+        value.Length <= 1000 ? value : value[..1000] + "...";
 
     private static void AssertHasText(JsonElement element, string propertyName)
     {

@@ -72,6 +72,24 @@ In this mode the AppHost calls `AddFoundry("foundry").AddDeployment("chat", Foun
 
 Do nothing. When neither Foundry Local nor Azure Foundry is configured, the app still boots and registers a no-op `IChatClient`. D1-D8 return a "not configured" response instead of calling a model. D9 can start, but schema-constrained FlowEngine agent output is expected to fault because the no-op response is not valid model JSON.
 
+### Aspire-backed AI tests
+
+`dotnet test src/Test/Test.Aspire/Test.Aspire.csproj` boots the AppHost through `Aspire.Hosting.Testing`. The test graph includes API, Gateway, and Blazor by default, adds React and Uno when their local assets are runnable, trims only heavy or tool-dependent resources, and chooses model coverage by capability:
+
+| Test condition | Result |
+|----------------|--------|
+| Azure Foundry config exists (`AiServices:FoundryEndpoint` or `TASKFLOW_USE_AZURE_FOUNDRY=true`) | Azure Foundry smoke runs |
+| No Azure config, Foundry Local CLI/service/model probe succeeds | Foundry Local smoke runs |
+| No model provider found | no-op AI fallback tests run |
+
+`TASKFLOW_LIVE_AI_BASE_URL` can override the request target for manual live AI smoke runs. It is not a test opt-in.
+
+### Aspire-backed UI tests
+
+`dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor and React when their local prerequisites are present.
+
+The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React and Uno coverage remains in the existing TypeScript suites. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. Uno is not selected automatically by the .NET adapter because built WASM assets alone do not prove the app has booted in the browser; use `npm run test:uno` or `PLAYWRIGHT_UNO_URL` when targeting a verified Uno host.
+
 ### Projects and agents (opt-in, Azure-only)
 
 The demos above use **code-hosted** agents - a `ChatClientAgent` running in-process over the injected `IChatClient`. That works with every lifecycle mode and boots offline. **Server-hosted** Foundry agents are an Azure-only escalation for hosted memory, centralized tools, or portal/IaC-managed agent definitions. They are documented and wired as commented opt-ins; nothing here runs by default.

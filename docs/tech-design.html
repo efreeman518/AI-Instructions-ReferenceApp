@@ -1612,9 +1612,15 @@
   </tr>
   <tr>
     <td><strong>Test.Integration</strong></td>
-    <td>End-to-end verification of cross-service workflows by booting the full <strong>Aspire AppHost</strong> in-process: SQL Server, Service Bus emulator, Azure Table Storage, and (when <code>func.exe</code> is on PATH) Azure Functions. Covers EF migrations, repository CRUD with paging, the audit pipeline (interceptor -> channel -> table storage), and domain-event flow (API publish -> Service Bus -> Function projection -> audit row).</td>
-    <td>Highest-fidelity tests that still run on a developer laptop. Shared Aspire health, connection-string, and environment-scope helpers come from <code>EF.Test.Integration</code>, keeping the assembly fixture focused on TaskFlow-specific AppHost setup.</td>
-    <td>MSTest, <strong>Aspire.Hosting.Testing</strong> (<code>DistributedApplicationTestingBuilder</code>), <code>EF.Test.Integration</code>, <code>Azure.Data.Tables</code></td>
+    <td>Component-tier verification of one class against one real store via standalone Testcontainers (SQL Server + Azurite) started in parallel by <code>IntegrationTestSetup</code> - no Aspire graph, no HTTP. Covers EF migrations, repository CRUD with paging, the tenant query filter, M:N navigation, the domain-event projection pipeline (SQL -> projection service -> in-memory view), and the audit-repository round-trip to Azurite Table Storage.</td>
+    <td>Fast store-fidelity tests that run without the full mesh; SQL and Azurite come up independently so a SQL-only test never pays an Azurite/Functions startup.</td>
+    <td>MSTest, <strong>Testcontainers.MsSql</strong>, <strong>Testcontainers.Azurite</strong>, <code>EF.IntegrationTesting</code>, <code>Azure.Data.Tables</code></td>
+  </tr>
+  <tr>
+    <td><strong>Test.Aspire</strong></td>
+    <td>Mesh-tier verification of cross-service workflows by booting the <strong>Aspire AppHost</strong> in-process: SQL Server, Redis, Service Bus emulator, Azure Table Storage, API, Gateway, Blazor, and every optional local host/tool the harness can prove runnable. Covers app-surface health, API and Function audit pipelines, and AI provider behavior by capability.</td>
+    <td>Highest-fidelity tests that still run on a developer laptop, isolated from the fast component tier so the graph boot is paid only when a mesh test runs. Capability probes run React, Uno, Functions, Foundry Local, or Azure Foundry coverage when the local machine/config can actually support them.</td>
+    <td>MSTest, <strong>Aspire.Hosting.Testing</strong> (<code>DistributedApplicationTestingBuilder</code>), <code>EF.IntegrationTesting</code>, <code>Azure.Data.Tables</code></td>
   </tr>
   <tr>
     <td><strong>Test.E2E</strong></td>
@@ -1642,9 +1648,9 @@
   </tr>
   <tr>
     <td><strong>Test.PlaywrightUI</strong></td>
-    <td>Browser-driven UI tests against the running Blazor (<code>https://localhost:7201</code>) and Uno WASM (<code>https://localhost:7069</code>) frontends - full CRUD lifecycle (create -> edit -> delete), dashboard smoke, regression scenarios.</td>
-    <td>The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, and broken navigation that all server-side tests miss.</td>
-    <td><strong>Playwright</strong> (TypeScript, <code>@playwright/test</code>)</td>
+    <td>Browser-driven UI tests in the solution. MSTest starts the Aspire AppHost, runs C# page-object smoke for Gateway + Blazor, then adapts the existing TypeScript Playwright projects for Blazor and React when their prerequisites are present. Uno remains a direct TypeScript target because built WASM assets alone do not prove browser boot.</td>
+    <td>The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, broken navigation, and Gateway-to-UI wiring that server-side tests miss.</td>
+    <td>MSTest, <strong>Microsoft.Playwright</strong>, TypeScript <strong>@playwright/test</strong></td>
   </tr>
   <tr>
     <td><strong>Test.Integration.FlowEngine</strong></td>
@@ -1833,63 +1839,92 @@ public sealed class SqlApiFactory
   <li><strong>Aspire.Hosting.Testing</strong> - multi-service workflows: API publishes a domain event -> Service Bus -> Function consumes -> Cosmos projection -> Azure Table audit row appears. No other tool wires that graph for you with a one-liner.</li>
 </ul>
 
-<p><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> reflectively loads the AppHost's <code>Program</code> type and invokes its <code>Main</code> against a builder configured for testing. The resulting <code>DistributedApplication</code> exposes <code>GetConnectionStringAsync(name)</code> and <code>CreateHttpClient(serviceName)</code> to talk to any resource - including ones gated behind environment flags (e.g., <code>TASKFLOW_INCLUDE_FUNCTIONS=true</code> in <code>AspireTestHost</code> to include the Functions host only when <code>func.exe</code> is present on the developer's PATH).</p>
+<p><code>DistributedApplicationTestingBuilder.CreateAsync(typeof(AppHostProgram))</code> reflectively loads the AppHost's <code>Program</code> type and invokes its <code>Main</code> against a builder configured for testing. The resulting <code>DistributedApplication</code> exposes <code>GetConnectionStringAsync(name)</code> and <code>CreateHttpClient(serviceName)</code> to talk to named Aspire resources. The TaskFlow test graph includes API, Gateway, and Blazor by default; adds React when Node + Vite dependencies are present; adds Uno WASM when built browser assets are present; keeps SQL/Redis/Storage/Service Bus isolated; skips Cosmos and Scheduler; and includes Functions only when Azure Functions Core Tools is available.</p>
 
 <p><strong>Aspire test-host best practices</strong> - <code>AspireTestHost</code> codifies the canonical recipe from <code>learn.microsoft.com/dotnet/aspire/testing</code>:</p>
 <ul>
   <li>Bound every async Aspire call with <code>.WaitAsync(DefaultTimeout, ct)</code> (build, start, <code>GetConnectionStringAsync</code>, <code>WaitForResourceHealthyAsync</code>) so a hung container or stuck DCP step fails fast instead of hanging the run.</li>
   <li>Gate test work on <code>app.ResourceNotifications.WaitForResourceHealthyAsync(name, ct)</code> - a resource reaching <code>Running</code> does not mean it accepts connections (SQL warm-up, Functions cold-start, Azurite first request).</li>
   <li>Pass parameters via <code>configureBuilder: (appOptions, hostSettings) =&gt; hostSettings.Configuration["Parameters:sql-password"] = ...</code> instead of mutating process env vars; the AppHost picks them up through normal <code>IConfiguration</code> binding.</li>
+  <li>Keep harness-only state internal: <code>TASKFLOW_ASPIRE_TESTING</code> selects isolated test-mode resources, and <code>TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE</code> is set only after the harness finds <code>func.exe</code>.</li>
+  <li>Add optional app-facing hosts by capability, not opt-in: <code>TASKFLOW_ASPIRE_REACT_AVAILABLE</code> and <code>TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE</code> are set by the harness after checking local prerequisites.</li>
+  <li>Run live AI coverage by capability, not manual opt-in: Azure Foundry config wins; otherwise Foundry Local is enabled only when <code>foundry service status</code> and <code>foundry model info qwen2.5-0.5b</code> succeed; otherwise no-op AI fallback tests assert the disabled path.</li>
   <li>Set <code>appOptions.DisableDashboard = true</code> (default in the testing builder, but explicit beats implicit).</li>
   <li>Quiet framework chatter with <code>builder.Services.AddLogging(l =&gt; { l.SetMinimumLevel(Information); l.AddFilter("Microsoft.AspNetCore", Warning); l.AddFilter("Aspire.", Warning); })</code>.</li>
 </ul>
 
-<p><strong>Aspire tier by reuse</strong> - <code>Test.Integration</code> also hosts three classes that only need a single backing service (<code>MigrationAndRepositoryTests</code>, <code>DomainEventPipelineTests</code>, <code>AuditLogRepositoryAzuriteTests</code>). Per the comparison above they would qualify for Testcontainers, but the project piggybacks them on <code>AspireTestHost</code>'s shared SQL/Azurite resources rather than starting a parallel Testcontainers stack - saving the second container per assembly. Class-level <code>&lt;summary&gt;</code> blocks call this out on each so the choice doesn't read as drift.</p>
+<p><strong>Component vs mesh split</strong> - the three single-store classes (<code>MigrationAndRepositoryTests</code>, <code>DomainEventPipelineTests</code>, <code>AuditLogRepositoryAzuriteTests</code>) live in <code>Test.Integration</code> and run on standalone Testcontainers (SQL + Azurite) via <code>IntegrationTestSetup</code>, never booting the Aspire graph. Multi-resource HTTP pipelines, app-surface checks, and Aspire-backed AI smoke tests live in <code>Test.Aspire</code> and boot the full <code>AppHost</code> graph lazily via <code>AspireTestHost.EnsureStartedAsync</code>. Keeping them in separate assemblies means the fast component tier never pays the mesh startup, and the mesh tier boots once per run only when a mesh test executes.</p>
 
 <h3>12.6 Test.PlaywrightUI</h3>
-<p>A standalone TypeScript Playwright project that drives the <strong>running</strong> UI and API in a real browser. It is <em>not</em> <code>dotnet test</code>-orchestrated - it lives outside the .NET solution and runs via <code>npm</code>.</p>
+<p>A solution-included Playwright test project that drives the <strong>running</strong> UI and Gateway in a real browser. <code>dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj</code> starts the Aspire AppHost in test mode, exposes endpoint URLs through environment variables, runs the stable C# Gateway/Blazor smoke path, and then invokes the existing TypeScript Playwright projects for Blazor and React when <code>npm install</code> has been run.</p>
+<p>Keep C# page objects focused on the stable smoke path:</p>
+<ul>
+  <li>Gateway root and <code>/alive</code> marker checks.</li>
+  <li>Blazor <code>/tasks</code> happy path: page heading, MudTable shell, search field, and New Task action.</li>
+</ul>
+<p>React and Uno stay in TypeScript because their browser suites already encode framework-specific selectors and regressions. Port them only when there is a concrete .NET runner need. Uno is not auto-selected by the .NET adapter unless <code>PLAYWRIGHT_UNO_URL</code> targets a verified host; direct <code>npm run test:uno</code> remains available.</p>
 
 <h4>Project layout</h4>
 <pre><code>Test.PlaywrightUI/
+--- Test.PlaywrightUI.csproj  # MSTest + Microsoft.Playwright adapter, included in TaskFlow.slnx
+--- GatewayBlazorSmokeTests.cs
+--- PageObjects/
+    --- GatewayPageObject.cs
+    --- BlazorTaskListPageObject.cs
 --- package.json              # @playwright/test ^1.59.1
---- playwright.config.ts      # Two projects: 'blazor' and 'uno'
+--- playwright.config.ts      # Three projects: 'blazor', 'react', and 'uno'
 --- tests/
 -   --- blazor/task-crud.spec.ts
+-   --- react/
+-       --- task-crud.spec.ts
+-       --- theme-and-navigation.spec.ts
 -   --- uno/
 -       --- task-crud.spec.ts
 -       --- taskflow-task-list-regression.spec.ts
 -       --- taskflow-ui.spec.ts
 --- utils/
     --- blazorTestUtils.ts    # MudBlazor-aware helpers (.mud-table, .mud-dialog, ...)
+    --- reactTestUtils.ts
     --- unoTestUtils.ts</code></pre>
 
-<p><strong>Two browser projects</strong>, configured in <code>playwright.config.ts</code>:</p>
+<p><strong>Three browser projects</strong>, configured in <code>playwright.config.ts</code>:</p>
 <table>
   <tr><th>Project</th><th><code>baseURL</code></th><th>Tests against</th></tr>
-  <tr><td><code>blazor</code></td><td><code>https://localhost:7201</code></td><td>Blazor MudBlazor app</td></tr>
-  <tr><td><code>uno</code></td><td><code>https://localhost:7069</code></td><td>Uno Platform WASM app</td></tr>
+  <tr><td><code>blazor</code></td><td><code>PLAYWRIGHT_BLAZOR_URL</code> or <code>https://localhost:7201</code></td><td>Blazor MudBlazor app</td></tr>
+  <tr><td><code>react</code></td><td><code>PLAYWRIGHT_REACT_URL</code>, <code>TASKFLOW_REACT_BASE_URL</code>, or <code>http://localhost:5178</code></td><td>React TypeScript app</td></tr>
+  <tr><td><code>uno</code></td><td><code>PLAYWRIGHT_UNO_URL</code> or <code>https://localhost:7069</code></td><td>Uno Platform WASM app</td></tr>
 </table>
-<p>Both projects use Desktop Chrome, ignore HTTPS errors (self-signed dev cert), capture screenshots on failure, and record traces on first retry. <code>workers: 1</code> and <code>mode: "serial"</code> in spec files keep state-dependent CRUD steps in order.</p>
+<p>The C# Gateway smoke uses <code>PLAYWRIGHT_GATEWAY_URL</code> when set; otherwise the MSTest host fills it from the Aspire <code>taskflowgateway</code> endpoint. The adapter fills <code>PLAYWRIGHT_BLAZOR_URL</code> from Aspire and fills <code>PLAYWRIGHT_REACT_URL</code> when local Vite prerequisites are present. <code>PLAYWRIGHT_UNO_URL</code> is honored when supplied, but Uno is otherwise run directly through <code>npm run test:uno</code>. All TypeScript projects use Desktop Chrome, ignore HTTPS errors where needed, capture screenshots on failure, and record traces on first retry. <code>workers: 1</code> and <code>mode: "serial"</code> in spec files keep state-dependent CRUD steps in order.</p>
 
-<div class="callout"><strong>Prerequisites - Playwright drives a real browser, so the full vertical slice must be running before you run the suite:</strong>
+<div class="callout"><strong>Prerequisites</strong>
+<p>For <code>dotnet test</code>, the test project starts AppHost itself. You still need browser binaries:</p>
+<pre><code>dotnet build src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+powershell -NoProfile -File src/Test/Test.PlaywrightUI/bin/Debug/net10.0/playwright.ps1 install chromium</code></pre>
+<p>To run the TypeScript projects through the MSTest adapter or by <code>npm</code>, install Node dependencies once:</p>
+<pre><code>cd src/Test/Test.PlaywrightUI
+npm install
+npx playwright install --with-deps chromium</code></pre>
+<p>For direct <code>npm run test:*</code> commands, the full vertical slice must already be running:</p>
 <ol>
-  <li><strong>API</strong> - <code>dotnet run --project src/Host/Aspire/AppHost</code> boots SQL, Service Bus, Storage, the API, the Gateway, and seed data.</li>
+  <li><strong>AppHost</strong> - <code>dotnet run --project src/Host/Aspire/AppHost</code> boots SQL, Service Bus, Storage, API, Gateway, Blazor, React, Uno host, and seed data.</li>
   <li><strong>UI</strong> - depending on the project being tested:
     <ul>
-      <li>Blazor at <code>https://localhost:7201</code> (<code>dotnet run --project src/UI/TaskFlow.Blazor</code>)</li>
-      <li>Uno WASM at <code>https://localhost:7069</code> (run separately - Uno SDK constraint)</li>
+      <li>Read Blazor and React URLs from the Aspire dashboard, or set the Playwright URL overrides above.</li>
+      <li>Build Uno WASM assets before driving the Uno host if <code>net10.0-browserwasm</code> output is missing.</li>
     </ul>
   </li>
-  <li><strong>Browsers</strong> - <code>npx playwright install --with-deps chromium</code> (one-time).</li>
 </ol>
 </div>
 
 <h4>Running</h4>
-<pre><code>cd src/Test/Test.PlaywrightUI
+<pre><code>dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+
+cd src/Test/Test.PlaywrightUI
 npm install
 npm run test:blazor          # Blazor project only
+npm run test:react           # React project only
 npm run test:uno             # Uno project only
-npm run test                 # Both
+npm run test                 # All browser projects
 npm run test:full:fast       # No retries, max 4 failures, 120 s timeout - for local triage</code></pre>
 
 <h4>How a test reads</h4>
@@ -1923,7 +1958,10 @@ dotnet test src/Test/Test.Load/Test.Load.csproj --filter "TestCategory=Load"
 # Benchmarks (Release build, console runner)
 dotnet run -c Release --project src/Test/Test.Benchmarks
 
-# UI E2E (requires Blazor and/or Uno running, plus API + seed data)
+# UI E2E (starts Aspire AppHost, then runs C# smoke and installed TypeScript projects)
+dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+
+# Direct TypeScript UI E2E (requires AppHost and requested browser UI running)
 cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test</code></pre>
 
 <!-- ============================================================ -->

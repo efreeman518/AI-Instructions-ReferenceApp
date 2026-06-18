@@ -1,6 +1,6 @@
 import { expect, Page } from "@playwright/test";
 
-export const WasmBootMs = 20_000;
+export const WasmBootMs = 90_000;
 
 /** Provides Playwright helper logic for normalize uno text. */
 export function normalizeUnoText(value: string) {

@@ -5,10 +5,16 @@ using Aspire.Hosting.Foundry;
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Testing environment: set by test classes before calling DistributedApplicationTestingBuilder.
-// Skip heavy/optional resources to keep startup fast and avoid func.exe dependency.
+// Keep test runs isolated and trim only resources that are too heavy or need external tools.
 var isTesting = Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING") == "true"
     || string.Equals(builder.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 var applicationStyle = Environment.GetEnvironmentVariable("TASKFLOW_APPLICATION_STYLE");
+var functionsAvailableInTesting =
+    Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE") == "true";
+var reactAvailableInTesting =
+    Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_REACT_AVAILABLE") == "true";
+var unoWasmAvailableInTesting =
+    Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE") == "true";
 
 // Keep SQL password stable across restarts so persistent SQL volumes remain usable.
 // Tests can still override via Parameters__sql-password.
@@ -79,41 +85,38 @@ if (!isTesting)
 // Azure-only escalation - see the commented "Foundry project + prompt agent" block after the API host
 // and README "AI Demos" -> "Projects and agents". They are documented but not wired by default.
 //
-// Skipped entirely in Testing to keep Aspire integration tests fast and Azure-free.
+// Test mode only wires a model when the test harness found real Azure config or Foundry Local.
 IResourceBuilder<FoundryDeploymentResource>? chat = null;
-if (!isTesting)
+var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
+    || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
+    || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true";
+var foundryLocalEnabled =
+    Environment.GetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL") == "true";
+
+if (azureFoundryConfigured)
 {
-    var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
-        || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
-        || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true";
-    var foundryLocalEnabled =
-        Environment.GetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL") == "true";
+    // Provisions an Azure AI Foundry account + deployment on publish; connects to it in run mode
+    // when Azure provisioning is configured (azd / user secrets).
+    var foundry = builder.AddFoundry("foundry");
+    chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
 
-    if (azureFoundryConfigured)
-    {
-        // Provisions an Azure AI Foundry account + deployment on publish; connects to it in run mode
-        // when Azure provisioning is configured (azd / user secrets).
-        var foundry = builder.AddFoundry("foundry");
-        chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
-
-        // OPT-IN: connect to an EXISTING Azure Foundry account instead of provisioning a new one.
-        // The "chat" deployment must already exist in that account. RunAsExisting binds in run mode;
-        // PublishAsExisting binds the published graph. Parameters resolve from config/user-secrets
-        // (Parameters:foundry-name / Parameters:foundry-rg). Uncomment and set AiServices:FoundryResourceName
-        // + AiServices:FoundryResourceGroup to use it.
-        // var foundryName = builder.AddParameter("foundry-name");
-        // var foundryRg = builder.AddParameter("foundry-rg");
-        // chat = builder.AddFoundry("foundry").RunAsExisting(foundryName, foundryRg)
-        //     .AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
-    }
-    else if (foundryLocalEnabled)
-    {
-        // Runs the model locally via Foundry Local (requires the Foundry Local runtime installed:
-        // `winget install Microsoft.FoundryLocal`). No Azure subscription required. Use a
-        // tool-capable model so ChatClientAgent demos can exercise function calling on-device.
-        var foundry = builder.AddFoundry("foundry").RunAsFoundryLocal();
-        chat = foundry.AddDeployment("chat", FoundryModel.Local.Qwen2505b);
-    }
+    // OPT-IN: connect to an EXISTING Azure Foundry account instead of provisioning a new one.
+    // The "chat" deployment must already exist in that account. RunAsExisting binds in run mode;
+    // PublishAsExisting binds the published graph. Parameters resolve from config/user-secrets
+    // (Parameters:foundry-name / Parameters:foundry-rg). Uncomment and set AiServices:FoundryResourceName
+    // + AiServices:FoundryResourceGroup to use it.
+    // var foundryName = builder.AddParameter("foundry-name");
+    // var foundryRg = builder.AddParameter("foundry-rg");
+    // chat = builder.AddFoundry("foundry").RunAsExisting(foundryName, foundryRg)
+    //     .AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
+}
+else if (foundryLocalEnabled)
+{
+    // Runs the model locally via Foundry Local (requires the Foundry Local runtime installed:
+    // `winget install Microsoft.FoundryLocal`). No Azure subscription required. Use a
+    // tool-capable model so ChatClientAgent demos can exercise function calling on-device.
+    var foundry = builder.AddFoundry("foundry").RunAsFoundryLocal();
+    chat = foundry.AddDeployment("chat", FoundryModel.Local.Qwen2505b);
 }
 
 // API host
@@ -163,6 +166,19 @@ if (!string.IsNullOrWhiteSpace(applicationStyle))
     api.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
 }
 
+// Gateway is part of the default test graph because all browser-facing hosts route through it.
+var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
+    .WithReference(api)
+    .WithEnvironment("ReverseProxy__Routes__api-route__Match__Path", "/api/{**catch-all}")
+    .WithEnvironment("ReverseProxy__Clusters__api-cluster__Destinations__api__Address", api.GetEndpoint("http"))
+    .WaitFor(api);
+
+builder.AddProject<Projects.TaskFlow_Blazor>("taskflowblazor")
+    .WithReference(gateway)
+    .WithEnvironment("Gateway__BaseUrl", gateway.GetEndpoint("http"))
+    .WaitFor(gateway)
+    .WithExternalHttpEndpoints();
+
 if (!isTesting)
 {
     // Scheduler host
@@ -180,31 +196,26 @@ if (!isTesting)
     {
         scheduler.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
     }
+}
 
-    // Gateway host
-    var gateway = builder.AddProject<Projects.TaskFlow_Gateway>("taskflowgateway")
-        .WithReference(api)
-        .WaitFor(api);
-
+if (!isTesting || reactAvailableInTesting)
+{
     builder.AddViteApp("taskflowreact", "../../../UI/TaskFlow.React")
         .WithReference(gateway)
         .WithEnvironment("VITE_API_BASE_URL", gateway.GetEndpoint("http"))
         .WaitFor(gateway)
         .WithExternalHttpEndpoints();
+}
 
-    builder.AddProject<Projects.TaskFlow_Blazor>("taskflowblazor")
-        .WithReference(gateway)
-        .WithEnvironment("Gateway__BaseUrl", gateway.GetEndpoint("http"))
-        .WaitFor(gateway)
-        .WithExternalHttpEndpoints();
-
+if (!isTesting || unoWasmAvailableInTesting)
+{
     builder.AddProject<Projects.TaskFlow_Uno_WasmHost>("taskflowuno")
         .WithReference(gateway)
         .WaitFor(gateway)
         .WithExternalHttpEndpoints();
 }
 
-if (!isTesting || Environment.GetEnvironmentVariable("TASKFLOW_INCLUDE_FUNCTIONS") == "true")
+if (!isTesting || functionsAvailableInTesting)
 {
     // Functions host
     var functions = builder.AddAzureFunctionsProject<Projects.TaskFlow_Functions>("taskflowfunctions")

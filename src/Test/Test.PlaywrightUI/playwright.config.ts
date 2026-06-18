@@ -5,14 +5,14 @@ export default defineConfig({
   reporter: [["list"]],
   workers: 1,
   retries: 1,
-  timeout: 60_000,
+  timeout: 180_000,
 
   projects: [
     {
       name: "blazor",
       testDir: "./tests/blazor",
       use: {
-        baseURL: "https://localhost:7201",
+        baseURL: process.env.PLAYWRIGHT_BLAZOR_URL ?? "https://localhost:7201",
         ignoreHTTPSErrors: true,
         screenshot: "only-on-failure",
         trace: "on-first-retry",
@@ -23,7 +23,7 @@ export default defineConfig({
       name: "uno",
       testDir: "./tests/uno",
       use: {
-        baseURL: "https://localhost:7069",
+        baseURL: process.env.PLAYWRIGHT_UNO_URL ?? "https://localhost:7069",
         ignoreHTTPSErrors: true,
         screenshot: "only-on-failure",
         trace: "on-first-retry",
@@ -34,7 +34,7 @@ export default defineConfig({
       name: "react",
       testDir: "./tests/react",
       use: {
-        baseURL: process.env.TASKFLOW_REACT_BASE_URL ?? "http://localhost:5178",
+        baseURL: process.env.PLAYWRIGHT_REACT_URL ?? process.env.TASKFLOW_REACT_BASE_URL ?? "http://localhost:5178",
         screenshot: "only-on-failure",
         trace: "on-first-retry",
         ...devices["Desktop Chrome"],
