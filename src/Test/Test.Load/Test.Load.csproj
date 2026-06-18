@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="EF.Common.Contracts" />
+    <PackageReference Include="MessagePack" />
     <PackageReference Include="MSTest" />
     <PackageReference Include="NBomber" />
   </ItemGroup>

@@ -17,7 +17,7 @@ Reference implementation for [AI-Instructions-Scaffold](https://github.com/efree
 
 **Azure services:** SQL Server, Cosmos DB, Service Bus, Blob Storage, Azure AI Search, Microsoft Foundry.
 
-**Workflow orchestration:** EF.FlowEngine 1.0.132 - three AI-driven workflows (`ai-task-triage`, `ai-task-decomposer`, `compliance-check`) with human-in-the-loop, saga compensation, atomic outbox, and agent nodes backed by the Aspire `IChatClient`; Blazor-hosted Dashboard + Designer; admin REST at `/api/flowengine/*`. See [tech-design.md Section 14](docs/tech-design.md#14-workflow-orchestration-flowengine).
+**Workflow orchestration:** EF.FlowEngine - three AI-driven workflows (`ai-task-triage`, `ai-task-decomposer`, `compliance-check`) with human-in-the-loop, saga compensation, atomic outbox, and agent nodes backed by the Aspire `IChatClient`; Blazor-hosted Dashboard + Designer; admin REST at `/api/flowengine/*`. See [tech-design.md Section 14](docs/tech-design.md#14-workflow-orchestration-flowengine).
 
 Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bicep (`infra/`).
 
@@ -25,7 +25,7 @@ Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bi
 
 ## AI Demos (Azure AI Foundry via Aspire)
 
-The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.IChatClient` backs every AI demo, including the FlowEngine `ai-agent` connector used by D9. Two independent axes apply: **lifecycle** (where the Foundry resource comes from) and **consumption** (this app consumes raw model inference; Foundry projects + server-hosted agents are an Azure-only escalation, documented as commented opt-ins - see *Projects and agents* below). The AppHost chooses the lifecycle/model source at startup:
+The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.IChatClient` backs every AI demo, including the FlowEngine `ai-agent` connector used by D9. This reference app owns Foundry resource creation and the `chat` connection directly in its AppHost; `EF.AI` is available as an optional package but is not used by this app. Two independent axes apply: **lifecycle** (where the Foundry resource comes from) and **consumption** (this app consumes raw model inference; Foundry projects + server-hosted agents are an Azure-only escalation, documented as commented opt-ins - see *Projects and agents* below). The AppHost chooses the lifecycle/model source at startup:
 
 | Mode | How to enable | Model |
 |------|---------------|-------|

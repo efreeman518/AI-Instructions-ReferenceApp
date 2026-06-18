@@ -8,12 +8,12 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Field | Value |
 |---|---|
-| Last verified | 2026-06-13 |
+| Last verified | 2026-06-18 |
 | Solution | `src/TaskFlow.slnx` |
 | Target framework | .NET 10 |
-| Projects | 38 |
+| Projects | 39 |
 | Errors | 0 |
-| Warnings | 9 (`MessagePack` NU1903 - known transitive vulnerability; tracked under Vulnerability Status) |
+| Warnings | 0 |
 
 > Note: `src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj` builds separately because Uno.Sdk requires explicit invocation: `dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj`.
 
@@ -21,17 +21,18 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Project | Category filter | Verified count | Notes |
 |---|---|---:|---|
-| Test.Unit | `TestCategory=Unit` | 240 | mocked unit tests |
-| Test.Architecture | `TestCategory=Architecture` | 12 | NetArchTest layering rules |
-| Test.Endpoints | `TestCategory=Endpoint` | 36 | WebApplicationFactory in-memory contract tests |
-| Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains (~40s) |
-| Test.Integration | `TestCategory=Integration` | 14 | service-level vs real SQL via Testcontainers (~170s) |
-| Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; sub-second |
+| Test.Unit | `TestCategory=Unit` | 243 | mocked unit tests; verified 2026-06-18 |
+| Test.Architecture | `TestCategory=Architecture` | 22 | NetArchTest layering rules; verified 2026-06-18 |
+| Test.Endpoints | `TestCategory=Endpoint` | 34 | WebApplicationFactory in-memory contract tests; verified 2026-06-18 |
+| Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-06-18 through Podman-backed Docker context |
+| Test.Integration | `TestCategory=Integration` | 15 | service-level vs real SQL via Testcontainers; verified 2026-06-18 through Podman-backed Docker context |
+| Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; verified 2026-06-18 |
+| Test.Aspire | multiple (`Integration`, `LiveAI`) | 10 | Aspire mesh tests for API, Gateway, Blazor, React, Uno, Functions, audit, and AI capability probes; verified 2026-06-18 through Podman-backed Docker context |
 | Test.PlaywrightUI | n/a (Node.js) | - | hosted-stack required (see below) |
 | Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
-**Total automated:** 325 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine.
+**Current automated verification:** 347 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine/Aspire. Docker-compatible runtime verified through Podman context `podman-machine-default`; Aspire runtime verified with `ASPIRE_CONTAINER_RUNTIME=podman`.
 
 ### Playwright (`src/Test/Test.PlaywrightUI/`)
 
@@ -45,14 +46,13 @@ Run `dotnet list package --vulnerable --include-transitive` and capture findings
 - **Moderate:** logged here, tracked but not blocking
 - **Low:** team discretion
 
-Last audited: 2026-06-13 (build-time NU1903 warnings; no new advisories introduced by EF.FlowEngine 1.0.132 packages during focused restore/build verification).
+Last audited: 2026-06-18 with `dotnet list src\TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`.
 
 | Package | Version | Severity | Direct/Transitive | Advisory | Notes |
 |---|---|---|---|---|---|
-| `System.Security.Cryptography.Xml` | 8.0.2 | **High** | Transitive | [GHSA-37gx-xxp4-5rgx](https://github.com/advisories/GHSA-37gx-xxp4-5rgx), [GHSA-w3x6-4m5h-cxqf](https://github.com/advisories/GHSA-w3x6-4m5h-cxqf) | Recorded as deployment-blocker; pinned awaiting upstream patch in identity-related dependency chain. Owner: ef. Target: next .NET 10 servicing release. |
-| `OpenTelemetry.Api` | 1.12.0, 1.15.1 | Moderate | Transitive | [GHSA-g94r-2vxg-569j](https://github.com/advisories/GHSA-g94r-2vxg-569j) | Logged. Tracking upstream OpenTelemetry release; not blocking per pragmatic warning policy. |
+| _None_ | - | - | - | - | Full solution audit reported no vulnerable packages. |
 
-The build emits a warning per vulnerable package per consuming project (28 total warnings). When the upstream packages publish patched versions, bumping `Directory.Packages.props` should clear all instances simultaneously.
+The solution build currently emits no package vulnerability warnings.
 
 ## Phase Completion
 
@@ -69,7 +69,7 @@ Per the consolidated 5-sub-phase taxonomy:
 | 5c - Optional Hosts | complete (Gateway, Scheduler, Functions, Uno UI, Blazor) |
 | 5d - Quality + Delivery | complete (architecture/load/benchmark tests, Dockerfiles, CI/CD, IaC Bicep) |
 | 5e - Integration (Auth + AI) | complete (scaffold mode; live Entra/Foundry deployment-only) |
-| 5e+ - Workflow Orchestration | complete (EF.FlowEngine 1.0.132, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes use the Aspire `IChatClient`, with no-op fallback when AI is disabled) |
+| 5e+ - Workflow Orchestration | complete (EF.FlowEngine, three shipped workflows, Blazor dashboard, admin API at `/api/flowengine/*`; agent nodes use the Aspire `IChatClient`, with no-op fallback when AI is disabled) |
 
 ## AI Runtime Status
 
@@ -104,4 +104,4 @@ Validate locally: `az bicep build --file infra/main.bicep`.
 
 Tracked here so the next instruction-set or reference-app PR knows what's pending:
 
-1. **Vulnerability resolution.** Watch upstream releases of `System.Security.Cryptography.Xml` (high) and `OpenTelemetry.Api` (moderate); bump pinned versions in `Directory.Packages.props` once patches ship.
+1. **Authenticated AI side effects.** D4/D5/D6/D9 persistence/enqueue side effects still require normal tenant/auth context before they can be verified end-to-end.

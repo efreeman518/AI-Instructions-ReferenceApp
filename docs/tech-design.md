@@ -44,7 +44,7 @@ TaskFlow is a **multi-tenant task management reference application** built on .N
 | **Read Model** | Azure Cosmos DB (denormalized projections) |
 | **File Storage** | Azure Blob Storage |
 | **AI** | Azure AI Search + Azure AI Foundry / Foundry Local via `IChatClient` (no-op fallback) |
-| **Workflow Orchestration** | EF.FlowEngine 1.0.132 - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
+| **Workflow Orchestration** | EF.FlowEngine - SQL state store, outbox, circuit breaker, admin API, Blazor dashboard |
 | **Auth** | Microsoft Entra ID (External) / Scaffold mode |
 | **Observability** | OpenTelemetry (OTLP), Aspire Dashboard |
 | **Testing** | MSTest, Moq, NetArchTest, WebApplicationFactory, Testcontainers.MsSql, Aspire.Hosting.Testing, Stryker.NET, BenchmarkDotNet, NBomber, Playwright |
@@ -1408,7 +1408,7 @@ The YARP Gateway acts as a **Backend-for-Frontend (BFF)**:
 
 ## 14. Workflow Orchestration (FlowEngine)
 
-TaskFlow embeds **EF.FlowEngine 1.0.132** as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:
+TaskFlow embeds **EF.FlowEngine** as a long-running, durable, human-in-the-loop orchestration runtime for AI-driven scenarios. It complements - does not replace - the existing CRUD API, domain events, and TickerQ scheduler:
 
 - **Domain events + Service Bus + Functions** still own per-event side effects (Cosmos projection, AI search indexing, blob processing).
 - **TickerQ scheduler** still owns timer-driven cron jobs (overdue checks, recurring task generation, stale cleanup).
@@ -1548,7 +1548,7 @@ The agent-client wiring is the integration point with the existing AI stack: Flo
 
 #### Foundry Model Modes and Configuration
 
-The AppHost owns model selection. The API and Functions hosts only look for a `chat` connection and register `AddAzureChatCompletionsClient("chat").AddChatClient()` when that connection exists. This keeps D1-D9 on one `IChatClient` contract.
+The AppHost owns model selection and creates the `chat` connection directly. The API and Functions hosts only look for that connection and register `AddAzureChatCompletionsClient("chat").AddChatClient()` when it exists. This keeps D1-D9 on one `IChatClient` contract without requiring a package-level Foundry abstraction.
 
 | Mode | AppHost condition | Runtime behavior |
 |---|---|---|

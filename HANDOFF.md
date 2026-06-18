@@ -7,7 +7,7 @@
 
 ## Session Summary
 
-Phases 1-5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC) + FlowEngine workflow orchestration integration. Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators, Foundry Local), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client -> Gateway, Blazor Server UI hosted in Aspire, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, Foundry Local/Azure model path with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules, plus **EF.FlowEngine 1.0.132** (separate `flowengine` schema in same SQL DB, three shipped workflows under `TaskFlow.Api/Workflows/`, Blazor-hosted Dashboard + Designer, admin API at `/api/flowengine/*`, agent nodes wired to the Aspire `IChatClient`, `IWorkflowTrigger` invoked from the Functions Service Bus trigger on task creation).
+Phases 1-5e complete (5a Foundation, 5b App Core + Runtime, 5c Optional Hosts, 5d Quality + Delivery, 5e Integration Auth + AI) + post-phase hardening (test hardening + EF migrations, infrastructure validation, IaC) + FlowEngine workflow orchestration integration. Clean-architecture solution with rich domain model, full CRUD services/endpoints, Aspire orchestration (SQL, Redis, Azure Storage, Service Bus, Cosmos DB emulators, Foundry Local), DbContext pooling, FusionCache, middleware pipeline, YARP Gateway, TickerQ Scheduler, Azure Functions (isolated worker), Uno Platform WASM UI with MVUX + Kiota client -> Gateway, Blazor Server UI hosted in Aspire, config-driven authentication (Scaffold/EntraID), AI integration (Azure AI Search + Microsoft Agent Framework, Foundry Local/Azure model path with no-op stubs), blob storage with multipart upload endpoint, domain event publishing, Cosmos DB read-model projections, WebApplicationFactory endpoint tests, TestContainers integration tests, EF migration baseline, CI/CD pipelines activated, IaC (Bicep) modules, plus **EF.FlowEngine** (separate `flowengine` schema in same SQL DB, three shipped workflows under `TaskFlow.Api/Workflows/`, Blazor-hosted Dashboard + Designer, admin API at `/api/flowengine/*`, agent nodes wired to the Aspire `IChatClient`, `IWorkflowTrigger` invoked from the Functions Service Bus trigger on task creation).
 
 ## Current State
 
@@ -26,7 +26,7 @@ enabledFeatures:
   includeBlazorUI: true
   includeNotifications: false
   includeAiServices: true        # scaffold mode (deployment-only, no-op stubs)
-  includeFlowEngine: true        # 1.0.132; agent nodes use the Aspire IChatClient
+  includeFlowEngine: true        # agent nodes use the Aspire IChatClient
 testStatus:
   unitTests: green
   endpointTests: green
@@ -52,7 +52,7 @@ hostGates:
 | `.scaffold/INSTRUCTION-GAPS.md` | - | Recorded gaps for the maintenance repo |
 | `.scaffold/REFERENCE-STATUS.md` | - | Current verified build/test/vuln snapshot |
 | `dotnet-tools.json` | 3 | Local tool manifest (`ilspycmd`, `dotnet-stryker`) |
-| `src/TaskFlow.slnx` | 4+ | 32-project clean-architecture solution |
+| `src/TaskFlow.slnx` | 4+ | Clean-architecture solution |
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
 | `HANDOFF.md` | - | This file. Stays at project root as the session resume contract. |
@@ -61,7 +61,7 @@ hostGates:
 
 ## Outstanding Follow-Ups
 
-Tracked in [REFERENCE-STATUS.md Section  Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Primary: vulnerability resolution (`System.Security.Cryptography.Xml`, `OpenTelemetry.Api`) pending upstream patches.
+Tracked in [REFERENCE-STATUS.md Section  Outstanding Follow-Ups](.scaffold/REFERENCE-STATUS.md). Current items are environment-gated or scenario-gated, not package vulnerability blockers.
 
 AI Foundry option surfaces beyond the default inference path are documented as commented opt-ins, not wired: existing-account `RunAsExisting` and a Foundry project + prompt agent in `AppHost.cs`, and the pre-existing-agent client path (`AIProjectClient.AsAIAgent`) in `TaskFlow.Api/Program.cs`. See README "AI Demos" -> "Projects and agents". Enabling any requires Azure (prompt agents deploy to Azure even under `aspire run`).
 
