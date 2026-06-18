@@ -149,13 +149,27 @@ public class ApiAuditPipelineTests
         if (AspireTestHost.AspireApp is null)
             return;
 
-        var logs = AspireTestHost.AspireApp.Services.GetRequiredService<ResourceLoggerService>();
-        await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(ct))
+        var logs = AspireTestHost.AspireApp.Services.GetService<ResourceLoggerService>();
+        if (logs is null)
         {
-            foreach (var line in batch)
+            Console.WriteLine(
+                $"{resourceName}: resource logging disabled; set {AspireTestHost.ResourceLoggingEnvironmentVariable}=true to capture Aspire resource logs.");
+            return;
+        }
+
+        try
+        {
+            await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(ct))
             {
-                Console.WriteLine($"{resourceName}: {line}");
+                foreach (var line in batch)
+                {
+                    Console.WriteLine($"{resourceName}: {line}");
+                }
             }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"{resourceName}: resource logs unavailable: {ex.Message}");
         }
     }
 

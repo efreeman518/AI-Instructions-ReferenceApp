@@ -31,6 +31,8 @@ internal static class AspireTestHost
     /// <summary>Cleanup deadline. StopAsync should return promptly; the bound prevents a stuck shutdown.</summary>
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
 
+    internal const string ResourceLoggingEnvironmentVariable = "TASKFLOW_ASPIRE_RESOURCE_LOGGING";
+
     /// <summary>Guards the lazy single-start so concurrent <c>[ClassInitialize]</c> calls boot the graph once.</summary>
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
@@ -48,6 +50,9 @@ internal static class AspireTestHost
 
     /// <summary>True when built Uno WASM assets are present for the static host.</summary>
     internal static bool UnoWasmAvailable { get; private set; }
+
+    /// <summary>True only when the internal Aspire diagnostic logging switch is enabled.</summary>
+    internal static bool ResourceLoggingEnabled { get; private set; }
 
     /// <summary>
     /// Starts the Aspire graph on first call and returns immediately on subsequent calls. Mesh test classes
@@ -91,6 +96,7 @@ internal static class AspireTestHost
         if (UnoWasmAvailable)
             _environment.Set("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE", "true");
 
+        ResourceLoggingEnabled = IsEnabled(ResourceLoggingEnvironmentVariable);
         var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
 
         var builder = await DistributedApplicationTestingBuilder.CreateAsync(
@@ -98,10 +104,10 @@ internal static class AspireTestHost
             args: [],
             configureBuilder: (appOptions, hostSettings) =>
             {
-                // Default in the testing builder; setting explicitly to make intent visible.
-                // Flip to false locally if you need to inspect resource state in the dashboard.
                 appOptions.DisableDashboard = true;
-                appOptions.EnableResourceLogging = true;
+                // Keep normal Aspire test output quiet. Set TASKFLOW_ASPIRE_RESOURCE_LOGGING=true
+                // only while diagnosing resource startup or routing failures.
+                appOptions.EnableResourceLogging = ResourceLoggingEnabled;
 
                 // Pass the SQL parameter through host config instead of mutating Parameters__sql-password env var.
                 // The AppHost's `builder.AddParameter("sql-password", ...)` resolves from IConfiguration first.
@@ -155,6 +161,7 @@ internal static class AspireTestHost
         AiProvider = AspireAiProvider.None;
         ReactAvailable = false;
         UnoWasmAvailable = false;
+        ResourceLoggingEnabled = false;
     }
 
     /// <summary>
