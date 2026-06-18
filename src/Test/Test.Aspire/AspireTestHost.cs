@@ -312,7 +312,8 @@ internal static class AspireTestHost
                     ? AspireAiProvider.FoundryLocal
                     : AspireAiProvider.AzureFoundry;
         }
-        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException)
+        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException
+            or ArgumentException { ParamName: "resourceName" })
         {
             return AspireAiProvider.None;
         }
