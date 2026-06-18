@@ -95,26 +95,31 @@ internal sealed class MobileTaskAppDriver
             $"element '{label}'");
 
     /// <summary>
-    /// Brings an off-screen control into view with a bounded swipe inside the content area.
+    /// Brings an off-screen control into view with bounded swipes inside the content area.
     /// Deliberately avoids UiScrollable/scrollIntoView and any swipe near the top edge: a downward
     /// gesture from the status-bar region pulls down the Android notification shade and covers the
-    /// app. Swipes up to three times, checking for the element between swipes.
+    /// app. Tries both directions because Uno may preserve the form's prior scroll position between
+    /// screens, so the requested field can be above or below the current viewport.
     /// </summary>
     private AppiumElement? ScrollIntoView(string label)
     {
         if (_driver is not AndroidDriver) return null;
-        for (var i = 0; i < 3; i++)
+
+        foreach (var direction in new[] { "down", "up" })
         {
-            if (!SafeSwipeUp()) return null;
-            var found = FirstOrNull(ByLabel(label)) ?? FirstOrNull(ByLabelContains(label));
-            if (found is not null) return found;
+            for (var i = 0; i < 3; i++)
+            {
+                if (!SafeSwipe(direction)) return null;
+                var found = FirstOrNull(ByLabel(label)) ?? FirstOrNull(ByLabelContains(label));
+                if (found is not null) return found;
+            }
         }
 
         return null;
     }
 
-    /// <summary>Swipes up within a safe content rectangle (never touching the top status-bar zone).</summary>
-    private bool SafeSwipeUp()
+    /// <summary>Swipes within a safe content rectangle, never touching the top status-bar zone.</summary>
+    private bool SafeSwipe(string direction)
     {
         try
         {
@@ -125,7 +130,7 @@ internal sealed class MobileTaskAppDriver
                 ["top"] = (int)(size.Height * 0.35),    // start well below the status bar
                 ["width"] = (int)(size.Width * 0.8),
                 ["height"] = (int)(size.Height * 0.45),
-                ["direction"] = "up",
+                ["direction"] = direction,
                 ["percent"] = 0.75
             });
             return true;

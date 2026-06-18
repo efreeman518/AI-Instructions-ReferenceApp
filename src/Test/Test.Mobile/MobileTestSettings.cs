@@ -20,7 +20,7 @@ internal sealed record MobileTestSettings
     {
         var platform = ParsePlatform(GetValue(context, "TASKFLOW_MOBILE_PLATFORM") ?? "Android");
         var sourceRoot = FindSourceRoot();
-        var appPath = GetValue(context, PlatformAppPathKey(platform)) ?? GetDefaultAppPath(sourceRoot, platform);
+        var appPath = ResolveAppPath(sourceRoot, GetValue(context, PlatformAppPathKey(platform)), platform);
         var screenshotDirectory = GetValue(context, "TASKFLOW_MOBILE_SCREENSHOT_DIR")
             ?? Path.Combine(sourceRoot, "Test", "Test.Mobile", "TestResults", "screenshots");
 
@@ -88,6 +88,44 @@ internal sealed record MobileTestSettings
     /// <summary>Verifies platform app path key behavior and protects the expected test contract.</summary>
     private static string PlatformAppPathKey(MobileTestPlatform platform) =>
         platform == MobileTestPlatform.Android ? "TASKFLOW_ANDROID_APP_PATH" : "TASKFLOW_IOS_APP_PATH";
+
+    /// <summary>Resolves configured app paths against the repo root so README commands are stable from test output folders.</summary>
+    private static string ResolveAppPath(string sourceRoot, string? configuredPath, MobileTestPlatform platform)
+    {
+        var appPath = string.IsNullOrWhiteSpace(configuredPath)
+            ? GetDefaultAppPath(sourceRoot, platform)
+            : configuredPath.Trim();
+
+        if (Path.IsPathFullyQualified(appPath))
+        {
+            return appPath;
+        }
+
+        var solutionRelativePath = Path.GetFullPath(appPath, sourceRoot);
+        var repoRoot = Directory.GetParent(sourceRoot)?.FullName;
+        if (repoRoot is null)
+        {
+            return solutionRelativePath;
+        }
+
+        var repoRelativePath = Path.GetFullPath(appPath, repoRoot);
+        if (File.Exists(repoRelativePath) || Directory.Exists(repoRelativePath))
+        {
+            return repoRelativePath;
+        }
+
+        return StartsWithPathSegment(appPath, new DirectoryInfo(sourceRoot).Name)
+            ? repoRelativePath
+            : solutionRelativePath;
+    }
+
+    /// <summary>Detects repo-root paths such as src/UI/... when the solution root is the src folder.</summary>
+    private static bool StartsWithPathSegment(string path, string segment)
+    {
+        var normalized = path.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalized.StartsWith(segment + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith(segment + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>Verifies default device name behavior and protects the expected test contract.</summary>
     private static string DefaultDeviceName(MobileTestPlatform platform) =>

@@ -6,9 +6,9 @@ namespace Test.Mobile;
 
 /// <summary>
 /// Shared lifecycle for mobile UI flow tests. Honors the same opt-in contract as
-/// <see cref="MobileSmokeTests"/> (a no-op pass when TASKFLOW_MOBILE_TESTS_ENABLED is unset, so the
-/// canonical dotnet test lane is unaffected), creates one Appium session per test for isolation,
-/// and captures a screenshot + page source when a test fails.
+/// <see cref="MobileSmokeTests"/>: when TASKFLOW_MOBILE_TESTS_ENABLED is unset, the test reports
+/// Inconclusive without touching Appium. Enabled tests create one Appium session per test for
+/// isolation and capture a screenshot + page source when a test fails.
 /// </summary>
 public abstract class MobileUiTestBase
 {
@@ -31,7 +31,7 @@ public abstract class MobileUiTestBase
     {
         if (!Enabled)
         {
-            return;
+            Assert.Inconclusive(Settings.DisabledMessage);
         }
 
         try
@@ -61,7 +61,7 @@ public abstract class MobileUiTestBase
         if (!Settings.Enabled)
         {
             TestContext.WriteLine(Settings.DisabledMessage);
-            return;
+            Assert.Inconclusive(Settings.DisabledMessage);
         }
 
         if (!File.Exists(Settings.AppPath) && !Directory.Exists(Settings.AppPath))

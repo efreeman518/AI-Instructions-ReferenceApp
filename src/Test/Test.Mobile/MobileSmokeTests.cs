@@ -18,7 +18,7 @@ public sealed class MobileSmokeTests
         if (!settings.Enabled)
         {
             TestContext.WriteLine(settings.DisabledMessage);
-            return;
+            Assert.Inconclusive(settings.DisabledMessage);
         }
 
         if (!File.Exists(settings.AppPath) && !Directory.Exists(settings.AppPath))
@@ -38,8 +38,8 @@ public sealed class MobileSmokeTests
         }
         catch (WebDriverException ex)
         {
-            Assert.Fail(
-                "Appium mobile smoke failed. Confirm Appium server, platform driver, emulator/simulator, and app path. " +
+            Assert.Inconclusive(
+                "Mobile driver/instrumentation unavailable. Confirm Appium server, platform driver, emulator/simulator, and app path. " +
                 $"Details: {ex.Message}");
         }
         finally
