@@ -42,6 +42,51 @@ public class AiFoundryLiveSmokeTests
         await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
     }
 
+    /// <summary>Verifies D2 streams tokens from the configured local model.</summary>
+    [TestMethod]
+    [TestCategory("FoundryLocal")]
+    [Timeout(180000)]
+    public async Task Given_FoundryLocalAppHost_When_StreamingChatEndpointCalled_Then_TokensReturned()
+    {
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
+
+        var ct = TestContext.CancellationTokenSource.Token;
+        using var response = await client.PostAsJsonAsync(
+            ApiPath(client, "api/v1/ai/chat/stream"),
+            new { message = "Answer with exactly one short sentence about task planning." },
+            ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(body));
+        StringAssert.Contains(body, "data:");
+    }
+
+    /// <summary>Verifies D3 reaches the code-hosted task assistant agent over the local model.</summary>
+    [TestMethod]
+    [TestCategory("FoundryLocal")]
+    [Timeout(180000)]
+    public async Task Given_FoundryLocalAppHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
+    {
+        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
+
+        var ct = TestContext.CancellationTokenSource.Token;
+        using var response = await client.PostAsJsonAsync(
+            ApiPath(client, "api/v1/agent/chat"),
+            new
+            {
+                message = "Answer in one short sentence: what can the TaskFlow assistant help with?",
+                conversationId = Guid.NewGuid().ToString("N")
+            },
+            ct);
+        using var payload = await ReadJsonAsync(response, ct);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
+        AssertHasText(payload.RootElement.GetProperty("message"), "message");
+        AssertHasText(payload.RootElement.GetProperty("conversationId"), "conversationId");
+    }
+
     /// <summary>Verifies D4 can classify a real task through the local model without applying writes.</summary>
     [TestMethod]
     [TestCategory("FoundryLocal")]
