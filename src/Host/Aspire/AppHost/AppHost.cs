@@ -85,13 +85,11 @@ if (!isTesting)
 // Azure-only escalation - see the commented "Foundry project + prompt agent" block after the API host
 // and README "AI Demos" -> "Projects and agents". They are documented but not wired by default.
 //
-// Test mode only wires a model when the test harness found real Azure config or Foundry Local.
+// Test mode forces no-op for local AI; Azure Foundry can still be explicitly configured.
 IResourceBuilder<FoundryDeploymentResource>? chat = null;
-var foundryLocalEnabled =
-    Environment.GetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL") == "true";
-var azureFoundryConfigured = !foundryLocalEnabled && (builder.ExecutionContext.IsPublishMode
+var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
     || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
-    || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true");
+    || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true";
 
 if (azureFoundryConfigured)
 {
@@ -123,19 +121,11 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WaitFor(redis)
     .WaitFor(serviceBus);
 
-// Wire the Azure Foundry chat model into the API when a deployment was created. In Foundry Local
-// mode, forward flags only; TaskFlow.Api owns the temporary SDK-direct bootstrap.
+// Wire the Azure Foundry chat model into the API when a deployment was created. Local mode wires no
+// chat resource; the bootstrapper owns the temporary SDK-direct Foundry Local fallback.
 if (chat is not null)
 {
     api = api.WithReference(chat);
-}
-else if (foundryLocalEnabled)
-{
-    api = api
-        .WithEnvironment("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true")
-        .WithEnvironment("MYAPP_ENABLE_FOUNDRY_LOCAL", "true")
-        .WithEnvironment("AiServices__LocalModel", builder.Configuration["AiServices:LocalModel"] ?? "qwen2.5-0.5b")
-        .WithEnvironment("AiServices__LocalWebUrl", builder.Configuration["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415");
 }
 
 // OPT-IN (Azure-only): Foundry project + server-hosted prompt agent.
@@ -143,7 +133,7 @@ else if (foundryLocalEnabled)
 // agent is a declarative agent (model + instructions + tools). Prompt agents ALWAYS deploy to Azure
 // Foundry, even under `aspire run` - there is no offline path - so this stays commented by default.
 // Referencing the project injects PROJ_URI (the project endpoint) into the API; consume pre-existing
-// agents at runtime with AIProjectClient.AsAIAgent(...) (see TaskFlow.Api Program.cs ConfigureChatClient).
+// agents at runtime with AIProjectClient.AsAIAgent(...) in a bootstrapper-owned provider extension.
 //
 // var foundry = builder.AddFoundry("foundry");
 // var project = foundry.AddProject("taskflow-project");
@@ -158,7 +148,9 @@ else if (foundryLocalEnabled)
 
 if (isTesting)
 {
-    api.WithEnvironment("Cors__AllowedOrigins__0", "http://localhost");
+    api = api
+        .WithEnvironment("Cors__AllowedOrigins__0", "http://localhost")
+        .WithEnvironment("AiServices__DisableFoundryLocal", "true");
 }
 
 if (!string.IsNullOrWhiteSpace(applicationStyle))
@@ -235,10 +227,15 @@ if (!isTesting || functionsAvailableInTesting)
     }
 
     // Wire the Azure Foundry chat model into Functions for the event-driven AI readiness review (D6).
-    // Foundry Local is confined to TaskFlow.Api because its native SDK assets force host RIDs.
+    // Without this reference, Functions follows the same bootstrapper-owned local/no-op fallback as API.
     if (chat is not null)
     {
         functions.WithReference(chat);
+    }
+
+    if (isTesting)
+    {
+        functions.WithEnvironment("AiServices__DisableFoundryLocal", "true");
     }
 }
 

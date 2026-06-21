@@ -1,7 +1,10 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using TaskFlow.Bootstrapper;
 using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.AI.Agents;
 using TaskFlow.Infrastructure.AI.Search;
@@ -19,6 +22,55 @@ namespace Test.Unit.AI;
 [TestCategory("Unit")]
 public class AiServiceRegistrationTests
 {
+    [TestMethod]
+    public async Task RegisterAiChatClientAsync_WithAzureConnection_RecordsAzureProvider()
+    {
+        var builder = CreateHostBuilder(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:chat"] = "Endpoint=https://example.services.ai.azure.com/;Key=fake",
+            ["AiServices:DisableFoundryLocal"] = "false"
+        });
+
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+
+        var provider = builder.Services.BuildServiceProvider();
+        Assert.AreEqual("azure", provider.GetRequiredService<AiProviderInfo>().Name);
+    }
+
+    [TestMethod]
+    public async Task RegisterAiChatClientAsync_WithFoundryLocalDisabled_AllowsNoOpFallback()
+    {
+        var builder = CreateHostBuilder(new Dictionary<string, string?>
+        {
+            ["AiServices:DisableFoundryLocal"] = "true"
+        });
+
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+        builder.Services.AddAiServices(builder.Configuration);
+
+        var provider = builder.Services.BuildServiceProvider();
+        Assert.IsInstanceOfType(provider.GetRequiredService<IChatClient>(), typeof(NoOpChatClient));
+        Assert.AreEqual("none", provider.GetRequiredService<AiProviderInfo>().Name);
+    }
+
+    [TestMethod]
+    public async Task RegisterAiChatClientAsync_WithFoundryLocalBootstrapFailure_AllowsNoOpFallback()
+    {
+        var builder = CreateHostBuilder(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:chat"] = "",
+            ["AiServices:DisableFoundryLocal"] = "false",
+            ["AiServices:LocalWebUrl"] = "not-a-url"
+        });
+
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+        builder.Services.AddAiServices(builder.Configuration);
+
+        var provider = builder.Services.BuildServiceProvider();
+        Assert.IsInstanceOfType(provider.GetRequiredService<IChatClient>(), typeof(NoOpChatClient));
+        Assert.AreEqual("none", provider.GetRequiredService<AiProviderInfo>().Name);
+    }
+
     /// <summary>Verifies add AI services with no config registers no op services behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_WithNoConfig_RegistersNoOpServices()
@@ -40,10 +92,12 @@ public class AiServiceRegistrationTests
         var searchService = provider.GetRequiredService<ITaskFlowSearchService>();
         var agentService = provider.GetRequiredService<ITaskAssistantAgent>();
         var chatClient = provider.GetRequiredService<IChatClient>();
+        var providerInfo = provider.GetRequiredService<AiProviderInfo>();
 
         Assert.IsInstanceOfType(searchService, typeof(NoOpSearchService));
         Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
         Assert.IsInstanceOfType(chatClient, typeof(NoOpChatClient));
+        Assert.AreEqual("none", providerInfo.Name);
     }
 
     /// <summary>With a real IChatClient registered, the live agent is wired.</summary>
@@ -61,6 +115,7 @@ public class AiServiceRegistrationTests
         services.AddLogging();
         // Simulate the host having wired a Foundry IChatClient before AddAiServices runs.
         services.AddSingleton(new Mock<IChatClient>().Object);
+        services.AddSingleton(new AiProviderInfo("local"));
 
         services.AddAiServices(config);
 
@@ -71,6 +126,9 @@ public class AiServiceRegistrationTests
 
         // The real IChatClient must be left in place (no NoOpChatClient added on top).
         Assert.IsFalse(services.Any(d => d.ImplementationType == typeof(NoOpChatClient)));
+
+        var provider = services.BuildServiceProvider();
+        Assert.AreEqual("local", provider.GetRequiredService<AiProviderInfo>().Name);
     }
 
     /// <summary>Verifies add AI services with search enabled no endpoint registers no op search behavior and protects the expected test contract.</summary>
@@ -142,5 +200,18 @@ public class AiServiceRegistrationTests
         Assert.IsFalse(options.Value.UseAgents);
         Assert.AreEqual("custom-index", options.Value.SearchIndexName);
         Assert.AreEqual("gpt-4o-custom", options.Value.AgentModelDeployment);
+    }
+
+    private static HostApplicationBuilder CreateHostBuilder(Dictionary<string, string?> settings)
+    {
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+        {
+            ApplicationName = "Test.Unit",
+            EnvironmentName = "Testing",
+            DisableDefaults = true
+        });
+        builder.Configuration.AddInMemoryCollection(settings);
+        builder.Services.AddLogging();
+        return builder;
     }
 }

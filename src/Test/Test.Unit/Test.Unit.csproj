@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\UI\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
     <ProjectReference Include="..\..\Host\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\Host\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
+    <ProjectReference Include="..\..\Host\TaskFlow.Bootstrapper\TaskFlow.Bootstrapper.csproj" />
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Cqrs\TaskFlow.Application.Cqrs.csproj" />
   </ItemGroup>
 

@@ -7,7 +7,7 @@ public record AiChatRequest(string Message);
 public record AiChatResponse(string Message, bool IsConfigured);
 
 /// <summary>Response for the no-call AI configuration status endpoint.</summary>
-public record AiStatusResponse(bool IsConfigured);
+public record AiStatusResponse(string Provider, bool IsConfigured);
 
 /// <summary>Structured triage classification produced by the model (D4).</summary>
 public record TaskTriageResult(

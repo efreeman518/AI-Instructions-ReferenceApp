@@ -307,7 +307,7 @@ public sealed class FlowEngineFoundryWorkflowTests
         if (AspireTestHost.AiProvider == AspireAiProvider.None)
         {
             Assert.Inconclusive(
-                "No Foundry provider available. Configure Azure AI Foundry or enable Foundry Local to run live FlowEngine Foundry tests.");
+                "Azure AI Foundry is not configured. Run Test.FoundryLocal for local live smoke coverage.");
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -320,10 +320,10 @@ public sealed class FlowEngineFoundryWorkflowTests
                 Assert.Inconclusive($"AI status endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
 
             var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
-            if (status?.IsConfigured != true)
+            if (status?.Provider != "azure" || status.IsConfigured != true)
             {
                 Assert.Inconclusive(
-                    "No Foundry provider available. Azure Foundry is not configured and Foundry Local did not bootstrap, so API is using no-op AI.");
+                    $"Azure AI Foundry is not active. AI status provider={status?.Provider ?? "unknown"} configured={status?.IsConfigured.ToString() ?? "unknown"}.");
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

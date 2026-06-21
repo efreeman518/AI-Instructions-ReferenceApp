@@ -28,6 +28,7 @@ public sealed class CustomApiFactory : WebApplicationFactoryBase<Program, TaskFl
     /// <summary>Verifies configure test configuration behavior and protects the expected test contract.</summary>
     protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
     {
+        AddFoundryLocalDisabled(config);
         config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [ApplicationStyleResolver.ConfigKey] = _applicationStyle

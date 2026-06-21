@@ -7,7 +7,7 @@ namespace Test.Aspire;
 public sealed class AspireAiProviderSelectionTests
 {
     [TestMethod]
-    public void Given_NoAzureConfig_When_SelectingLiveAiProvider_Then_FoundryLocalIsDefault()
+    public void Given_NoAzureConfig_When_SelectingLiveAiProvider_Then_NoProviderSelected()
     {
         using var _ = new EnvironmentOverride(
             ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", null),
@@ -15,8 +15,7 @@ public sealed class AspireAiProviderSelectionTests
             ("AiServices__FoundryEndpoint", null),
             ("AiServices:FoundryEndpoint", null));
 
-        Assert.AreEqual(AspireAiProvider.FoundryLocal, AspireTestHost.SelectRequestedAiProviderForTesting());
-        Assert.IsTrue(AspireTestHost.ShouldEnableFoundryLocalForTesting());
+        Assert.AreEqual(AspireAiProvider.None, AspireTestHost.SelectRequestedAiProviderForTesting());
     }
 
     [TestMethod]
@@ -30,20 +29,18 @@ public sealed class AspireAiProviderSelectionTests
             ("AiServices:FoundryEndpoint", null));
 
         Assert.AreEqual(AspireAiProvider.AzureFoundry, AspireTestHost.SelectRequestedAiProviderForTesting());
-        Assert.IsFalse(AspireTestHost.ShouldEnableFoundryLocalForTesting());
     }
 
     [TestMethod]
-    public void Given_ExplicitLocal_When_AzureConfigExists_Then_FoundryLocalWins()
+    public void Given_ExplicitLocal_When_NoAzureConfig_Then_MeshStillSelectsNoProvider()
     {
         using var _ = new EnvironmentOverride(
             ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true"),
-            ("TASKFLOW_USE_AZURE_FOUNDRY", "true"),
+            ("TASKFLOW_USE_AZURE_FOUNDRY", null),
             ("AiServices__FoundryEndpoint", null),
             ("AiServices:FoundryEndpoint", null));
 
-        Assert.AreEqual(AspireAiProvider.FoundryLocal, AspireTestHost.SelectRequestedAiProviderForTesting());
-        Assert.IsTrue(AspireTestHost.ShouldEnableFoundryLocalForTesting());
+        Assert.AreEqual(AspireAiProvider.None, AspireTestHost.SelectRequestedAiProviderForTesting());
     }
 
     private sealed class EnvironmentOverride : IDisposable

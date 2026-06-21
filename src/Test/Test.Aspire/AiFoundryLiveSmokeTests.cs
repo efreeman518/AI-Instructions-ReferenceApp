@@ -6,13 +6,11 @@ using Aspire.Hosting.Testing;
 namespace Test.Aspire;
 
 /// <summary>
-/// Smoke tests for model-backed AI endpoints. Azure runs through the Aspire-hosted gateway; Foundry
-/// Local calls the API directly because cold local model responses can exceed gateway timeouts.
+/// Smoke tests for Azure model-backed AI endpoints through the Aspire-hosted gateway.
 ///
 /// Selection:
 /// 1. Azure Foundry runs when explicit Azure config is present.
-/// 2. Foundry Local runs when explicitly requested, or by default when Azure config is absent.
-/// 3. With no model provider, these tests are inconclusive instead of silently passing.
+/// 2. With no Azure provider, these tests are inconclusive instead of silently passing.
 ///
 /// <c>TASKFLOW_LIVE_AI_BASE_URL</c> can override the request target for manual runs, but it is not an opt-in.
 /// </summary>
@@ -110,7 +108,7 @@ public class AiFoundryLiveSmokeTests
         if (AspireTestHost.AiProvider == AspireAiProvider.None)
         {
             Assert.Inconclusive(
-                "No Foundry provider available. Configure Azure AI Foundry or enable Foundry Local to run live Foundry smoke tests.");
+                "Azure AI Foundry is not configured. Run Test.FoundryLocal for local live smoke coverage.");
             throw new InvalidOperationException("Unreachable");
         }
 
@@ -118,9 +116,7 @@ public class AiFoundryLiveSmokeTests
         HttpClient client;
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            client = AspireTestHost.AiProvider == AspireAiProvider.AzureFoundry
-                ? await CreateAspireGatewayClientAsync()
-                : await CreateAspireApiClientAsync();
+            client = await CreateAspireGatewayClientAsync();
         }
         else
         {
@@ -158,16 +154,6 @@ public class AiFoundryLiveSmokeTests
 
         var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowgateway", "http");
         client.Timeout = TimeSpan.FromMinutes(3);
-        return client;
-    }
-
-    private async Task<HttpClient> CreateAspireApiClientAsync()
-    {
-        var ct = TestContext.CancellationTokenSource.Token;
-        await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
-
-        var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowapi", "http");
-        client.Timeout = TimeSpan.FromMinutes(5);
         return client;
     }
 
@@ -239,10 +225,10 @@ public class AiFoundryLiveSmokeTests
             }
 
             var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
-            if (status?.IsConfigured != true)
+            if (status?.Provider != "azure" || status.IsConfigured != true)
             {
                 Assert.Inconclusive(
-                    "No Foundry provider available. Azure Foundry is not configured and Foundry Local did not bootstrap, so API is using no-op AI.");
+                    $"Azure AI Foundry is not active. AI status provider={status?.Provider ?? "unknown"} configured={status?.IsConfigured.ToString() ?? "unknown"}.");
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

@@ -165,6 +165,7 @@
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
+    <!-- Pinned: workaround for Aspire.Hosting.Foundry using an older Foundry Local SDK that cannot discover the GA 1.x runtime. Remove with API-host SDK-direct workaround. -->
     <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="1.2.3" />
     <PackageVersion Include="OpenAI" Version="2.11.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.4.5" />

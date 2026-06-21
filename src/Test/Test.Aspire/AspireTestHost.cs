@@ -94,10 +94,6 @@ internal static class AspireTestHost
         if (EnsureFuncToolAvailable())
             _environment.Set("TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE", "true");
 
-        var foundryLocalRequested = ShouldEnableFoundryLocalForTesting();
-        if (foundryLocalRequested)
-            _environment.Set("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true");
-
         ReactAvailable = IsReactRunnable();
         if (ReactAvailable)
             _environment.Set("TASKFLOW_ASPIRE_REACT_AVAILABLE", "true");
@@ -130,6 +126,8 @@ internal static class AspireTestHost
         // (AspNetCore request logs, Aspire DCP/orchestration chatter). Drop the filters when debugging startup.
         builder.Services.AddLogging(logging =>
         {
+            logging.ClearProviders();
+            logging.AddConsole();
             logging.SetMinimumLevel(LogLevel.Information);
             logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
             logging.AddFilter("Aspire.", LogLevel.Warning);
@@ -137,7 +135,7 @@ internal static class AspireTestHost
 
         AspireApp = await builder.BuildAsync(ct).WaitAsync(DefaultTimeout, ct);
         await AspireApp.StartAsync(ct).WaitAsync(DefaultTimeout, ct);
-        AiProvider = await DetectActiveAiProviderAsync(foundryLocalRequested, ct);
+        AiProvider = SelectRequestedAiProviderForTesting();
 
         // Container reaching the Running state does not mean SQL is accepting connections - wait for the health check.
         await AspireApp.WaitForResourceHealthyAsync("taskflowdb", DefaultTimeout, ct);
@@ -193,17 +191,11 @@ internal static class AspireTestHost
     /// </summary>
     internal static bool EnsureFuncToolAvailable() => FunctionsCoreToolsDiscovery.EnsureFuncToolAvailable();
 
-    internal static bool ShouldEnableFoundryLocalForTesting()
-        => SelectRequestedAiProviderForTesting() == AspireAiProvider.FoundryLocal;
-
     internal static AspireAiProvider SelectRequestedAiProviderForTesting()
     {
-        if (IsEnabled("TASKFLOW_ENABLE_FOUNDRY_LOCAL"))
-            return AspireAiProvider.FoundryLocal;
-
         return IsAzureFoundryRequested()
             ? AspireAiProvider.AzureFoundry
-            : AspireAiProvider.FoundryLocal;
+            : AspireAiProvider.None;
     }
 
     private static bool IsAzureFoundryRequested()
@@ -303,41 +295,12 @@ internal static class AspireTestHost
         return null;
     }
 
-    private static async Task<AspireAiProvider> DetectActiveAiProviderAsync(bool foundryLocalRequested, CancellationToken ct)
-    {
-        if (AspireApp is null)
-            return AspireAiProvider.None;
-
-        if (foundryLocalRequested)
-            return AspireAiProvider.FoundryLocal;
-
-        try
-        {
-            var chatConnection = await AspireApp.GetConnectionStringAsync("chat").AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(10), ct);
-
-            if (string.IsNullOrWhiteSpace(chatConnection))
-                return AspireAiProvider.None;
-
-            return chatConnection.Contains("localhost", StringComparison.OrdinalIgnoreCase)
-                || chatConnection.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                    ? AspireAiProvider.FoundryLocal
-                    : AspireAiProvider.AzureFoundry;
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException
-            or ArgumentException { ParamName: "resourceName" })
-        {
-            return AspireAiProvider.None;
-        }
-    }
-
-    internal sealed record AiStatus(bool IsConfigured);
+    internal sealed record AiStatus(string Provider, bool IsConfigured);
 }
 
 /// <summary>Describes the model provider wired into the Aspire test graph.</summary>
 internal enum AspireAiProvider
 {
     None,
-    FoundryLocal,
     AzureFoundry
 }

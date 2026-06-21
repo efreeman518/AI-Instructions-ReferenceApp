@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,8 +16,11 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Aspire.Azure.AI.Inference" />
+    <PackageReference Include="Microsoft.AI.Foundry.Local" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="OpenAI" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

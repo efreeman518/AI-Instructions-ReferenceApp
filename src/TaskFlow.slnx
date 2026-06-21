@@ -39,6 +39,7 @@
     <Project Path="Test/Test.Unit/Test.Unit.csproj" />
     <Project Path="Test/Test.Integration/Test.Integration.csproj" />
     <Project Path="Test/Test.Aspire/Test.Aspire.csproj" />
+    <Project Path="Test/Test.FoundryLocal/Test.FoundryLocal.csproj" />
     <Project Path="Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj" />
     <Project Path="Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj" />
     <Project Path="Test/Test.Endpoints/Test.Endpoints.csproj" />

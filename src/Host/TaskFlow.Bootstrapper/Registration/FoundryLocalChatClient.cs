@@ -1,9 +1,10 @@
 using System.ClientModel;
 using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 
-namespace TaskFlow.Api.Ai;
+namespace TaskFlow.Bootstrapper;
 
 /// <summary>Bootstraps Foundry Local and adapts its OpenAI-compatible endpoint to <see cref="IChatClient"/>.</summary>
 internal static class FoundryLocalChatClient

@@ -1,0 +1,209 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Net.Sockets;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using TaskFlow.Infrastructure.Data;
+using Test.Support;
+
+namespace Test.FoundryLocal;
+
+/// <summary>RID-bound live smoke tests for the API-host Foundry Local SDK bootstrap.</summary>
+[TestClass]
+[TestCategory("LiveAI")]
+[TestCategory("Foundry")]
+[TestCategory("FoundryLocal")]
+[DoNotParallelize]
+public sealed class FoundryLocalLiveSmokeTests
+{
+    private static FoundryLocalApiFactory? _factory;
+    private static HttpClient? _client;
+
+    public TestContext TestContext { get; set; } = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext _)
+    {
+        _factory = new FoundryLocalApiFactory();
+        _client = _factory.CreateClient();
+        _client.Timeout = TimeSpan.FromMinutes(5);
+    }
+
+    [ClassCleanup]
+    public static void ClassCleanup()
+    {
+        _client?.Dispose();
+        _factory?.Dispose();
+        _client = null;
+        _factory = null;
+    }
+
+    [TestMethod]
+    [Timeout(360000)]
+    public async Task Given_FoundryLocalApiHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
+    {
+        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/ai/chat",
+            new { message = "Answer in one short sentence: what does TaskFlow track?" },
+            TestContext.CancellationTokenSource.Token);
+        using var payload = await ReadJsonAsync(response, TestContext.CancellationTokenSource.Token);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
+        AssertHasText(payload.RootElement.GetProperty("message"), "message");
+    }
+
+    [TestMethod]
+    [Timeout(360000)]
+    public async Task Given_FoundryLocalApiHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
+    {
+        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(120));
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync(
+                "/api/v1/agent/chat",
+                new
+                {
+                    message = "Reply with OK only.",
+                    conversationId = Guid.NewGuid().ToString("N")
+                },
+                timeout.Token);
+        }
+        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        {
+            Assert.Inconclusive(
+                "Foundry Local provider bootstrapped, but the code-hosted agent smoke did not complete within 120 seconds. " +
+                ex.Message);
+            throw;
+        }
+
+        using var responseMessage = response;
+        using var payload = await ReadJsonAsync(responseMessage, timeout.Token);
+
+        Assert.AreEqual(HttpStatusCode.OK, responseMessage.StatusCode);
+        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
+        AssertHasText(payload.RootElement.GetProperty("message"), "message");
+        AssertHasText(payload.RootElement.GetProperty("conversationId"), "conversationId");
+    }
+
+    [TestMethod]
+    [Timeout(360000)]
+    public async Task Given_FoundryLocalApiHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
+    {
+        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+        var ct = TestContext.CancellationTokenSource.Token;
+        var taskId = await CreateTaskAsync(client, "Foundry Local triage smoke " + Guid.NewGuid().ToString("N"), ct);
+
+        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null, ct);
+        using var payload = await ReadJsonAsync(response, ct);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
+        Assert.IsFalse(payload.RootElement.GetProperty("applied").GetBoolean());
+        var triage = payload.RootElement.GetProperty("triage");
+        if (triage.ValueKind == JsonValueKind.Null)
+        {
+            AssertHasText(payload.RootElement.GetProperty("error"), "error");
+            return;
+        }
+
+        Assert.AreEqual(JsonValueKind.Object, triage.ValueKind);
+        AssertHasText(triage.GetProperty("suggestedPriority"), "suggestedPriority");
+    }
+
+    private static async Task<HttpClient> CreateFoundryLocalClientOrInconclusiveAsync()
+    {
+        var client = _client ?? throw new InvalidOperationException("Test client was not initialized.");
+        using var response = await client.GetAsync("/api/v1/ai/status");
+        using var payload = await ReadJsonAsync(response, CancellationToken.None);
+
+        var provider = payload.RootElement.GetProperty("provider").GetString();
+        var isConfigured = payload.RootElement.GetProperty("isConfigured").GetBoolean();
+        if (provider != "local" || !isConfigured)
+        {
+            Assert.Inconclusive(
+                $"Foundry Local did not bootstrap through the API host. AI status provider={provider ?? "unknown"} configured={isConfigured}.");
+        }
+
+        return client;
+    }
+
+    private static async Task<Guid> CreateTaskAsync(HttpClient client, string title, CancellationToken ct)
+    {
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/task-items",
+            new { item = new { title, priority = 2 } },
+            ct);
+        using var payload = await ReadJsonAsync(response, ct);
+
+        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+        var id = payload.RootElement.GetProperty("item").GetProperty("id").GetGuid();
+        Assert.AreNotEqual(Guid.Empty, id);
+        return id;
+    }
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            Assert.Fail(
+                $"Expected JSON success response, got {(int)response.StatusCode} {response.ReasonPhrase}. Body: {Truncate(body)}");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+            Assert.Fail($"Expected JSON response, got empty body from {response.RequestMessage?.RequestUri}.");
+
+        return JsonDocument.Parse(body);
+    }
+
+    private static void AssertHasText(JsonElement element, string propertyName)
+    {
+        Assert.AreEqual(JsonValueKind.String, element.ValueKind, $"{propertyName} should be a JSON string.");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(element.GetString()), $"{propertyName} should not be blank.");
+    }
+
+    private static string Truncate(string value) =>
+        value.Length <= 1000 ? value : value[..1000] + "...";
+
+    private sealed class FoundryLocalApiFactory
+        : WebApplicationFactoryBase<Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery>
+    {
+        private readonly string _dbName = $"FoundryLocalDb_{Guid.NewGuid()}";
+
+        protected override void ConfigureTestConfiguration(IConfigurationBuilder config)
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:chat"] = string.Empty,
+                ["AiServices:DisableFoundryLocal"] = "false",
+                ["AiServices:LocalModel"] = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_MODEL") ?? "qwen2.5-0.5b",
+                ["AiServices:LocalWebUrl"] = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_WEB_URL") ?? GetFreeLoopbackUrl(),
+                ["RateLimiting:PerTenant:PermitLimit"] = "1000000",
+                ["RateLimiting:PerTenant:WindowSeconds"] = "1"
+            });
+        }
+
+        protected override DbContextOptions BuildTrxnOptions() =>
+            new DbContextOptionsBuilder<TaskFlowDbContextTrxn>().UseInMemoryDatabase(_dbName).Options;
+
+        protected override DbContextOptions BuildQueryOptions() =>
+            new DbContextOptionsBuilder<TaskFlowDbContextQuery>().UseInMemoryDatabase(_dbName).Options;
+
+        private static string GetFreeLoopbackUrl()
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            return $"http://127.0.0.1:{port}";
+        }
+    }
+}

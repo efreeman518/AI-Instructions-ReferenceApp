@@ -1,5 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -30,6 +34,11 @@
     <PackageReference Include="EF.FlowEngine.Clients.AI" />
     <PackageReference Include="EF.FlowEngine.Clients.ServiceBus" />
     <PackageReference Include="EF.FlowEngine.AdminApi" />
+    <PackageReference Include="Aspire.Azure.AI.Inference" />
+    <PackageReference Include="Microsoft.AI.Foundry.Local" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" PrivateAssets="all" />
+    <PackageReference Include="OpenAI" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

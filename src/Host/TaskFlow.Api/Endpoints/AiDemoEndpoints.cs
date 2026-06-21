@@ -17,6 +17,11 @@ namespace TaskFlow.Api.Endpoints;
 /// </summary>
 public static class AiDemoEndpoints
 {
+    private static readonly ChatOptions DemoChatOptions = new()
+    {
+        MaxOutputTokens = 128
+    };
+
     /// <summary>Registers the AI demo routes under the /ai group.</summary>
     public static IEndpointRouteBuilder MapAiDemoEndpoints(this IEndpointRouteBuilder app)
     {
@@ -28,13 +33,15 @@ public static class AiDemoEndpoints
             [FromServices] IChatClient chatClient,
             CancellationToken ct) =>
         {
-            var response = await chatClient.GetResponseAsync(request.Message, cancellationToken: ct);
+            var response = await chatClient.GetResponseAsync(request.Message, DemoChatOptions, ct);
             return Results.Ok(new AiChatResponse(response.Text, chatClient is not NoOpChatClient));
         }).WithName("AiChat");
 
         // No-call status used by tests and diagnostics to distinguish live AI from no-op fallback.
-        group.MapGet("/status", ([FromServices] IChatClient chatClient) =>
-            Results.Ok(new AiStatusResponse(chatClient is not NoOpChatClient)))
+        group.MapGet("/status", (
+            [FromServices] IChatClient chatClient,
+            [FromServices] AiProviderInfo provider) =>
+            Results.Ok(new AiStatusResponse(provider.Name, chatClient is not NoOpChatClient)))
             .WithName("AiStatus");
 
         // D2 - Streaming completion: token stream as Server-Sent Events.
@@ -76,7 +83,7 @@ public static class AiDemoEndpoints
     private static async IAsyncEnumerable<string> StreamTokens(
         IChatClient chatClient, string message, [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var update in chatClient.GetStreamingResponseAsync(message, cancellationToken: ct))
+        await foreach (var update in chatClient.GetStreamingResponseAsync(message, DemoChatOptions, ct))
         {
             if (!string.IsNullOrEmpty(update.Text))
                 yield return update.Text;

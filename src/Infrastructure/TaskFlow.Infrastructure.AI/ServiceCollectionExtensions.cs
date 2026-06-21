@@ -3,6 +3,7 @@ using Azure.Search.Documents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Infrastructure.AI.Agents;
 using TaskFlow.Infrastructure.AI.Agents.Tools;
@@ -71,6 +72,8 @@ public static class AiServiceCollectionExtensions
         {
             services.AddSingleton<IChatClient, NoOpChatClient>();
         }
+
+        services.TryAddSingleton(new AiProviderInfo("none"));
 
         // Inference demo services (each demonstrates a distinct concept; all resolve over the
         // registered IChatClient - real or no-op):

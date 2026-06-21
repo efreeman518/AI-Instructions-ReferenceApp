@@ -54,8 +54,7 @@ public sealed class AiEndpointContractTests
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:chat"] = string.Empty,
-                    ["TASKFLOW_ENABLE_FOUNDRY_LOCAL"] = "true",
-                    ["MYAPP_ENABLE_FOUNDRY_LOCAL"] = "true",
+                    ["AiServices:DisableFoundryLocal"] = "false",
                     ["AiServices:LocalWebUrl"] = "not-a-url"
                 });
             });
@@ -68,6 +67,7 @@ public sealed class AiEndpointContractTests
         using var chat = await ReadJsonAsync(chatResponse);
 
         Assert.AreEqual(HttpStatusCode.OK, statusResponse.StatusCode);
+        Assert.AreEqual("none", status.RootElement.GetProperty("provider").GetString());
         Assert.IsFalse(status.RootElement.GetProperty("isConfigured").GetBoolean());
         Assert.AreEqual(HttpStatusCode.OK, chatResponse.StatusCode);
         Assert.IsFalse(chat.RootElement.GetProperty("isConfigured").GetBoolean());
@@ -212,8 +212,7 @@ public sealed class AiEndpointContractTests
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:chat"] = string.Empty,
-                    ["TASKFLOW_ENABLE_FOUNDRY_LOCAL"] = "false",
-                    ["MYAPP_ENABLE_FOUNDRY_LOCAL"] = "false"
+                    ["AiServices:DisableFoundryLocal"] = "true"
                 });
             });
 

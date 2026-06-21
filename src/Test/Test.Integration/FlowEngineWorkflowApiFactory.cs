@@ -9,6 +9,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Test.Integration;
 
@@ -36,8 +37,7 @@ internal sealed class FlowEngineWorkflowApiFactory : WebApplicationFactory<Progr
         "ConnectionStrings__TaskFlowDbContextTrxn",
         "ConnectionStrings__TaskFlowDbContextQuery",
         "ConnectionStrings__chat",
-        "TASKFLOW_ENABLE_FOUNDRY_LOCAL",
-        "MYAPP_ENABLE_FOUNDRY_LOCAL",
+        "AiServices__DisableFoundryLocal",
         "FlowEngine__TaskFlowApiBaseUrl",
         "RateLimiting__PerTenant__PermitLimit",
     ];
@@ -57,8 +57,7 @@ internal sealed class FlowEngineWorkflowApiFactory : WebApplicationFactory<Progr
         Environment.SetEnvironmentVariable("ConnectionStrings__TaskFlowDbContextQuery", connectionString);
         // No live model and no Service Bus: leave the AI connection empty and disable Foundry Local.
         Environment.SetEnvironmentVariable("ConnectionStrings__chat", string.Empty);
-        Environment.SetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "false");
-        Environment.SetEnvironmentVariable("MYAPP_ENABLE_FOUNDRY_LOCAL", "false");
+        Environment.SetEnvironmentVariable("AiServices__DisableFoundryLocal", "true");
         // Self-call base address; the in-process handler ignores the authority anyway.
         Environment.SetEnvironmentVariable("FlowEngine__TaskFlowApiBaseUrl", "http://localhost");
         // Polling the instance plus the workflow's own self-calls share the per-tenant budget; raise it so
@@ -70,6 +69,11 @@ internal sealed class FlowEngineWorkflowApiFactory : WebApplicationFactory<Progr
     {
         // Development so the migration startup tasks actually run (they are gated to Development/Aspire).
         builder.UseEnvironment("Development");
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
 
         builder.ConfigureServices(services =>
         {

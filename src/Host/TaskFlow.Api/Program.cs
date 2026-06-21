@@ -1,9 +1,7 @@
 using Azure.Identity;
 using EF.Common;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.AI;
 using TaskFlow.Api;
-using TaskFlow.Api.Ai;
 using TaskFlow.Bootstrapper;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,9 +23,8 @@ try
     // 2. Data Protection (Azure Blob key storage + Key Vault key encryption)
     ConfigureDataProtection();
 
-    // 2b. AI chat client: Azure Foundry through Aspire first, Foundry Local SDK fallback second.
-    // Otherwise AddAiServices registers a no-op IChatClient so the app boots without a model.
-    await ConfigureChatClientAsync();
+    // 2b. AI chat client: shared Azure -> Foundry Local -> no-op strategy.
+    await builder.RegisterAiChatClientAsync(startupLogger);
 
     // 3. Registration chain - order matters for dependency resolution
     services
@@ -78,58 +75,6 @@ static DefaultAzureCredential CreateAzureCredential(IConfiguration config)
         options.SharedTokenCacheTenantId = sharedTokenCacheTenantId;
     return new DefaultAzureCredential(options);
 }
-
-async Task ConfigureChatClientAsync()
-{
-    // Aspire injects ConnectionStrings:chat when the AppHost wired an Azure Foundry deployment.
-    var chatConnection = config.GetConnectionString("chat");
-    if (!string.IsNullOrWhiteSpace(chatConnection))
-    {
-        startupLogger.LogInformation("{AppName} {Environment} - Configure Azure AI Foundry chat client.", appName, env);
-
-        builder.AddAzureChatCompletionsClient("chat")
-            .AddChatClient();
-        return;
-    }
-
-    if (!IsFoundryLocalEnabled(config))
-        return;
-
-    startupLogger.LogInformation("{AppName} {Environment} - Configure Foundry Local chat client.", appName, env);
-
-    try
-    {
-        var chatClient = await FoundryLocalChatClient.CreateAsync(
-            config["AiServices:LocalModel"] ?? "qwen2.5-0.5b",
-            config["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415",
-            startupLogger);
-        services.AddSingleton<IChatClient>(chatClient);
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-        startupLogger.LogWarning(
-            ex,
-            "{AppName} {Environment} - Foundry Local unavailable. Falling back to no-op AI client.",
-            appName,
-            env);
-    }
-
-    // ALTERNATIVE (Azure-only, opt-in): instead of raw inference, consume a Foundry project +
-    // server-hosted agent. Set AiServices:FoundryProjectEndpoint (or read the Aspire-injected PROJ_URI)
-    // and add Azure.AI.Projects + Microsoft.Agents.AI.Foundry. Both results are Microsoft.Agents.AI.AIAgent,
-    // so ITaskAssistantAgent can wrap either path - only construction differs:
-    //
-    //   var project = new AIProjectClient(new Uri(projectEndpoint), CreateAzureCredential(config));
-    //   // code-first responses agent (no server-side resource created):
-    //   AIAgent agent = project.AsAIAgent(model: deploymentName, name: "TaskAssistant", instructions: prompt);
-    //   // or bind to a pre-existing agent created in the portal/IaC, by name:
-    //   var record = await project.AgentAdministrationClient.GetAgentAsync(config["AiServices:FoundryAgentName"]);
-    //   AIAgent agent = project.AsAIAgent(record);
-}
-
-static bool IsFoundryLocalEnabled(IConfiguration config) =>
-    config.GetValue<bool>("TASKFLOW_ENABLE_FOUNDRY_LOCAL")
-    || config.GetValue<bool>("MYAPP_ENABLE_FOUNDRY_LOCAL");
 
 void ConfigureDataProtection()
 {

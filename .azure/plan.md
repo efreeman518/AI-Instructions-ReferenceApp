@@ -82,8 +82,8 @@ Generated: 2026-06-19
 - [x] Research components
 - [x] Add package versions and API-host references
 - [x] Implement API-host Foundry Local bootstrap
-- [x] Update AppHost local mode to pass enable flags instead of `RunAsFoundryLocal()`
-- [x] Update Aspire tests for local provider detection
+- [x] Update AppHost local mode to leave local bootstrapping in the API host instead of `RunAsFoundryLocal()`
+- [x] Split Azure Aspire smoke from RID-bound Foundry Local smoke
 - [x] Update plan status to `Ready for Validation`
 
 ### Phase 3: Validation
@@ -99,7 +99,7 @@ Generated: 2026-06-19
 |-------|-------------|--------|-----------|
 | Build affected projects | `rtk dotnet build src\Test\Test.Aspire\Test.Aspire.csproj -m:1` | Passed, 25 projects, 0 errors, 1 warning | 2026-06-19 01:43:31 -04:00 |
 | Triage parse guard unit | `rtk dotnet test src\Test\Test.Unit\Test.Unit.csproj --filter FullyQualifiedName~TriageAsync_WithNullSuggestedPriority_ReturnsParseGuardError` | Passed, 1 test | 2026-06-19 01:43:31 -04:00 |
-| Foundry Local Aspire tests | `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true rtk dotnet test src\Test\Test.Aspire\Test.Aspire.csproj --filter TestCategory=FoundryLocal --no-build` | Passed, 9 tests, 0 warnings | 2026-06-19 01:43:31 -04:00 |
+| Foundry Local API-host tests | `rtk dotnet test src\Test\Test.FoundryLocal\Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal --no-build` | Use for current RID-bound local smoke lane | 2026-06-20 |
 
 ---
 
@@ -108,7 +108,7 @@ Generated: 2026-06-19
 | File | Purpose | Status |
 |------|---------|--------|
 | `.azure/plan.md` | Required Azure plan | Done |
-| `src/Host/TaskFlow.Api/Ai/FoundryLocalChatClient.cs` | API-host local chat bootstrap | Done |
+| `src/Host/TaskFlow.Bootstrapper/Registration/FoundryLocalChatClient.cs` | Shared local chat bootstrap | Done |
 
 ---
 
