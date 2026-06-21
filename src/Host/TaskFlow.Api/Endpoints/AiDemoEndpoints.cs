@@ -32,6 +32,11 @@ public static class AiDemoEndpoints
             return Results.Ok(new AiChatResponse(response.Text, chatClient is not NoOpChatClient));
         }).WithName("AiChat");
 
+        // No-call status used by tests and diagnostics to distinguish live AI from no-op fallback.
+        group.MapGet("/status", ([FromServices] IChatClient chatClient) =>
+            Results.Ok(new AiStatusResponse(chatClient is not NoOpChatClient)))
+            .WithName("AiStatus");
+
         // D2 - Streaming completion: token stream as Server-Sent Events.
         group.MapPost("/chat/stream", (
             [FromBody] AiChatRequest request,

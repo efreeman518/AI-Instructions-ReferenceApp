@@ -12,8 +12,8 @@ namespace TaskFlow.Infrastructure.AI;
 public sealed class NoOpChatClient(ILogger<NoOpChatClient> logger) : IChatClient
 {
     private const string NotConfigured =
-        "AI model is not configured. Wire a Foundry deployment (Foundry Local via " +
-        "TASKFLOW_ENABLE_FOUNDRY_LOCAL, or Azure AI Foundry) in the AppHost to enable AI responses.";
+        "AI model is not configured. Enable Foundry Local with TASKFLOW_ENABLE_FOUNDRY_LOCAL " +
+        "or wire an Azure AI Foundry deployment in the AppHost to enable AI responses.";
 
     /// <summary>Returns the canned not-configured response for a non-streaming call.</summary>
     public Task<ChatResponse> GetResponseAsync(

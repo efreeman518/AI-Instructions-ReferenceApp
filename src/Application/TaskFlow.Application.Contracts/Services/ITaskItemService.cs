@@ -14,6 +14,8 @@ public interface ITaskItemService
     Task<Result<DefaultResponse<TaskItemDto>>> CreateAsync(DefaultRequest<TaskItemDto> request, CancellationToken ct = default);
     /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
     Task<Result<DefaultResponse<TaskItemDto>>> UpdateAsync(DefaultRequest<TaskItemDto> request, CancellationToken ct = default);
+    /// <summary>Applies a sparse partial update (JSON merge patch) - null fields are left unchanged.</summary>
+    Task<Result<DefaultResponse<TaskItemDto>>> PatchAsync(Guid id, TaskItemPatchDto patch, CancellationToken ct = default);
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
 

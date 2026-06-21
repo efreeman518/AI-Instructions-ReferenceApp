@@ -11,6 +11,10 @@
     <PackageReference Include="Testcontainers.Azurite" />
     <PackageReference Include="Azure.Data.Tables" />
     <PackageReference Include="EF.IntegrationTesting" />
+    <!-- FlowEngine workflow integration tests: full in-process host + self-call connector. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="EF.FlowEngine" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +28,7 @@
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Data\TaskFlow.Infrastructure.Data.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Repositories\TaskFlow.Infrastructure.Repositories.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.Storage\TaskFlow.Infrastructure.Storage.csproj" />
+    <ProjectReference Include="..\..\Host\TaskFlow.Api\TaskFlow.Api.csproj" />
   </ItemGroup>
 
 </Project>

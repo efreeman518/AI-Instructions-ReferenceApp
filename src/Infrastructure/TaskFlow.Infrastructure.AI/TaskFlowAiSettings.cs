@@ -14,6 +14,10 @@ public class TaskFlowAiSettings
     // TODO: [CONFIGURE] Set to your Azure AI Foundry endpoint
     public string? FoundryEndpoint { get; set; }
 
+    // Foundry Local SDK-direct fallback used by TaskFlow.Api when TASKFLOW_ENABLE_FOUNDRY_LOCAL=true.
+    public string LocalModel { get; set; } = "qwen2.5-0.5b";
+    public string LocalWebUrl { get; set; } = "http://127.0.0.1:52415";
+
     // TODO: [CONFIGURE] Model deployment names in your Foundry project
     public string AgentModelDeployment { get; set; } = "gpt-4o-deploy";
     public string EmbeddingModelDeployment { get; set; } = "embedding-deploy";

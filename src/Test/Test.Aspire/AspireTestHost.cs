@@ -42,7 +42,7 @@ internal static class AspireTestHost
     /// <summary>Shared Aspire app started once for all Aspire-based mesh tests.</summary>
     internal static DistributedApplication? AspireApp { get; private set; }
 
-    /// <summary>AI provider the shared Aspire graph exposed through the AppHost's "chat" connection.</summary>
+    /// <summary>AI provider the shared Aspire graph exposed through AppHost configuration.</summary>
     internal static AspireAiProvider AiProvider { get; private set; } = AspireAiProvider.None;
 
     /// <summary>True when the React Vite project can run from this checkout.</summary>
@@ -68,7 +68,16 @@ internal static class AspireTestHost
         {
             if (AspireApp is not null)
                 return;
-            await StartAsync(context.CancellationToken);
+
+            try
+            {
+                await StartAsync(context.CancellationToken);
+            }
+            catch
+            {
+                await StopAsync(CancellationToken.None);
+                throw;
+            }
         }
         finally
         {
@@ -85,7 +94,8 @@ internal static class AspireTestHost
         if (EnsureFuncToolAvailable())
             _environment.Set("TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE", "true");
 
-        if (ShouldEnableFoundryLocalForTesting())
+        var foundryLocalRequested = ShouldEnableFoundryLocalForTesting();
+        if (foundryLocalRequested)
             _environment.Set("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true");
 
         ReactAvailable = IsReactRunnable();
@@ -127,7 +137,7 @@ internal static class AspireTestHost
 
         AspireApp = await builder.BuildAsync(ct).WaitAsync(DefaultTimeout, ct);
         await AspireApp.StartAsync(ct).WaitAsync(DefaultTimeout, ct);
-        AiProvider = await DetectActiveAiProviderAsync(ct);
+        AiProvider = await DetectActiveAiProviderAsync(foundryLocalRequested, ct);
 
         // Container reaching the Running state does not mean SQL is accepting connections - wait for the health check.
         await AspireApp.WaitForResourceHealthyAsync("taskflowdb", DefaultTimeout, ct);
@@ -183,12 +193,17 @@ internal static class AspireTestHost
     /// </summary>
     internal static bool EnsureFuncToolAvailable() => FunctionsCoreToolsDiscovery.EnsureFuncToolAvailable();
 
-    private static bool ShouldEnableFoundryLocalForTesting()
-    {
-        if (IsAzureFoundryRequested())
-            return false;
+    internal static bool ShouldEnableFoundryLocalForTesting()
+        => SelectRequestedAiProviderForTesting() == AspireAiProvider.FoundryLocal;
 
-        return IsFoundryLocalAvailable();
+    internal static AspireAiProvider SelectRequestedAiProviderForTesting()
+    {
+        if (IsEnabled("TASKFLOW_ENABLE_FOUNDRY_LOCAL"))
+            return AspireAiProvider.FoundryLocal;
+
+        return IsAzureFoundryRequested()
+            ? AspireAiProvider.AzureFoundry
+            : AspireAiProvider.FoundryLocal;
     }
 
     private static bool IsAzureFoundryRequested()
@@ -196,12 +211,6 @@ internal static class AspireTestHost
         return IsEnabled("TASKFLOW_USE_AZURE_FOUNDRY")
             || HasValue("AiServices__FoundryEndpoint")
             || HasValue("AiServices:FoundryEndpoint");
-    }
-
-    private static bool IsFoundryLocalAvailable()
-    {
-        return CommandSucceeds("foundry", "service status")
-            && CommandSucceeds("foundry", "model info qwen2.5-0.5b");
     }
 
     private static bool IsEnabled(string variableName) =>
@@ -294,10 +303,13 @@ internal static class AspireTestHost
         return null;
     }
 
-    private static async Task<AspireAiProvider> DetectActiveAiProviderAsync(CancellationToken ct)
+    private static async Task<AspireAiProvider> DetectActiveAiProviderAsync(bool foundryLocalRequested, CancellationToken ct)
     {
         if (AspireApp is null)
             return AspireAiProvider.None;
+
+        if (foundryLocalRequested)
+            return AspireAiProvider.FoundryLocal;
 
         try
         {
@@ -318,6 +330,8 @@ internal static class AspireTestHost
             return AspireAiProvider.None;
         }
     }
+
+    internal sealed record AiStatus(bool IsConfigured);
 }
 
 /// <summary>Describes the model provider wired into the Aspire test graph.</summary>

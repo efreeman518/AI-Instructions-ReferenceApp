@@ -40,6 +40,12 @@ public static class TaskItemEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Update an existing TaskItem");
 
+        g.MapPatch("/{id:guid}", Patch)
+            .Produces<DefaultResponse<TaskItemDto>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Partially update a TaskItem (JSON merge patch - omitted fields are unchanged)");
+
         g.MapDelete("/{id:guid}", Delete)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
@@ -146,6 +152,22 @@ public static class TaskItemEndpoints
                 message: $"{ErrorConstants.ERROR_URL_BODY_ID_MISMATCH}: {id} <> {request.Item.Id}"));
 
         var result = await service.UpdateAsync(request, ct);
+        return result.Match(
+            response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
+            errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
+                messages: errors, traceId: httpContext.TraceIdentifier,
+                includeStackTrace: _problemDetailsIncludeStackTrace)));
+    }
+
+    /// <summary>Applies a sparse partial update (JSON merge patch) to a TaskItem through the aggregate root.</summary>
+    private static async Task<IResult> Patch(
+        HttpContext httpContext,
+        [FromServices] ITaskItemService service,
+        Guid id,
+        [FromBody] DefaultRequest<TaskItemPatchDto> request,
+        CancellationToken ct)
+    {
+        var result = await service.PatchAsync(id, request.Item, ct);
         return result.Match(
             response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(

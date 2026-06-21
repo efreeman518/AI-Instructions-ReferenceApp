@@ -42,6 +42,17 @@ public static partial class RegisterServices
         AddWorkflowJsonSeeding(fe);
 
         services.AddFlowEngineAdminPolicies();
+        services.AddFlowEngineAdminTenantPolicy(options =>
+        {
+            if (string.Equals(config["AuthMode"] ?? "Scaffold", "Scaffold", StringComparison.OrdinalIgnoreCase))
+            {
+                options.TenantClaimType = "flowengine_tenant_id";
+                options.RequireTenant = false;
+                return;
+            }
+
+            options.TenantClaimType = "tenant_id";
+        });
     }
 
     /// <summary>

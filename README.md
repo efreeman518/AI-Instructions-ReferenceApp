@@ -29,7 +29,7 @@ The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.ICh
 
 | Mode | How to enable | Model |
 |------|---------------|-------|
-| Foundry Local (on-device, no Azure) | set `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true` before `dotnet run --project src/Host/Aspire/AppHost` | `FoundryModel.Local.Qwen2505b` |
+| Foundry Local (on-device, no Azure) | set `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true` before `dotnet run --project src/Host/Aspire/AppHost` | `qwen2.5-0.5b` |
 | Provision new Azure AI Foundry | set `AiServices:FoundryEndpoint` (config/user-secrets) or `TASKFLOW_USE_AZURE_FOUNDRY=true` with Azure provisioning configured | `FoundryModel.OpenAI.Gpt4oMini` |
 | Connect to existing Azure AI Foundry | uncomment the `RunAsExisting` block in `AppHost.cs` and set `AiServices:FoundryResourceName` + `AiServices:FoundryResourceGroup` (the `chat` deployment must already exist there) | `FoundryModel.OpenAI.Gpt4oMini` |
 | Disabled (default) | neither variable set | no-op `IChatClient` (app boots; demos return "not configured") |
@@ -40,19 +40,13 @@ The app wires a chat model through Aspire. The same `Microsoft.Extensions.AI.ICh
 Use this path when you want the AI demos to call a local model and avoid Azure model calls.
 
 ```powershell
-winget install Microsoft.FoundryLocal
-foundry --version
-foundry service status
-foundry model info qwen2.5-0.5b
-foundry model download qwen2.5-0.5b
-
 $env:TASKFLOW_ENABLE_FOUNDRY_LOCAL = "true"
 dotnet run --project src/Host/Aspire/AppHost
 ```
 
-The AppHost calls `AddFoundry("foundry").RunAsFoundryLocal().AddDeployment("chat", FoundryModel.Local.Qwen2505b)`. That creates the `chat` deployment and injects the `chat` connection into the API and Functions hosts (`ConnectionStrings:chat`, plus `CHAT_ENDPOINT`, `CHAT_APIKEY`, `CHAT_DEPLOYMENT` environment values). The API and Functions hosts then call `AddAzureChatCompletionsClient("chat").AddChatClient()`.
+The AppHost forwards `TASKFLOW_ENABLE_FOUNDRY_LOCAL=true` to the API host. The API host then uses `Microsoft.AI.Foundry.Local` directly, downloads execution providers and the `qwen2.5-0.5b` model if needed, starts its OpenAI-compatible endpoint at `AiServices:LocalWebUrl` (default `http://127.0.0.1:52415`), and registers it as the shared `IChatClient`. If Foundry Local is not installed or cannot bootstrap, the API logs the failure and falls back to the no-op AI client. This is temporary while Aspire `RunAsFoundryLocal()` is avoided for local mode. Functions stay no-op in local mode because the native Foundry Local SDK is confined to `TaskFlow.Api`.
 
-Use `qwen2.5-0.5b` because D3, D7, and D9 exercise tool/function calling. In Foundry Local `0.8.119`, `phi-4` is `chat` only and is not suitable for those demos. If `foundry model list` logs catalog-processing errors, verify with explicit `foundry model info qwen2.5-0.5b` and `foundry service status` instead.
+Use `qwen2.5-0.5b` because D3, D7, and D9 exercise tool/function calling. First run can be slow because the SDK downloads execution providers and the model into the local Foundry cache.
 
 ### Run With Real Azure AI Foundry
 
@@ -74,13 +68,16 @@ Do nothing. When neither Foundry Local nor Azure Foundry is configured, the app 
 
 ### Aspire-backed AI tests
 
-`dotnet test src/Test/Test.Aspire/Test.Aspire.csproj` boots the AppHost through `Aspire.Hosting.Testing`. The test graph includes API, Gateway, and Blazor by default, adds React and Uno when their local assets are runnable, trims only heavy or tool-dependent resources, and chooses model coverage by capability:
+`dotnet test src/Test/Test.Aspire/Test.Aspire.csproj --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the small live Foundry smoke set against whichever provider the AppHost selected. The smoke set covers chat, agent chat, one safe write-adjacent AI demo, and one FlowEngine agent workflow. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
 
 | Test condition | Result |
 |----------------|--------|
-| Azure Foundry config exists (`AiServices:FoundryEndpoint` or `TASKFLOW_USE_AZURE_FOUNDRY=true`) | Azure Foundry smoke runs |
-| No Azure config, Foundry Local CLI/service/model probe succeeds | Foundry Local smoke runs |
-| No model provider found | no-op AI fallback tests run |
+| Azure Foundry config exists (`AiServices:FoundryEndpoint` or `TASKFLOW_USE_AZURE_FOUNDRY=true`) | `TestCategory=Foundry` runs against Azure Foundry |
+| No Azure Foundry config exists and Foundry Local bootstraps | `TestCategory=Foundry` runs against the API's SDK-direct local bootstrap |
+| No Azure Foundry config exists and Foundry Local is unavailable | API falls back to no-op AI; live Foundry tests return inconclusive |
+| No Foundry provider is exposed by the AppHost | live Foundry tests return inconclusive |
+
+`TestCategory=AzureFoundry` is reserved for Azure-specific provider-selection or provisioning checks. The no-op AI fallback path is covered by unit and endpoint tests. Load, benchmark, and mobile suites stay explicit because they require a running target, BenchmarkDotNet process control, or Appium/emulator setup.
 
 `TASKFLOW_LIVE_AI_BASE_URL` can override the request target for manual live AI smoke runs. It is not a test opt-in.
 

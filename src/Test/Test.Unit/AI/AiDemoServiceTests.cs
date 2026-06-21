@@ -84,6 +84,33 @@ public class AiDemoServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>D4 rejects parsed JSON when required model fields are null or invalid.</summary>
+    [TestMethod]
+    public async Task TriageAsync_WithNullSuggestedPriority_ReturnsParseGuardError()
+    {
+        var taskId = Guid.NewGuid();
+        var taskItemService = new Mock<ITaskItemService>();
+        taskItemService
+            .Setup(x => x.GetAsync(taskId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto>
+            {
+                Item = new TaskItemDto { Id = taskId, Title = "Review queue", Priority = Priority.Low }
+            }));
+
+        var service = new TaskTriageService(
+            NullLogger<TaskTriageService>.Instance,
+            new StaticChatClient("""{"suggestedPriority":null,"confidence":0.7}"""),
+            taskItemService.Object);
+
+        var result = await service.TriageAsync(taskId, apply: true);
+
+        Assert.IsTrue(result.IsConfigured);
+        Assert.IsFalse(result.Applied);
+        Assert.IsNull(result.Triage);
+        Assert.AreEqual("Could not parse model output as triage JSON.", result.Error);
+        taskItemService.Verify(x => x.UpdateAsync(It.IsAny<DefaultRequest<TaskItemDto>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     /// <summary>D5 turns parseable model output into a normal task create request.</summary>
     [TestMethod]
     public async Task DraftAndCreateAsync_WithParseableModelOutput_CreatesTask()

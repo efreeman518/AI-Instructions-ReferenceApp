@@ -44,7 +44,9 @@ public static class RegisterApiServices
     private static void AddJsonOptions(IServiceCollection services)
     {
         services.ConfigureHttpJsonOptions(options =>
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        {
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
     }
 
     /// <summary>Registers cors dependencies in the service container.</summary>

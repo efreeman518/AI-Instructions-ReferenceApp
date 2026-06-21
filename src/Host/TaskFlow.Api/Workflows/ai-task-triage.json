@@ -14,11 +14,11 @@
       "type": "agent",
       "label": "AI classification",
       "intent": "Ask the agent to classify the task and propose priority + category.",
+      "outputSchema": "{\"type\":\"object\",\"required\":[\"suggestedPriority\",\"confidence\"],\"properties\":{\"suggestedPriority\":{\"type\":\"string\",\"enum\":[\"None\",\"Low\",\"Medium\",\"High\",\"Critical\"]},\"suggestedCategory\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}}}",
       "config": {
         "clientRef": "ai-agent",
-        "promptTemplate": "You are triaging a TaskItem. Description: {{$.params.description}}. Output JSON with fields suggestedPriority (None|Low|Medium|High|Critical), suggestedCategory (free text), confidence (0-1).",
+        "promptTemplate": "You are triaging a TaskItem. Respond with ONLY minified JSON, no markdown, matching {\"suggestedPriority\":\"None|Low|Medium|High|Critical\",\"suggestedCategory\":\"string\",\"confidence\":0.0}. Description: {{$.params.description}}.",
         "promptVersion": "triage-v1",
-        "outputSchema": "{\"type\":\"object\",\"required\":[\"suggestedPriority\",\"confidence\"],\"properties\":{\"suggestedPriority\":{\"type\":\"string\",\"enum\":[\"None\",\"Low\",\"Medium\",\"High\",\"Critical\"]},\"suggestedCategory\":{\"type\":\"string\"},\"confidence\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}}}",
         "idempotencyKey": "$.params.taskId + '-triage'"
       },
       "storeAs": "triage",
@@ -68,7 +68,7 @@
         "clientRef": "taskflow-api",
         "method": "PATCH",
         "path": "/api/v1/task-items/{{$.params.taskId}}",
-        "body": { "Priority": "$.context.triage.suggestedPriority" },
+        "body": { "item": { "Priority": "$.context.triage.suggestedPriority" } },
         "idempotencyKey": "$.params.taskId + '-apply-priority'"
       },
       "edges": [
@@ -100,7 +100,7 @@
         "clientRef": "taskflow-api",
         "method": "POST",
         "path": "/api/v1/task-items/{{$.params.taskId}}/comments",
-        "body": { "Text": "Critical-priority elevation rejected by quorum reviewers." },
+        "body": { "item": { "Body": "Critical-priority elevation rejected by quorum reviewers." } },
         "idempotencyKey": "$.params.taskId + '-reject-comment'"
       },
       "edges": [
@@ -117,7 +117,7 @@
         "clientRef": "taskflow-api",
         "method": "PATCH",
         "path": "/api/v1/task-items/{{$.params.taskId}}",
-        "body": { "Priority": "Medium" },
+        "body": { "item": { "Priority": "Medium" } },
         "idempotencyKey": "$.params.taskId + '-revert-priority'"
       }
     },

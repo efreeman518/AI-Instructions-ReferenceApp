@@ -9,6 +9,17 @@
     <PackageReference Include="Moq" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="EF.FlowEngine.Testing" />
+    <PackageReference Include="EF.FlowEngine.Clients.AI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\Host\TaskFlow.Api\Workflows\ai-task-triage.json"
+             Link="Workflows\ai-task-triage.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Host\TaskFlow.Api\Workflows\ai-task-decomposer.json"
+             Link="Workflows\ai-task-decomposer.json"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

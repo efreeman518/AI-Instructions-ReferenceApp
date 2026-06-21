@@ -62,7 +62,9 @@ jobs:
         run: dotnet restore src/TaskFlow.slnx
 
       - name: Build
-        run: dotnet build src/TaskFlow.slnx --no-restore --configuration Release
+        # Static web assets writes shared obj caches and can race when the same web project is in
+        # the solution and referenced by AppHost.
+        run: dotnet build src/TaskFlow.slnx --no-restore --configuration Release -m:1
 
       - name: Unit Tests
         run: >

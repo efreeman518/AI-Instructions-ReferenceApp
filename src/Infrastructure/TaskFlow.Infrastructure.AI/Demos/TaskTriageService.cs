@@ -49,7 +49,7 @@ public sealed class TaskTriageService(
 
         var response = await chatClient.GetResponseAsync(prompt, cancellationToken: ct);
         var triage = ParseTriage(response.Text);
-        if (triage is null)
+        if (triage is null || !IsValidTriage(triage))
         {
             logger.LogWarning("Triage for {TaskId} returned unparseable output.", taskId);
             return new TaskTriageResponse(taskId, null, false, true, "Could not parse model output as triage JSON.");
@@ -87,6 +87,11 @@ public sealed class TaskTriageService(
             return null;
         }
     }
+
+    private static bool IsValidTriage(TaskTriageResult triage) =>
+        !string.IsNullOrWhiteSpace(triage.SuggestedPriority)
+        && Enum.TryParse<Priority>(triage.SuggestedPriority, ignoreCase: true, out _)
+        && triage.Confidence is >= 0 and <= 1;
 
     /// <summary>Returns the substring from the first '{' to the last '}', or null if none.</summary>
     private static string? ExtractJsonObject(string text)

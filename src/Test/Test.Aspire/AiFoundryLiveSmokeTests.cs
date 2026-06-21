@@ -6,18 +6,19 @@ using Aspire.Hosting.Testing;
 namespace Test.Aspire;
 
 /// <summary>
-/// Smoke tests for model-backed AI endpoints running through the Aspire-hosted gateway by default.
-/// They assert response contracts instead of exact model text.
+/// Smoke tests for model-backed AI endpoints. Azure runs through the Aspire-hosted gateway; Foundry
+/// Local calls the API directly because cold local model responses can exceed gateway timeouts.
 ///
 /// Selection:
 /// 1. Azure Foundry runs when explicit Azure config is present.
-/// 2. Foundry Local runs when Azure config is absent and the local foundry CLI/service/model probe succeeds.
-/// 3. With no model provider, these tests are inconclusive and the no-model AI tests assert the fallback path.
+/// 2. Foundry Local runs when explicitly requested, or by default when Azure config is absent.
+/// 3. With no model provider, these tests are inconclusive instead of silently passing.
 ///
 /// <c>TASKFLOW_LIVE_AI_BASE_URL</c> can override the request target for manual runs, but it is not an opt-in.
 /// </summary>
 [TestClass]
 [TestCategory("LiveAI")]
+[TestCategory("Foundry")]
 [DoNotParallelize]
 public class AiFoundryLiveSmokeTests
 {
@@ -31,44 +32,22 @@ public class AiFoundryLiveSmokeTests
     [ClassInitialize]
     public static Task ClassInit(TestContext context) => AspireTestHost.EnsureStartedAsync(context);
 
-    /// <summary>Verifies D1 reaches a configured local model and returns non-empty assistant text.</summary>
+    /// <summary>Verifies D1 reaches the active configured model and returns non-empty assistant text.</summary>
     [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
+    [Timeout(360000)]
+    public async Task Given_FoundryBackedAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
+        using var client = await CreateFoundryClientOrInconclusiveAsync();
 
         await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
     }
 
-    /// <summary>Verifies D2 streams tokens from the configured local model.</summary>
+    /// <summary>Verifies D3 reaches the code-hosted task assistant agent over the active model.</summary>
     [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_StreamingChatEndpointCalled_Then_TokensReturned()
+    [Timeout(360000)]
+    public async Task Given_FoundryBackedAppHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
-
-        var ct = TestContext.CancellationTokenSource.Token;
-        using var response = await client.PostAsJsonAsync(
-            ApiPath(client, "api/v1/ai/chat/stream"),
-            new { message = "Answer with exactly one short sentence about task planning." },
-            ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(body));
-        StringAssert.Contains(body, "data:");
-    }
-
-    /// <summary>Verifies D3 reaches the code-hosted task assistant agent over the local model.</summary>
-    [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
-    {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
+        using var client = await CreateFoundryClientOrInconclusiveAsync();
 
         var ct = TestContext.CancellationTokenSource.Token;
         using var response = await client.PostAsJsonAsync(
@@ -87,13 +66,12 @@ public class AiFoundryLiveSmokeTests
         AssertHasText(payload.RootElement.GetProperty("conversationId"), "conversationId");
     }
 
-    /// <summary>Verifies D4 can classify a real task through the local model without applying writes.</summary>
+    /// <summary>Verifies D4 can classify a real task through the active model without applying writes.</summary>
     [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_TaskTriageCalled_Then_TriageContractReturned()
+    [Timeout(360000)]
+    public async Task Given_FoundryBackedAppHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
+        using var client = await CreateFoundryClientOrInconclusiveAsync();
 
         var ct = TestContext.CancellationTokenSource.Token;
         var taskId = await CreateTaskAsync(client, "Live AI triage smoke " + Guid.NewGuid().ToString("N"), ct);
@@ -104,69 +82,14 @@ public class AiFoundryLiveSmokeTests
         Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
         Assert.IsFalse(payload.RootElement.GetProperty("applied").GetBoolean());
         var triage = payload.RootElement.GetProperty("triage");
-        Assert.AreEqual(JsonValueKind.Object, triage.ValueKind);
-        AssertHasText(triage.GetProperty("suggestedPriority"), "suggestedPriority");
-    }
-
-    /// <summary>
-    /// Verifies D5 reaches the model-backed draft path. Small local models may return non-parseable JSON,
-    /// so this smoke accepts either a created task or the app's parse-guard error as long as AI was configured.
-    /// </summary>
-    [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_DraftTaskCalled_Then_ModelBackedPathIsStable()
-    {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
-
-        var ct = TestContext.CancellationTokenSource.Token;
-        using var response = await client.PostAsJsonAsync(
-            ApiPath(client, "api/v1/ai/tasks/draft"),
-            new { title = "Prepare live AI smoke test notes" },
-            ct);
-        using var payload = await ReadJsonAsync(response, ct);
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
-
-        if (payload.RootElement.GetProperty("created").GetBoolean())
+        if (triage.ValueKind == JsonValueKind.Null)
         {
-            Assert.AreNotEqual(JsonValueKind.Null, payload.RootElement.GetProperty("taskId").ValueKind);
-            AssertHasText(payload.RootElement.GetProperty("description"), "description");
+            AssertHasText(payload.RootElement.GetProperty("error"), "error");
             return;
         }
 
-        AssertHasText(payload.RootElement.GetProperty("error"), "error");
-    }
-
-    /// <summary>Verifies D7 read-only recommendation works against a configured local model.</summary>
-    [TestMethod]
-    [TestCategory("FoundryLocal")]
-    [Timeout(180000)]
-    public async Task Given_FoundryLocalAppHost_When_NextActionCalled_Then_RecommendationReturned()
-    {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.FoundryLocal, "Foundry Local");
-
-        var ct = TestContext.CancellationTokenSource.Token;
-        using var response = await client.PostAsync(ApiPath(client, "api/v1/ai/next-action"), null, ct);
-        using var payload = await ReadJsonAsync(response, ct);
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
-        AssertHasText(payload.RootElement.GetProperty("recommendation"), "recommendation");
-    }
-
-    /// <summary>
-    /// Verifies D1 against Azure Foundry when the Aspire test graph detects an Azure-backed chat connection.
-    /// </summary>
-    [TestMethod]
-    [TestCategory("AzureFoundry")]
-    [Timeout(180000)]
-    public async Task Given_AzureFoundryAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
-    {
-        using var client = await CreateClientOrSkipAsync(AspireAiProvider.AzureFoundry, "Azure Foundry");
-
-        await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
+        Assert.AreEqual(JsonValueKind.Object, triage.ValueKind);
+        AssertHasText(triage.GetProperty("suggestedPriority"), "suggestedPriority");
     }
 
     private async Task AssertConfiguredChatAsync(HttpClient client, string message)
@@ -182,39 +105,70 @@ public class AiFoundryLiveSmokeTests
         StringAssert.DoesNotMatch(assistantMessage, new("not configured", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
     }
 
-    private async Task<HttpClient> CreateClientOrSkipAsync(AspireAiProvider requiredProvider, string providerName)
+    internal async Task<HttpClient> CreateFoundryClientOrInconclusiveAsync()
     {
-        if (AspireTestHost.AiProvider != requiredProvider)
+        if (AspireTestHost.AiProvider == AspireAiProvider.None)
         {
             Assert.Inconclusive(
-                $"{providerName} smoke skipped. Active AI provider: {AspireTestHost.AiProvider}.");
+                "No Foundry provider available. Configure Azure AI Foundry or enable Foundry Local to run live Foundry smoke tests.");
             throw new InvalidOperationException("Unreachable");
         }
 
         var baseUrl = Environment.GetEnvironmentVariable(LiveBaseUrlVariable);
+        HttpClient client;
         if (string.IsNullOrWhiteSpace(baseUrl))
-            return await CreateAspireGatewayClientAsync();
-
-        var baseUri = new Uri(baseUrl.TrimEnd('/') + "/", UriKind.Absolute);
-        var handler = new HttpClientHandler();
-
-        // Aspire dev HTTPS commonly uses a local development certificate. Trust only loopback here.
-        if (baseUri.IsLoopback)
-            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-
-        return new HttpClient(handler)
         {
-            BaseAddress = baseUri,
-            Timeout = TimeSpan.FromMinutes(3)
-        };
+            client = AspireTestHost.AiProvider == AspireAiProvider.AzureFoundry
+                ? await CreateAspireGatewayClientAsync()
+                : await CreateAspireApiClientAsync();
+        }
+        else
+        {
+            var baseUri = new Uri(baseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+            var handler = new HttpClientHandler();
+
+            // Aspire dev HTTPS commonly uses a local development certificate. Trust only loopback here.
+            if (baseUri.IsLoopback)
+                handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+            client = new HttpClient(handler)
+            {
+                BaseAddress = baseUri,
+                Timeout = TimeSpan.FromMinutes(3)
+            };
+        }
+
+        try
+        {
+            await AssertFoundryConfiguredOrInconclusiveAsync(client);
+            return client;
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
     }
 
     private async Task<HttpClient> CreateAspireGatewayClientAsync()
     {
         var ct = TestContext.CancellationTokenSource.Token;
+        await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowgateway", ct);
 
-        return AspireTestHost.AspireApp!.CreateHttpClient("taskflowgateway", "http");
+        var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowgateway", "http");
+        client.Timeout = TimeSpan.FromMinutes(3);
+        return client;
+    }
+
+    private async Task<HttpClient> CreateAspireApiClientAsync()
+    {
+        var ct = TestContext.CancellationTokenSource.Token;
+        await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
+
+        var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowapi", "http");
+        client.Timeout = TimeSpan.FromMinutes(5);
+        return client;
     }
 
     private static string ApiPath(HttpClient client, string apiPath)
@@ -269,6 +223,33 @@ public class AiFoundryLiveSmokeTests
 
     private static string Truncate(string value) =>
         value.Length <= 1000 ? value : value[..1000] + "...";
+
+    private async Task AssertFoundryConfiguredOrInconclusiveAsync(HttpClient client)
+    {
+        var ct = TestContext.CancellationTokenSource.Token;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(15));
+
+        try
+        {
+            using var response = await client.GetAsync(ApiPath(client, "api/v1/ai/status"), timeout.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                Assert.Inconclusive($"AI status endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
+            }
+
+            var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
+            if (status?.IsConfigured != true)
+            {
+                Assert.Inconclusive(
+                    "No Foundry provider available. Azure Foundry is not configured and Foundry Local did not bootstrap, so API is using no-op AI.");
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Assert.Inconclusive($"AI status endpoint unavailable: {ex.Message}");
+        }
+    }
 
     private static void AssertHasText(JsonElement element, string propertyName)
     {

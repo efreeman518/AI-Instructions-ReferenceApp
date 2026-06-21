@@ -72,7 +72,7 @@ if (!isTesting)
 // AI: Azure AI Foundry. Two independent axes - lifecycle x consumption.
 //
 // Axis 1 - lifecycle (where the Foundry resource comes from):
-//  - Foundry Local       -> RunAsFoundryLocal(), runs a model on-device (no Azure subscription).
+//  - Foundry Local       -> API host bootstraps Microsoft.AI.Foundry.Local directly.
 //  - Provision new       -> AddFoundry(...).AddDeployment(...), Bicep creates account + model on publish
 //                           (and in run mode when Azure provisioning secrets are set).
 //  - Connect to existing -> RunAsExisting/PublishAsExisting against an already-provisioned account
@@ -87,11 +87,11 @@ if (!isTesting)
 //
 // Test mode only wires a model when the test harness found real Azure config or Foundry Local.
 IResourceBuilder<FoundryDeploymentResource>? chat = null;
-var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
-    || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
-    || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true";
 var foundryLocalEnabled =
     Environment.GetEnvironmentVariable("TASKFLOW_ENABLE_FOUNDRY_LOCAL") == "true";
+var azureFoundryConfigured = !foundryLocalEnabled && (builder.ExecutionContext.IsPublishMode
+    || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
+    || Environment.GetEnvironmentVariable("TASKFLOW_USE_AZURE_FOUNDRY") == "true");
 
 if (azureFoundryConfigured)
 {
@@ -110,14 +110,6 @@ if (azureFoundryConfigured)
     // chat = builder.AddFoundry("foundry").RunAsExisting(foundryName, foundryRg)
     //     .AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
 }
-else if (foundryLocalEnabled)
-{
-    // Runs the model locally via Foundry Local (requires the Foundry Local runtime installed:
-    // `winget install Microsoft.FoundryLocal`). No Azure subscription required. Use a
-    // tool-capable model so ChatClientAgent demos can exercise function calling on-device.
-    var foundry = builder.AddFoundry("foundry").RunAsFoundryLocal();
-    chat = foundry.AddDeployment("chat", FoundryModel.Local.Qwen2505b);
-}
 
 // API host
 var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
@@ -131,11 +123,19 @@ var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WaitFor(redis)
     .WaitFor(serviceBus);
 
-// Wire the Foundry chat model into the API when a deployment was created (injects CHAT_ENDPOINT,
-// CHAT_APIKEY, CHAT_DEPLOYMENT). Absent -> the API falls back to a no-op IChatClient.
+// Wire the Azure Foundry chat model into the API when a deployment was created. In Foundry Local
+// mode, forward flags only; TaskFlow.Api owns the temporary SDK-direct bootstrap.
 if (chat is not null)
 {
     api = api.WithReference(chat);
+}
+else if (foundryLocalEnabled)
+{
+    api = api
+        .WithEnvironment("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true")
+        .WithEnvironment("MYAPP_ENABLE_FOUNDRY_LOCAL", "true")
+        .WithEnvironment("AiServices__LocalModel", builder.Configuration["AiServices:LocalModel"] ?? "qwen2.5-0.5b")
+        .WithEnvironment("AiServices__LocalWebUrl", builder.Configuration["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415");
 }
 
 // OPT-IN (Azure-only): Foundry project + server-hosted prompt agent.
@@ -234,7 +234,8 @@ if (!isTesting || functionsAvailableInTesting)
         functions.WithEnvironment("TASKFLOW_APPLICATION_STYLE", applicationStyle);
     }
 
-    // Wire the Foundry chat model into Functions for the event-driven AI readiness review (D6).
+    // Wire the Azure Foundry chat model into Functions for the event-driven AI readiness review (D6).
+    // Foundry Local is confined to TaskFlow.Api because its native SDK assets force host RIDs.
     if (chat is not null)
     {
         functions.WithReference(chat);

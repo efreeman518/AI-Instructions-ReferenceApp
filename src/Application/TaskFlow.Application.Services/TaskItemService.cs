@@ -222,6 +222,47 @@ internal class TaskItemService(
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
     }
 
+    /// <summary>
+    /// Applies a sparse partial update to an existing TaskItem. Only the non-null fields on the patch
+    /// are changed; everything else is left intact. Delegates the merge to the aggregate's own
+    /// <see cref="TaskItem.Update"/> (which already ignores null arguments), so PATCH reuses the same
+    /// domain invariants as PUT without forcing the caller to resend the whole aggregate.
+    /// </summary>
+    public async Task<Result<DefaultResponse<TaskItemDto>>> PatchAsync(
+        Guid id, TaskItemPatchDto patch, CancellationToken ct = default)
+    {
+        var entity = await repoTrxn.GetTaskItemAsync(id, ct: ct);
+        if (entity == null)
+            return Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto> { Item = null });
+
+        var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
+            logger, RequestTenantId, RequestRoles, entity.TenantId,
+            "TaskItem:Patch", nameof(TaskItem), entity.Id);
+        if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
+
+        var updateResult = entity.Update(
+            title: patch.Title,
+            description: patch.Description,
+            priority: patch.Priority,
+            estimatedEffort: patch.EstimatedEffort,
+            categoryId: patch.CategoryId,
+            parentTaskItemId: patch.ParentTaskItemId);
+        if (updateResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(updateResult.ErrorMessage!);
+
+        try
+        {
+            await repoTrxn.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error patching TaskItem {Id}", id);
+            return Result<DefaultResponse<TaskItemDto>>.Failure(ex.GetBaseException().Message);
+        }
+
+        await cache.RemoveAsync($"TaskItem:{id}", ct);
+        return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(entity.ToDto()));
+    }
+
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
