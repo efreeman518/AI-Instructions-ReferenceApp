@@ -50,8 +50,12 @@ jobs:
       - name: Configure private NuGet feed
         env:
           NUGET_PAT: ${{ secrets.NUGET_PAT }}
-        if: env.NUGET_PAT != ''
         run: |
+          if [ -z "$NUGET_PAT" ]; then
+            echo "::error::NUGET_PAT secret is required to restore EF.* packages from GitHub Packages."
+            exit 1
+          fi
+
           dotnet nuget update source efreeman518-github \
             --configfile src/nuget.config \
             --username github-actions \
