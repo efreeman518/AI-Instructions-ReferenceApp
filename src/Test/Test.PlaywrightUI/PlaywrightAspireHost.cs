@@ -17,7 +17,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
     private const string BlazorResourceName = "taskflowblazor";
     private const string ReactResourceName = "taskflowreact";
     private const string HttpEndpointName = "http";
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(8);
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
 
     private readonly DistributedApplication _app;

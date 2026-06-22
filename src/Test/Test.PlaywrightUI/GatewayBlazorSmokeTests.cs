@@ -15,10 +15,10 @@ public sealed class GatewayBlazorSmokeTests
     /// Starts Aspire and verifies the Gateway root plus Blazor task-list surface.
     /// </summary>
     [TestMethod]
-    [Timeout(600_000)]
+    [Timeout(900_000)]
     public async Task GatewayAndBlazorHappyPath_Passes()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(8));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(12));
         await using var host = await PlaywrightAspireHost.StartAsync(cts.Token);
 
         try

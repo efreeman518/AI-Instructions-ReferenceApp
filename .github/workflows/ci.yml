@@ -3,12 +3,14 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    paths-ignore: ['**.md', 'infra/**']
   pull_request:
     branches: [main, develop]
-    paths-ignore: ['**.md', 'infra/**']
   workflow_dispatch:
     inputs:
+      includeE2E:
+        type: boolean
+        default: false
+        description: "Run Test.E2E SQL-backed HTTP workflow tests (requires Docker)"
       includeIntegration:
         type: boolean
         default: false
@@ -17,6 +19,14 @@ on:
         type: boolean
         default: false
         description: "Run Test.Aspire distributed-app mesh tests (full AppHost graph; requires Docker)"
+      includeFoundryLocal:
+        type: boolean
+        default: false
+        description: "Run Test.FoundryLocal live local model smoke tests (RID-bound; may download model assets)"
+      includePlaywrightUI:
+        type: boolean
+        default: false
+        description: "Run Test.PlaywrightUI browser smoke tests (requires browser install; starts Aspire AppHost)"
 
 jobs:
   build-and-test:
@@ -30,7 +40,7 @@ jobs:
       # Reclaim ~20+ GB (Android SDK, Haskell, large apt packages) before the Docker-backed steps run.
       # Keep dotnet and the tool cache - the build depends on them.
       - name: Free disk space
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includeIntegration || inputs.includeAspireMesh) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includeE2E || inputs.includeIntegration || inputs.includeAspireMesh || inputs.includeFoundryLocal || inputs.includePlaywrightUI) }}
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -91,6 +101,22 @@ jobs:
           --logger "trx;LogFileName=endpoint-results.trx"
           --results-directory ./TestResults
 
+      - name: FlowEngine Definition Tests
+        run: >
+          dotnet test src/Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=flowengine-results.trx"
+          --results-directory ./TestResults
+
+      - name: E2E Tests (manual, SQL)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeE2E == true }}
+        timeout-minutes: 20
+        run: >
+          dotnet test src/Test/Test.E2E/Test.E2E.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=e2e-results.trx"
+          --results-directory ./TestResults
+
       - name: Integration Tests (manual, component)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true }}
         timeout-minutes: 20
@@ -107,6 +133,47 @@ jobs:
           dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=aspire-results.trx"
+          --results-directory ./TestResults
+
+      - name: Foundry Local Tests (manual, live local)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeFoundryLocal == true }}
+        timeout-minutes: 40
+        run: >
+          dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj
+          --no-build --configuration Release
+          --filter TestCategory=FoundryLocal
+          --logger "trx;LogFileName=foundrylocal-results.trx"
+          --results-directory ./TestResults
+
+      - uses: actions/setup-node@v4
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            src/Test/Test.PlaywrightUI/package-lock.json
+            src/UI/TaskFlow.React/package-lock.json
+
+      - name: Restore Playwright packages
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        run: |
+          npm ci --prefix src/Test/Test.PlaywrightUI
+          npm ci --prefix src/UI/TaskFlow.React
+
+      - name: Install Playwright browser
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        shell: pwsh
+        run: |
+          ./src/Test/Test.PlaywrightUI/bin/Release/net10.0/playwright.ps1 install chromium
+          npx --prefix src/Test/Test.PlaywrightUI playwright install --with-deps chromium
+
+      - name: Playwright UI Tests (manual, browser)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        timeout-minutes: 40
+        run: >
+          dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=playwrightui-results.trx"
           --results-directory ./TestResults
 
       - name: Upload Test Results

@@ -82,6 +82,18 @@ Set `AiServices:DisableFoundryLocal=true` to force no-op locally. When no provid
 
 `TASKFLOW_LIVE_AI_BASE_URL` can override the request target for manual live AI smoke runs. It is not a test opt-in.
 
+### CI test lanes
+
+GitHub Actions runs the fast, no-Docker gate on every push and pull request: Unit, Architecture, Endpoint, and FlowEngine definition tests. `workflow_dispatch` exposes the heavier lanes as explicit inputs:
+
+| Input | Test project | Notes |
+|-------|--------------|-------|
+| `includeE2E` | `Test.E2E` | SQL-backed HTTP workflows; requires Docker |
+| `includeIntegration` | `Test.Integration` | SQL + Azurite component tests; requires Docker |
+| `includeAspireMesh` | `Test.Aspire` | Full Aspire AppHost graph; Azure Foundry smoke returns inconclusive unless configured |
+| `includeFoundryLocal` | `Test.FoundryLocal` | RID-bound Foundry Local live smoke; may download local model assets |
+| `includePlaywrightUI` | `Test.PlaywrightUI` | Browser smoke path; restores Playwright and React npm packages |
+
 ### Aspire-backed UI tests
 
 `dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor and React when their local prerequisites are present.
@@ -91,6 +103,8 @@ The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor
 ### Projects and agents (opt-in, Azure-only)
 
 The demos above use **code-hosted** agents - a `ChatClientAgent` running in-process over the injected `IChatClient`. That works with every lifecycle mode and boots offline. **Server-hosted** Foundry agents are an Azure-only escalation for hosted memory, centralized tools, or portal/IaC-managed agent definitions. They are documented and wired as commented opt-ins; nothing here runs by default.
+
+No `.foundry/agent-metadata.yaml` is committed because no server-hosted agent participates in Foundry deploy/eval workflows yet. When enabling a hosted or prompt agent, create `.foundry/agent-metadata.yaml` under that agent source folder and keep the project endpoint, agent name, datasets, evaluators, and thresholds there.
 
 - **Aspire-modeled project + prompt agent** (commented in `AppHost.cs`). A project (`foundry.AddProject(...)`) is the container for server-hosted agents, deployments, and tool connections. A prompt agent (`project.AddPromptAgent(model, "name", instructions).WithTool(...)`) is declarative. Tools are project-level resources (code interpreter, web/AI-Search/Bing grounding, function calling). Note: **prompt agents always deploy to Azure Foundry, even under `aspire run`** - there is no offline path. Referencing the project injects `PROJ_URI` (the project endpoint) into the consuming host.
 

@@ -1148,7 +1148,7 @@ The three approaches are complementary, not competing - pick by the boundary you
 - Pass parameters via `configureBuilder: (appOptions, hostSettings) => hostSettings.Configuration["Parameters:sql-password"] = ...` instead of mutating process env vars; the AppHost picks them up through normal `IConfiguration` binding.
 - Keep harness-only state internal: `TASKFLOW_ASPIRE_TESTING` selects isolated test-mode resources, and `TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE` is set only after the harness finds `func.exe`.
 - Add optional app-facing hosts by capability, not opt-in: `TASKFLOW_ASPIRE_REACT_AVAILABLE` and `TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE` are set by the harness after checking local prerequisites.
-- Run live Foundry coverage automatically: Azure Foundry config wins; otherwise the harness requests Foundry Local. If Foundry Local is unavailable, the API falls back to no-op AI and live Foundry tests return inconclusive. The no-op fallback stays covered in unit and endpoint tests.
+- Keep live Foundry coverage split: `Test.Aspire` runs Azure Foundry smoke only when Azure config is present. It never requests Foundry Local; the RID-bound `Test.FoundryLocal` project owns local model smoke. The no-op fallback stays covered in unit and endpoint tests.
 - Set `appOptions.DisableDashboard = true` (default in the testing builder, but explicit beats implicit).
 - Quiet framework chatter with `builder.Services.AddLogging(l => { l.SetMinimumLevel(Information); l.AddFilter("Microsoft.AspNetCore", Warning); l.AddFilter("Aspire.", Warning); })`.
 
@@ -1256,17 +1256,23 @@ await expectTaskInTable(page, taskTitle);            // .mud-table-body
 ### 12.7 Running Tests
 
 ```bash
-# Unit + architecture (fast, no infrastructure)
-dotnet test --filter "TestCategory=Unit|TestCategory=Architecture"
-
-# Endpoint contract tests (in-memory DB, no Docker)
-dotnet test src/Test/Test.Endpoints
+# CI default gate (fast, no Docker)
+dotnet test src/Test/Test.Unit/Test.Unit.csproj
+dotnet test src/Test/Test.Architecture/Test.Architecture.csproj
+dotnet test src/Test/Test.Endpoints/Test.Endpoints.csproj
+dotnet test src/Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
 
 # E2E tests (Docker required - Testcontainers SQL)
-dotnet test src/Test/Test.E2E
+dotnet test src/Test/Test.E2E/Test.E2E.csproj
 
-# Integration tests (boots Aspire AppHost - Docker + emulators)
-dotnet test --filter "TestCategory=Integration"
+# Component integration tests (Docker required - Testcontainers SQL + Azurite)
+dotnet test src/Test/Test.Integration/Test.Integration.csproj
+
+# Aspire mesh tests (Docker required - full AppHost graph)
+dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
+
+# Foundry Local live smoke (RID-bound local model path)
+dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal
 
 # Load tests (manual - start Aspire AppHost first; set TASKFLOW_LOAD_BASE_URL if taskflowapi uses a non-default port)
 dotnet test src/Test/Test.Load/Test.Load.csproj --filter "TestCategory=Load"
@@ -1280,6 +1286,8 @@ dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
 # Direct TypeScript UI E2E (requires AppHost and requested browser UI running)
 cd src/Test/Test.PlaywrightUI && npm run test
 ```
+
+GitHub Actions mirrors this split. Push and pull request runs execute the CI default gate. Manual `workflow_dispatch` inputs opt into `Test.E2E`, `Test.Integration`, `Test.Aspire`, `Test.FoundryLocal`, and `Test.PlaywrightUI`.
 
 ---
 
@@ -1586,6 +1594,8 @@ dotnet run --project src/Host/Aspire/AppHost
 `aspire publish` always selects the real Azure path and provisions an Azure AI Foundry resource/deployment. If the target environment requires keyless managed-identity inference instead of the generated connection secret, update the host-side `AddAzureChatCompletionsClient("chat")` registration to use the required credential overload before testing model behavior.
 
 When AI is disabled, D1-D8 return the no-op "not configured" response. D9 can still start a workflow instance, but the schema-constrained `agent` node should land on the fault path because the no-op text is not valid structured model output. Live Foundry tests do not silently pass in this mode; they return inconclusive. Application-layer test priority is Azure Foundry when configured, Foundry Local when it can bootstrap, then no-op fallback.
+
+TaskFlow has no `.foundry/agent-metadata.yaml` by default because shipped agents are code-hosted over `IChatClient`, not server-hosted Foundry agents. Add `.foundry/agent-metadata.yaml` under the agent source folder only when a hosted or prompt agent joins Foundry deploy/eval workflows; keep project endpoint, agent name, datasets, evaluators, and thresholds there.
 
 ### 14.6 Workflow Triggering
 
