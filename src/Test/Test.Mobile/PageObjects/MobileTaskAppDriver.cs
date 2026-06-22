@@ -94,6 +94,15 @@ internal sealed class MobileTaskAppDriver
             () => FirstOrNull(ByLabel(label)) ?? FirstOrNull(ByLabelContains(label)) ?? ScrollIntoView(label),
             $"element '{label}'");
 
+    public AppiumElement EnabledElement(string label) =>
+        WaitFor(
+            () =>
+            {
+                var element = FirstOrNull(ByLabel(label)) ?? FirstOrNull(ByLabelContains(label)) ?? ScrollIntoView(label);
+                return element is not null && element.Enabled ? element : null;
+            },
+            $"enabled element '{label}'");
+
     /// <summary>
     /// Brings an off-screen control into view with bounded swipes inside the content area.
     /// Deliberately avoids UiScrollable/scrollIntoView and any swipe near the top edge: a downward
@@ -157,6 +166,8 @@ internal sealed class MobileTaskAppDriver
 
     /// <summary>Taps the element with the given accessibility label.</summary>
     public void Tap(string label) => Element(label).Click();
+
+    public void TapEnabled(string label) => EnabledElement(label).Click();
 
     /// <summary>Taps an element identified by exact label/text (alias of Tap for readability).</summary>
     public void TapText(string text) => Tap(text);

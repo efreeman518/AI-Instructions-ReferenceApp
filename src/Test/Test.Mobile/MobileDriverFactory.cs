@@ -34,6 +34,9 @@ internal static class MobileDriverFactory
         options.AddAdditionalAppiumOption("appWaitActivity", settings.AndroidAppWaitActivity);
         options.AddAdditionalAppiumOption("autoGrantPermissions", true);
         options.AddAdditionalAppiumOption("newCommandTimeout", 120);
+        options.AddAdditionalAppiumOption("adbExecTimeout", (int)settings.AdbExecTimeout.TotalMilliseconds);
+        options.AddAdditionalAppiumOption("uiautomator2ServerLaunchTimeout", (int)settings.UiAutomator2ServerLaunchTimeout.TotalMilliseconds);
+        options.AddAdditionalAppiumOption("androidInstallTimeout", (int)settings.AndroidInstallTimeout.TotalMilliseconds);
 
         return new AndroidDriver(settings.AppiumServerUri, options, settings.StartupTimeout);
     }

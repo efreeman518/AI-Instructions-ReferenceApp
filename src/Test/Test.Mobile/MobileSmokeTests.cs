@@ -38,7 +38,7 @@ public sealed class MobileSmokeTests
         }
         catch (WebDriverException ex)
         {
-            Assert.Inconclusive(
+            Assert.Fail(
                 "Mobile driver/instrumentation unavailable. Confirm Appium server, platform driver, emulator/simulator, and app path. " +
                 $"Details: {ex.Message}");
         }

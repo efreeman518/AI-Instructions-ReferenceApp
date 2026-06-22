@@ -28,5 +28,11 @@ internal sealed class TaskFlowMobileApp
 
     /// <summary>Generates a per-run unique title, mirroring the web suites' uniqueTitle helper.</summary>
     public static string UniqueTitle(string prefix) =>
-        $"{prefix}-{DateTimeOffset.UtcNow:HHmmssfff}";
+        $"{SanitizeForAndroidInput(prefix)}{DateTimeOffset.UtcNow:HHmmssfff}";
+
+    private static string SanitizeForAndroidInput(string value)
+    {
+        var safe = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        return string.IsNullOrWhiteSpace(safe) ? "Task" : safe;
+    }
 }

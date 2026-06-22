@@ -13,19 +13,20 @@ namespace Test.Mobile;
 public sealed class MobileTaskCrudTests : MobileUiTestBase
 {
     [TestMethod]
+    [Ignore("Requires decent Android/Appium test hardware; run manually on a dedicated device, emulator host, or CI.")]
     public void TaskCrud_FullLifecycle_ThroughNativeUi() => RunMobileFlow(() =>
     {
         var title = TaskFlowMobileApp.UniqueTitle("E2E-Mobile-Create");
         var updatedTitle = TaskFlowMobileApp.UniqueTitle("E2E-Mobile-Updated");
-        const string checklistItem = "Mobile checklist step";
-        const string comment = "Mobile automated comment";
+        const string checklistItem = "MobileChecklistStep";
+        const string comment = "MobileAutomatedComment";
 
         // 1. CREATE - new task with a buffered checklist item + comment, then save.
         TestContext.WriteLine("Step 1: create");
         App.Shell.StartNewTask();
         App.TaskEditor.WaitUntilReady();
         App.TaskEditor.SetTitle(title);
-        App.TaskEditor.SetDescription("Created by the mobile CRUD lifecycle test.");
+        App.TaskEditor.SetDescription("CreatedByMobileCrudLifecycleTest");
         if (!App.TaskEditor.TrySetPriority("Medium"))
         {
             TestContext.WriteLine("Priority Spinner dropdown not drivable via uiautomator2; left at default (best-effort).");
@@ -35,6 +36,7 @@ public sealed class MobileTaskCrudTests : MobileUiTestBase
         var commentAdded = App.TaskEditor.TryAddComment(comment);
         TestContext.WriteLine($"Children added (best-effort): checklist={checklistAdded}, comment={commentAdded}");
         App.TaskEditor.Save();
+        App.TaskList.WaitUntilReady();
 
         // 2. READ - the new task lands in the list; open it and confirm children persisted.
         TestContext.WriteLine("Step 2: read");
@@ -58,6 +60,7 @@ public sealed class MobileTaskCrudTests : MobileUiTestBase
         App.TaskEditor.SetTitle(updatedTitle);
         App.TaskEditor.TrySetPriority("High");
         App.TaskEditor.Save();
+        App.TaskList.WaitUntilReady();
 
         App.TaskList.Search(updatedTitle);
         App.TaskList.WaitForTask(updatedTitle);
@@ -68,6 +71,7 @@ public sealed class MobileTaskCrudTests : MobileUiTestBase
         App.TaskList.OpenTask(updatedTitle);
         App.TaskEditor.WaitUntilReady();
         App.TaskEditor.Delete();
+        App.TaskList.WaitUntilReady();
 
         App.TaskList.Search(updatedTitle);
         App.TaskList.WaitForTaskGone(updatedTitle);

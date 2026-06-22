@@ -11,9 +11,12 @@ internal sealed class TaskListScreen
 
     public TaskListScreen(MobileTaskAppDriver app) => _app = app;
 
+    public void WaitUntilReady() => _app.Element(SearchBoxId);
+
     /// <summary>Enters a search term and runs the search.</summary>
     public void Search(string term)
     {
+        WaitUntilReady();
         _app.Type(SearchBoxId, term);
         _app.HideKeyboard();
         _app.Tap(SearchButtonId);

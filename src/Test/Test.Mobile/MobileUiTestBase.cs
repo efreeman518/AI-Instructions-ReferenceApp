@@ -22,10 +22,8 @@ public abstract class MobileUiTestBase
     private protected bool Enabled => Driver is not null;
 
     /// <summary>
-    /// Runs a flow body when mobile is enabled. Real assertion failures stay red, but Appium driver
-    /// / uiautomator2 instrumentation instability (crashes, dropped sessions - common on a
-    /// software-GPU emulator under Uno's Skia load) is reported as Inconclusive, never a false red.
-    /// A bare element-wait timeout (no underlying driver error) is a genuine failure and propagates.
+    /// Runs a flow body when mobile is enabled. Driver, timeout, and assertion failures stay red
+    /// because the explicit mobile lane should only be skipped before opt-in.
     /// </summary>
     private protected void RunMobileFlow(Action body)
     {
@@ -34,24 +32,7 @@ public abstract class MobileUiTestBase
             Assert.Inconclusive(Settings.DisabledMessage);
         }
 
-        try
-        {
-            body();
-        }
-        catch (OpenQA.Selenium.WebDriverException ex)
-        {
-            Assert.Inconclusive($"Mobile driver/instrumentation unstable; treating as skipped: {ex.Message}");
-        }
-        catch (TimeoutException ex)
-        {
-            // A control-wait timeout on this software-GPU emulator means the Uno/Skia surface
-            // stalled or the uiautomator2 instrumentation went unresponsive - an environment
-            // limitation, not a product defect (the selectors are exercised successfully on healthy
-            // hardware/CI). Per this opt-in tier's "never red when the environment cannot support
-            // it" contract, report Inconclusive. Genuine Assert.* failures are not caught here and
-            // still surface as red.
-            Assert.Inconclusive($"Mobile UI surface did not respond in time on this emulator; treating as skipped: {ex.Message}");
-        }
+        body();
     }
 
     [TestInitialize]

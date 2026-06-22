@@ -14,6 +14,9 @@ internal sealed record MobileTestSettings
     public string AndroidAppWaitActivity { get; init; } = "*";
     public string IosBundleId { get; init; } = "com.taskflow.uno";
     public TimeSpan StartupTimeout { get; init; } = TimeSpan.FromSeconds(60);
+    public TimeSpan AdbExecTimeout { get; init; } = TimeSpan.FromSeconds(120);
+    public TimeSpan UiAutomator2ServerLaunchTimeout { get; init; } = TimeSpan.FromSeconds(120);
+    public TimeSpan AndroidInstallTimeout { get; init; } = TimeSpan.FromSeconds(180);
 
     /// <summary>Verifies from behavior and protects the expected test contract.</summary>
     public static MobileTestSettings From(TestContext context)
@@ -36,7 +39,10 @@ internal sealed record MobileTestSettings
             AndroidAppPackage = GetValue(context, "TASKFLOW_ANDROID_APP_PACKAGE") ?? "com.taskflow.uno",
             AndroidAppWaitActivity = GetValue(context, "TASKFLOW_ANDROID_APP_WAIT_ACTIVITY") ?? "*",
             IosBundleId = GetValue(context, "TASKFLOW_IOS_BUNDLE_ID") ?? "com.taskflow.uno",
-            StartupTimeout = TimeSpan.FromSeconds(ParsePositiveInt(GetValue(context, "TASKFLOW_MOBILE_STARTUP_TIMEOUT_SECONDS"), 60))
+            StartupTimeout = TimeSpan.FromSeconds(ParsePositiveInt(GetValue(context, "TASKFLOW_MOBILE_STARTUP_TIMEOUT_SECONDS"), 60)),
+            AdbExecTimeout = TimeSpan.FromSeconds(ParsePositiveInt(GetValue(context, "TASKFLOW_MOBILE_ADB_EXEC_TIMEOUT_SECONDS"), 120)),
+            UiAutomator2ServerLaunchTimeout = TimeSpan.FromSeconds(ParsePositiveInt(GetValue(context, "TASKFLOW_MOBILE_UIAUTOMATOR2_TIMEOUT_SECONDS"), 120)),
+            AndroidInstallTimeout = TimeSpan.FromSeconds(ParsePositiveInt(GetValue(context, "TASKFLOW_MOBILE_ANDROID_INSTALL_TIMEOUT_SECONDS"), 180))
         };
     }
 

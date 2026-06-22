@@ -58,14 +58,14 @@ internal sealed class TaskItemScreen
     public void Save()
     {
         _app.HideKeyboard();
-        _app.Tap(SaveButtonId);
+        _app.TapEnabled(SaveButtonId);
     }
 
     /// <summary>Deletes the task; only available in edit mode.</summary>
     public void Delete()
     {
         _app.HideKeyboard();
-        _app.Tap(DeleteButtonId);
+        _app.TapEnabled(DeleteButtonId);
     }
 
     public bool HasText(string text) => _app.HasText(text);
