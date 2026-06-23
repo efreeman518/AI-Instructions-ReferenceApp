@@ -1,12 +1,13 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models tag domain behavior and invariants.</summary>
-public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
+public sealed class Tag : EntityBase<TagId>, ITenantEntity<TenantId>, IEquatable<Tag>
 {
-    public Guid TenantId { get; init; }
+    public TenantId TenantId { get; init; }
     public string Name { get; private set; } = null!;
     public string? Color { get; private set; }
 
@@ -19,7 +20,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     /// <summary>Initializes tag with required dependencies and default state.</summary>
     private Tag(Guid tenantId, string name, string? color)
     {
-        TenantId = tenantId;
+        TenantId = TenantId.From(tenantId);
         Name = name;
         Color = color;
     }
@@ -43,7 +44,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     private DomainResult<Tag> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Name)) errors.Add(DomainError.Create("Name is required."));
         return errors.Count > 0
             ? DomainResult<Tag>.Failure(errors)

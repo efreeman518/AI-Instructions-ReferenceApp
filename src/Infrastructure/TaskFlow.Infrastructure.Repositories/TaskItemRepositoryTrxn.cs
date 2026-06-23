@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories.Updaters;
 
@@ -37,7 +38,7 @@ public class TaskItemRepositoryTrxn(TaskFlowDbContextTrxn db)
 
         return await GetEntityAsync(
             true,
-            filter: t => t.Id == id,
+            filter: t => t.Id == TaskItemId.From(id),
             splitQueryThresholdOptions: SplitQueryThresholdOptions.Default,
             includes: [.. includesList],
             cancellationToken: ct

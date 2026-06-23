@@ -5,6 +5,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -18,7 +19,7 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
     {
         return await GetEntityAsync(
             false,
-            filter: (Comment c) => c.Id == id,
+            filter: (Comment c) => c.Id == CommentId.From(id),
             cancellationToken: ct
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
@@ -47,10 +48,10 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Body.Contains(searchTerm));
 
             if (filter.TaskItemId.HasValue)
-                q = q.Where(e => e.TaskItemId == filter.TaskItemId.Value);
+                q = q.Where(e => e.TaskItemId == TaskItemId.From(filter.TaskItemId.Value));
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+                q = q.Where(e => e.TenantId == TenantId.From(filter.TenantId.Value));
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(CommentMapper.Projection,

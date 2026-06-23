@@ -1,7 +1,10 @@
 using EF.Data;
 using EF.Domain.Contracts;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
+using TaskFlow.Infrastructure.Data.Configurations;
 
 namespace TaskFlow.Infrastructure.Data;
 
@@ -11,6 +14,8 @@ namespace TaskFlow.Infrastructure.Data;
 /// </summary>
 public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContextBase<string, Guid?>(options)
 {
+    public TenantId TenantFilterId => TenantId.HasValue ? TaskFlow.Domain.Shared.Ids.TenantId.From(TenantId.Value) : default;
+
     /// <summary>
     /// Builds the TaskFlow model once for derived contexts. Derived contexts only choose tracking
     /// and connection behavior; entity mapping stays identical.
@@ -20,6 +25,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("taskflow");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TaskFlowDbContextBase).Assembly);
+        modelBuilder.ConfigureDomainIdConversions();
         ConfigureDefaultDataTypes(modelBuilder);
         SetTableNames(modelBuilder);
         ConfigureTenantQueryFilters(modelBuilder);
@@ -63,7 +69,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
     private void ConfigureTenantQueryFilters(ModelBuilder modelBuilder)
     {
         var tenantEntityClrTypes = modelBuilder.Model.GetEntityTypes()
-            .Where(et => typeof(ITenantEntity<Guid>).IsAssignableFrom(et.ClrType))
+            .Where(et => typeof(ITenantEntity<TenantId>).IsAssignableFrom(et.ClrType))
             .Select(et => et.ClrType);
 
         foreach (var clrType in tenantEntityClrTypes)
@@ -71,6 +77,18 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
             var filter = BuildTenantFilter(clrType);
             modelBuilder.Entity(clrType).HasQueryFilter(filter);
         }
+    }
+
+    private new LambdaExpression BuildTenantFilter(Type entityType)
+    {
+        var param = Expression.Parameter(entityType, "e");
+        var entityTenant = Expression.Property(param, nameof(ITenantEntity<TenantId>.TenantId));
+        var ctxConst = Expression.Constant(this);
+        var ctxTenant = Expression.Property(ctxConst, nameof(TenantId));
+        var ctxTenantFilterId = Expression.Property(ctxConst, nameof(TenantFilterId));
+        var equals = Expression.Equal(entityTenant, ctxTenantFilterId);
+        var ctxIsNull = Expression.Equal(ctxTenant, Expression.Constant(null, typeof(Guid?)));
+        return Expression.Lambda(Expression.OrElse(ctxIsNull, equals), param);
     }
 
     // DbSets

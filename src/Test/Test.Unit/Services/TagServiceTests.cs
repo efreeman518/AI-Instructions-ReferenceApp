@@ -8,6 +8,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using Test.Support;
 using Test.Support.Builders;
 
@@ -22,7 +23,7 @@ namespace Test.Unit.Services;
 [TestClass]
 public class TagServiceTests
 {
-    private readonly Mock<IRepositoryTrxn<Tag>> _repoTrxnMock = new();
+    private readonly Mock<IRepositoryTrxn<Tag, TagId>> _repoTrxnMock = new();
     private readonly Mock<ITagRepositoryQuery> _repoQueryMock = new();
     private readonly Mock<IRequestContext<string, Guid?>> _requestContextMock = new();
     private readonly Mock<ITenantBoundaryValidator> _tenantBoundaryValidatorMock = new();
@@ -124,7 +125,7 @@ public class TagServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Tag?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<TagId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Tag?)null);
 
         var dto = new TagDto { Id = Guid.NewGuid(), Name = "Updated" };
         var result = await CreateService().UpdateAsync(new DefaultRequest<TagDto> { Item = dto });
@@ -153,7 +154,7 @@ public class TagServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Tag?)null);
+        _repoTrxnMock.Setup(r => r.GetAsync(It.IsAny<TagId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Tag?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

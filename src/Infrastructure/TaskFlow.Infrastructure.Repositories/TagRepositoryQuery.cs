@@ -5,6 +5,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -18,7 +19,7 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
     {
         return await GetEntityAsync(
             false,
-            filter: (Tag t) => t.Id == id,
+            filter: (Tag t) => t.Id == TagId.From(id),
             cancellationToken: ct
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
@@ -47,7 +48,7 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Name.Contains(searchTerm));
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+                q = q.Where(e => e.TenantId == TenantId.From(filter.TenantId.Value));
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(TagMapper.Projection,

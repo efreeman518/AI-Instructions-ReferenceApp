@@ -1,0 +1,59 @@
+using EF.Domain.Contracts;
+
+namespace TaskFlow.Domain.Shared.Ids;
+
+public readonly record struct TenantId(Guid Value) : IDomainId<TenantId>
+{
+    public static TenantId From(Guid value) => new(value);
+    public static implicit operator Guid(TenantId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct TaskItemId(Guid Value) : IDomainId<TaskItemId>
+{
+    public static TaskItemId From(Guid value) => new(value);
+    public static implicit operator Guid(TaskItemId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct TagId(Guid Value) : IDomainId<TagId>
+{
+    public static TagId From(Guid value) => new(value);
+    public static implicit operator Guid(TagId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct CategoryId(Guid Value) : IDomainId<CategoryId>
+{
+    public static CategoryId From(Guid value) => new(value);
+    public static implicit operator Guid(CategoryId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct CommentId(Guid Value) : IDomainId<CommentId>
+{
+    public static CommentId From(Guid value) => new(value);
+    public static implicit operator Guid(CommentId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct ChecklistItemId(Guid Value) : IDomainId<ChecklistItemId>
+{
+    public static ChecklistItemId From(Guid value) => new(value);
+    public static implicit operator Guid(ChecklistItemId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct AttachmentId(Guid Value) : IDomainId<AttachmentId>
+{
+    public static AttachmentId From(Guid value) => new(value);
+    public static implicit operator Guid(AttachmentId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}
+
+public readonly record struct TaskItemTagId(Guid Value) : IDomainId<TaskItemTagId>
+{
+    public static TaskItemTagId From(Guid value) => new(value);
+    public static implicit operator Guid(TaskItemTagId id) => id.Value;
+    public override string ToString() => Value.ToString();
+}

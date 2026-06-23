@@ -55,7 +55,7 @@ public class CategoryMapperTests
         var result = dto.ToEntity(TestConstants.TenantId);
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentCategoryId);
+        Assert.AreEqual(parentId, result.Value!.ParentCategoryId?.Value);
     }
 
     /// <summary>Verifies that given invalid DTO, when mapped to entity, then returns failure.</summary>

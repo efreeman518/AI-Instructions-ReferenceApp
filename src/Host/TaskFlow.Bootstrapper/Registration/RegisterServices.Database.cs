@@ -63,6 +63,8 @@ public static partial class RegisterServices
         // ChecklistItem). Backed by the EF.Data package via the closed-over-context subclasses.
         services.AddScoped(typeof(IRepositoryTrxn<>), typeof(TaskFlowRepositoryTrxn<>));
         services.AddScoped(typeof(IRepositoryQuery<>), typeof(TaskFlowRepositoryQuery<>));
+        services.AddScoped(typeof(IRepositoryTrxn<,>), typeof(TaskFlowRepositoryTrxn<,>));
+        services.AddScoped(typeof(IRepositoryQuery<,>), typeof(TaskFlowRepositoryQuery<,>));
 
         // Bespoke repositories - entity-specific read/write logic the generic pair does not cover
         // (multi-include loads, child-collection sync, polymorphic/hierarchy queries).

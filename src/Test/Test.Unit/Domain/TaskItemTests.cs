@@ -131,7 +131,7 @@ public class TaskItemTests
         var categoryId = Guid.NewGuid();
         var result = TaskItem.Create(TestConstants.TenantId, "Task", categoryId: categoryId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(categoryId, result.Value!.CategoryId);
+        Assert.AreEqual(categoryId, result.Value!.CategoryId?.Value);
     }
 
     /// <summary>Verifies that given task with parent, when created, then parent task item ID set.</summary>
@@ -142,7 +142,7 @@ public class TaskItemTests
         var parentId = Guid.NewGuid();
         var result = TaskItem.Create(TestConstants.TenantId, "SubTask", parentTaskItemId: parentId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentTaskItemId);
+        Assert.AreEqual(parentId, result.Value!.ParentTaskItemId?.Value);
     }
 
     /// <summary>Verifies that given same status, when transitioned, then no op success.</summary>

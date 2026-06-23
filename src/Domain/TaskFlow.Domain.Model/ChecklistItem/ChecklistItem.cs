@@ -1,19 +1,20 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models checklist item domain behavior and invariants.</summary>
-public class ChecklistItem : EntityBase, ITenantEntity<Guid>
+public class ChecklistItem : EntityBase<ChecklistItemId>, ITenantEntity<TenantId>
 {
-    public Guid TenantId { get; init; }
+    public TenantId TenantId { get; init; }
     public string Title { get; private set; } = null!;
     public bool IsCompleted { get; private set; }
     public int SortOrder { get; private set; }
     public DateTimeOffset? CompletedDate { get; private set; }
 
     // Foreign key
-    public Guid TaskItemId { get; private set; }
+    public TaskItemId TaskItemId { get; private set; }
 
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
@@ -24,8 +25,8 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     /// <summary>Initializes checklist item with required dependencies and default state.</summary>
     private ChecklistItem(Guid tenantId, Guid taskItemId, string title, int sortOrder)
     {
-        TenantId = tenantId;
-        TaskItemId = taskItemId;
+        TenantId = TenantId.From(tenantId);
+        TaskItemId = TaskItemId.From(taskItemId);
         Title = title;
         SortOrder = sortOrder;
         IsCompleted = false;
@@ -55,8 +56,8 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     private DomainResult<ChecklistItem> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
-        if (TaskItemId == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TaskItemId.Value == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
         return errors.Count > 0
             ? DomainResult<ChecklistItem>.Failure(errors)

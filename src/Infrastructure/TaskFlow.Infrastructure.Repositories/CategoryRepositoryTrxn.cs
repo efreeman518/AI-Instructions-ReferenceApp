@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -23,7 +24,7 @@ public class CategoryRepositoryTrxn(TaskFlowDbContextTrxn db)
 
         return await GetEntityAsync(
             true,
-            filter: c => c.Id == id,
+            filter: c => c.Id == CategoryId.From(id),
             splitQueryThresholdOptions: SplitQueryThresholdOptions.Default,
             includes: [.. includesList],
             cancellationToken: ct

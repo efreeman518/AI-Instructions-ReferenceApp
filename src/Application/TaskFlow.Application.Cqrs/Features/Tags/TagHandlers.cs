@@ -8,6 +8,7 @@ using EF.CQRS.Abstractions;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Application.Cqrs.Features.Tags;
 
@@ -54,7 +55,7 @@ internal sealed class GetTagByIdHandler(
 internal sealed class CreateTagHandler(
     ILogger<CreateTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IRepositoryTrxn<Tag> repoTrxn,
+    IRepositoryTrxn<Tag, TagId> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<CreateTagCommand, Result<DefaultResponse<TagDto>>>
 {
@@ -89,7 +90,7 @@ internal sealed class CreateTagHandler(
 internal sealed class UpdateTagHandler(
     ILogger<UpdateTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IRepositoryTrxn<Tag> repoTrxn,
+    IRepositoryTrxn<Tag, TagId> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator)
     : IRequestHandler<UpdateTagCommand, Result<DefaultResponse<TagDto>>>
 {
@@ -102,7 +103,7 @@ internal sealed class UpdateTagHandler(
         var validation = TagStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(TagId.From(dto.Id!.Value), ct);
         if (entity is null)
         {
             return HandlerHelpers.NotFoundResponse<TagDto>();
@@ -131,7 +132,7 @@ internal sealed class UpdateTagHandler(
 internal sealed class DeleteTagHandler(
     ILogger<DeleteTagHandler> logger,
     IRequestContext<string, Guid?> requestContext,
-    IRepositoryTrxn<Tag> repoTrxn,
+    IRepositoryTrxn<Tag, TagId> repoTrxn,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache)
     : IRequestHandler<DeleteTagCommand, Result>
@@ -139,7 +140,7 @@ internal sealed class DeleteTagHandler(
     /// <summary>Handles delete tag requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTagCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetAsync(command.Id, ct);
+        var entity = await repoTrxn.GetAsync(TagId.From(command.Id), ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(

@@ -8,6 +8,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -33,7 +34,7 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
 
         return await GetEntityAsync(
             false,
-            filter: t => t.Id == id,
+            filter: t => t.Id == TaskItemId.From(id),
             splitQueryThresholdOptions: SplitQueryThresholdOptions.Default,
             includes: [.. includesList],
             cancellationToken: ct
@@ -55,7 +56,7 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
         }
         else
         {
-            q = q.OrderBy(e => e.TenantId).ThenBy(e => e.Title);
+            q = q.OrderBy(e => e.Title);
         }
 
         // filtering
@@ -73,13 +74,13 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Priority == filter.Priority.Value);
 
             if (filter.CategoryId.HasValue)
-                q = q.Where(e => e.CategoryId == filter.CategoryId.Value);
+                q = q.Where(e => e.CategoryId == CategoryId.From(filter.CategoryId.Value));
 
             if (filter.ParentTaskItemId.HasValue)
-                q = q.Where(e => e.ParentTaskItemId == filter.ParentTaskItemId.Value);
+                q = q.Where(e => e.ParentTaskItemId == TaskItemId.From(filter.ParentTaskItemId.Value));
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+                q = q.Where(e => e.TenantId == TenantId.From(filter.TenantId.Value));
 
             if (filter.DueBefore.HasValue)
                 q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate <= filter.DueBefore.Value);

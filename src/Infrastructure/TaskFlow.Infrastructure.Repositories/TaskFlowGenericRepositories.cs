@@ -1,5 +1,7 @@
 using EF.Data;
 using EF.Domain;
+using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -17,6 +19,13 @@ public sealed class TaskFlowRepositoryTrxn<TEntity>(TaskFlowDbContextTrxn db)
 {
 }
 
+public sealed class TaskFlowRepositoryTrxn<TEntity, TId>(TaskFlowDbContextTrxn db)
+    : RepositoryTrxn<TEntity, TId, TaskFlowDbContextTrxn>(db)
+    where TEntity : class, IEntityBase<TId>
+    where TId : struct, IDomainId<TId>
+{
+}
+
 /// <summary>
 /// Open-generic read repository bound to the TaskFlow no-tracking query context. Registered as an open
 /// generic for entities with no bespoke read logic. Bespoke <c>I{Entity}RepositoryQuery</c> contracts
@@ -25,5 +34,12 @@ public sealed class TaskFlowRepositoryTrxn<TEntity>(TaskFlowDbContextTrxn db)
 public sealed class TaskFlowRepositoryQuery<TEntity>(TaskFlowDbContextQuery db)
     : RepositoryQuery<TEntity, TaskFlowDbContextQuery>(db)
     where TEntity : EntityBase
+{
+}
+
+public sealed class TaskFlowRepositoryQuery<TEntity, TId>(TaskFlowDbContextQuery db)
+    : RepositoryQuery<TEntity, TId, TaskFlowDbContextQuery>(db)
+    where TEntity : class, IEntityBase<TId>
+    where TId : struct, IDomainId<TId>
 {
 }

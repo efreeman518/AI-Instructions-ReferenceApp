@@ -7,6 +7,7 @@ using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared.Enums;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -20,7 +21,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
     {
         return await GetEntityAsync(
             false,
-            filter: (Attachment a) => a.Id == id,
+            filter: (Attachment a) => a.Id == AttachmentId.From(id),
             cancellationToken: ct
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
@@ -55,7 +56,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.OwnerId == filter.OwnerId.Value);
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+                q = q.Where(e => e.TenantId == TenantId.From(filter.TenantId.Value));
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(AttachmentMapper.Projection,

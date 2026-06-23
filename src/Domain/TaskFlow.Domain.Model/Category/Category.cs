@@ -1,19 +1,20 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models category domain behavior and invariants.</summary>
-public class Category : EntityBase, ITenantEntity<Guid>
+public class Category : EntityBase<CategoryId>, ITenantEntity<TenantId>
 {
-    public Guid TenantId { get; init; }
+    public TenantId TenantId { get; init; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public int SortOrder { get; private set; }
     public bool IsActive { get; private set; }
 
     // Self-referencing hierarchy
-    public Guid? ParentCategoryId { get; private set; }
+    public CategoryId? ParentCategoryId { get; private set; }
     public Category? ParentCategory { get; private set; }
     public ICollection<Category> SubCategories { get; private set; } = [];
 
@@ -26,12 +27,12 @@ public class Category : EntityBase, ITenantEntity<Guid>
     /// <summary>Initializes category with required dependencies and default state.</summary>
     private Category(Guid tenantId, string name, string? description, int sortOrder, Guid? parentCategoryId)
     {
-        TenantId = tenantId;
+        TenantId = TenantId.From(tenantId);
         Name = name;
         Description = description;
         SortOrder = sortOrder;
         IsActive = true;
-        ParentCategoryId = parentCategoryId;
+        ParentCategoryId = parentCategoryId.HasValue ? CategoryId.From(parentCategoryId.Value) : null;
     }
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
@@ -48,7 +49,7 @@ public class Category : EntityBase, ITenantEntity<Guid>
         if (description is not null) Description = description;
         if (sortOrder.HasValue) SortOrder = sortOrder.Value;
         if (isActive.HasValue) IsActive = isActive.Value;
-        if (parentCategoryId.HasValue) ParentCategoryId = parentCategoryId.Value == Guid.Empty ? null : parentCategoryId.Value;
+        if (parentCategoryId.HasValue) ParentCategoryId = parentCategoryId.Value == Guid.Empty ? null : CategoryId.From(parentCategoryId.Value);
         return Valid();
     }
 
@@ -56,7 +57,7 @@ public class Category : EntityBase, ITenantEntity<Guid>
     private DomainResult<Category> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Name)) errors.Add(DomainError.Create("Name is required."));
         return errors.Count > 0
             ? DomainResult<Category>.Failure(errors)

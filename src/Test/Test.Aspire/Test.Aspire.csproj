@@ -9,6 +9,7 @@
     <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="Azure.Data.Tables" />
+    <PackageReference Include="OpenAI" PrivateAssets="all" />
     <PackageReference Include="EF.IntegrationTesting" />
   </ItemGroup>
 

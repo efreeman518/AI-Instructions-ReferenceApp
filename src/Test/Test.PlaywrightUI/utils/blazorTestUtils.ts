@@ -16,12 +16,15 @@ import { expect, Page } from "@playwright/test";
 export async function waitForApp(page: Page) {
   await page.goto("/tasks", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: /new task/i })).toBeVisible({ timeout: 15_000 });
 }
 
 /** Provides Playwright helper logic for navigate to new task. */
 export async function navigateToNewTask(page: Page) {
   await page.getByRole("button", { name: /new task/i }).click();
-  await expect(page.getByRole("heading", { name: /new task/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page).toHaveURL(/\/tasks\/new$/i, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /new task/i })).toBeVisible({ timeout: 15_000 });
+  await expect(getLabeledField(page, "Title")).toBeVisible({ timeout: 15_000 });
 }
 
 /** Provides Playwright helper logic for navigate to task list. */
@@ -44,10 +47,10 @@ export async function searchForTask(page: Page, term: string) {
 // ---------------------------------------------------------------------------
 
 export async function fillTextField(page: Page, label: string, value: string) {
-  const field = page.locator(`.mud-input-control:has(label:has-text("${label}")) input, .mud-input-control:has(label:has-text("${label}")) textarea`);
-  await field.first().waitFor({ state: "visible" });
-  await field.first().click();
-  await field.first().fill(value);
+  const field = getLabeledField(page, label);
+  await expect(field).toBeVisible({ timeout: 30_000 });
+  await field.click();
+  await field.fill(value);
 }
 
 /** Provides Playwright helper logic for select option. */
@@ -64,6 +67,14 @@ export async function selectOption(page: Page, label: string, option: string) {
 /** Provides Playwright helper logic for click save. */
 export async function clickSave(page: Page) {
   await page.getByRole("button", { name: /save/i }).click();
+}
+
+/** Provides Playwright helper logic for saving a new task. */
+export async function clickSaveNewTask(page: Page) {
+  await page.getByRole("button", { name: /save/i }).click();
+  await expect(page).toHaveURL(/\/tasks\/[0-9a-f-]{36}$/i, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: /edit task/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/ID: [0-9a-f-]{36}/i)).toBeVisible({ timeout: 15_000 });
 }
 
 // ---------------------------------------------------------------------------
@@ -123,4 +134,12 @@ export async function expectSnackbar(page: Page, textFragment: string, timeout =
 
 export function uniqueTitle(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function getLabeledField(page: Page, label: string) {
+  return page.getByLabel(new RegExp(`^${escapeRegExp(label)}\\*?$`, "i")).first();
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

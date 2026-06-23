@@ -76,6 +76,6 @@ public class CategoryTests
         var parentId = Guid.NewGuid();
         var result = Category.Create(TestConstants.TenantId, "Child", parentCategoryId: parentId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentCategoryId);
+        Assert.AreEqual(parentId, result.Value!.ParentCategoryId?.Value);
     }
 }

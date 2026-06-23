@@ -1,13 +1,14 @@
 using EF.Domain;
 using EF.Domain.Contracts;
 using TaskFlow.Domain.Shared.Enums;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models attachment domain behavior and invariants.</summary>
-public class Attachment : EntityBase, ITenantEntity<Guid>
+public class Attachment : EntityBase<AttachmentId>, ITenantEntity<TenantId>
 {
-    public Guid TenantId { get; init; }
+    public TenantId TenantId { get; init; }
     public string FileName { get; private set; } = null!;
     public string ContentType { get; private set; } = null!;
     public long FileSizeBytes { get; private set; }
@@ -23,7 +24,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
     /// <summary>Initializes attachment with required dependencies and default state.</summary>
     private Attachment(Guid tenantId, string fileName, string contentType, long fileSizeBytes, string storageUri, AttachmentOwnerType ownerType, Guid ownerId)
     {
-        TenantId = tenantId;
+        TenantId = TenantId.From(tenantId);
         FileName = fileName;
         ContentType = contentType;
         FileSizeBytes = fileSizeBytes;
@@ -56,7 +57,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
     private DomainResult<Attachment> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(FileName)) errors.Add(DomainError.Create("File name is required."));
         if (string.IsNullOrWhiteSpace(ContentType)) errors.Add(DomainError.Create("Content type is required."));
         if (FileSizeBytes <= 0) errors.Add(DomainError.Create("File size must be greater than zero."));

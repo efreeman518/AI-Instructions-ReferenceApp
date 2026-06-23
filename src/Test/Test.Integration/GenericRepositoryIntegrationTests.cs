@@ -1,6 +1,7 @@
 using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Repositories;
 using Test.Integration.Infrastructure;
 
@@ -50,7 +51,7 @@ public class GenericRepositoryIntegrationTests
 
         // Arrange + Act (write) - generic RepositoryTrxn.Create + SaveChangesAsync
         await using var trxnCtx = SqlContainerFixture.CreateTrxnContext(connStr);
-        var trxnRepo = new TaskFlowRepositoryTrxn<Tag>(trxnCtx);
+        var trxnRepo = new TaskFlowRepositoryTrxn<Tag, TagId>(trxnCtx);
         var tag = Tag.Create(TenantId, $"GenRepo-{Guid.NewGuid():N}").Value!;
         trxnRepo.Create(ref tag);
         await trxnRepo.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, CancellationToken.None);
@@ -62,13 +63,13 @@ public class GenericRepositoryIntegrationTests
 
         // Assert - no-tracking GetAsync on a fresh query context
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
-        var queryRepo = new TaskFlowRepositoryQuery<Tag>(queryCtx);
+        var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
         var read = await queryRepo.GetAsync(tag.Id);
         Assert.IsNotNull(read, "generic Query GetAsync should return the persisted tag");
         Assert.AreEqual(tag.Name, read.Name);
 
         // Assert - GetAsync for a missing id returns null
-        Assert.IsNull(await queryRepo.GetAsync(Guid.NewGuid()));
+        Assert.IsNull(await queryRepo.GetAsync(TagId.From(Guid.NewGuid())));
     }
 
     /// <summary>Verifies the generic Query repo's ListAsync returns exactly the entities matching the predicate.</summary>
@@ -81,7 +82,7 @@ public class GenericRepositoryIntegrationTests
         var prefix = $"GenRepoList-{Guid.NewGuid():N}";
 
         await using var trxnCtx = SqlContainerFixture.CreateTrxnContext(connStr);
-        var trxnRepo = new TaskFlowRepositoryTrxn<Tag>(trxnCtx);
+        var trxnRepo = new TaskFlowRepositoryTrxn<Tag, TagId>(trxnCtx);
         var tagA = Tag.Create(TenantId, $"{prefix}-A").Value!;
         var tagB = Tag.Create(TenantId, $"{prefix}-B").Value!;
         trxnRepo.Create(ref tagA);
@@ -89,7 +90,7 @@ public class GenericRepositoryIntegrationTests
         await trxnRepo.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, CancellationToken.None);
 
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
-        var queryRepo = new TaskFlowRepositoryQuery<Tag>(queryCtx);
+        var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
 
         var matches = await queryRepo.ListAsync(t => t.Name.StartsWith(prefix));
 

@@ -2,6 +2,7 @@ using EF.Data;
 using EF.Data.Contracts;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
@@ -15,7 +16,7 @@ public class AttachmentRepositoryTrxn(TaskFlowDbContextTrxn db)
     {
         return await GetEntityAsync(
             true,
-            filter: (Attachment a) => a.Id == id,
+            filter: (Attachment a) => a.Id == AttachmentId.From(id),
             cancellationToken: ct
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }

@@ -225,7 +225,7 @@ public class TaskItemMutationSamples
         Assert.AreEqual(3.5m, task.EstimatedEffort);
         Assert.AreEqual(2.25m, task.ActualEffort);
         Assert.IsNull(task.CategoryId);
-        Assert.AreEqual(newParentId, task.ParentTaskItemId);
+        Assert.AreEqual(newParentId, task.ParentTaskItemId!.Value.Value);
     }
 
     /// <summary>Verifies that given optional links, when update uses empty guid, then links are cleared independently.</summary>
@@ -240,7 +240,7 @@ public class TaskItemMutationSamples
         var result = task.Update(categoryId: replacementCategoryId, parentTaskItemId: Guid.Empty);
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(replacementCategoryId, task.CategoryId);
+        Assert.AreEqual(replacementCategoryId, task.CategoryId!.Value.Value);
         Assert.IsNull(task.ParentTaskItemId);
     }
 

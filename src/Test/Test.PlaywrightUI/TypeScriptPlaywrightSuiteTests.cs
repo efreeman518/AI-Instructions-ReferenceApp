@@ -22,13 +22,17 @@ public sealed class TypeScriptPlaywrightSuiteTests
     [Timeout(1_200_000)]
     public async Task TypeScriptBrowserProjects_Pass()
     {
-        if (!TypeScriptPlaywrightRunner.IsInstalled)
+        var readiness = TypeScriptPlaywrightRunner.CheckReadiness();
+        TestContext.WriteLine(readiness.Message);
+        if (!readiness.CanRun)
         {
-            Assert.Inconclusive("TypeScript Playwright dependencies are missing. Run: npm install in src\\Test\\Test.PlaywrightUI.");
+            Assert.Inconclusive(readiness.Message);
         }
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(18));
         await using var host = await PlaywrightAspireHost.StartAsync(cts.Token);
+
+        await GatewayHttpSmokeRunner.RunAsync(host.GatewayBaseUrl, cts.Token);
 
         var result = await TypeScriptPlaywrightRunner.RunAsync(host.TypeScriptProjects, cts.Token);
         TestContext.WriteLine(result.StandardOutput);

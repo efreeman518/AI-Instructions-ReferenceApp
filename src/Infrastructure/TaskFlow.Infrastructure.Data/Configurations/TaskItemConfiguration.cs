@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared.Ids;
 
 namespace TaskFlow.Infrastructure.Data.Configurations;
 
 /// <summary>Provides task item behavior for the Infrastructure Configurations layer.</summary>
-public class TaskItemConfiguration() : EntityBaseConfiguration<TaskItem>(false)
+public class TaskItemConfiguration() : EntityBaseConfiguration<TaskItem, TaskItemId>(false)
 {
     /// <summary>Configures runtime behavior for this component.</summary>
     public override void Configure(EntityTypeBuilder<TaskItem> builder)
