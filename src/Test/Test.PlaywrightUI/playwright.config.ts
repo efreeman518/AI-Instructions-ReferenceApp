@@ -6,7 +6,10 @@ import { join } from "node:path";
 function getManagedHeadlessShellPath() {
   if (process.platform !== "win32") return undefined;
 
-  const browsersJson = JSON.parse(readFileSync(join(process.cwd(), "node_modules", "playwright-core", "browsers.json"), "utf8"));
+  const browsersJsonPath = join(process.cwd(), "node_modules", "playwright-core", "browsers.json");
+  if (!existsSync(browsersJsonPath)) return undefined;
+
+  const browsersJson = JSON.parse(readFileSync(browsersJsonPath, "utf8"));
   const revision = browsersJson.browsers.find((browser: { name: string }) => browser.name === "chromium-headless-shell")?.revision;
   if (!revision) return undefined;
 
