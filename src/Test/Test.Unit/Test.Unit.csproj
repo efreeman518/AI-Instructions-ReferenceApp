@@ -13,6 +13,8 @@
     <PackageReference Include="OpenAI" PrivateAssets="all" />
     <PackageReference Include="EF.FlowEngine.Testing" />
     <PackageReference Include="EF.FlowEngine.Clients.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" PrivateAssets="all" />
+    <PackageReference Include="OpenAI" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
