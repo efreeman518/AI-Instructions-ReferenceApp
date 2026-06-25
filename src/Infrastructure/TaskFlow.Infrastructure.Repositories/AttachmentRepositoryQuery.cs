@@ -49,13 +49,22 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.FileName.Contains(searchTerm));
 
             if (filter.OwnerType.HasValue)
-                q = q.Where(e => e.OwnerType == filter.OwnerType.Value);
+            {
+                var ownerType = filter.OwnerType.Value;
+                q = q.Where(e => e.OwnerType == ownerType);
+            }
 
             if (filter.OwnerId.HasValue)
-                q = q.Where(e => e.OwnerId == filter.OwnerId.Value);
+            {
+                var ownerId = filter.OwnerId.Value;
+                q = q.Where(e => e.OwnerId == ownerId);
+            }
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+            {
+                var tenantId = filter.TenantId.Value;
+                q = q.Where(e => e.TenantId == tenantId);
+            }
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(AttachmentMapper.Projection,

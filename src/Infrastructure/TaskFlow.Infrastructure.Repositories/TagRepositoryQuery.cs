@@ -47,7 +47,10 @@ public class TagRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Name.Contains(searchTerm));
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+            {
+                var tenantId = filter.TenantId.Value;
+                q = q.Where(e => e.TenantId == tenantId);
+            }
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(TagMapper.Projection,

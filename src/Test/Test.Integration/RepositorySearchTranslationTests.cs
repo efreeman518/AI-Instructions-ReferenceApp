@@ -1,0 +1,214 @@
+using EF.Common.Contracts;
+using EF.Data.Contracts;
+using Microsoft.EntityFrameworkCore;
+using TaskFlow.Application.Models;
+using TaskFlow.Domain.Shared.Enums;
+using TaskFlow.Infrastructure.Repositories;
+using Test.Integration.Infrastructure;
+using Test.Support;
+using Test.Support.Builders;
+
+namespace Test.Integration;
+
+/// <summary>
+/// Exercises repository search predicates against real SQL so translated filters over tenant IDs,
+/// nullable FKs, enums, owned values, and projected DTOs cannot regress behind in-memory endpoint tests.
+/// </summary>
+[TestClass]
+[TestCategory("Integration")]
+public class RepositorySearchTranslationTests
+{
+    private static readonly Guid TenantId = TestConstants.TenantId;
+
+    /// <summary>Ensures the shared SQL schema exists before repository search translation tests run.</summary>
+    [ClassInitialize]
+    public static async Task ClassInit(TestContext _)
+    {
+        if (SqlContainerFixture.StartupError != null)
+            return;
+
+        await using var db = SqlContainerFixture.CreateTrxnContext();
+        await db.Database.MigrateAsync();
+    }
+
+    /// <summary>Marks the test Inconclusive when the SQL container failed to start.</summary>
+    [TestInitialize]
+    public void TestSetup()
+    {
+        if (SqlContainerFixture.StartupError != null)
+            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
+    }
+
+    /// <summary>Verifies category search translates tenant, parent, bool, and string filters against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task CategorySearch_FiltersByTenantParentAndName_AgainstRealSql()
+    {
+        var marker = $"SearchCategory-{Guid.NewGuid():N}";
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            var parent = new CategoryBuilder().WithTenantId(TenantId).WithName($"{marker}-Parent").Build();
+            var child = new CategoryBuilder()
+                .WithTenantId(TenantId)
+                .WithName($"{marker}-Child")
+                .WithParentCategoryId(parent.Id)
+                .Build();
+
+            db.Categories.AddRange(parent, child);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+
+            await using var queryDb = SqlContainerFixture.CreateQueryContext();
+            var repo = new CategoryRepositoryQuery(queryDb);
+            var page = await repo.SearchCategoriesAsync(new SearchRequest<CategorySearchFilter>
+            {
+                PageIndex = 1,
+                PageSize = 10,
+                Filter = new CategorySearchFilter
+                {
+                    SearchTerm = marker,
+                    TenantId = TenantId,
+                    ParentCategoryId = parent.Id,
+                    IsActive = true
+                }
+            });
+
+            Assert.AreEqual(1, page.Data.Count);
+            Assert.AreEqual($"{marker}-Child", page.Data[0].Name);
+        }
+    }
+
+    /// <summary>Verifies tag search translates tenant and string filters against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task TagSearch_FiltersByTenantAndName_AgainstRealSql()
+    {
+        var marker = $"SearchTag-{Guid.NewGuid():N}";
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            db.Tags.Add(new TagBuilder().WithTenantId(TenantId).WithName(marker).Build());
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        }
+
+        await using var queryDb = SqlContainerFixture.CreateQueryContext();
+        var repo = new TagRepositoryQuery(queryDb);
+        var page = await repo.SearchTagsAsync(new SearchRequest<TagSearchFilter>
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            Filter = new TagSearchFilter { SearchTerm = marker, TenantId = TenantId }
+        });
+
+        Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(marker, page.Data[0].Name);
+    }
+
+    /// <summary>Verifies comment search translates tenant, task FK, and string filters against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task CommentSearch_FiltersByTenantTaskAndBody_AgainstRealSql()
+    {
+        var marker = $"SearchComment-{Guid.NewGuid():N}";
+        Guid taskId;
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            var task = new TaskItemBuilder().WithTenantId(TenantId).WithTitle($"{marker}-Task").Build();
+            db.TaskItems.Add(task);
+            db.Comments.Add(new CommentBuilder().WithTenantId(TenantId).WithTaskItemId(task.Id).WithBody(marker).Build());
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            taskId = task.Id;
+        }
+
+        await using var queryDb = SqlContainerFixture.CreateQueryContext();
+        var repo = new CommentRepositoryQuery(queryDb);
+        var page = await repo.SearchCommentsAsync(new SearchRequest<CommentSearchFilter>
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            Filter = new CommentSearchFilter { SearchTerm = marker, TenantId = TenantId, TaskItemId = taskId }
+        });
+
+        Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(marker, page.Data[0].Body);
+    }
+
+    /// <summary>Verifies checklist search translates tenant, task FK, bool, and string filters against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task ChecklistItemSearch_FiltersByTenantTaskStatusAndTitle_AgainstRealSql()
+    {
+        var marker = $"SearchChecklist-{Guid.NewGuid():N}";
+        Guid taskId;
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            var task = new TaskItemBuilder().WithTenantId(TenantId).WithTitle($"{marker}-Task").Build();
+            db.TaskItems.Add(task);
+            db.ChecklistItems.Add(new ChecklistItemBuilder()
+                .WithTenantId(TenantId)
+                .WithTaskItemId(task.Id)
+                .WithTitle(marker)
+                .Build());
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            taskId = task.Id;
+        }
+
+        await using var queryDb = SqlContainerFixture.CreateQueryContext();
+        var repo = new ChecklistItemRepositoryQuery(queryDb);
+        var page = await repo.SearchChecklistItemsAsync(new SearchRequest<ChecklistItemSearchFilter>
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            Filter = new ChecklistItemSearchFilter
+            {
+                SearchTerm = marker,
+                TenantId = TenantId,
+                TaskItemId = taskId,
+                IsCompleted = false
+            }
+        });
+
+        Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(marker, page.Data[0].Title);
+    }
+
+    /// <summary>Verifies attachment search translates tenant, enum, owner ID, and string filters against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task AttachmentSearch_FiltersByTenantOwnerAndFileName_AgainstRealSql()
+    {
+        var marker = $"SearchAttachment-{Guid.NewGuid():N}";
+        var ownerId = Guid.NewGuid();
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            db.Attachments.Add(new AttachmentBuilder()
+                .WithTenantId(TenantId)
+                .WithFileName($"{marker}.txt")
+                .WithOwnerType(AttachmentOwnerType.TaskItem)
+                .WithOwnerId(ownerId)
+                .Build());
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        }
+
+        await using var queryDb = SqlContainerFixture.CreateQueryContext();
+        var repo = new AttachmentRepositoryQuery(queryDb);
+        var page = await repo.SearchAttachmentsAsync(new SearchRequest<AttachmentSearchFilter>
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            Filter = new AttachmentSearchFilter
+            {
+                SearchTerm = marker,
+                TenantId = TenantId,
+                OwnerType = AttachmentOwnerType.TaskItem,
+                OwnerId = ownerId
+            }
+        });
+
+        Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual($"{marker}.txt", page.Data[0].FileName);
+    }
+}

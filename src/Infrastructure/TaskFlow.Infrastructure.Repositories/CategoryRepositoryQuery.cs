@@ -57,13 +57,22 @@ public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Name.Contains(searchTerm));
 
             if (filter.IsActive.HasValue)
-                q = q.Where(e => e.IsActive == filter.IsActive.Value);
+            {
+                var isActive = filter.IsActive.Value;
+                q = q.Where(e => e.IsActive == isActive);
+            }
 
             if (filter.ParentCategoryId.HasValue)
-                q = q.Where(e => e.ParentCategoryId == filter.ParentCategoryId.Value);
+            {
+                var parentCategoryId = filter.ParentCategoryId.Value;
+                q = q.Where(e => e.ParentCategoryId == parentCategoryId);
+            }
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+            {
+                var tenantId = filter.TenantId.Value;
+                q = q.Where(e => e.TenantId == tenantId);
+            }
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(CategoryMapper.Projection,

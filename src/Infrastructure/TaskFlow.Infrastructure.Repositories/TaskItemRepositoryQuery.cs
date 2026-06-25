@@ -67,25 +67,46 @@ public class TaskItemRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Title.Contains(searchTerm));
 
             if (filter.Status.HasValue)
-                q = q.Where(e => e.Status == filter.Status.Value);
+            {
+                var status = filter.Status.Value;
+                q = q.Where(e => e.Status == status);
+            }
 
             if (filter.Priority.HasValue)
-                q = q.Where(e => e.Priority == filter.Priority.Value);
+            {
+                var priority = filter.Priority.Value;
+                q = q.Where(e => e.Priority == priority);
+            }
 
             if (filter.CategoryId.HasValue)
-                q = q.Where(e => e.CategoryId == filter.CategoryId.Value);
+            {
+                var categoryId = filter.CategoryId.Value;
+                q = q.Where(e => e.CategoryId == categoryId);
+            }
 
             if (filter.ParentTaskItemId.HasValue)
-                q = q.Where(e => e.ParentTaskItemId == filter.ParentTaskItemId.Value);
+            {
+                var parentTaskItemId = filter.ParentTaskItemId.Value;
+                q = q.Where(e => e.ParentTaskItemId == parentTaskItemId);
+            }
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+            {
+                var tenantId = filter.TenantId.Value;
+                q = q.Where(e => e.TenantId == tenantId);
+            }
 
             if (filter.DueBefore.HasValue)
-                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate <= filter.DueBefore.Value);
+            {
+                var dueBefore = filter.DueBefore.Value;
+                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate <= dueBefore);
+            }
 
             if (filter.DueAfter.HasValue)
-                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate >= filter.DueAfter.Value);
+            {
+                var dueAfter = filter.DueAfter.Value;
+                q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate >= dueAfter);
+            }
 
             if (filter.IsOverdue.HasValue && filter.IsOverdue.Value)
                 q = q.Where(e => e.DateRange.DueDate != null && e.DateRange.DueDate < DateTimeOffset.UtcNow && e.CompletedDate == null);

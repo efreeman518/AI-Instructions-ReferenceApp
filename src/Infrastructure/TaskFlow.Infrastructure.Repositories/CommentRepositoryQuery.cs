@@ -47,10 +47,16 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
                 q = q.Where(e => e.Body.Contains(searchTerm));
 
             if (filter.TaskItemId.HasValue)
-                q = q.Where(e => e.TaskItemId == filter.TaskItemId.Value);
+            {
+                var taskItemId = filter.TaskItemId.Value;
+                q = q.Where(e => e.TaskItemId == taskItemId);
+            }
 
             if (filter.TenantId.HasValue)
-                q = q.Where(e => e.TenantId == filter.TenantId.Value);
+            {
+                var tenantId = filter.TenantId.Value;
+                q = q.Where(e => e.TenantId == tenantId);
+            }
         }
 
         (var data, var total) = await q.QueryPageProjectionAsync(CommentMapper.Projection,
