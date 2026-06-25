@@ -100,7 +100,7 @@ export async function selectMuiOption(page: Page, label: string, option: string)
 }
 
 /** Provides Playwright helper logic for expect no page errors. */
-export async function expectNoPageErrors(errors: Error[]) {
+export async function expectNoPageErrors(errors: Error[] = []) {
   expect(errors.map((error) => error.message)).toEqual([]);
 }
 

@@ -1,4 +1,34 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+function getManagedHeadlessShellPath() {
+  if (process.platform !== "win32") return undefined;
+
+  const browsersJsonPath = join(process.cwd(), "node_modules", "playwright-core", "browsers.json");
+  if (!existsSync(browsersJsonPath)) return undefined;
+
+  const browsersJson = JSON.parse(readFileSync(browsersJsonPath, "utf8"));
+  const revision = browsersJson.browsers.find((browser: { name: string }) => browser.name === "chromium-headless-shell")?.revision;
+  if (!revision) return undefined;
+
+  const browserRoot = process.env.PLAYWRIGHT_BROWSERS_PATH === "0"
+    ? join(process.cwd(), "node_modules", "playwright-core", ".local-browsers")
+    : process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "ms-playwright");
+
+  return join(browserRoot, `chromium_headless_shell-${revision}`, "chrome-headless-shell-win64", "chrome-headless-shell.exe");
+}
+
+const systemChromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const managedHeadlessShellPath = getManagedHeadlessShellPath();
+const managedHeadlessShellMissing = !managedHeadlessShellPath || !existsSync(managedHeadlessShellPath);
+const useSystemChrome = process.platform === "win32" &&
+  managedHeadlessShellMissing &&
+  process.env.PLAYWRIGHT_USE_SYSTEM_CHROME !== "false" &&
+  existsSync(systemChromePath);
+
+const chromeFallback = useSystemChrome ? { channel: "chrome" } : {};
 
 export default defineConfig({
   outputDir: "./node_modules/.cache/playwright-results",
@@ -17,6 +47,7 @@ export default defineConfig({
         screenshot: "only-on-failure",
         trace: "on-first-retry",
         ...devices["Desktop Chrome"],
+        ...chromeFallback,
       },
     },
     {
@@ -28,6 +59,7 @@ export default defineConfig({
         screenshot: "only-on-failure",
         trace: "on-first-retry",
         ...devices["Desktop Chrome"],
+        ...chromeFallback,
       },
     },
     {
@@ -38,6 +70,7 @@ export default defineConfig({
         screenshot: "only-on-failure",
         trace: "on-first-retry",
         ...devices["Desktop Chrome"],
+        ...chromeFallback,
       },
     },
   ],

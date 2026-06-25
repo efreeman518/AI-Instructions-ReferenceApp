@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Test.PlaywrightUI;
 
@@ -12,11 +13,37 @@ internal static class TypeScriptPlaywrightRunner
         AppContext.BaseDirectory,
         "..", "..", ".."));
 
-    internal static bool IsInstalled =>
-        File.Exists(PlaywrightCliPath);
-
     private static string PlaywrightCliPath =>
         Path.Combine(ProjectDirectory, "node_modules", "@playwright", "test", "cli.js");
+
+    internal static BrowserReadiness CheckReadiness()
+    {
+        if (!File.Exists(PlaywrightCliPath))
+        {
+            return new BrowserReadiness(false,
+                "TypeScript Playwright dependencies are missing. Run: rtk npm install in src\\Test\\Test.PlaywrightUI.");
+        }
+
+        var managedBrowser = GetManagedHeadlessShellPath();
+        if (managedBrowser is not null && File.Exists(managedBrowser))
+        {
+            return new BrowserReadiness(true, $"Using Playwright-managed Chromium: {managedBrowser}");
+        }
+
+        var systemChrome = GetSystemChromePath();
+        if (systemChrome is not null && !string.Equals(
+                Environment.GetEnvironmentVariable("PLAYWRIGHT_USE_SYSTEM_CHROME"),
+                "false",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.SetEnvironmentVariable("PLAYWRIGHT_USE_SYSTEM_CHROME", "true");
+            return new BrowserReadiness(true,
+                $"Playwright-managed Chromium is missing; using installed Chrome: {systemChrome}");
+        }
+
+        return new BrowserReadiness(false,
+            "Playwright Chromium is missing and no system Chrome fallback is available. Run: rtk npx playwright install chromium in src\\Test\\Test.PlaywrightUI.");
+    }
 
     internal static async Task<CommandResult> RunAsync(
         IReadOnlyList<string> projects,
@@ -76,6 +103,71 @@ internal static class TypeScriptPlaywrightRunner
             throw new InvalidOperationException("Node.js is not available on PATH.", ex);
         }
     }
+
+    private static string? GetManagedHeadlessShellPath()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        var browsersJsonPath = Path.Combine(ProjectDirectory, "node_modules", "playwright-core", "browsers.json");
+        if (!File.Exists(browsersJsonPath))
+        {
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(File.ReadAllText(browsersJsonPath));
+        var revision = document.RootElement.GetProperty("browsers")
+            .EnumerateArray()
+            .FirstOrDefault(browser =>
+                browser.GetProperty("name").GetString() == "chromium-headless-shell")
+            .GetProperty("revision")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(revision))
+        {
+            return null;
+        }
+
+        var browserRoot = GetBrowserRoot();
+        return Path.Combine(
+            browserRoot,
+            $"chromium_headless_shell-{revision}",
+            "chrome-headless-shell-win64",
+            "chrome-headless-shell.exe");
+    }
+
+    private static string GetBrowserRoot()
+    {
+        var configured = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
+        if (configured == "0")
+        {
+            return Path.Combine(ProjectDirectory, "node_modules", "playwright-core", ".local-browsers");
+        }
+
+        return string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ms-playwright")
+            : configured;
+    }
+
+    private static string? GetSystemChromePath()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        var paths = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe")
+        };
+
+        return paths.FirstOrDefault(File.Exists);
+    }
 }
 
 internal sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError);
+
+internal sealed record BrowserReadiness(bool CanRun, string Message);

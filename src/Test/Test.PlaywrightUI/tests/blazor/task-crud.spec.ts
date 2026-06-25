@@ -3,6 +3,7 @@ import {
   clickDeleteOnRow,
   clickEditOnRow,
   clickSave,
+  clickSaveNewTask,
   confirmDeleteDialog,
   expectTaskInTable,
   expectTaskNotInTable,
@@ -61,9 +62,8 @@ test.describe("TaskFlow Blazor - Task CRUD lifecycle", () => {
     await page.getByRole("button", { name: /^add$/i }).last().click();
     // Status=Open and Priority=Medium are defaults - no need to select them
 
-    await clickSave(page);
+    await clickSaveNewTask(page);
 
-    // Should redirect back to list or show success
     await navigateToTaskList(page);
     await searchForTask(page, taskTitle);
     await expectTaskInTable(page, taskTitle, 20_000);
