@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.Support.Builders;
@@ -32,7 +33,14 @@ public class AttachmentBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public Attachment Build()
     {
-        var result = Attachment.Create(_tenantId, _fileName, _contentType, _fileSizeBytes, _storageUri, _ownerType, _ownerId);
+        var result = Attachment.Create(
+            DomainId.From<TenantId>(_tenantId),
+            _fileName,
+            _contentType,
+            _fileSizeBytes,
+            _storageUri,
+            _ownerType,
+            _ownerId);
         return result.Value!;
     }
 }

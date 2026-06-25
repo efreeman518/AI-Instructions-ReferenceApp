@@ -735,14 +735,14 @@
 <p><strong>Polymorphic Attachment ownership:</strong> <code>Attachment</code> uses a discriminator pattern (<code>OwnerType</code> enum + <code>OwnerId</code> GUID) instead of separate foreign keys. <code>OwnerType</code> is either <code>TaskItem</code> or <code>Comment</code>, and <code>OwnerId</code> points to the owning entity's <code>Id</code>. This avoids multiple nullable FKs and allows any entity type to own attachments.</p>
 
 <h3>5.2 Base Entity</h3>
-<p>All entities inherit from <code>EntityBase</code> (NuGet: <code>EF.Domain</code>):</p>
+<p>All entities inherit from <code>EntityBase&lt;TId&gt;</code> (NuGet: <code>EF.Domain</code>) with strongly typed IDs from <code>TaskFlow.Domain.Shared</code>:</p>
 <table>
   <tr><th>Property</th><th>Type</th><th>Purpose</th></tr>
-  <tr><td><code>Id</code></td><td>Guid</td><td>Primary key</td></tr>
+  <tr><td><code>Id</code></td><td><code>TId</code></td><td>Strongly typed primary key implementing <code>IDomainId&lt;TId&gt;</code></td></tr>
   <tr><td><code>RowVersion</code></td><td>byte[]</td><td>Optimistic concurrency token</td></tr>
 </table>
-<blockquote><strong>Note:</strong> <code>EntityBase</code> does <strong>not</strong> define audit properties (<code>CreatedAt</code>, <code>CreatedBy</code>, <code>UpdatedAt</code>, <code>UpdatedBy</code>). Soft-delete (<code>IsDeleted</code>) is defined on individual domain entities that support it, not on <code>EntityBase</code>. All audit/timestamp tracking is handled by the <code>AuditInterceptor</code> - see <a href="#11-audit-strategy">Section 11: Audit Strategy</a>.</blockquote>
-<p>All tenant entities implement <code>ITenantEntity&lt;Guid&gt;</code> - enforcing <code>TenantId</code> on every row.</p>
+<blockquote><strong>Note:</strong> <code>EntityBase&lt;TId&gt;</code> does <strong>not</strong> define audit properties (<code>CreatedAt</code>, <code>CreatedBy</code>, <code>UpdatedAt</code>, <code>UpdatedBy</code>). Soft-delete (<code>IsDeleted</code>) is defined on individual domain entities that support it, not on <code>EntityBase&lt;TId&gt;</code>. All audit/timestamp tracking is handled by the <code>AuditInterceptor</code> - see <a href="#11-audit-strategy">Section 11: Audit Strategy</a>.</blockquote>
+<p>All tenant entities also implement <code>ITenantEntity&lt;TenantId&gt;</code> - enforcing strongly typed <code>TenantId</code> on every row. DTOs, HTTP contracts, events, and request-context inputs remain Guid-based and wrap/unwrap at the application boundary.</p>
 
 <h3>5.3 Value Objects</h3>
 <table>
@@ -1399,7 +1399,7 @@
 
 <h3>11.1 Overview</h3>
 <p>TaskFlow uses an <strong>EF Core SaveChanges interceptor</strong> pattern for entity-level auditing. The <code>AuditInterceptor&lt;string, Guid?&gt;</code> (from NuGet package <code>EF.Data.Interceptors</code>) intercepts the transactional DbContext and publishes audit records via the internal message bus.</p>
-<blockquote><strong>Important:</strong> <code>EntityBase</code> does <strong>not</strong> define audit properties (<code>CreatedAt</code>, <code>CreatedBy</code>, <code>UpdatedAt</code>, <code>UpdatedBy</code>). All audit/timestamp tracking flows through the interceptor -> message bus -> repository pipeline described below.</blockquote>
+<blockquote><strong>Important:</strong> <code>EntityBase&lt;TId&gt;</code> does <strong>not</strong> define audit properties (<code>CreatedAt</code>, <code>CreatedBy</code>, <code>UpdatedAt</code>, <code>UpdatedBy</code>). All audit/timestamp tracking flows through the interceptor -> message bus -> repository pipeline described below.</blockquote>
 
 <h3>11.2 Audit Flow</h3>
 <div class="diagram-container">

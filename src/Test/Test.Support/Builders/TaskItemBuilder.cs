@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace Test.Support.Builders;
@@ -29,7 +30,13 @@ public class TaskItemBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public TaskItem Build()
     {
-        var result = TaskItem.Create(_tenantId, _title, _description, _priority, _categoryId, _parentTaskItemId);
+        var result = TaskItem.Create(
+            DomainId.From<TenantId>(_tenantId),
+            _title,
+            _description,
+            _priority,
+            DomainId.FromNullable<CategoryId>(_categoryId),
+            DomainId.FromNullable<TaskItemId>(_parentTaskItemId));
         return result.Value!;
     }
 }

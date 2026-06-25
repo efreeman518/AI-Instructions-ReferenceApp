@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace Test.Support.Builders;
 
@@ -19,7 +20,7 @@ public class TagBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public Tag Build()
     {
-        var result = Tag.Create(_tenantId, _name, _color);
+        var result = Tag.Create(DomainId.From<TenantId>(_tenantId), _name, _color);
         return result.Value!;
     }
 }

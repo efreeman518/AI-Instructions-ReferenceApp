@@ -5,16 +5,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
 /// <summary>Persists and queries category data through infrastructure storage contracts.</summary>
 public class CategoryRepositoryTrxn(TaskFlowDbContextTrxn db)
-    : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ICategoryRepositoryTrxn
+    : RepositoryTrxn<Category, CategoryId, TaskFlowDbContextTrxn>(db), ICategoryRepositoryTrxn
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default)
+    public async Task<Category?> GetCategoryAsync(CategoryId id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<Category>, IIncludableQueryable<Category, object?>>>>
         {

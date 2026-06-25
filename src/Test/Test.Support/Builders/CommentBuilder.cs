@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace Test.Support.Builders;
 
@@ -19,7 +20,10 @@ public class CommentBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public Comment Build()
     {
-        var result = Comment.Create(_tenantId, _taskItemId, _body);
+        var result = Comment.Create(
+            DomainId.From<TenantId>(_tenantId),
+            DomainId.From<TaskItemId>(_taskItemId),
+            _body);
         return result.Value!;
     }
 }

@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace Test.Support.Builders;
 
@@ -22,7 +23,11 @@ public class ChecklistItemBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public ChecklistItem Build()
     {
-        var result = ChecklistItem.Create(_tenantId, _taskItemId, _title, _sortOrder);
+        var result = ChecklistItem.Create(
+            DomainId.From<TenantId>(_tenantId),
+            DomainId.From<TaskItemId>(_taskItemId),
+            _title,
+            _sortOrder);
         return result.Value!;
     }
 }

@@ -1,6 +1,7 @@
 using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Mappers;
 
@@ -10,13 +11,13 @@ public static class TaskItemTagMapper
     /// <summary>Converts the current value to DTO.</summary>
     public static TaskItemTagDto ToDto(this TaskItemTag entity) => new()
     {
-        Id = entity.Id,
-        TenantId = entity.TenantId,
-        TaskItemId = entity.TaskItemId,
-        TagId = entity.TagId
+        Id = entity.Id.Value,
+        TenantId = entity.TenantId.Value,
+        TaskItemId = entity.TaskItemId.Value,
+        TagId = entity.TagId.Value
     };
 
     /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<TaskItemTag> ToEntity(this TaskItemTagDto dto, Guid tenantId)
-        => TaskItemTag.Create(tenantId, dto.TaskItemId, dto.TagId);
+        => TaskItemTag.Create(DomainId.From<TenantId>(tenantId), DomainId.From<TaskItemId>(dto.TaskItemId), DomainId.From<TagId>(dto.TagId));
 }

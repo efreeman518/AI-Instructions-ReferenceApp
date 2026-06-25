@@ -6,6 +6,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
 
@@ -13,10 +14,10 @@ namespace TaskFlow.Infrastructure.Repositories;
 
 /// <summary>Persists and queries attachment data through infrastructure storage contracts.</summary>
 public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
-    : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IAttachmentRepositoryQuery
+    : RepositoryQuery<Attachment, AttachmentId, TaskFlowDbContextQuery>(db), IAttachmentRepositoryQuery
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<Attachment?> GetAttachmentAsync(Guid id, CancellationToken ct = default)
+    public async Task<Attachment?> GetAttachmentAsync(AttachmentId id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
             false,
@@ -62,7 +63,7 @@ public class AttachmentRepositoryQuery(TaskFlowDbContextQuery db)
 
             if (filter.TenantId.HasValue)
             {
-                var tenantId = filter.TenantId.Value;
+                var tenantId = DomainId.From<TenantId>(filter.TenantId.Value);
                 q = q.Where(e => e.TenantId == tenantId);
             }
         }

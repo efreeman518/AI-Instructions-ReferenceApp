@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using Test.Support;
 
 namespace Test.Unit.Domain;
@@ -12,14 +13,16 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class TaskItemTagTests
 {
+    private static TenantId TenantId => DomainId.From<TenantId>(TestConstants.TenantId);
+
     /// <summary>Verifies that given valid input, when task item tag created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_TaskItemTagCreated_Then_ReturnsSuccess()
     {
-        var taskItemId = Guid.NewGuid();
-        var tagId = Guid.NewGuid();
-        var result = TaskItemTag.Create(TestConstants.TenantId, taskItemId, tagId);
+        var taskItemId = DomainId.From<TaskItemId>(Guid.NewGuid());
+        var tagId = DomainId.From<TagId>(Guid.NewGuid());
+        var result = TaskItemTag.Create(TenantId, taskItemId, tagId);
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
         Assert.AreEqual(taskItemId, result.Value.TaskItemId);
@@ -31,7 +34,7 @@ public class TaskItemTagTests
     [TestCategory("Unit")]
     public void Given_EmptyTaskItemId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()
     {
-        var result = TaskItemTag.Create(TestConstants.TenantId, Guid.Empty, Guid.NewGuid());
+        var result = TaskItemTag.Create(TenantId, DomainId.From<TaskItemId>(Guid.Empty), DomainId.From<TagId>(Guid.NewGuid()));
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -40,7 +43,7 @@ public class TaskItemTagTests
     [TestCategory("Unit")]
     public void Given_EmptyTagId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()
     {
-        var result = TaskItemTag.Create(TestConstants.TenantId, Guid.NewGuid(), Guid.Empty);
+        var result = TaskItemTag.Create(TenantId, DomainId.From<TaskItemId>(Guid.NewGuid()), DomainId.From<TagId>(Guid.Empty));
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -49,7 +52,10 @@ public class TaskItemTagTests
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_TaskItemTagCreated_Then_ReturnsDomainFailure()
     {
-        var result = TaskItemTag.Create(Guid.Empty, Guid.NewGuid(), Guid.NewGuid());
+        var result = TaskItemTag.Create(
+            DomainId.From<TenantId>(Guid.Empty),
+            DomainId.From<TaskItemId>(Guid.NewGuid()),
+            DomainId.From<TagId>(Guid.NewGuid()));
         Assert.IsTrue(result.IsFailure);
     }
 }

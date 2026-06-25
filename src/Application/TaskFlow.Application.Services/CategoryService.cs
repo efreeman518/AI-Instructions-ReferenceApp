@@ -8,6 +8,7 @@ using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Services;
 
@@ -51,12 +52,12 @@ internal class CategoryService(
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<CategoryDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetCategoryAsync(id, ct);
+        var entity = await repoQuery.GetCategoryAsync(DomainId.From<CategoryId>(id), ct);
         if (entity == null) return Result<DefaultResponse<CategoryDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Get", nameof(Category), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Category:Get", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
         return Result<DefaultResponse<CategoryDto>>.Success(BuildResponse(entity.ToDto()));
@@ -106,20 +107,22 @@ internal class CategoryService(
         var validation = CategoryStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetCategoryAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetCategoryAsync(DomainId.From<CategoryId>(dto.Id!.Value), ct);
         if (entity == null)
             return Result<DefaultResponse<CategoryDto>>.Success(new DefaultResponse<CategoryDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Update", nameof(Category), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Category:Update", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(Category), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(Category), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
-        var updateResult = entity.Update(dto.Name, dto.Description, dto.SortOrder, dto.IsActive, dto.ParentCategoryId);
+        var updateResult = entity.Update(
+            dto.Name, dto.Description, dto.SortOrder, dto.IsActive,
+            DomainId.FromNullable<CategoryId>(dto.ParentCategoryId));
         if (updateResult.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(updateResult.ErrorMessage!);
 
         try
@@ -138,12 +141,12 @@ internal class CategoryService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetCategoryAsync(id, ct);
+        var entity = await repoTrxn.GetCategoryAsync(DomainId.From<CategoryId>(id), ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Category:Delete", nameof(Category), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Category:Delete", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

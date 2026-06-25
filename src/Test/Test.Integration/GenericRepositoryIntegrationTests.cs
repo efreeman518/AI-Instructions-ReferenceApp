@@ -1,15 +1,16 @@
 using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Repositories;
 using Test.Integration.Infrastructure;
 
 namespace Test.Integration;
 
 /// <summary>
-/// Validates the generic repository pair (<c>RepositoryTrxn&lt;TEntity, TDbContext&gt;</c> /
-/// <c>RepositoryQuery&lt;TEntity, TDbContext&gt;</c> from the EF.Data2 staging package, surfaced as
-/// <c>TaskFlowRepositoryTrxn&lt;T&gt;</c> / <c>TaskFlowRepositoryQuery&lt;T&gt;</c>) against real SQL:
+/// Validates the typed generic repository pair (<c>RepositoryTrxn&lt;TEntity, TId, TDbContext&gt;</c> /
+/// <c>RepositoryQuery&lt;TEntity, TId, TDbContext&gt;</c>, surfaced as
+/// <c>TaskFlowRepositoryTrxn&lt;TEntity, TId&gt;</c> / <c>TaskFlowRepositoryQuery&lt;TEntity, TId&gt;</c>) against real SQL:
 /// generic <c>Create</c> + tracked <c>GetAsync</c> on the write context, and no-tracking <c>GetAsync</c>
 /// + <c>ListAsync</c> on the query context. <c>Tag</c> is used because it is a generic-coverable entity
 /// (its write side was folded into the generic pair) with no FK prerequisites.
@@ -20,7 +21,7 @@ public class GenericRepositoryIntegrationTests
 {
     // Matches the tenant the query context filters by (see DomainEventPipelineTests), so query-side
     // reads are not excluded by the ITenantEntity query filter.
-    private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly TenantId TenantId = DomainId.From<TenantId>(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
     /// <summary>Ensures the shared SQL schema exists before this class runs (idempotent migrate).</summary>
     [ClassInitialize]
@@ -50,7 +51,7 @@ public class GenericRepositoryIntegrationTests
 
         // Arrange + Act (write) - generic RepositoryTrxn.Create + SaveChangesAsync
         await using var trxnCtx = SqlContainerFixture.CreateTrxnContext(connStr);
-        var trxnRepo = new TaskFlowRepositoryTrxn<Tag>(trxnCtx);
+        var trxnRepo = new TaskFlowRepositoryTrxn<Tag, TagId>(trxnCtx);
         var tag = Tag.Create(TenantId, $"GenRepo-{Guid.NewGuid():N}").Value!;
         trxnRepo.Create(ref tag);
         await trxnRepo.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, CancellationToken.None);
@@ -62,13 +63,13 @@ public class GenericRepositoryIntegrationTests
 
         // Assert - no-tracking GetAsync on a fresh query context
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
-        var queryRepo = new TaskFlowRepositoryQuery<Tag>(queryCtx);
+        var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
         var read = await queryRepo.GetAsync(tag.Id);
         Assert.IsNotNull(read, "generic Query GetAsync should return the persisted tag");
         Assert.AreEqual(tag.Name, read.Name);
 
         // Assert - GetAsync for a missing id returns null
-        Assert.IsNull(await queryRepo.GetAsync(Guid.NewGuid()));
+        Assert.IsNull(await queryRepo.GetAsync(DomainId.From<TagId>(Guid.NewGuid())));
     }
 
     /// <summary>Verifies the generic Query repo's ListAsync returns exactly the entities matching the predicate.</summary>
@@ -81,7 +82,7 @@ public class GenericRepositoryIntegrationTests
         var prefix = $"GenRepoList-{Guid.NewGuid():N}";
 
         await using var trxnCtx = SqlContainerFixture.CreateTrxnContext(connStr);
-        var trxnRepo = new TaskFlowRepositoryTrxn<Tag>(trxnCtx);
+        var trxnRepo = new TaskFlowRepositoryTrxn<Tag, TagId>(trxnCtx);
         var tagA = Tag.Create(TenantId, $"{prefix}-A").Value!;
         var tagB = Tag.Create(TenantId, $"{prefix}-B").Value!;
         trxnRepo.Create(ref tagA);
@@ -89,7 +90,7 @@ public class GenericRepositoryIntegrationTests
         await trxnRepo.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, CancellationToken.None);
 
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
-        var queryRepo = new TaskFlowRepositoryQuery<Tag>(queryCtx);
+        var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
 
         var matches = await queryRepo.ListAsync(t => t.Name.StartsWith(prefix));
 

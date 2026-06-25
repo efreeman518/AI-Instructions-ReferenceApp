@@ -1,6 +1,10 @@
 using EF.Domain;
 using EF.Domain.Contracts;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared;
+using DomainCategoryId = TaskFlow.Domain.Shared.CategoryId;
+using DomainTaskItemId = TaskFlow.Domain.Shared.TaskItemId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 using TaskFlow.Domain.Shared.Constants;
 using TaskFlow.Domain.Shared.Enums;
 
@@ -10,9 +14,9 @@ namespace TaskFlow.Domain.Model;
 /// Task aggregate root. Owns task lifecycle rules, value-object updates, and local child
 /// collection mutations before repositories persist the graph.
 /// </summary>
-public class TaskItem : EntityBase, ITenantEntity<Guid>
+public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenantId>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string Title { get; private set; } = null!;
     public string? Description { get; private set; }
     public Priority Priority { get; private set; }
@@ -23,8 +27,8 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     public DateTimeOffset? CompletedDate { get; private set; }
 
     // Foreign keys
-    public Guid? CategoryId { get; private set; }
-    public Guid? ParentTaskItemId { get; private set; }
+    public DomainCategoryId? CategoryId { get; private set; }
+    public DomainTaskItemId? ParentTaskItemId { get; private set; }
 
     // Value objects (owned types)
     public DateRange DateRange { get; private set; } = new();
@@ -42,7 +46,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     private TaskItem() { }
 
     /// <summary>Initializes task item with required dependencies and default state.</summary>
-    private TaskItem(Guid tenantId, string title, string? description, Priority priority, Guid? categoryId, Guid? parentTaskItemId)
+    private TaskItem(DomainTenantId tenantId, string title, string? description, Priority priority, DomainCategoryId? categoryId, DomainTaskItemId? parentTaskItemId)
     {
         TenantId = tenantId;
         Title = title;
@@ -56,9 +60,9 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<TaskItem> Create(
-        Guid tenantId, string title, string? description = null,
-        Priority priority = Priority.None, Guid? categoryId = null,
-        Guid? parentTaskItemId = null)
+        DomainTenantId tenantId, string title, string? description = null,
+        Priority priority = Priority.None, DomainCategoryId? categoryId = null,
+        DomainTaskItemId? parentTaskItemId = null)
     {
         var entity = new TaskItem(tenantId, title, description, priority, categoryId, parentTaskItemId);
         return entity.Valid();
@@ -72,7 +76,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         string? title = null, string? description = null,
         Priority? priority = null, TaskFeatures? features = null,
         decimal? estimatedEffort = null, decimal? actualEffort = null,
-        Guid? categoryId = null, Guid? parentTaskItemId = null)
+        DomainCategoryId? categoryId = null, DomainTaskItemId? parentTaskItemId = null)
     {
         if (title is not null) Title = title;
         if (description is not null) Description = description;
@@ -80,8 +84,8 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
         if (features.HasValue) Features = features.Value;
         if (estimatedEffort.HasValue) EstimatedEffort = estimatedEffort.Value;
         if (actualEffort.HasValue) ActualEffort = actualEffort.Value;
-        if (categoryId.HasValue) CategoryId = categoryId.Value == Guid.Empty ? null : categoryId.Value;
-        if (parentTaskItemId.HasValue) ParentTaskItemId = parentTaskItemId.Value == Guid.Empty ? null : parentTaskItemId.Value;
+        if (categoryId.HasValue) CategoryId = categoryId.Value.Value == Guid.Empty ? null : categoryId.Value;
+        if (parentTaskItemId.HasValue) ParentTaskItemId = parentTaskItemId.Value.Value == Guid.Empty ? null : parentTaskItemId.Value;
         return Valid();
     }
 
@@ -136,7 +140,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     /// <summary>
     /// Removes a comment by id as an idempotent desired-state operation.
     /// </summary>
-    public DomainResult RemoveComment(Guid commentId)
+    public DomainResult RemoveComment(CommentId commentId)
     {
         var toRemove = Comments.FirstOrDefault(c => c.Id == commentId);
         if (toRemove != null) Comments.Remove(toRemove);
@@ -165,7 +169,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     /// <summary>
     /// Removes a checklist item by id as an idempotent desired-state operation.
     /// </summary>
-    public DomainResult RemoveChecklistItem(Guid checklistItemId)
+    public DomainResult RemoveChecklistItem(ChecklistItemId checklistItemId)
     {
         var toRemove = ChecklistItems.FirstOrDefault(ci => ci.Id == checklistItemId);
         if (toRemove != null) ChecklistItems.Remove(toRemove);
@@ -175,7 +179,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     /// <summary>
     /// Associate an existing tag with this task item.
     /// </summary>
-    public DomainResult<TaskItemTag> AssociateTag(Guid tagId)
+    public DomainResult<TaskItemTag> AssociateTag(TagId tagId)
     {
         var existing = TaskItemTags.FirstOrDefault(t => t.TagId == tagId);
         if (existing != null) return DomainResult<TaskItemTag>.Success(existing); // Idempotent
@@ -197,7 +201,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     /// <summary>
     /// Removes a tag association by tag id as an idempotent desired-state operation.
     /// </summary>
-    public DomainResult RemoveTag(Guid tagId)
+    public DomainResult RemoveTag(TagId tagId)
     {
         var toRemove = TaskItemTags.FirstOrDefault(t => t.TagId == tagId);
         if (toRemove != null) TaskItemTags.Remove(toRemove);
@@ -244,7 +248,7 @@ public class TaskItem : EntityBase, ITenantEntity<Guid>
     private DomainResult<TaskItem> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
         if (Title is not null && Title.Length < DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN)
             errors.Add(DomainError.Create($"Title must be at least {DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN} characters."));

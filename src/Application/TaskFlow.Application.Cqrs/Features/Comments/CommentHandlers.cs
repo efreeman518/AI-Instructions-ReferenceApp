@@ -7,6 +7,7 @@ using EF.CQRS.Abstractions;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.Comments;
 
@@ -37,12 +38,12 @@ internal sealed class GetCommentByIdHandler(
     /// <summary>Handles get comment by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(GetCommentByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetCommentAsync(query.Id, ct);
+        var entity = await repoQuery.GetCommentAsync(DomainId.From<CommentId>(query.Id), ct);
         if (entity is null) return Result<DefaultResponse<CommentDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Comment:Get", nameof(Comment), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Comment:Get", nameof(Comment), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
         return HandlerHelpers.Success(entity.ToDto());

@@ -1,19 +1,21 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using DomainCategoryId = TaskFlow.Domain.Shared.CategoryId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models category domain behavior and invariants.</summary>
-public class Category : EntityBase, ITenantEntity<Guid>
+public class Category : EntityBase<DomainCategoryId>, ITenantEntity<DomainTenantId>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public int SortOrder { get; private set; }
     public bool IsActive { get; private set; }
 
     // Self-referencing hierarchy
-    public Guid? ParentCategoryId { get; private set; }
+    public DomainCategoryId? ParentCategoryId { get; private set; }
     public Category? ParentCategory { get; private set; }
     public ICollection<Category> SubCategories { get; private set; } = [];
 
@@ -24,7 +26,7 @@ public class Category : EntityBase, ITenantEntity<Guid>
     private Category() { }
 
     /// <summary>Initializes category with required dependencies and default state.</summary>
-    private Category(Guid tenantId, string name, string? description, int sortOrder, Guid? parentCategoryId)
+    private Category(DomainTenantId tenantId, string name, string? description, int sortOrder, DomainCategoryId? parentCategoryId)
     {
         TenantId = tenantId;
         Name = name;
@@ -35,20 +37,20 @@ public class Category : EntityBase, ITenantEntity<Guid>
     }
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
-    public static DomainResult<Category> Create(Guid tenantId, string name, string? description = null, int sortOrder = 0, Guid? parentCategoryId = null)
+    public static DomainResult<Category> Create(DomainTenantId tenantId, string name, string? description = null, int sortOrder = 0, DomainCategoryId? parentCategoryId = null)
     {
         var entity = new Category(tenantId, name, description, sortOrder, parentCategoryId);
         return entity.Valid();
     }
 
     /// <summary>Updates existing data after validation and preserves domain invariants.</summary>
-    public DomainResult<Category> Update(string? name = null, string? description = null, int? sortOrder = null, bool? isActive = null, Guid? parentCategoryId = null)
+    public DomainResult<Category> Update(string? name = null, string? description = null, int? sortOrder = null, bool? isActive = null, DomainCategoryId? parentCategoryId = null)
     {
         if (name is not null) Name = name;
         if (description is not null) Description = description;
         if (sortOrder.HasValue) SortOrder = sortOrder.Value;
         if (isActive.HasValue) IsActive = isActive.Value;
-        if (parentCategoryId.HasValue) ParentCategoryId = parentCategoryId.Value == Guid.Empty ? null : parentCategoryId.Value;
+        if (parentCategoryId.HasValue) ParentCategoryId = parentCategoryId.Value.Value == Guid.Empty ? null : parentCategoryId.Value;
         return Valid();
     }
 
@@ -56,7 +58,7 @@ public class Category : EntityBase, ITenantEntity<Guid>
     private DomainResult<Category> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Name)) errors.Add(DomainError.Create("Name is required."));
         return errors.Count > 0
             ? DomainResult<Category>.Failure(errors)

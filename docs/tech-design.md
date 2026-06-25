@@ -268,7 +268,7 @@ TaskFlow can run the same public API contract through either application-layer s
 - **Application.Cqrs** has zero references to Host layers or Infrastructure implementation projects; it may reference the isolated `EF.CQRS` package candidate
 - **Infrastructure** implements `Application.Contracts` interfaces (not Domain contracts)
 - CQRS guardrails: avoid central request dispatchers, request buses, and generic `Send()` entrypoints; one command/query maps to one handler registration so wiring remains explicit
-- All tenant entities implement `ITenantEntity<Guid>`
+- All tenant entities implement `ITenantEntity<TenantId>`
 - All services have corresponding interfaces in Contracts
 - Entity properties use private setters (encapsulation)
 
@@ -435,16 +435,16 @@ erDiagram
 
 ### 5.2 Base Entity
 
-All entities inherit from `EntityBase` (NuGet: `EF.Domain`) which provides:
+All entities inherit from `EntityBase<TId>` (NuGet: `EF.Domain`) with strongly typed IDs from `TaskFlow.Domain.Shared`, which provides:
 
 | Property | Type | Purpose |
 |----------|------|---------|
-| `Id` | `Guid` | Primary key |
+| `Id` | `TId` | Strongly typed primary key implementing `IDomainId<TId>` |
 | `RowVersion` | `byte[]` | Optimistic concurrency token |
 
-> **Note:** `EntityBase` does **not** define audit properties (`CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`). Soft-delete (`IsDeleted`) is defined on individual domain entities that support it, not on `EntityBase`. All audit/timestamp tracking is handled by the `AuditInterceptor` - see [Section 11: Audit Strategy](#11-audit-strategy).
+> **Note:** `EntityBase<TId>` does **not** define audit properties (`CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`). Soft-delete (`IsDeleted`) is defined on individual domain entities that support it, not on `EntityBase<TId>`. All audit/timestamp tracking is handled by the `AuditInterceptor` - see [Section 11: Audit Strategy](#11-audit-strategy).
 
-All tenant entities also implement `ITenantEntity<Guid>` - enforcing `TenantId` on every row.
+All tenant entities also implement `ITenantEntity<TenantId>` - enforcing strongly typed `TenantId` on every row. DTOs, HTTP contracts, events, and request-context inputs remain Guid-based and wrap/unwrap at the application boundary.
 
 ### 5.3 Value Objects
 
@@ -704,7 +704,7 @@ graph LR
     POL --> TB --> QF
 ```
 
-- **Query Filters**: Every `ITenantEntity<Guid>` has an automatic EF Core query filter scoped to the current tenant. Cross-tenant data is invisible at the SQL level.
+- **Query Filters**: Every `ITenantEntity<TenantId>` has an automatic EF Core query filter scoped to the current tenant. Cross-tenant data is invisible at the SQL level.
 - **Service Validation**: `TenantBoundaryValidator` checks every service call to prevent tenant leakage, even for operations that bypass query filters.
 - **Authorization Policies**: Middleware-level enforcement before requests reach services.
 
@@ -908,7 +908,7 @@ The dashboard talks to the API over HTTPS via the gateway (`/api/flowengine/*`).
 
 TaskFlow uses an **EF Core SaveChanges interceptor** pattern for entity-level auditing. The `AuditInterceptor<string, Guid?>` (from NuGet package `EF.Data.Interceptors`) intercepts the transactional DbContext and publishes audit records via the internal message bus.
 
-> **Important:** `EntityBase` does **not** define audit properties (`CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`). All audit persistence flows through the interceptor -> message bus -> repository pipeline described below.
+> **Important:** `EntityBase<TId>` does **not** define audit properties (`CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`). All audit persistence flows through the interceptor -> message bus -> repository pipeline described below.
 
 ### 11.2 Audit Flow
 
@@ -1009,7 +1009,7 @@ graph TB
 | **Test.Unit** | Pure-CPU verification of domain logic, DTO <-> entity mapping, application service and CQRS handler success/failure/conflict paths, custom CQRS validation, in-memory repository CRUD, and Uno API-service mappers. | Fastest feedback loop - millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched. | MSTest, **Moq**, EF Core InMemory provider |
 | **Test.Mutation** | Focused MSTest project for Stryker.NET runs against selected domain files (`TaskItem.cs`, `TaskItemStatusTransitionRule.cs`). Samples assert boundary values, failure messages, status transitions, optional-link updates, and idempotent child collections. | Demonstrates mutation testing without running the full solution suite. Stryker verifies that assertions kill comparison, boolean, string, and collection-behavior mutants in the configured domain scope. | MSTest, **Stryker.NET** |
 | **Test.Endpoints** | Drives every HTTP endpoint through the full ASP.NET Core pipeline in both application styles and asserts status codes (200/201/400/404/409/422), envelopes, ProblemDetails shapes, and AI endpoint contracts with fake clients. | Confirms the wire contract stays identical across service endpoints and CQRS endpoints without paying for real infrastructure or live model calls. | MSTest, `Microsoft.AspNetCore.Mvc.Testing` (**WebApplicationFactory**), EF Core InMemory |
-| **Test.Architecture** | Asserts compile-time layering and naming rules: Domain has zero outward references; `Application.Services` cannot reference Infrastructure or Hosts; `Application.Cqrs` has no Host or Infrastructure implementation dependency; CQRS avoids central request dispatchers, request buses, and generic `Send()` entrypoints; every tenant entity implements `ITenantEntity<Guid>`; services have matching `I*` interfaces; entity setters are private. | Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with `dotnet test`, and travel with the code instead of living in a wiki. | MSTest, **NetArchTest.Rules** |
+| **Test.Architecture** | Asserts compile-time layering and naming rules: Domain has zero outward references; `Application.Services` cannot reference Infrastructure or Hosts; `Application.Cqrs` has no Host or Infrastructure implementation dependency; CQRS avoids central request dispatchers, request buses, and generic `Send()` entrypoints; every tenant entity implements `ITenantEntity<TenantId>`; services have matching `I*` interfaces; entity setters are private. | Architectural drift is caught by CI rather than by a future code review. Rules are expressed in fluent C#, run with `dotnet test`, and travel with the code instead of living in a wiki. | MSTest, **NetArchTest.Rules** |
 | **Test.Integration** | Component-tier verification of one class against one real store via standalone Testcontainers (SQL Server + Azurite) started in parallel by `IntegrationTestSetup` - no Aspire graph. Covers EF migrations, repository CRUD with paging, the tenant query filter, M:N navigation, the domain-event projection pipeline (SQL -> projection service -> in-memory view), and the audit-repository round-trip to Azurite Table Storage. Also boots the real `TaskFlow.Api` host in-process against the SQL container (`FlowEngineWorkflowApiFactory`, isolated catalog) and drives the two shipped FlowEngine workflows end-to-end through the background engine + public API, asserting the real DB side effects of their `taskflow-api` self-calls (priority patched / child tasks created). | Fast store-fidelity tests that run without the full mesh; SQL and Azurite come up independently so a SQL-only test never pays an Azurite/Functions startup. | MSTest, **Testcontainers.MsSql**, **Testcontainers.Azurite**, `Microsoft.AspNetCore.Mvc.Testing`, `EF.IntegrationTesting`, `Azure.Data.Tables` |
 | **Test.Aspire** | Mesh-tier verification of cross-service workflows by booting the **Aspire AppHost** in-process: SQL Server, Redis, Service Bus emulator, Azure Table Storage, API, Gateway, Blazor, and every optional local host/tool the harness can prove runnable. Covers app-surface health, API and Function audit pipelines, plus Azure Foundry smoke when Azure config is present. The graph starts lazily on the first mesh class via `AspireTestHost.EnsureStartedAsync` and is torn down once by `AspireMeshLifecycle`; every class is `[DoNotParallelize]`. | Highest-fidelity tests that still run on a developer laptop, isolated from the fast component tier so the graph boot is paid only when a mesh test runs. The mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`; local model smoke lives in `Test.FoundryLocal`. Azure Foundry tests return inconclusive when no Azure provider is exposed. Capability probes still gate React, Uno, and Functions because those hosts require local assets or tools. | MSTest, **Aspire.Hosting.Testing** (`DistributedApplicationTestingBuilder`), `EF.IntegrationTesting`, `Azure.Data.Tables` |
 | **Test.FoundryLocal** | RID-bound live smoke project for the bootstrapper-owned `Microsoft.AI.Foundry.Local` path. Boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, agent chat, and one safe write-adjacent AI demo. | Keeps native Foundry Local assets out of RID-free WAF/Aspire tiers and prevents live local tests from passing green on no-op. Tests are inconclusive only when the SDK cannot bootstrap. | MSTest, `Microsoft.AspNetCore.Mvc.Testing`, EF Core InMemory, `Microsoft.AI.Foundry.Local` |

@@ -10,6 +10,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using Test.Support;
 using Test.Support.Builders;
@@ -106,7 +107,7 @@ public class TaskItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetTaskItemAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+        _repoQueryMock.Setup(r => r.GetTaskItemAsync(It.IsAny<TaskItemId>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
@@ -168,7 +169,7 @@ public class TaskItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetTaskItemAsync(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+        _repoTrxnMock.Setup(r => r.GetTaskItemAsync(It.IsAny<TaskItemId>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
 
         var dto = new TaskItemDto { Id = Guid.NewGuid(), Title = "Updated" };
         var result = await CreateService().UpdateAsync(new DefaultRequest<TaskItemDto> { Item = dto });
@@ -197,7 +198,7 @@ public class TaskItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetTaskItemAsync(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+        _repoTrxnMock.Setup(r => r.GetTaskItemAsync(It.IsAny<TaskItemId>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

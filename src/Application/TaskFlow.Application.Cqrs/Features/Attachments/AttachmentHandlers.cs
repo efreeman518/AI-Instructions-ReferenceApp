@@ -9,6 +9,7 @@ using EF.CQRS.Abstractions;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.Attachments;
 
@@ -39,12 +40,12 @@ internal sealed class GetAttachmentByIdHandler(
     /// <summary>Handles get attachment by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<AttachmentDto>>> HandleAsync(GetAttachmentByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetAttachmentAsync(query.Id, ct);
+        var entity = await repoQuery.GetAttachmentAsync(DomainId.From<AttachmentId>(query.Id), ct);
         if (entity is null) return Result<DefaultResponse<AttachmentDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Attachment:Get", nameof(Attachment), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Attachment:Get", nameof(Attachment), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
 
         return HandlerHelpers.Success(entity.ToDto());
@@ -121,7 +122,7 @@ internal sealed class UploadAttachmentHandler(
 
         var storageUri = (await blobStorage.GetBlobUriAsync("attachments", blobName, ct)).ToString();
         var entityResult = Attachment.Create(
-            tenantId,
+            DomainId.From<TenantId>(tenantId),
             command.FileName,
             command.ContentType,
             command.FileSizeBytes,
@@ -157,19 +158,19 @@ internal sealed class UpdateAttachmentHandler(
         var validation = AttachmentStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetAttachmentAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAttachmentAsync(DomainId.From<AttachmentId>(dto.Id!.Value), ct);
         if (entity is null)
         {
             return HandlerHelpers.NotFoundResponse<AttachmentDto>();
         }
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Attachment:Update", nameof(Attachment), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Attachment:Update", nameof(Attachment), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(Attachment), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(Attachment), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<AttachmentDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.FileName, dto.ContentType, dto.FileSizeBytes, dto.StorageUri);
@@ -195,12 +196,12 @@ internal sealed class DeleteAttachmentHandler(
     /// <summary>Handles delete attachment requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteAttachmentCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetAttachmentAsync(command.Id, ct);
+        var entity = await repoTrxn.GetAttachmentAsync(DomainId.From<AttachmentId>(command.Id), ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Attachment:Delete", nameof(Attachment), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Attachment:Delete", nameof(Attachment), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);
@@ -212,7 +213,7 @@ internal sealed class DeleteAttachmentHandler(
         {
             try
             {
-                var blobName = $"{entity.TenantId}/{entity.OwnerId}/{entity.FileName}";
+                var blobName = $"{entity.TenantId.Value}/{entity.OwnerId}/{entity.FileName}";
                 await blobStorage.DeleteAsync("attachments", blobName, ct);
             }
             catch (Exception ex)

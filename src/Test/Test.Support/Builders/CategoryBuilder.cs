@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace Test.Support.Builders;
 
@@ -25,7 +26,12 @@ public class CategoryBuilder
     /// <summary>Builds test data used by focused test cases.</summary>
     public Category Build()
     {
-        var result = Category.Create(_tenantId, _name, _description, _sortOrder, _parentCategoryId);
+        var result = Category.Create(
+            DomainId.From<TenantId>(_tenantId),
+            _name,
+            _description,
+            _sortOrder,
+            DomainId.FromNullable<CategoryId>(_parentCategoryId));
         return result.Value!;
     }
 }

@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using Test.Support;
 
 namespace Test.Unit.Domain;
@@ -11,12 +12,14 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class CategoryTests
 {
+    private static TenantId TenantId => DomainId.From<TenantId>(TestConstants.TenantId);
+
     /// <summary>Verifies that given valid input, when category created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_CategoryCreated_Then_ReturnsSuccess()
     {
-        var result = Category.Create(TestConstants.TenantId, "Test Category");
+        var result = Category.Create(TenantId, "Test Category");
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
         Assert.AreEqual("Test Category", result.Value.Name);
@@ -31,7 +34,7 @@ public class CategoryTests
     [DataRow("   ")]
     public void Given_EmptyName_When_CategoryCreated_Then_ReturnsDomainFailure(string? name)
     {
-        var result = Category.Create(TestConstants.TenantId, name!);
+        var result = Category.Create(TenantId, name!);
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -40,7 +43,7 @@ public class CategoryTests
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_CategoryCreated_Then_ReturnsDomainFailure()
     {
-        var result = Category.Create(Guid.Empty, "Test");
+        var result = Category.Create(DomainId.From<TenantId>(Guid.Empty), "Test");
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -49,7 +52,7 @@ public class CategoryTests
     [TestCategory("Unit")]
     public void Given_ExistingCategory_When_Updated_Then_ReturnsUpdatedValues()
     {
-        var cat = Category.Create(TestConstants.TenantId, "Original").Value!;
+        var cat = Category.Create(TenantId, "Original").Value!;
         var result = cat.Update(name: "Updated", description: "New desc");
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Updated", result.Value!.Name);
@@ -61,7 +64,7 @@ public class CategoryTests
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()
     {
-        var cat = Category.Create(TestConstants.TenantId, "Original", "Desc").Value!;
+        var cat = Category.Create(TenantId, "Original", "Desc").Value!;
         var result = cat.Update();
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Original", result.Value!.Name);
@@ -73,9 +76,9 @@ public class CategoryTests
     [TestCategory("Unit")]
     public void Given_CategoryWithParent_When_Created_Then_ParentIdSet()
     {
-        var parentId = Guid.NewGuid();
-        var result = Category.Create(TestConstants.TenantId, "Child", parentCategoryId: parentId);
+        var parentId = DomainId.From<CategoryId>(Guid.NewGuid());
+        var result = Category.Create(TenantId, "Child", parentCategoryId: parentId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentCategoryId);
+        Assert.AreEqual(parentId, result.Value!.ParentCategoryId!.Value);
     }
 }

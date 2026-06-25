@@ -1,13 +1,15 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using DomainAttachmentId = TaskFlow.Domain.Shared.AttachmentId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models attachment domain behavior and invariants.</summary>
-public class Attachment : EntityBase, ITenantEntity<Guid>
+public class Attachment : EntityBase<DomainAttachmentId>, ITenantEntity<DomainTenantId>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string FileName { get; private set; } = null!;
     public string ContentType { get; private set; } = null!;
     public long FileSizeBytes { get; private set; }
@@ -21,7 +23,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
     private Attachment() { }
 
     /// <summary>Initializes attachment with required dependencies and default state.</summary>
-    private Attachment(Guid tenantId, string fileName, string contentType, long fileSizeBytes, string storageUri, AttachmentOwnerType ownerType, Guid ownerId)
+    private Attachment(DomainTenantId tenantId, string fileName, string contentType, long fileSizeBytes, string storageUri, AttachmentOwnerType ownerType, Guid ownerId)
     {
         TenantId = tenantId;
         FileName = fileName;
@@ -34,7 +36,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public static DomainResult<Attachment> Create(
-        Guid tenantId, string fileName, string contentType,
+        DomainTenantId tenantId, string fileName, string contentType,
         long fileSizeBytes, string storageUri,
         AttachmentOwnerType ownerType, Guid ownerId)
     {
@@ -56,7 +58,7 @@ public class Attachment : EntityBase, ITenantEntity<Guid>
     private DomainResult<Attachment> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(FileName)) errors.Add(DomainError.Create("File name is required."));
         if (string.IsNullOrWhiteSpace(ContentType)) errors.Add(DomainError.Create("Content type is required."));
         if (FileSizeBytes <= 0) errors.Add(DomainError.Create("File size must be greater than zero."));

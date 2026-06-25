@@ -8,6 +8,7 @@ using EF.CQRS.Abstractions;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.Categories;
 
@@ -38,12 +39,12 @@ internal sealed class GetCategoryByIdHandler(
     /// <summary>Handles get category by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CategoryDto>>> HandleAsync(GetCategoryByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetCategoryAsync(query.Id, ct);
+        var entity = await repoQuery.GetCategoryAsync(DomainId.From<CategoryId>(query.Id), ct);
         if (entity is null) return Result<DefaultResponse<CategoryDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Category:Get", nameof(Category), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Category:Get", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
         return HandlerHelpers.Success(entity.ToDto());
@@ -102,22 +103,24 @@ internal sealed class UpdateCategoryHandler(
         var validation = CategoryStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetCategoryAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetCategoryAsync(DomainId.From<CategoryId>(dto.Id!.Value), ct);
         if (entity is null)
         {
             return HandlerHelpers.NotFoundResponse<CategoryDto>();
         }
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Category:Update", nameof(Category), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Category:Update", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(Category), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(Category), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
-        var updateResult = entity.Update(dto.Name, dto.Description, dto.SortOrder, dto.IsActive, dto.ParentCategoryId);
+        var updateResult = entity.Update(
+            dto.Name, dto.Description, dto.SortOrder, dto.IsActive,
+            DomainId.FromNullable<CategoryId>(dto.ParentCategoryId));
         if (updateResult.IsFailure) return Result<DefaultResponse<CategoryDto>>.Failure(updateResult.ErrorMessage!);
 
         var save = await CqrsHandlerSupport.TrySaveAsync(repoTrxn, logger, "Error updating Category {Id}", ct, dto.Id);
@@ -139,12 +142,12 @@ internal sealed class DeleteCategoryHandler(
     /// <summary>Handles delete category requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteCategoryCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetCategoryAsync(command.Id, ct);
+        var entity = await repoTrxn.GetCategoryAsync(DomainId.From<CategoryId>(command.Id), ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "Category:Delete", nameof(Category), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "Category:Delete", nameof(Category), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

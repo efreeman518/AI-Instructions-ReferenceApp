@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Mappers;
 
@@ -13,13 +14,13 @@ public static class ChecklistItemMapper
     public static readonly Expression<Func<ChecklistItem, ChecklistItemDto>> Projection =
         entity => new ChecklistItemDto
         {
-            Id = entity.Id,
-            TenantId = entity.TenantId,
+            Id = entity.Id.Value,
+            TenantId = entity.TenantId.Value,
             Title = entity.Title,
             IsCompleted = entity.IsCompleted,
             SortOrder = entity.SortOrder,
             CompletedDate = entity.CompletedDate,
-            TaskItemId = entity.TaskItemId
+            TaskItemId = entity.TaskItemId.Value
         };
 
     private static readonly Func<ChecklistItem, ChecklistItemDto> Compiled = Projection.Compile();
@@ -29,5 +30,5 @@ public static class ChecklistItemMapper
 
     /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<ChecklistItem> ToEntity(this ChecklistItemDto dto, Guid tenantId)
-        => ChecklistItem.Create(tenantId, dto.TaskItemId, dto.Title, dto.SortOrder);
+        => ChecklistItem.Create(DomainId.From<TenantId>(tenantId), DomainId.From<TaskItemId>(dto.TaskItemId), dto.Title, dto.SortOrder);
 }

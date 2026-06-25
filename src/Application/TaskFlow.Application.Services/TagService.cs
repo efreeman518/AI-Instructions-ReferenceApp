@@ -8,6 +8,7 @@ using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Services;
 
@@ -15,7 +16,7 @@ namespace TaskFlow.Application.Services;
 internal class TagService(
     ILogger<TagService> logger,
     IRequestContext<string, Guid?> requestContext,
-    IRepositoryTrxn<Tag> repoTrxn,
+    IRepositoryTrxn<Tag, TagId> repoTrxn,
     ITagRepositoryQuery repoQuery,
     ITenantBoundaryValidator tenantBoundaryValidator,
     IEntityCacheProvider cache) : ITagService
@@ -51,12 +52,12 @@ internal class TagService(
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TagDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetTagAsync(id, ct);
+        var entity = await repoQuery.GetTagAsync(DomainId.From<TagId>(id), ct);
         if (entity == null) return Result<DefaultResponse<TagDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Get", nameof(Tag), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Tag:Get", nameof(Tag), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(boundary.ErrorMessage!);
 
         return Result<DefaultResponse<TagDto>>.Success(BuildResponse(entity.ToDto()));
@@ -106,17 +107,17 @@ internal class TagService(
         var validation = TagStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetAsync(dto.Id!.Value, ct);
+        var entity = await repoTrxn.GetAsync(DomainId.From<TagId>(dto.Id!.Value), ct);
         if (entity == null)
             return Result<DefaultResponse<TagDto>>.Success(new DefaultResponse<TagDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Update", nameof(Tag), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Tag:Update", nameof(Tag), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(Tag), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(Tag), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<TagDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         var updateResult = entity.Update(dto.Name, dto.Color);
@@ -138,12 +139,12 @@ internal class TagService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetAsync(id, ct);
+        var entity = await repoTrxn.GetAsync(DomainId.From<TagId>(id), ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Tag:Delete", nameof(Tag), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Tag:Delete", nameof(Tag), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

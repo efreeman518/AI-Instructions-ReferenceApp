@@ -2,6 +2,7 @@ using EF.Data.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories;
@@ -24,6 +25,7 @@ public class MigrationAndRepositoryTests
 {
     private static readonly Guid TenantA = TestConstants.TenantId;
     private static readonly Guid TenantB = Guid.Parse("00000000-0000-0000-0000-000000000099");
+    private static TenantId TenantAId => DomainId.From<TenantId>(TenantA);
 
     /// <summary>Marks the test Inconclusive when the SQL container failed to start (assembly-init safety).</summary>
     [TestInitialize]
@@ -155,11 +157,11 @@ public class MigrationAndRepositoryTests
         await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
         // Add comment
-        var commentResult = Comment.Create(TenantA, task.Id, "Test comment body");
+        var commentResult = Comment.Create(TenantAId, task.Id, "Test comment body");
         db.Comments.Add(commentResult.Value!);
 
         // Add checklist item
-        var checklistResult = ChecklistItem.Create(TenantA, task.Id, "Checklist step 1", 0);
+        var checklistResult = ChecklistItem.Create(TenantAId, task.Id, "Checklist step 1", 0);
         db.ChecklistItems.Add(checklistResult.Value!);
 
         await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
@@ -203,11 +205,12 @@ public class MigrationAndRepositoryTests
 
         // Reload the parent (tracked, with children) in a fresh context - mirrors the handler/service path.
         await using var db = SqlContainerFixture.CreateTrxnContext();
+        var typedParentId = DomainId.From<TaskItemId>(parentId);
         var loaded = await db.TaskItems
             .IgnoreQueryFilters()
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
-            .FirstAsync(t => t.Id == parentId);
+            .FirstAsync(t => t.Id == typedParentId);
 
         // Desired-state DTO adds a NEW comment + checklist item (no Ids -> create path).
         var dto = new TaskItemDto
@@ -232,7 +235,7 @@ public class MigrationAndRepositoryTests
             .IgnoreQueryFilters()
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
-            .FirstAsync(t => t.Id == parentId);
+            .FirstAsync(t => t.Id == typedParentId);
 
         Assert.HasCount(1, reloaded.Comments);
         Assert.AreEqual("Added via updater", reloaded.Comments.First().Body);
@@ -256,7 +259,7 @@ public class MigrationAndRepositoryTests
         await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 
         // Create bridge entity
-        var taskItemTag = TaskItemTag.Create(TenantA, task.Id, tag.Id);
+        var taskItemTag = TaskItemTag.Create(TenantAId, task.Id, tag.Id);
         db.TaskItemTags.Add(taskItemTag.Value!);
         await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
 

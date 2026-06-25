@@ -3,6 +3,7 @@ using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Mappers;
 
@@ -22,8 +23,8 @@ public static class TaskItemMapper
     public static readonly Expression<Func<TaskItem, TaskItemDto>> Projection =
         entity => new TaskItemDto
         {
-            Id = entity.Id,
-            TenantId = entity.TenantId,
+            Id = entity.Id.Value,
+            TenantId = entity.TenantId.Value,
             Title = entity.Title,
             Description = entity.Description,
             Priority = entity.Priority,
@@ -32,8 +33,8 @@ public static class TaskItemMapper
             EstimatedEffort = entity.EstimatedEffort,
             ActualEffort = entity.ActualEffort,
             CompletedDate = entity.CompletedDate,
-            CategoryId = entity.CategoryId,
-            ParentTaskItemId = entity.ParentTaskItemId,
+            CategoryId = entity.CategoryId.HasValue ? entity.CategoryId.Value.Value : null,
+            ParentTaskItemId = entity.ParentTaskItemId.HasValue ? entity.ParentTaskItemId.Value.Value : null,
             CategoryName = entity.Category != null ? entity.Category.Name : null,
             StartDate = entity.DateRange.StartDate,
             DueDate = entity.DateRange.DueDate,
@@ -42,32 +43,32 @@ public static class TaskItemMapper
             RecurrenceEndDate = entity.RecurrencePattern != null ? entity.RecurrencePattern.EndDate : null,
             Comments = entity.Comments.Select(c => new CommentDto
             {
-                Id = c.Id,
-                TenantId = c.TenantId,
+                Id = c.Id.Value,
+                TenantId = c.TenantId.Value,
                 Body = c.Body,
-                TaskItemId = c.TaskItemId
+                TaskItemId = c.TaskItemId.Value
             }).ToList(),
             ChecklistItems = entity.ChecklistItems.Select(ci => new ChecklistItemDto
             {
-                Id = ci.Id,
-                TenantId = ci.TenantId,
+                Id = ci.Id.Value,
+                TenantId = ci.TenantId.Value,
                 Title = ci.Title,
                 IsCompleted = ci.IsCompleted,
                 SortOrder = ci.SortOrder,
                 CompletedDate = ci.CompletedDate,
-                TaskItemId = ci.TaskItemId
+                TaskItemId = ci.TaskItemId.Value
             }).ToList(),
             Tags = entity.TaskItemTags.Select(tt => new TagDto
             {
-                Id = tt.Tag!.Id,
-                TenantId = tt.Tag.TenantId,
+                Id = tt.Tag!.Id.Value,
+                TenantId = tt.Tag.TenantId.Value,
                 Name = tt.Tag.Name,
                 Color = tt.Tag.Color
             }).ToList(),
             SubTasks = entity.SubTasks.Select(s => new TaskItemDto
             {
-                Id = s.Id,
-                TenantId = s.TenantId,
+                Id = s.Id.Value,
+                TenantId = s.TenantId.Value,
                 Title = s.Title,
                 Status = s.Status,
                 Priority = s.Priority
@@ -82,7 +83,9 @@ public static class TaskItemMapper
     /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<TaskItem> ToEntity(this TaskItemDto dto, Guid tenantId)
     {
-        var result = TaskItem.Create(tenantId, dto.Title, dto.Description, dto.Priority, dto.CategoryId, dto.ParentTaskItemId);
+        var categoryId = DomainId.FromNullable<CategoryId>(dto.CategoryId);
+        var parentTaskItemId = DomainId.FromNullable<TaskItemId>(dto.ParentTaskItemId);
+        var result = TaskItem.Create(DomainId.From<TenantId>(tenantId), dto.Title, dto.Description, dto.Priority, categoryId, parentTaskItemId);
         if (result.IsFailure) return result;
 
         var entity = result.Value!;
@@ -107,15 +110,15 @@ public static class TaskItemMapper
     public static readonly Expression<Func<TaskItem, TaskItemDto>> ProjectorSearch =
         entity => new TaskItemDto
         {
-            Id = entity.Id,
-            TenantId = entity.TenantId,
+            Id = entity.Id.Value,
+            TenantId = entity.TenantId.Value,
             Title = entity.Title,
             Description = entity.Description,
             Priority = entity.Priority,
             Status = entity.Status,
             Features = entity.Features,
             EstimatedEffort = entity.EstimatedEffort,
-            CategoryId = entity.CategoryId,
+            CategoryId = entity.CategoryId.HasValue ? entity.CategoryId.Value.Value : null,
             CategoryName = entity.Category != null ? entity.Category.Name : null,
             StartDate = entity.DateRange.StartDate,
             DueDate = entity.DateRange.DueDate,

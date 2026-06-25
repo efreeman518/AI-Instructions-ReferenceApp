@@ -8,16 +8,17 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
 /// <summary>Persists and queries category data through infrastructure storage contracts.</summary>
 public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
-    : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICategoryRepositoryQuery
+    : RepositoryQuery<Category, CategoryId, TaskFlowDbContextQuery>(db), ICategoryRepositoryQuery
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default)
+    public async Task<Category?> GetCategoryAsync(CategoryId id, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<Category>, IIncludableQueryable<Category, object?>>>>
         {
@@ -64,13 +65,13 @@ public class CategoryRepositoryQuery(TaskFlowDbContextQuery db)
 
             if (filter.ParentCategoryId.HasValue)
             {
-                var parentCategoryId = filter.ParentCategoryId.Value;
+                var parentCategoryId = DomainId.From<CategoryId>(filter.ParentCategoryId.Value);
                 q = q.Where(e => e.ParentCategoryId == parentCategoryId);
             }
 
             if (filter.TenantId.HasValue)
             {
-                var tenantId = filter.TenantId.Value;
+                var tenantId = DomainId.From<TenantId>(filter.TenantId.Value);
                 q = q.Where(e => e.TenantId == tenantId);
             }
         }

@@ -8,6 +8,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using Test.Support;
 using Test.Support.Builders;
 
@@ -97,7 +98,7 @@ public class CategoryServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
+        _repoQueryMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
@@ -125,7 +126,7 @@ public class CategoryServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
+        _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
         var dto = new CategoryDto { Id = Guid.NewGuid(), Name = "Updated" };
         var result = await CreateService().UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto });
@@ -154,7 +155,7 @@ public class CategoryServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
+        _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

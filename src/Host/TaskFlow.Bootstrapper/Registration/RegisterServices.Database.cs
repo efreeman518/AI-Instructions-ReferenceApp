@@ -58,11 +58,11 @@ public static partial class RegisterServices
         });
 
         // Generic repository pair (open-generic) - serves every entity with no bespoke read/write
-        // logic: CRUD-only / append-only / join entities resolve IRepositoryTrxn<T> / IRepositoryQuery<T>
+        // logic: CRUD-only / append-only / join entities resolve IRepositoryTrxn<TEntity,TId> / IRepositoryQuery<TEntity,TId>
         // with no per-entity class (TaskItemTag both sides; the write side of Tag, Comment,
         // ChecklistItem). Backed by the EF.Data package via the closed-over-context subclasses.
-        services.AddScoped(typeof(IRepositoryTrxn<>), typeof(TaskFlowRepositoryTrxn<>));
-        services.AddScoped(typeof(IRepositoryQuery<>), typeof(TaskFlowRepositoryQuery<>));
+        services.AddScoped(typeof(IRepositoryTrxn<,>), typeof(TaskFlowRepositoryTrxn<,>));
+        services.AddScoped(typeof(IRepositoryQuery<,>), typeof(TaskFlowRepositoryQuery<,>));
 
         // Bespoke repositories - entity-specific read/write logic the generic pair does not cover
         // (multi-include loads, child-collection sync, polymorphic/hierarchy queries).

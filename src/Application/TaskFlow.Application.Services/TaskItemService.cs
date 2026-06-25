@@ -11,6 +11,7 @@ using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
@@ -68,12 +69,12 @@ internal class TaskItemService(
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetTaskItemAsync(id, ct);
+        var entity = await repoQuery.GetTaskItemAsync(DomainId.From<TaskItemId>(id), ct);
         if (entity == null) return Result<DefaultResponse<TaskItemDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Get", nameof(TaskItem), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "TaskItem:Get", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(entity.ToDto()));
@@ -119,12 +120,12 @@ internal class TaskItemService(
         try
         {
             await eventPublisher.PublishAsync(
-                new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
+                new TaskItemCreatedEvent(entity.Id.Value, entity.TenantId.Value, entity.Title),
                 requestContext.CorrelationId, ct);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to publish TaskItemCreatedEvent for {Id}; entity was saved successfully", entity.Id);
+            logger.LogWarning(ex, "Failed to publish TaskItemCreatedEvent for {Id}; entity was saved successfully", entity.Id.Value);
         }
 
         return Result<DefaultResponse<TaskItemDto>>.Success(BuildResponse(resultDto));
@@ -143,17 +144,17 @@ internal class TaskItemService(
         var validation = TaskItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetTaskItemAsync(dto.Id!.Value, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(dto.Id!.Value), ct: ct);
         if (entity == null)
             return Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Update", nameof(TaskItem), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "TaskItem:Update", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(TaskItem), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(TaskItem), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         // Handle status transition if changed
@@ -167,7 +168,9 @@ internal class TaskItemService(
 
         var updateResult = entity.Update(
             dto.Title, dto.Description, dto.Priority, dto.Features,
-            dto.EstimatedEffort, dto.ActualEffort, dto.CategoryId, dto.ParentTaskItemId);
+            dto.EstimatedEffort, dto.ActualEffort,
+            DomainId.FromNullable<CategoryId>(dto.CategoryId),
+            DomainId.FromNullable<TaskItemId>(dto.ParentTaskItemId));
         if (updateResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(updateResult.ErrorMessage!);
 
         // Update value objects
@@ -210,12 +213,12 @@ internal class TaskItemService(
             try
             {
                 await eventPublisher.PublishAsync(
-                    new TaskItemStatusChangedEvent(entity.Id, entity.TenantId, oldStatus.Value, entity.Status),
+                    new TaskItemStatusChangedEvent(entity.Id.Value, entity.TenantId.Value, oldStatus.Value, entity.Status),
                     requestContext.CorrelationId, ct);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to publish TaskItemStatusChangedEvent for {Id}; entity was saved successfully", entity.Id);
+                logger.LogWarning(ex, "Failed to publish TaskItemStatusChangedEvent for {Id}; entity was saved successfully", entity.Id.Value);
             }
         }
 
@@ -231,13 +234,13 @@ internal class TaskItemService(
     public async Task<Result<DefaultResponse<TaskItemDto>>> PatchAsync(
         Guid id, TaskItemPatchDto patch, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(id, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(id), ct: ct);
         if (entity == null)
             return Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto> { Item = null });
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Patch", nameof(TaskItem), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "TaskItem:Patch", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         var updateResult = entity.Update(
@@ -245,8 +248,8 @@ internal class TaskItemService(
             description: patch.Description,
             priority: patch.Priority,
             estimatedEffort: patch.EstimatedEffort,
-            categoryId: patch.CategoryId,
-            parentTaskItemId: patch.ParentTaskItemId);
+            categoryId: DomainId.FromNullable<CategoryId>(patch.CategoryId),
+            parentTaskItemId: DomainId.FromNullable<TaskItemId>(patch.ParentTaskItemId));
         if (updateResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(updateResult.ErrorMessage!);
 
         try
@@ -266,12 +269,12 @@ internal class TaskItemService(
     /// <summary>Deletes requested data and maps failures to the caller contract.</summary>
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(id, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(id), ct: ct);
         if (entity == null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "TaskItem:Delete", nameof(TaskItem), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "TaskItem:Delete", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);
@@ -310,11 +313,11 @@ internal class TaskItemService(
     /// <summary>Loads the aggregate and enforces the caller tenant boundary before a child mutation.</summary>
     private async Task<(TaskItem? Entity, string? Error)> LoadForChildMutationAsync(Guid taskItemId, string operation, CancellationToken ct)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(taskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(taskItemId), ct: ct);
         if (entity is null) return (null, null);
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId, operation, nameof(TaskItem), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value, operation, nameof(TaskItem), entity.Id.Value);
         return boundary.IsFailure ? (null, boundary.ErrorMessage!) : (entity, null);
     }
 
@@ -341,7 +344,8 @@ internal class TaskItemService(
         if (error is not null) return Result<DefaultResponse<CommentDto>>.Failure(error);
         if (entity is null) return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
 
-        var target = entity.Comments.FirstOrDefault(c => c.Id == commentId);
+        var typedCommentId = DomainId.From<CommentId>(commentId);
+        var target = entity.Comments.FirstOrDefault(c => c.Id == typedCommentId);
         if (target is null) return Result<DefaultResponse<CommentDto>>.Success(new DefaultResponse<CommentDto> { Item = null });
 
         var updateResult = target.Update(comment.Body);
@@ -360,7 +364,7 @@ internal class TaskItemService(
         if (error is not null) return Result.Failure(error);
         if (entity is null) return Result.Success();
 
-        entity.RemoveComment(commentId);
+        entity.RemoveComment(DomainId.From<CommentId>(commentId));
         return await SaveAggregateAsync("Error removing Comment {CommentId} from TaskItem {Id}", ct, commentId, taskItemId);
     }
 
@@ -388,7 +392,8 @@ internal class TaskItemService(
         if (error is not null) return Result<DefaultResponse<ChecklistItemDto>>.Failure(error);
         if (entity is null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
 
-        var target = entity.ChecklistItems.FirstOrDefault(c => c.Id == checklistItemId);
+        var typedChecklistItemId = DomainId.From<ChecklistItemId>(checklistItemId);
+        var target = entity.ChecklistItems.FirstOrDefault(c => c.Id == typedChecklistItemId);
         if (target is null) return Result<DefaultResponse<ChecklistItemDto>>.Success(new DefaultResponse<ChecklistItemDto> { Item = null });
 
         var updateResult = target.Update(checklistItem.Title, checklistItem.IsCompleted, checklistItem.SortOrder);
@@ -407,7 +412,7 @@ internal class TaskItemService(
         if (error is not null) return Result.Failure(error);
         if (entity is null) return Result.Success();
 
-        entity.RemoveChecklistItem(checklistItemId);
+        entity.RemoveChecklistItem(DomainId.From<ChecklistItemId>(checklistItemId));
         return await SaveAggregateAsync("Error removing ChecklistItem {ChecklistItemId} from TaskItem {Id}", ct, checklistItemId, taskItemId);
     }
 
@@ -418,7 +423,7 @@ internal class TaskItemService(
         if (error is not null) return Result<DefaultResponse<TaskItemTagDto>>.Failure(error);
         if (entity is null) return Result<DefaultResponse<TaskItemTagDto>>.Success(new DefaultResponse<TaskItemTagDto> { Item = null });
 
-        var associateResult = entity.AssociateTag(tagId);
+        var associateResult = entity.AssociateTag(DomainId.From<TagId>(tagId));
         if (associateResult.IsFailure) return Result<DefaultResponse<TaskItemTagDto>>.Failure(associateResult.ErrorMessage!);
 
         var save = await SaveAggregateAsync("Error associating Tag {TagId} with TaskItem {Id}", ct, tagId, taskItemId);
@@ -434,7 +439,7 @@ internal class TaskItemService(
         if (error is not null) return Result.Failure(error);
         if (entity is null) return Result.Success();
 
-        entity.RemoveTag(tagId);
+        entity.RemoveTag(DomainId.From<TagId>(tagId));
         return await SaveAggregateAsync("Error removing Tag {TagId} from TaskItem {Id}", ct, tagId, taskItemId);
     }
 

@@ -7,6 +7,7 @@ using EF.CQRS.Abstractions;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.ChecklistItems;
 
@@ -37,12 +38,12 @@ internal sealed class GetChecklistItemByIdHandler(
     /// <summary>Handles get checklist item by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(GetChecklistItemByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetChecklistItemAsync(query.Id, ct);
+        var entity = await repoQuery.GetChecklistItemAsync(DomainId.From<ChecklistItemId>(query.Id), ct);
         if (entity is null) return Result<DefaultResponse<ChecklistItemDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "ChecklistItem:Get", nameof(ChecklistItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "ChecklistItem:Get", nameof(ChecklistItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
 
         return HandlerHelpers.Success(entity.ToDto());

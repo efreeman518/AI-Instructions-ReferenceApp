@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Services;
 using TaskFlow.Application.Contracts.Storage;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Services;
@@ -38,7 +39,7 @@ public class TaskViewProjectionService : ITaskViewProjectionService
     /// </summary>
     public async Task ProjectTaskItemAsync(Guid taskItemId, CancellationToken ct = default)
     {
-        var entity = await _taskItemRepo.GetTaskItemAsync(taskItemId, ct);
+        var entity = await _taskItemRepo.GetTaskItemAsync(DomainId.From<TaskItemId>(taskItemId), ct);
         if (entity is null)
         {
             _logger.LogWarning("TaskItem {Id} not found for projection", taskItemId);
@@ -47,8 +48,8 @@ public class TaskViewProjectionService : ITaskViewProjectionService
 
         var taskView = new TaskViewDto
         {
-            Id = entity.Id.ToString(),
-            TenantId = entity.TenantId.ToString(),
+            Id = entity.Id.Value.ToString(),
+            TenantId = entity.TenantId.Value.ToString(),
             Title = entity.Title,
             Description = entity.Description,
             Status = entity.Status.ToString(),
@@ -64,7 +65,7 @@ public class TaskViewProjectionService : ITaskViewProjectionService
             CommentCount = entity.Comments.Count,
             ChecklistTotal = entity.ChecklistItems.Count,
             ChecklistCompleted = entity.ChecklistItems.Count(ci => ci.IsCompleted),
-            AttachmentCount = await _attachmentRepo.CountByOwnerAsync(AttachmentOwnerType.TaskItem, entity.Id, ct),
+            AttachmentCount = await _attachmentRepo.CountByOwnerAsync(AttachmentOwnerType.TaskItem, entity.Id.Value, ct),
             SubTaskCount = entity.SubTasks.Count,
             LastModifiedUtc = DateTimeOffset.UtcNow,
             CreatedUtc = DateTimeOffset.UtcNow

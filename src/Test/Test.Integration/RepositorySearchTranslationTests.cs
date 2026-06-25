@@ -174,6 +174,62 @@ public class RepositorySearchTranslationTests
         Assert.AreEqual(marker, page.Data[0].Title);
     }
 
+    /// <summary>Verifies task search translates typed IDs, enums, owned date range filters, and projection against SQL.</summary>
+    [TestMethod]
+    [Timeout(120000)]
+    public async Task TaskItemSearch_FiltersByTypedIdsEnumsDatesAndTitle_AgainstRealSql()
+    {
+        var marker = $"SearchTask-{Guid.NewGuid():N}";
+        var dueDate = DateTimeOffset.UtcNow.AddDays(3);
+        Guid categoryId;
+        Guid parentTaskItemId;
+
+        await using (var db = SqlContainerFixture.CreateTrxnContext())
+        {
+            var category = new CategoryBuilder().WithTenantId(TenantId).WithName($"{marker}-Category").Build();
+            var parent = new TaskItemBuilder().WithTenantId(TenantId).WithTitle($"{marker}-Parent").Build();
+            var child = new TaskItemBuilder()
+                .WithTenantId(TenantId)
+                .WithTitle($"{marker}-Child")
+                .WithPriority(Priority.High)
+                .WithCategoryId(category.Id)
+                .WithParentTaskItemId(parent.Id)
+                .Build();
+            child.UpdateDateRange(dueDate.AddDays(-1), dueDate);
+
+            db.Categories.Add(category);
+            db.TaskItems.AddRange(parent, child);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+
+            categoryId = category.Id;
+            parentTaskItemId = parent.Id;
+        }
+
+        await using var queryDb = SqlContainerFixture.CreateQueryContext();
+        var repo = new TaskItemRepositoryQuery(queryDb);
+        var page = await repo.SearchTaskItemsAsync(new SearchRequest<TaskItemSearchFilter>
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            Filter = new TaskItemSearchFilter
+            {
+                SearchTerm = marker,
+                TenantId = TenantId,
+                Status = TaskItemStatus.Open,
+                Priority = Priority.High,
+                CategoryId = categoryId,
+                ParentTaskItemId = parentTaskItemId,
+                DueAfter = dueDate.AddDays(-2),
+                DueBefore = dueDate.AddDays(1)
+            }
+        });
+
+        Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual($"{marker}-Child", page.Data[0].Title);
+        Assert.AreEqual(categoryId, page.Data[0].CategoryId);
+        Assert.AreEqual(dueDate, page.Data[0].DueDate);
+    }
+
     /// <summary>Verifies attachment search translates tenant, enum, owner ID, and string filters against SQL.</summary>
     [TestMethod]
     [Timeout(120000)]

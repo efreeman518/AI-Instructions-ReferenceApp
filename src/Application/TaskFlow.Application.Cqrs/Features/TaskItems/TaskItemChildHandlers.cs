@@ -7,6 +7,7 @@ using TaskFlow.Application.Cqrs.Shared;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItems;
 
@@ -27,12 +28,12 @@ internal sealed class AddTaskItemCommentHandler(
     /// <summary>Handles add comment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(AddTaskItemCommentCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return HandlerHelpers.NotFoundResponse<CommentDto>();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:AddComment", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:AddComment", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
         var addResult = entity.AddComment(command.Comment.Body);
@@ -56,15 +57,16 @@ internal sealed class UpdateTaskItemCommentHandler(
     /// <summary>Handles update comment requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> HandleAsync(UpdateTaskItemCommentCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return HandlerHelpers.NotFoundResponse<CommentDto>();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:UpdateComment", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:UpdateComment", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
-        var comment = entity.Comments.FirstOrDefault(c => c.Id == command.CommentId);
+        var commentId = DomainId.From<CommentId>(command.CommentId);
+        var comment = entity.Comments.FirstOrDefault(c => c.Id == commentId);
         if (comment is null) return HandlerHelpers.NotFoundResponse<CommentDto>();
 
         var updateResult = comment.Update(command.Comment.Body);
@@ -88,15 +90,15 @@ internal sealed class RemoveTaskItemCommentHandler(
     /// <summary>Handles remove comment requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(RemoveTaskItemCommentCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return Result.Success(); // Idempotent: parent gone means child gone.
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:RemoveComment", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:RemoveComment", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
-        entity.RemoveComment(command.CommentId);
+        entity.RemoveComment(DomainId.From<CommentId>(command.CommentId));
 
         return await CqrsHandlerSupport.TrySaveAsync(repoTrxn, logger, "Error removing Comment {CommentId} from TaskItem {Id}", ct, command.CommentId, command.TaskItemId);
     }
@@ -113,12 +115,12 @@ internal sealed class AddTaskItemChecklistItemHandler(
     /// <summary>Handles add checklist item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(AddTaskItemChecklistItemCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return HandlerHelpers.NotFoundResponse<ChecklistItemDto>();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:AddChecklistItem", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:AddChecklistItem", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
 
         var addResult = entity.AddChecklistItem(command.ChecklistItem.Title, command.ChecklistItem.SortOrder);
@@ -146,15 +148,16 @@ internal sealed class UpdateTaskItemChecklistItemHandler(
     /// <summary>Handles update checklist item requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<ChecklistItemDto>>> HandleAsync(UpdateTaskItemChecklistItemCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return HandlerHelpers.NotFoundResponse<ChecklistItemDto>();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:UpdateChecklistItem", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:UpdateChecklistItem", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<ChecklistItemDto>>.Failure(boundary.ErrorMessage!);
 
-        var item = entity.ChecklistItems.FirstOrDefault(c => c.Id == command.ChecklistItemId);
+        var checklistItemId = DomainId.From<ChecklistItemId>(command.ChecklistItemId);
+        var item = entity.ChecklistItems.FirstOrDefault(c => c.Id == checklistItemId);
         if (item is null) return HandlerHelpers.NotFoundResponse<ChecklistItemDto>();
 
         var updateResult = item.Update(command.ChecklistItem.Title, command.ChecklistItem.IsCompleted, command.ChecklistItem.SortOrder);
@@ -178,15 +181,15 @@ internal sealed class RemoveTaskItemChecklistItemHandler(
     /// <summary>Handles remove checklist item requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(RemoveTaskItemChecklistItemCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return Result.Success(); // Idempotent.
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:RemoveChecklistItem", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:RemoveChecklistItem", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
-        entity.RemoveChecklistItem(command.ChecklistItemId);
+        entity.RemoveChecklistItem(DomainId.From<ChecklistItemId>(command.ChecklistItemId));
 
         return await CqrsHandlerSupport.TrySaveAsync(repoTrxn, logger, "Error removing ChecklistItem {ChecklistItemId} from TaskItem {Id}", ct, command.ChecklistItemId, command.TaskItemId);
     }
@@ -203,15 +206,15 @@ internal sealed class AssociateTaskItemTagHandler(
     /// <summary>Handles associate tag requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemTagDto>>> HandleAsync(AssociateTaskItemTagCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return HandlerHelpers.NotFoundResponse<TaskItemTagDto>();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:AssociateTag", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:AssociateTag", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemTagDto>>.Failure(boundary.ErrorMessage!);
 
-        var associateResult = entity.AssociateTag(command.TagId);
+        var associateResult = entity.AssociateTag(DomainId.From<TagId>(command.TagId));
         if (associateResult.IsFailure) return Result<DefaultResponse<TaskItemTagDto>>.Failure(associateResult.ErrorMessage!);
 
         var save = await CqrsHandlerSupport.TrySaveAsync(repoTrxn, logger, "Error associating Tag {TagId} with TaskItem {Id}", ct, command.TagId, command.TaskItemId);
@@ -232,15 +235,15 @@ internal sealed class RemoveTaskItemTagHandler(
     /// <summary>Handles remove tag requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(RemoveTaskItemTagCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.TaskItemId, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.TaskItemId), ct: ct);
         if (entity is null) return Result.Success(); // Idempotent.
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:RemoveTag", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:RemoveTag", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
-        entity.RemoveTag(command.TagId);
+        entity.RemoveTag(DomainId.From<TagId>(command.TagId));
 
         return await CqrsHandlerSupport.TrySaveAsync(repoTrxn, logger, "Error removing Tag {TagId} from TaskItem {Id}", ct, command.TagId, command.TaskItemId);
     }

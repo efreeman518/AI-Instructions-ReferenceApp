@@ -6,6 +6,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Contracts.Storage;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories;
@@ -25,7 +26,8 @@ namespace Test.Integration;
 [TestClass]
 public class DomainEventPipelineTests
 {
-    private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid TenantGuid = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly TenantId TenantId = DomainId.From<TenantId>(TenantGuid);
 
     /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]
@@ -79,10 +81,10 @@ public class DomainEventPipelineTests
             NullLogger<TaskViewProjectionService>.Instance);
 
         // Act - run projection (same as what Function trigger calls)
-        await projectionService.ProjectTaskItemAsync(task.Id);
+        await projectionService.ProjectTaskItemAsync(task.Id.Value);
 
         // Assert - TaskView was produced with correct data
-        var taskView = await taskViewRepo.GetAsync(task.Id.ToString(), TenantId.ToString());
+        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString());
         Assert.IsNotNull(taskView, "TaskView should be created by projection");
         Assert.AreEqual("Integration Test Task", taskView.Title);
         Assert.AreEqual("Verify projection pipeline", taskView.Description);
@@ -113,7 +115,7 @@ public class DomainEventPipelineTests
 
         // Add an attachment
         var attachmentResult = Attachment.Create(TenantId, "file.pdf", "application/pdf",
-            1024, "https://storage.example.com/file.pdf", AttachmentOwnerType.TaskItem, task.Id);
+            1024, "https://storage.example.com/file.pdf", AttachmentOwnerType.TaskItem, task.Id.Value);
         ctx.Attachments.Add(attachmentResult.Value!);
 
         // Add a checklist item
@@ -130,9 +132,9 @@ public class DomainEventPipelineTests
             taskViewRepo,
             NullLogger<TaskViewProjectionService>.Instance);
 
-        await projectionService.ProjectTaskItemAsync(task.Id);
+        await projectionService.ProjectTaskItemAsync(task.Id.Value);
 
-        var taskView = await taskViewRepo.GetAsync(task.Id.ToString(), TenantId.ToString());
+        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString());
         Assert.IsNotNull(taskView);
         Assert.AreEqual(1, taskView.CommentCount);
         Assert.AreEqual(1, taskView.AttachmentCount);
@@ -151,7 +153,7 @@ public class DomainEventPipelineTests
         var eventBody = JsonSerializer.Serialize(new
         {
             TaskItemId = taskItemId,
-            TenantId = TenantId,
+            TenantId = TenantGuid,
             Title = "Test Task"
         });
 

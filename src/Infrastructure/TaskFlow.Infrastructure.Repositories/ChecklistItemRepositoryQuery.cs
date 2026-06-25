@@ -5,16 +5,17 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
 /// <summary>Persists and queries checklist item data through infrastructure storage contracts.</summary>
 public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
-    : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), IChecklistItemRepositoryQuery
+    : RepositoryQuery<ChecklistItem, ChecklistItemId, TaskFlowDbContextQuery>(db), IChecklistItemRepositoryQuery
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<ChecklistItem?> GetChecklistItemAsync(Guid id, CancellationToken ct = default)
+    public async Task<ChecklistItem?> GetChecklistItemAsync(ChecklistItemId id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
             false,
@@ -48,7 +49,7 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
 
             if (filter.TaskItemId.HasValue)
             {
-                var taskItemId = filter.TaskItemId.Value;
+                var taskItemId = DomainId.From<TaskItemId>(filter.TaskItemId.Value);
                 q = q.Where(e => e.TaskItemId == taskItemId);
             }
 
@@ -60,7 +61,7 @@ public class ChecklistItemRepositoryQuery(TaskFlowDbContextQuery db)
 
             if (filter.TenantId.HasValue)
             {
-                var tenantId = filter.TenantId.Value;
+                var tenantId = DomainId.From<TenantId>(filter.TenantId.Value);
                 q = q.Where(e => e.TenantId == tenantId);
             }
         }

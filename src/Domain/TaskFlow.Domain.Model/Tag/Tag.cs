@@ -1,12 +1,14 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using DomainTagId = TaskFlow.Domain.Shared.TagId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models tag domain behavior and invariants.</summary>
-public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
+public sealed class Tag : EntityBase<DomainTagId>, ITenantEntity<DomainTenantId>, IEquatable<Tag>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string Name { get; private set; } = null!;
     public string? Color { get; private set; }
 
@@ -17,7 +19,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     private Tag() { }
 
     /// <summary>Initializes tag with required dependencies and default state.</summary>
-    private Tag(Guid tenantId, string name, string? color)
+    private Tag(DomainTenantId tenantId, string name, string? color)
     {
         TenantId = tenantId;
         Name = name;
@@ -25,7 +27,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     }
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
-    public static DomainResult<Tag> Create(Guid tenantId, string name, string? color = null)
+    public static DomainResult<Tag> Create(DomainTenantId tenantId, string name, string? color = null)
     {
         var entity = new Tag(tenantId, name, color);
         return entity.Valid();
@@ -43,7 +45,7 @@ public sealed class Tag : EntityBase, ITenantEntity<Guid>, IEquatable<Tag>
     private DomainResult<Tag> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Name)) errors.Add(DomainError.Create("Name is required."));
         return errors.Count > 0
             ? DomainResult<Tag>.Failure(errors)

@@ -11,6 +11,7 @@ using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItems;
@@ -43,12 +44,12 @@ internal sealed class GetTaskItemByIdHandler(
     /// <summary>Handles get task item by ID requests and returns the application result.</summary>
     public async Task<Result<DefaultResponse<TaskItemDto>>> HandleAsync(GetTaskItemByIdQuery query, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetTaskItemAsync(query.Id, ct);
+        var entity = await repoQuery.GetTaskItemAsync(DomainId.From<TaskItemId>(query.Id), ct);
         if (entity is null) return Result<DefaultResponse<TaskItemDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:Get", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:Get", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         return HandlerHelpers.Success(entity.ToDto());
@@ -90,7 +91,7 @@ internal sealed class CreateTaskItemHandler(
 
         await CqrsHandlerSupport.TryPublishAsync(
             eventPublisher,
-            new TaskItemCreatedEvent(entity.Id, entity.TenantId, entity.Title),
+            new TaskItemCreatedEvent(entity.Id.Value, entity.TenantId.Value, entity.Title),
             requestContext.CorrelationId,
             logger,
             "TaskItem:Create",
@@ -118,19 +119,19 @@ internal sealed class UpdateTaskItemHandler(
         var validation = TaskItemStructureValidator.ValidateUpdate(dto);
         if (validation.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(validation.Errors);
 
-        var entity = await repoTrxn.GetTaskItemAsync(dto.Id!.Value, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(dto.Id!.Value), ct: ct);
         if (entity is null)
         {
             return HandlerHelpers.NotFoundResponse<TaskItemDto>();
         }
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:Update", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:Update", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(boundary.ErrorMessage!);
 
         var tenantChangeCheck = tenantBoundaryValidator.PreventTenantChange(
-            logger, entity.TenantId, dto.TenantId, nameof(TaskItem), entity.Id);
+            logger, entity.TenantId.Value, dto.TenantId, nameof(TaskItem), entity.Id.Value);
         if (tenantChangeCheck.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(tenantChangeCheck.ErrorMessage!);
 
         TaskItemStatus? oldStatus = null;
@@ -143,7 +144,9 @@ internal sealed class UpdateTaskItemHandler(
 
         var updateResult = entity.Update(
             dto.Title, dto.Description, dto.Priority, dto.Features,
-            dto.EstimatedEffort, dto.ActualEffort, dto.CategoryId, dto.ParentTaskItemId);
+            dto.EstimatedEffort, dto.ActualEffort,
+            DomainId.FromNullable<CategoryId>(dto.CategoryId),
+            DomainId.FromNullable<TaskItemId>(dto.ParentTaskItemId));
         if (updateResult.IsFailure) return Result<DefaultResponse<TaskItemDto>>.Failure(updateResult.ErrorMessage!);
 
         entity.UpdateDateRange(dto.StartDate, dto.DueDate);
@@ -172,7 +175,7 @@ internal sealed class UpdateTaskItemHandler(
         {
             await CqrsHandlerSupport.TryPublishAsync(
                 eventPublisher,
-                new TaskItemStatusChangedEvent(entity.Id, entity.TenantId, oldStatus.Value, entity.Status),
+                new TaskItemStatusChangedEvent(entity.Id.Value, entity.TenantId.Value, oldStatus.Value, entity.Status),
                 requestContext.CorrelationId,
                 logger,
                 "TaskItem:Update",
@@ -195,12 +198,12 @@ internal sealed class DeleteTaskItemHandler(
     /// <summary>Handles delete task item requests and returns the application result.</summary>
     public async Task<Result> HandleAsync(DeleteTaskItemCommand command, CancellationToken ct = default)
     {
-        var entity = await repoTrxn.GetTaskItemAsync(command.Id, ct: ct);
+        var entity = await repoTrxn.GetTaskItemAsync(DomainId.From<TaskItemId>(command.Id), ct: ct);
         if (entity is null) return Result.Success();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId,
-            "TaskItem:Delete", nameof(TaskItem), entity.Id);
+            logger, requestContext.TenantId, requestContext.Roles, entity.TenantId.Value,
+            "TaskItem:Delete", nameof(TaskItem), entity.Id.Value);
         if (boundary.IsFailure) return Result.Failure(boundary.ErrorMessage!);
 
         repoTrxn.Delete(entity);

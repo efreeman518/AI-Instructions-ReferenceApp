@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Mappers;
 
@@ -11,8 +12,8 @@ public static class TagMapper
     public static readonly Expression<Func<Tag, TagDto>> Projection =
         entity => new TagDto
         {
-            Id = entity.Id,
-            TenantId = entity.TenantId,
+            Id = entity.Id.Value,
+            TenantId = entity.TenantId.Value,
             Name = entity.Name,
             Color = entity.Color
         };
@@ -24,5 +25,5 @@ public static class TagMapper
 
     /// <summary>Converts the current value to entity.</summary>
     public static DomainResult<Tag> ToEntity(this TagDto dto, Guid tenantId)
-        => Tag.Create(tenantId, dto.Name, dto.Color);
+        => Tag.Create(DomainId.From<TenantId>(tenantId), dto.Name, dto.Color);
 }

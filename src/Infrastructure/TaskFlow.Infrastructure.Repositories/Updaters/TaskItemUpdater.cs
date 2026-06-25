@@ -4,6 +4,7 @@ using EF.Domain;
 using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories.Updaters;
@@ -28,7 +29,8 @@ internal static class TaskItemUpdater
             features: dto.Features,
             estimatedEffort: dto.EstimatedEffort,
             actualEffort: dto.ActualEffort,
-            categoryId: dto.CategoryId)
+            categoryId: DomainId.FromNullable<CategoryId>(dto.CategoryId),
+            parentTaskItemId: DomainId.FromNullable<TaskItemId>(dto.ParentTaskItemId))
         .Bind(updatedEntity => DomainResult.Combine(
             // Children are mutated through the aggregate root's own methods (AddComment /
             // RemoveComment etc.), never by touching the navigation collections directly.
@@ -40,7 +42,7 @@ internal static class TaskItemUpdater
             CollectionUtility.SyncCollectionWithResult<Comment, CommentDto, Guid>(
                 updatedEntity.Comments,
                 dto.Comments ?? [],
-                e => e.Id,
+                e => e.Id.Value,
                 i => i.Id,
                 incomingDto => updatedEntity.AddComment(incomingDto.Body),
                 (existing, incomingDto) => existing.Update(incomingDto.Body),
@@ -55,7 +57,7 @@ internal static class TaskItemUpdater
             CollectionUtility.SyncCollectionWithResult<ChecklistItem, ChecklistItemDto, Guid>(
                 updatedEntity.ChecklistItems,
                 dto.ChecklistItems ?? [],
-                e => e.Id,
+                e => e.Id.Value,
                 i => i.Id,
                 incomingDto =>
                 {
@@ -81,9 +83,9 @@ internal static class TaskItemUpdater
             CollectionUtility.SyncCollectionWithResult<TaskItemTag, TagDto, Guid>(
                 updatedEntity.TaskItemTags,
                 dto.Tags ?? [],
-                e => e.TagId,
+                e => e.TagId.Value,
                 i => i.Id,
-                incomingDto => updatedEntity.AssociateTag(incomingDto.Id!.Value),
+                incomingDto => updatedEntity.AssociateTag(DomainId.From<TagId>(incomingDto.Id!.Value)),
                 removeFunc: toRemove =>
                 {
                     if (relatedDeleteBehavior == RelatedDeleteBehavior.None) return DomainResult.Success();

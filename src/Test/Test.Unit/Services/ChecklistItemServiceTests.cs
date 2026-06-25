@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using Test.Support;
 using Test.Support.Builders;
 
@@ -68,7 +69,7 @@ public class ChecklistItemServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetChecklistItemAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
+        _repoQueryMock.Setup(r => r.GetChecklistItemAsync(It.IsAny<ChecklistItemId>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 

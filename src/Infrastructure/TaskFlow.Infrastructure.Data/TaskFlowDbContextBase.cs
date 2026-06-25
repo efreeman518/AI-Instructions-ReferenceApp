@@ -2,6 +2,7 @@ using EF.Data;
 using EF.Domain.Contracts;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Infrastructure.Data;
 
@@ -11,6 +12,16 @@ namespace TaskFlow.Infrastructure.Data;
 /// </summary>
 public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContextBase<string, Guid?>(options)
 {
+    /// <summary>
+    /// Registers typed ID conversions before EF discovers the model so all mapped IDs,
+    /// tenant IDs, and nullable FK IDs share the package converter.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.RegisterDomainIdConversions(typeof(TenantId).Assembly);
+    }
+
     /// <summary>
     /// Builds the TaskFlow model once for derived contexts. Derived contexts only choose tracking
     /// and connection behavior; entity mapping stays identical.
@@ -63,7 +74,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
     private void ConfigureTenantQueryFilters(ModelBuilder modelBuilder)
     {
         var tenantEntityClrTypes = modelBuilder.Model.GetEntityTypes()
-            .Where(et => typeof(ITenantEntity<Guid>).IsAssignableFrom(et.ClrType))
+            .Where(et => typeof(ITenantEntity<TenantId>).IsAssignableFrom(et.ClrType))
             .Select(et => et.ClrType);
 
         foreach (var clrType in tenantEntityClrTypes)

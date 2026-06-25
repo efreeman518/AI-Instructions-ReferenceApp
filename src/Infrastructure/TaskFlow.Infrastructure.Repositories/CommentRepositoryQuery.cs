@@ -5,16 +5,17 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 
 namespace TaskFlow.Infrastructure.Repositories;
 
 /// <summary>Persists and queries comment data through infrastructure storage contracts.</summary>
 public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
-    : RepositoryBase<TaskFlowDbContextQuery, string, Guid?>(db), ICommentRepositoryQuery
+    : RepositoryQuery<Comment, CommentId, TaskFlowDbContextQuery>(db), ICommentRepositoryQuery
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<Comment?> GetCommentAsync(Guid id, CancellationToken ct = default)
+    public async Task<Comment?> GetCommentAsync(CommentId id, CancellationToken ct = default)
     {
         return await GetEntityAsync(
             false,
@@ -35,7 +36,7 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
         }
         else
         {
-            q = q.OrderBy(e => e.Id);
+            q = q.OrderBy(e => e.Body);
         }
 
         // filtering
@@ -48,13 +49,13 @@ public class CommentRepositoryQuery(TaskFlowDbContextQuery db)
 
             if (filter.TaskItemId.HasValue)
             {
-                var taskItemId = filter.TaskItemId.Value;
+                var taskItemId = DomainId.From<TaskItemId>(filter.TaskItemId.Value);
                 q = q.Where(e => e.TaskItemId == taskItemId);
             }
 
             if (filter.TenantId.HasValue)
             {
-                var tenantId = filter.TenantId.Value;
+                var tenantId = DomainId.From<TenantId>(filter.TenantId.Value);
                 q = q.Where(e => e.TenantId == tenantId);
             }
         }

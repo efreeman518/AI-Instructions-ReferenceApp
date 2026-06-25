@@ -7,6 +7,7 @@ using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services.Rules;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 
 namespace TaskFlow.Application.Services;
 
@@ -48,12 +49,12 @@ internal class CommentService(
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
     public async Task<Result<DefaultResponse<CommentDto>>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await repoQuery.GetCommentAsync(id, ct);
+        var entity = await repoQuery.GetCommentAsync(DomainId.From<CommentId>(id), ct);
         if (entity == null) return Result<DefaultResponse<CommentDto>>.None();
 
         var boundary = tenantBoundaryValidator.EnsureTenantBoundary(
-            logger, RequestTenantId, RequestRoles, entity.TenantId,
-            "Comment:Get", nameof(Comment), entity.Id);
+            logger, RequestTenantId, RequestRoles, entity.TenantId.Value,
+            "Comment:Get", nameof(Comment), entity.Id.Value);
         if (boundary.IsFailure) return Result<DefaultResponse<CommentDto>>.Failure(boundary.ErrorMessage!);
 
         return Result<DefaultResponse<CommentDto>>.Success(BuildResponse(entity.ToDto()));

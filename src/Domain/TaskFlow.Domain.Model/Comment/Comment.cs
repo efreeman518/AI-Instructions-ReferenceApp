@@ -1,16 +1,19 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using DomainCommentId = TaskFlow.Domain.Shared.CommentId;
+using DomainTaskItemId = TaskFlow.Domain.Shared.TaskItemId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models comment domain behavior and invariants.</summary>
-public class Comment : EntityBase, ITenantEntity<Guid>
+public class Comment : EntityBase<DomainCommentId>, ITenantEntity<DomainTenantId>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string Body { get; private set; } = null!;
 
     // Foreign key
-    public Guid TaskItemId { get; private set; }
+    public DomainTaskItemId TaskItemId { get; private set; }
 
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
@@ -19,7 +22,7 @@ public class Comment : EntityBase, ITenantEntity<Guid>
     private Comment() { }
 
     /// <summary>Initializes comment with required dependencies and default state.</summary>
-    private Comment(Guid tenantId, Guid taskItemId, string body)
+    private Comment(DomainTenantId tenantId, DomainTaskItemId taskItemId, string body)
     {
         TenantId = tenantId;
         TaskItemId = taskItemId;
@@ -27,7 +30,7 @@ public class Comment : EntityBase, ITenantEntity<Guid>
     }
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
-    public static DomainResult<Comment> Create(Guid tenantId, Guid taskItemId, string body)
+    public static DomainResult<Comment> Create(DomainTenantId tenantId, DomainTaskItemId taskItemId, string body)
     {
         var entity = new Comment(tenantId, taskItemId, body);
         return entity.Valid();
@@ -44,8 +47,8 @@ public class Comment : EntityBase, ITenantEntity<Guid>
     private DomainResult<Comment> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
-        if (TaskItemId == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TaskItemId.Value == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Body)) errors.Add(DomainError.Create("Body is required."));
         return errors.Count > 0
             ? DomainResult<Comment>.Failure(errors)

@@ -1,6 +1,7 @@
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Model.Rules;
 using TaskFlow.Domain.Model.ValueObjects;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Constants;
 using TaskFlow.Domain.Shared.Enums;
 
@@ -24,7 +25,7 @@ namespace Test.Mutation.Domain;
 [TestCategory("Mutation")]
 public class TaskItemMutationSamples
 {
-    private static readonly Guid TenantId = Guid.Parse("8d955af4-9444-45d6-90b6-8f4572611d82");
+    private static readonly TenantId TenantId = DomainId.From<TenantId>(Guid.Parse("8d955af4-9444-45d6-90b6-8f4572611d82"));
 
     /// <summary>Verifies that given title at minimum length, when task item created, then succeeds.</summary>
     [TestMethod]
@@ -66,7 +67,7 @@ public class TaskItemMutationSamples
     [TestMethod]
     public void Given_EmptyTenantId_When_TaskItemCreated_Then_FailsWithTenantMessage()
     {
-        var result = TaskItem.Create(Guid.Empty, "Mutation sample");
+        var result = TaskItem.Create(DomainId.From<TenantId>(Guid.Empty), "Mutation sample");
 
         Assert.IsTrue(result.IsFailure);
         StringAssert.Contains(string.Join(";", result.Errors), "Tenant ID cannot be empty.");
@@ -181,7 +182,7 @@ public class TaskItemMutationSamples
     public void Given_ExistingTag_When_AssociatedAgain_Then_TagAssociationIsIdempotent()
     {
         var task = TaskItem.Create(TenantId, "Mutation sample").Value!;
-        var tagId = Guid.Parse("3f3f9966-753b-43f5-bba7-54e87fbaf101");
+        var tagId = DomainId.From<TagId>(Guid.Parse("3f3f9966-753b-43f5-bba7-54e87fbaf101"));
 
         var first = task.AssociateTag(tagId);
         var second = task.AssociateTag(tagId);
@@ -196,9 +197,9 @@ public class TaskItemMutationSamples
     [TestMethod]
     public void Given_AllUpdateValues_When_TaskUpdated_Then_FieldsAndOptionalLinksChange()
     {
-        var originalCategoryId = Guid.Parse("f92d0bd5-935b-432f-bd21-89b924b9eb87");
-        var originalParentId = Guid.Parse("2a44e0d1-fd9e-4989-95a2-95e9cf8e8217");
-        var newParentId = Guid.Parse("ee7e6b25-4cb9-4238-8cbb-743f2ce4ee0f");
+        var originalCategoryId = DomainId.From<CategoryId>(Guid.Parse("f92d0bd5-935b-432f-bd21-89b924b9eb87"));
+        var originalParentId = DomainId.From<TaskItemId>(Guid.Parse("2a44e0d1-fd9e-4989-95a2-95e9cf8e8217"));
+        var newParentId = DomainId.From<TaskItemId>(Guid.Parse("ee7e6b25-4cb9-4238-8cbb-743f2ce4ee0f"));
         var task = TaskItem.Create(
             TenantId,
             "Original title",
@@ -214,7 +215,7 @@ public class TaskItemMutationSamples
             features: TaskFeatures.Recurring | TaskFeatures.Reminder,
             estimatedEffort: 3.5m,
             actualEffort: 2.25m,
-            categoryId: Guid.Empty,
+            categoryId: DomainId.From<CategoryId>(Guid.Empty),
             parentTaskItemId: newParentId);
 
         Assert.IsTrue(result.IsSuccess);
@@ -225,22 +226,22 @@ public class TaskItemMutationSamples
         Assert.AreEqual(3.5m, task.EstimatedEffort);
         Assert.AreEqual(2.25m, task.ActualEffort);
         Assert.IsNull(task.CategoryId);
-        Assert.AreEqual(newParentId, task.ParentTaskItemId);
+        Assert.AreEqual(newParentId, task.ParentTaskItemId!.Value);
     }
 
     /// <summary>Verifies that given optional links, when update uses empty guid, then links are cleared independently.</summary>
     [TestMethod]
     public void Given_OptionalLinks_When_UpdateUsesEmptyGuid_Then_LinksAreClearedIndependently()
     {
-        var categoryId = Guid.Parse("721e91c8-8b5c-4247-8c36-fd661da0deaa");
-        var parentId = Guid.Parse("82b87a46-6e80-4df8-a242-4ebdcf86d584");
+        var categoryId = DomainId.From<CategoryId>(Guid.Parse("721e91c8-8b5c-4247-8c36-fd661da0deaa"));
+        var parentId = DomainId.From<TaskItemId>(Guid.Parse("82b87a46-6e80-4df8-a242-4ebdcf86d584"));
         var task = TaskItem.Create(TenantId, "Mutation sample", categoryId: categoryId, parentTaskItemId: parentId).Value!;
-        var replacementCategoryId = Guid.Parse("7b18b783-2554-4d68-9220-588667e3e8c2");
+        var replacementCategoryId = DomainId.From<CategoryId>(Guid.Parse("7b18b783-2554-4d68-9220-588667e3e8c2"));
 
-        var result = task.Update(categoryId: replacementCategoryId, parentTaskItemId: Guid.Empty);
+        var result = task.Update(categoryId: replacementCategoryId, parentTaskItemId: DomainId.From<TaskItemId>(Guid.Empty));
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(replacementCategoryId, task.CategoryId);
+        Assert.AreEqual(replacementCategoryId, task.CategoryId!.Value);
         Assert.IsNull(task.ParentTaskItemId);
     }
 
@@ -276,7 +277,7 @@ public class TaskItemMutationSamples
 
         Assert.IsTrue(task.RemoveComment(second.Id).IsSuccess);
         Assert.AreEqual(0, task.Comments.Count);
-        Assert.IsTrue(task.RemoveComment(Guid.Parse("34ddf67b-b0ac-4337-92f8-206372c58b33")).IsSuccess);
+        Assert.IsTrue(task.RemoveComment(DomainId.From<CommentId>(Guid.Parse("34ddf67b-b0ac-4337-92f8-206372c58b33"))).IsSuccess);
     }
 
     /// <summary>Verifies that given valid and invalid checklist items, when mutated, then collection state is explicit.</summary>
@@ -300,7 +301,7 @@ public class TaskItemMutationSamples
 
         Assert.IsTrue(task.RemoveChecklistItem(second.Id).IsSuccess);
         Assert.AreEqual(0, task.ChecklistItems.Count);
-        Assert.IsTrue(task.RemoveChecklistItem(Guid.Parse("d6f2f7ca-f98a-48c4-ab13-d735fe67004a")).IsSuccess);
+        Assert.IsTrue(task.RemoveChecklistItem(DomainId.From<ChecklistItemId>(Guid.Parse("d6f2f7ca-f98a-48c4-ab13-d735fe67004a"))).IsSuccess);
     }
 
     /// <summary>Verifies that given tag associations, when removed by object and ID, then collection state is explicit.</summary>
@@ -308,8 +309,8 @@ public class TaskItemMutationSamples
     public void Given_TagAssociations_When_RemovedByObjectAndId_Then_CollectionStateIsExplicit()
     {
         var task = TaskItem.Create(TenantId, "Mutation sample").Value!;
-        var firstTagId = Guid.Parse("08e7611a-6b35-4b8b-a451-29a1340d1215");
-        var secondTagId = Guid.Parse("80875aa9-e0af-4712-842f-136445c5e759");
+        var firstTagId = DomainId.From<TagId>(Guid.Parse("08e7611a-6b35-4b8b-a451-29a1340d1215"));
+        var secondTagId = DomainId.From<TagId>(Guid.Parse("80875aa9-e0af-4712-842f-136445c5e759"));
 
         var first = task.AssociateTag(firstTagId).Value!;
         Assert.AreEqual(1, task.TaskItemTags.Count);
@@ -320,7 +321,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(task.AssociateTag(secondTagId).IsSuccess);
         Assert.IsTrue(task.RemoveTag(secondTagId).IsSuccess);
         Assert.AreEqual(0, task.TaskItemTags.Count);
-        Assert.IsTrue(task.RemoveTag(Guid.Parse("db295052-ae8a-417c-befe-b5cb92334589")).IsSuccess);
+        Assert.IsTrue(task.RemoveTag(DomainId.From<TagId>(Guid.Parse("db295052-ae8a-417c-befe-b5cb92334589"))).IsSuccess);
     }
 
     /// <summary>Verifies that given date range and recurrence pattern, when updated, then value objects are replaced.</summary>

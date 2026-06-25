@@ -8,6 +8,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using Test.Support;
 using Test.Support.Builders;
@@ -105,7 +106,7 @@ public class AttachmentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetAttachmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
+        _repoQueryMock.Setup(r => r.GetAttachmentAsync(It.IsAny<AttachmentId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
@@ -142,7 +143,7 @@ public class AttachmentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_UpdateAsync_Then_ReturnsNullItem()
     {
-        _repoTrxnMock.Setup(r => r.GetAttachmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
+        _repoTrxnMock.Setup(r => r.GetAttachmentAsync(It.IsAny<AttachmentId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
 
         var dto = new AttachmentDto
         {
@@ -179,7 +180,7 @@ public class AttachmentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_DeleteAsync_Then_ReturnsSuccessIdempotent()
     {
-        _repoTrxnMock.Setup(r => r.GetAttachmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
+        _repoTrxnMock.Setup(r => r.GetAttachmentAsync(It.IsAny<AttachmentId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Attachment?)null);
 
         var result = await CreateService().DeleteAsync(Guid.NewGuid());
 

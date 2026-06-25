@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Domain.Shared.Enums;
 using Test.Support;
 
@@ -14,12 +15,14 @@ namespace Test.Unit.Domain;
 [TestClass]
 public class TaskItemTests
 {
+    private static TenantId TenantId => DomainId.From<TenantId>(TestConstants.TenantId);
+
     /// <summary>Verifies that given valid input, when task item created, then returns success.</summary>
     [TestMethod]
     [TestCategory("Unit")]
     public void Given_ValidInput_When_TaskItemCreated_Then_ReturnsSuccess()
     {
-        var result = TaskItem.Create(TestConstants.TenantId, "Test Task", "Description", Priority.High);
+        var result = TaskItem.Create(TenantId, "Test Task", "Description", Priority.High);
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
         Assert.AreEqual("Test Task", result.Value.Title);
@@ -34,7 +37,7 @@ public class TaskItemTests
     [DataRow("   ")]
     public void Given_EmptyTitle_When_TaskItemCreated_Then_ReturnsDomainFailure(string? title)
     {
-        var result = TaskItem.Create(TestConstants.TenantId, title!);
+        var result = TaskItem.Create(TenantId, title!);
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -43,7 +46,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_EmptyTenantId_When_TaskItemCreated_Then_ReturnsDomainFailure()
     {
-        var result = TaskItem.Create(Guid.Empty, "Test");
+        var result = TaskItem.Create(DomainId.From<TenantId>(Guid.Empty), "Test");
         Assert.IsTrue(result.IsFailure);
     }
 
@@ -52,7 +55,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_ExistingTaskItem_When_Updated_Then_ReturnsUpdatedValues()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Original").Value!;
+        var task = TaskItem.Create(TenantId, "Original").Value!;
         var result = task.Update(title: "Updated", description: "New desc", priority: Priority.Critical);
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Updated", result.Value!.Title);
@@ -65,7 +68,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_NullUpdate_When_Updated_Then_OriginalValuesPreserved()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Original", "Desc", Priority.Low).Value!;
+        var task = TaskItem.Create(TenantId, "Original", "Desc", Priority.Low).Value!;
         var result = task.Update();
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Original", result.Value!.Title);
@@ -78,7 +81,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_OpenTask_When_TransitionToInProgress_Then_Succeeds()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Task").Value!;
+        var task = TaskItem.Create(TenantId, "Task").Value!;
         var result = task.TransitionStatus(TaskItemStatus.InProgress);
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(TaskItemStatus.InProgress, result.Value!.Status);
@@ -89,7 +92,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_InProgressTask_When_TransitionToCompleted_Then_SetsCompletedDate()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Task").Value!;
+        var task = TaskItem.Create(TenantId, "Task").Value!;
         task.TransitionStatus(TaskItemStatus.InProgress);
         var result = task.TransitionStatus(TaskItemStatus.Completed);
         Assert.IsTrue(result.IsSuccess);
@@ -102,7 +105,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_CompletedTask_When_Reopened_Then_ClearsCompletedDate()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Task").Value!;
+        var task = TaskItem.Create(TenantId, "Task").Value!;
         task.TransitionStatus(TaskItemStatus.InProgress);
         task.TransitionStatus(TaskItemStatus.Completed);
         Assert.IsNotNull(task.CompletedDate);
@@ -118,7 +121,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_OpenTask_When_TransitionToBlocked_Then_Fails()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Task").Value!;
+        var task = TaskItem.Create(TenantId, "Task").Value!;
         var result = task.TransitionStatus(TaskItemStatus.Blocked);
         Assert.IsTrue(result.IsFailure);
     }
@@ -128,10 +131,10 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_TaskWithCategory_When_Created_Then_CategoryIdSet()
     {
-        var categoryId = Guid.NewGuid();
-        var result = TaskItem.Create(TestConstants.TenantId, "Task", categoryId: categoryId);
+        var categoryId = DomainId.From<CategoryId>(Guid.NewGuid());
+        var result = TaskItem.Create(TenantId, "Task", categoryId: categoryId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(categoryId, result.Value!.CategoryId);
+        Assert.AreEqual(categoryId, result.Value!.CategoryId!.Value);
     }
 
     /// <summary>Verifies that given task with parent, when created, then parent task item ID set.</summary>
@@ -139,10 +142,10 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_TaskWithParent_When_Created_Then_ParentTaskItemIdSet()
     {
-        var parentId = Guid.NewGuid();
-        var result = TaskItem.Create(TestConstants.TenantId, "SubTask", parentTaskItemId: parentId);
+        var parentId = DomainId.From<TaskItemId>(Guid.NewGuid());
+        var result = TaskItem.Create(TenantId, "SubTask", parentTaskItemId: parentId);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentTaskItemId);
+        Assert.AreEqual(parentId, result.Value!.ParentTaskItemId!.Value);
     }
 
     /// <summary>Verifies that given same status, when transitioned, then no op success.</summary>
@@ -150,7 +153,7 @@ public class TaskItemTests
     [TestCategory("Unit")]
     public void Given_SameStatus_When_Transitioned_Then_NoOpSuccess()
     {
-        var task = TaskItem.Create(TestConstants.TenantId, "Task").Value!;
+        var task = TaskItem.Create(TenantId, "Task").Value!;
         // Task starts as Open; transitioning to Open from Open is not in the valid set,
         // but None -> Open is valid. Test same-status for InProgress:
         task.TransitionStatus(TaskItemStatus.InProgress);

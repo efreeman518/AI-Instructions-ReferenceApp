@@ -23,12 +23,12 @@ public class CategoryMapperTests
         var entity = new CategoryBuilder().WithSortOrder(3).Build();
         var dto = entity.ToDto();
 
-        Assert.AreEqual(entity.Id, dto.Id);
+        Assert.AreEqual(entity.Id.Value, dto.Id);
         Assert.AreEqual(entity.Name, dto.Name);
         Assert.AreEqual(entity.Description, dto.Description);
         Assert.AreEqual(entity.SortOrder, dto.SortOrder);
         Assert.AreEqual(entity.IsActive, dto.IsActive);
-        Assert.AreEqual(entity.ParentCategoryId, dto.ParentCategoryId);
+        Assert.AreEqual(entity.ParentCategoryId?.Value, dto.ParentCategoryId);
     }
 
     /// <summary>Verifies that given valid DTO, when mapped to entity, then returns success domain result.</summary>
@@ -55,7 +55,7 @@ public class CategoryMapperTests
         var result = dto.ToEntity(TestConstants.TenantId);
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(parentId, result.Value!.ParentCategoryId);
+        Assert.AreEqual(parentId, result.Value!.ParentCategoryId!.Value);
     }
 
     /// <summary>Verifies that given invalid DTO, when mapped to entity, then returns failure.</summary>

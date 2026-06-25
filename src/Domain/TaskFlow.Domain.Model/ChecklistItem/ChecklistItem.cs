@@ -1,19 +1,22 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using DomainChecklistItemId = TaskFlow.Domain.Shared.ChecklistItemId;
+using DomainTaskItemId = TaskFlow.Domain.Shared.TaskItemId;
+using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
 
 namespace TaskFlow.Domain.Model;
 
 /// <summary>Models checklist item domain behavior and invariants.</summary>
-public class ChecklistItem : EntityBase, ITenantEntity<Guid>
+public class ChecklistItem : EntityBase<DomainChecklistItemId>, ITenantEntity<DomainTenantId>
 {
-    public Guid TenantId { get; init; }
+    public DomainTenantId TenantId { get; init; }
     public string Title { get; private set; } = null!;
     public bool IsCompleted { get; private set; }
     public int SortOrder { get; private set; }
     public DateTimeOffset? CompletedDate { get; private set; }
 
     // Foreign key
-    public Guid TaskItemId { get; private set; }
+    public DomainTaskItemId TaskItemId { get; private set; }
 
     // Navigation
     public TaskItem TaskItem { get; private set; } = null!;
@@ -22,7 +25,7 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     private ChecklistItem() { }
 
     /// <summary>Initializes checklist item with required dependencies and default state.</summary>
-    private ChecklistItem(Guid tenantId, Guid taskItemId, string title, int sortOrder)
+    private ChecklistItem(DomainTenantId tenantId, DomainTaskItemId taskItemId, string title, int sortOrder)
     {
         TenantId = tenantId;
         TaskItemId = taskItemId;
@@ -32,7 +35,7 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     }
 
     /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
-    public static DomainResult<ChecklistItem> Create(Guid tenantId, Guid taskItemId, string title, int sortOrder = 0)
+    public static DomainResult<ChecklistItem> Create(DomainTenantId tenantId, DomainTaskItemId taskItemId, string title, int sortOrder = 0)
     {
         var entity = new ChecklistItem(tenantId, taskItemId, title, sortOrder);
         return entity.Valid();
@@ -55,8 +58,8 @@ public class ChecklistItem : EntityBase, ITenantEntity<Guid>
     private DomainResult<ChecklistItem> Valid()
     {
         var errors = new List<DomainError>();
-        if (TenantId == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
-        if (TaskItemId == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
+        if (TenantId.Value == Guid.Empty) errors.Add(DomainError.Create("Tenant ID cannot be empty."));
+        if (TaskItemId.Value == Guid.Empty) errors.Add(DomainError.Create("Task Item ID cannot be empty."));
         if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
         return errors.Count > 0
             ? DomainResult<ChecklistItem>.Failure(errors)

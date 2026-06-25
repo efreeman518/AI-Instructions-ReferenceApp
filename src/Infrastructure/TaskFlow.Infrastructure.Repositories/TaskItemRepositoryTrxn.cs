@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using TaskFlow.Infrastructure.Data;
 using TaskFlow.Infrastructure.Repositories.Updaters;
 
@@ -17,10 +18,10 @@ namespace TaskFlow.Infrastructure.Repositories;
 /// child collections when the application service needs to sync a full task graph.
 /// </summary>
 public class TaskItemRepositoryTrxn(TaskFlowDbContextTrxn db)
-    : RepositoryBase<TaskFlowDbContextTrxn, string, Guid?>(db), ITaskItemRepositoryTrxn
+    : RepositoryTrxn<TaskItem, TaskItemId, TaskFlowDbContextTrxn>(db), ITaskItemRepositoryTrxn
 {
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    public async Task<TaskItem?> GetTaskItemAsync(Guid id, bool inclChildren = true, CancellationToken ct = default)
+    public async Task<TaskItem?> GetTaskItemAsync(TaskItemId id, bool inclChildren = true, CancellationToken ct = default)
     {
         var includesList = new List<Expression<Func<IQueryable<TaskItem>, IIncludableQueryable<TaskItem, object?>>>>
         {

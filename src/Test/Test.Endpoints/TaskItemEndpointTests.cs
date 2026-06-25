@@ -148,8 +148,9 @@ public class TaskItemEndpointTests
 
         var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest);
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, responseBody);
+        var doc = JsonDocument.Parse(responseBody);
         var root = doc.RootElement;
         Assert.IsGreaterThanOrEqualTo(root.GetProperty("total").GetInt32(), 1);
         var data = root.GetProperty("data");
@@ -171,8 +172,9 @@ public class TaskItemEndpointTests
 
         var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest);
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, responseBody);
+        var doc = JsonDocument.Parse(responseBody);
         var root = doc.RootElement;
         Assert.IsTrue(root.TryGetProperty("data", out _));
     }

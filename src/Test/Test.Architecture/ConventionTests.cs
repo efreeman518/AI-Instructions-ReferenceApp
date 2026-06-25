@@ -1,10 +1,11 @@
 using System.Reflection;
 using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared;
 
 namespace Test.Architecture;
 
 /// <summary>
-/// Reflection-based convention checks: every domain entity implements <c>ITenantEntity&lt;Guid&gt;</c>,
+/// Reflection-based convention checks: every domain entity implements <c>ITenantEntity&lt;TenantId&gt;</c>,
 /// every <c>*Service</c> implementation has a matching <c>I*Service</c> interface, and entity properties
 /// (excluding <c>TenantId</c>) have private setters to enforce encapsulation.
 /// Pure-unit tier (NetArchTest/reflection only): inspects loaded type metadata; no runtime, no infra.
@@ -28,13 +29,13 @@ public class ConventionTests : BaseTest
     [TestMethod]
     public void Given_DomainEntities_When_Checked_Then_AllImplementITenantEntity()
     {
-        var tenantInterface = typeof(ITenantEntity<Guid>);
+        var tenantInterface = typeof(ITenantEntity<TenantId>);
         var nonTenantEntities = KnownEntities
             .Where(e => !tenantInterface.IsAssignableFrom(e))
             .ToList();
 
         Assert.IsEmpty(nonTenantEntities,
-            $"Entities missing ITenantEntity<Guid>: {string.Join(", ", nonTenantEntities.Select(t => t.Name))}");
+            $"Entities missing ITenantEntity<TenantId>: {string.Join(", ", nonTenantEntities.Select(t => t.Name))}");
     }
 
     /// <summary>Verifies that given service implementations, when checked, then all implement their interface.</summary>
@@ -66,7 +67,7 @@ public class ConventionTests : BaseTest
     [TestMethod]
     public void Given_DomainEntities_When_Checked_Then_AllHavePrivateSetters()
     {
-        // TenantId is excluded - public setter required by ITenantEntity<Guid> interface contract
+        // TenantId is excluded - public setter required by ITenantEntity<TenantId> interface contract
         var excludedProperties = new HashSet<string> { "TenantId" };
 
         var violations = new List<string>();

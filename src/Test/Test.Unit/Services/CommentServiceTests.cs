@@ -7,6 +7,7 @@ using TaskFlow.Application.Contracts.Repositories;
 using TaskFlow.Application.Models;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Model;
+using TaskFlow.Domain.Shared;
 using Test.Support;
 using Test.Support.Builders;
 
@@ -68,7 +69,7 @@ public class CommentServiceTests
     [TestCategory("Unit")]
     public async Task Given_NonExistentId_When_GetAsync_Then_ReturnsNone()
     {
-        _repoQueryMock.Setup(r => r.GetCommentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
+        _repoQueryMock.Setup(r => r.GetCommentAsync(It.IsAny<CommentId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
 
         var result = await CreateService().GetAsync(Guid.NewGuid());
 
