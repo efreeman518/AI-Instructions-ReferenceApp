@@ -1,0 +1,42 @@
+:root,
+:root[data-theme="dark"] {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3;
+    --text-muted: #8b949e; --accent: #58a6ff; --accent2: #3fb950;
+    --purple: #bc8cff; --orange: #f0883e; --red: #f85149; --pink: #f778ba;
+    --cyan: #79c0ff; --yellow: #d29922;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  h1 { font-size: 2.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+  h2 { font-size: 1.7rem; color: var(--accent); margin: 2.5rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1.3rem; color: var(--purple); margin: 1.5rem 0 0.8rem; }
+  h4 { font-size: 1.1rem; color: var(--cyan); margin: 1.2rem 0 0.6rem; }
+  p, li { color: var(--text); margin-bottom: 0.5rem; }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; color: var(--cyan); }
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; }
+  pre code { border: none; padding: 0; background: transparent; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th { background: var(--surface); color: var(--accent); text-align: left; padding: 0.6rem 1rem; border: 1px solid var(--border); font-weight: 600; }
+  td { padding: 0.5rem 1rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: rgba(88,166,255,0.05); }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; overflow-x: auto; }
+  .callout { background: rgba(88,166,255,0.08); border-left: 3px solid var(--accent); padding: 0.8rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 768px) { .container { padding: 1rem; } }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --surface: #f6f8fa; --border: #d0d7de; --text: #24292f;
+    --text-muted: #57606a; --accent: #0969da; --accent2: #1a7f37;
+    --purple: #8250df; --orange: #bc4c00; --red: #cf222e; --pink: #bf3989;
+    --cyan: #0550ae; --yellow: #9a6700;
+  }
+  .doc-toolbar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; padding: 0.75rem 2rem 0; background: linear-gradient(var(--bg), rgba(0,0,0,0)); }
+  .theme-toggle { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); padding: 0.35rem 0.7rem; font: inherit; cursor: pointer; }
+  .theme-toggle:hover { border-color: var(--accent); }
+  .diagram-container img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
