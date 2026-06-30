@@ -5,6 +5,7 @@ public class AgentChatRequest
 {
     public string Message { get; set; } = null!;
     public string? ConversationId { get; set; }
+    public bool UseTools { get; set; } = true;
 }
 
 /// <summary>Provides agent chat response behavior for the Infrastructure Agents layer.</summary>

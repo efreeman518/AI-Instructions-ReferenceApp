@@ -69,7 +69,16 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
         _logger.LogDebug("TaskAssistant processing message for tenant {TenantId}, conversation {ConversationId}",
             tenantId, request.ConversationId);
 
-        var response = await _agent.RunAsync(request.Message, _session, cancellationToken: ct);
+        var response = await _agent.RunAsync(
+            request.Message,
+            _session,
+            new ChatClientAgentRunOptions(new ChatOptions
+            {
+                ToolMode = request.UseTools ? ChatToolMode.Auto : ChatToolMode.None,
+                Temperature = 0,
+                MaxOutputTokens = 512
+            }),
+            cancellationToken: ct);
 
         return new AgentChatResponse
         {

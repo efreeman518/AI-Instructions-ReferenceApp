@@ -7,6 +7,8 @@
     <RootNamespace>TaskFlow.Uno.WasmHost</RootNamespace>
     <UnoWasmProject>$(MSBuildProjectDirectory)\..\..\UI\TaskFlow.Uno\TaskFlow.Uno.csproj</UnoWasmProject>
     <UnoWasmTargetFramework>net10.0-browserwasm</UnoWasmTargetFramework>
+    <UnoWasmRestoreTimeoutMilliseconds Condition="'$(UnoWasmRestoreTimeoutMilliseconds)'==''">600000</UnoWasmRestoreTimeoutMilliseconds>
+    <UnoWasmBuildTimeoutMilliseconds Condition="'$(UnoWasmBuildTimeoutMilliseconds)'==''">1200000</UnoWasmBuildTimeoutMilliseconds>
   </PropertyGroup>
 
   <Target Name="BuildTaskFlowUnoWasm"
@@ -15,7 +17,10 @@
     <PropertyGroup>
       <_UseMocksProperty Condition="'$(UseMocks)'!=''"> -p:UseMocks=$(UseMocks)</_UseMocksProperty>
     </PropertyGroup>
-    <Exec Command="dotnet build &quot;$(UnoWasmProject)&quot; -p:TargetFrameworkOverride=$(UnoWasmTargetFramework) -p:Configuration=$(Configuration)$(_UseMocksProperty) -m:1" />
+    <Exec Command="dotnet restore &quot;$(UnoWasmProject)&quot; -p:BuildAllUnoTargets=true -p:EnableUnoWasm=true -p:Configuration=$(Configuration)$(_UseMocksProperty)"
+          Timeout="$(UnoWasmRestoreTimeoutMilliseconds)" />
+    <Exec Command="dotnet build &quot;$(UnoWasmProject)&quot; -p:TargetFrameworkOverride=$(UnoWasmTargetFramework) -p:EnableUnoWasm=true -p:Configuration=$(Configuration)$(_UseMocksProperty) --no-restore -m:1"
+          Timeout="$(UnoWasmBuildTimeoutMilliseconds)" />
   </Target>
 
 </Project>

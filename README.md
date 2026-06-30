@@ -69,18 +69,25 @@ Set `AiServices:DisableFoundryLocal=true` to force no-op locally. When no provid
 
 `dotnet test src/Test/Test.Aspire/Test.Aspire.csproj --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the Azure live Foundry smoke set only when Azure Foundry is configured. The Aspire mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`, so it never starts a local native model. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
 
-`dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, agent chat, and one safe write-adjacent AI demo. If the SDK cannot bootstrap, the tests are inconclusive rather than green on no-op.
+`dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, no-tool agent chat, and one safe write-adjacent AI demo. If the local runtime is missing or undiscoverable, the tests are inconclusive rather than green on no-op.
 
 | Test condition | Result |
 |----------------|--------|
 | Azure Foundry config exists (`AiServices:FoundryEndpoint` or `TASKFLOW_USE_AZURE_FOUNDRY=true`) | `Test.Aspire` `TestCategory=Foundry` runs against Azure Foundry |
 | No Azure Foundry config exists | `Test.Aspire` live Foundry tests return inconclusive |
 | Foundry Local SDK bootstraps in the RID-bound API host | `Test.FoundryLocal` `TestCategory=FoundryLocal` runs against the local model |
-| Foundry Local SDK cannot bootstrap | `Test.FoundryLocal` returns inconclusive |
+| Foundry Local runtime missing or undiscoverable | `Test.FoundryLocal` returns inconclusive |
 
 `TestCategory=AzureFoundry` is reserved for Azure-specific provider-selection or provisioning checks. The no-op AI fallback path is covered by unit and endpoint tests. Load, benchmark, and mobile suites stay explicit because they require a running target, BenchmarkDotNet process control, or Appium/emulator setup.
 
 `TASKFLOW_LIVE_AI_BASE_URL` can override the request target for manual live AI smoke runs. It is not a test opt-in.
+
+Scaffold agents should preserve these AI test contracts:
+
+- Provider order is Azure Foundry first, then Foundry Local, then no-op. Azure is active only when Aspire injects `ConnectionStrings:chat` or Azure Foundry config is set. Foundry Local is active when Azure is absent and `AiServices:DisableFoundryLocal=false`.
+- RID-free suites (`Test.Unit`, `Test.Endpoints`, `Test.Aspire`) do not start native Foundry Local. They use fake clients or `AiServices:DisableFoundryLocal=true`.
+- `Test.FoundryLocal` is the only RID-bound local model lane. Missing or undiscoverable Foundry Local runtime is inconclusive. Installed-but-broken runtime, provider mismatch, no-op fallback, or live endpoint timeout is failure.
+- Code-hosted agent smoke that does not need tools sends `AgentChatRequest.UseTools=false`; the service maps it to `ChatToolMode.None`. Tool-calling tests must request tools explicitly and carry their own timeout budget.
 
 ### CI test lanes
 
@@ -96,9 +103,9 @@ GitHub Actions runs the fast, no-Docker gate on every push and pull request: Uni
 
 ### Aspire-backed UI tests
 
-`dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor and React when their local prerequisites are present.
+`dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor, React, and Uno when their local prerequisites are present.
 
-The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React and Uno coverage remains in the existing TypeScript suites. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. Uno is not selected automatically by the .NET adapter because built WASM assets alone do not prove the app has booted in the browser; use `npm run test:uno` or `PLAYWRIGHT_UNO_URL` when targeting a verified Uno host.
+The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React coverage remains DOM/ARIA based. Uno coverage is canvas-first: wait for painted canvas, click stable app chrome, compare visual fingerprints. Do not assert Uno Skia text through DOM selectors. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. Uno is selected by the .NET adapter unless `TASKFLOW_WASM_TESTS_ENABLED=false`; the C# `WasmAppHost` fixture restores/builds browserwasm with separate 10-minute restore and 20-minute build budgets, starts it through Aspire, and passes the dynamic endpoint to TypeScript Playwright. `TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS` bounds each TypeScript project process; `TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS` bounds each Playwright test.
 
 ### Projects and agents (opt-in, Azure-only)
 

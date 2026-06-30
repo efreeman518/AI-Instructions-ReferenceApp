@@ -9,6 +9,9 @@ namespace Test.PlaywrightUI;
 /// </summary>
 internal static class TypeScriptPlaywrightRunner
 {
+    private const string ProjectTimeoutVariable = "TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS";
+    private const string TestTimeoutVariable = "TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS";
+
     internal static string ProjectDirectory => Path.GetFullPath(Path.Combine(
         AppContext.BaseDirectory,
         "..", "..", ".."));
@@ -54,53 +57,96 @@ internal static class TypeScriptPlaywrightRunner
             return new CommandResult(0, "No TypeScript Playwright projects selected.", "");
         }
 
-        var fileName = OperatingSystem.IsWindows() ? "node.exe" : "node";
+        var stdoutBuilder = new System.Text.StringBuilder();
+        var stderrBuilder = new System.Text.StringBuilder();
 
         try
         {
-            var startInfo = new ProcessStartInfo(fileName)
-            {
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                WorkingDirectory = ProjectDirectory
-            };
-            startInfo.ArgumentList.Add(PlaywrightCliPath);
-            startInfo.ArgumentList.Add("test");
             foreach (var project in projects)
             {
-                startInfo.ArgumentList.Add($"--project={project}");
-            }
+                var result = await RunProjectAsync(project, cancellationToken);
+                stdoutBuilder.AppendLine($"== {project} stdout ==");
+                stdoutBuilder.AppendLine(result.StandardOutput);
+                stderrBuilder.AppendLine($"== {project} stderr ==");
+                stderrBuilder.AppendLine(result.StandardError);
 
-            using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start Playwright.");
-
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
-
-            try
-            {
-                await process.WaitForExitAsync(cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                try
+                if (result.ExitCode != 0)
                 {
-                    process.Kill(entireProcessTree: true);
+                    return new CommandResult(result.ExitCode, stdoutBuilder.ToString(), stderrBuilder.ToString());
                 }
-                catch (InvalidOperationException)
-                {
-                }
-
-                await process.WaitForExitAsync(CancellationToken.None);
-                return new CommandResult(124, await stdout, await stderr);
             }
 
-            return new CommandResult(process.ExitCode, await stdout, await stderr);
+            return new CommandResult(0, stdoutBuilder.ToString(), stderrBuilder.ToString());
         }
         catch (Win32Exception ex)
         {
             throw new InvalidOperationException("Node.js is not available on PATH.", ex);
+        }
+    }
+
+    private static async Task<CommandResult> RunProjectAsync(string project, CancellationToken cancellationToken)
+    {
+        var fileName = OperatingSystem.IsWindows() ? "node.exe" : "node";
+        var startInfo = new ProcessStartInfo(fileName)
+        {
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            WorkingDirectory = ProjectDirectory
+        };
+
+        startInfo.ArgumentList.Add(PlaywrightCliPath);
+        startInfo.ArgumentList.Add("test");
+        startInfo.ArgumentList.Add($"--project={project}");
+        startInfo.ArgumentList.Add("--retries=0");
+        startInfo.ArgumentList.Add("--max-failures=1");
+        startInfo.ArgumentList.Add($"--timeout={ReadSeconds(TestTimeoutVariable, project == "uno" ? 180 : 90) * 1000}");
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException($"Failed to start Playwright project {project}.");
+
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(ReadSeconds(ProjectTimeoutVariable, project == "uno" ? 360 : 180)));
+
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKill(process);
+            await process.WaitForExitAsync(CancellationToken.None);
+            return new CommandResult(124, await stdout, await stderr);
+        }
+
+        return new CommandResult(process.ExitCode, await stdout, await stderr);
+    }
+
+    private static int ReadSeconds(string variableName, int defaultSeconds)
+    {
+        var configured = Environment.GetEnvironmentVariable(variableName);
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            return defaultSeconds;
+        }
+
+        return int.TryParse(configured, out var seconds) && seconds > 0
+            ? seconds
+            : throw new InvalidOperationException($"{variableName} must be a positive integer number of seconds.");
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
         }
     }
 

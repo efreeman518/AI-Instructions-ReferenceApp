@@ -1031,8 +1031,8 @@ API: Sets IRequestContext (tenant, user, roles)
 </tr>
 <tr>
 <td><strong>Test.FoundryLocal</strong></td>
-<td>RID-bound live smoke project for the bootstrapper-owned <code>Microsoft.AI.Foundry.Local</code> path. Boots <code>TaskFlow.Api</code> directly, checks <code>GET /api/v1/ai/status</code> for <code>provider: local</code>, then covers chat, agent chat, and one safe write-adjacent AI demo.</td>
-<td>Keeps native Foundry Local assets out of RID-free WAF/Aspire tiers and prevents live local tests from passing green on no-op. Tests are inconclusive only when the SDK cannot bootstrap.</td>
+<td>RID-bound live smoke project for the bootstrapper-owned <code>Microsoft.AI.Foundry.Local</code> path. Boots <code>TaskFlow.Api</code> directly, checks <code>GET /api/v1/ai/status</code> for <code>provider: local</code>, then covers chat, no-tool agent chat (<code>AgentChatRequest.UseTools=false</code> maps to <code>ChatToolMode.None</code>), and one safe write-adjacent AI demo.</td>
+<td>Keeps native Foundry Local assets out of RID-free WAF/Aspire tiers and prevents live local tests from passing green on no-op. Tests are inconclusive only when the local runtime is missing or undiscoverable. Installed-but-broken runtime, provider mismatch, no-op fallback, or live endpoint timeout is failure.</td>
 <td>MSTest, <code>Microsoft.AspNetCore.Mvc.Testing</code>, EF Core InMemory, <code>Microsoft.AI.Foundry.Local</code></td>
 </tr>
 <tr>
@@ -1061,8 +1061,8 @@ API: Sets IRequestContext (tenant, user, roles)
 </tr>
 <tr>
 <td><strong>Test.PlaywrightUI</strong></td>
-<td>Browser-driven UI tests in the solution. MSTest starts the Aspire AppHost, runs C# page-object smoke for Gateway + Blazor, then adapts the existing TypeScript Playwright projects for Blazor and React when their prerequisites are present. Uno remains a direct TypeScript target because built WASM assets alone do not prove browser boot.</td>
-<td>The only suite that actually clicks the UI. Catches binding errors, MudBlazor / Uno render bugs, broken navigation, and Gateway-to-UI wiring that server-side tests miss.</td>
+<td>Browser-driven UI tests in the solution. MSTest starts the Aspire AppHost, runs C# page-object smoke for Gateway + Blazor, then runs TypeScript Playwright projects for Blazor, React, and Uno when their prerequisites are present. Runner executes TypeScript projects one process at a time with bounded project/test timeouts.</td>
+<td>The only suite that actually clicks the UI. Blazor and React use DOM/ARIA selectors. Uno Skia WASM uses canvas-first helpers: wait for painted canvas, click stable app chrome, compare visual fingerprints. Do not assert Uno text through DOM selectors because Skia text is pixels, not accessible DOM.</td>
 <td>MSTest, <strong>Microsoft.Playwright</strong>, TypeScript <strong>@playwright/test</strong></td>
 </tr>
 <tr>
@@ -1288,13 +1288,13 @@ public sealed class SqlApiFactory
 </ul>
 <p><strong>Component vs mesh split</strong> - the three single-store classes (<code>MigrationAndRepositoryTests</code>, <code>DomainEventPipelineTests</code>, <code>AuditLogRepositoryAzuriteTests</code>) live in <code>Test.Integration</code> and run on standalone Testcontainers (SQL + Azurite) via <code>IntegrationTestSetup</code>, never booting the Aspire graph. Multi-resource HTTP pipelines, app-surface checks, and Aspire-backed AI smoke tests live in <code>Test.Aspire</code> and boot the full <code>AppHost</code> graph lazily via <code>AspireTestHost.EnsureStartedAsync</code>. Keeping them in separate assemblies means the fast component tier never pays the mesh startup, and the mesh tier boots once per run only when a mesh test executes.</p>
 <h3 id="126-testplaywrightui">12.6 Test.PlaywrightUI</h3>
-<p>A solution-included Playwright test project that drives the <strong>running</strong> UI and Gateway in a real browser. <code>dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj</code> starts the Aspire AppHost in test mode, exposes endpoint URLs through environment variables, runs the stable C# Gateway/Blazor smoke path, and then invokes the existing TypeScript Playwright projects for Blazor and React when <code>npm install</code> has been run.</p>
+<p>A solution-included Playwright test project that drives the <strong>running</strong> UI and Gateway in a real browser. <code>dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj</code> starts the Aspire AppHost in test mode, exposes endpoint URLs through environment variables, runs the stable C# Gateway/Blazor smoke path, and then invokes the TypeScript Playwright projects for Blazor, React, and Uno when <code>npm install</code> has been run.</p>
 <p>Keep C# page objects focused on the stable smoke path:</p>
 <ul>
 <li>Gateway root and <code>/alive</code> marker checks.</li>
 <li>Blazor <code>/tasks</code> happy path: page heading, MudTable shell, search field, and New Task action.</li>
 </ul>
-<p>React and Uno stay in TypeScript because their browser suites already encode framework-specific selectors and regressions. Port them only when there is a concrete .NET runner need. Uno is not auto-selected by the .NET adapter unless <code>PLAYWRIGHT_UNO_URL</code> targets a verified host; direct <code>npm run test:uno</code> remains available.</p>
+<p>React stays DOM/ARIA based in TypeScript. Uno Skia WASM must not use DOM text or role assertions for app text because rendered text is pixels. Use canvas-first helpers instead: wait for a painted canvas, click stable app chrome coordinates, and compare visual fingerprints for navigation or surface changes. Uno is selected by the .NET adapter unless <code>TASKFLOW_WASM_TESTS_ENABLED=false</code>; direct <code>npm run test:uno</code> remains available when a target is already running.</p>
 <p><strong>Project layout</strong></p>
 <pre><code>Test.PlaywrightUI/
 --- Test.PlaywrightUI.csproj  # MSTest + Microsoft.Playwright adapter, included in TaskFlow.slnx
@@ -1343,7 +1343,7 @@ public sealed class SqlApiFactory
 <td>Uno Platform WASM app</td>
 </tr>
 </tbody></table>
-<p>The C# Gateway smoke uses <code>PLAYWRIGHT_GATEWAY_URL</code> when set; otherwise the MSTest host fills it from the Aspire <code>taskflowgateway</code> endpoint. The adapter fills <code>PLAYWRIGHT_BLAZOR_URL</code> from Aspire and fills <code>PLAYWRIGHT_REACT_URL</code> when local Vite prerequisites are present. <code>PLAYWRIGHT_UNO_URL</code> is honored when supplied, but Uno is otherwise run directly through <code>npm run test:uno</code>. All TypeScript projects use Desktop Chrome, ignore HTTPS errors where needed, capture screenshots on failure, and record traces on first retry. <code>workers: 1</code> and <code>mode: &quot;serial&quot;</code> in spec files keep state-dependent CRUD steps in order.</p>
+<p>The C# Gateway smoke uses <code>PLAYWRIGHT_GATEWAY_URL</code> when set; otherwise the MSTest host fills it from the Aspire <code>taskflowgateway</code> endpoint. The adapter fills <code>PLAYWRIGHT_BLAZOR_URL</code> from Aspire, fills <code>PLAYWRIGHT_REACT_URL</code> when local Vite prerequisites are present, and fills <code>PLAYWRIGHT_UNO_URL</code> from the Aspire-hosted Uno WASM host unless a caller supplied an override. TypeScript projects run one process at a time with <code>TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS</code> and <code>TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS</code> escape hatches. All TypeScript projects use Desktop Chrome, ignore HTTPS errors where needed, capture screenshots on failure, and record traces on first retry. Use serial mode only for workflows that intentionally share browser state.</p>
 <p><strong>Prerequisites</strong></p>
 <p>For <code>dotnet test</code>, the test project starts AppHost itself. You still need browser binaries:</p>
 <pre><code class="language-powershell">dotnet build src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
@@ -1811,7 +1811,7 @@ $env:TASKFLOW_USE_AZURE_FOUNDRY = &quot;true&quot;
 dotnet run --project src/Host/Aspire/AppHost
 </code></pre>
 <p><code>aspire publish</code> always selects the real Azure path and provisions an Azure AI Foundry resource/deployment. If the target environment requires keyless managed-identity inference instead of the generated connection secret, update the host-side <code>AddAzureChatCompletionsClient(&quot;chat&quot;)</code> registration to use the required credential overload before testing model behavior.</p>
-<p>When AI is disabled, D1-D8 return the no-op &quot;not configured&quot; response. D9 can still start a workflow instance, but the schema-constrained <code>agent</code> node should land on the fault path because the no-op text is not valid structured model output. Live Foundry tests do not silently pass in this mode; they return inconclusive. Application-layer test priority is Azure Foundry when configured, Foundry Local when it can bootstrap, then no-op fallback.</p>
+<p>When AI is disabled, D1-D8 return the no-op &quot;not configured&quot; response. D9 can still start a workflow instance, but the schema-constrained <code>agent</code> node should land on the fault path because the no-op text is not valid structured model output. Live Azure Foundry tests return inconclusive when Azure is not configured. Live Foundry Local tests return inconclusive only when the local runtime is missing or undiscoverable; once installed, local provider mismatch, no-op fallback, or timeout is failure. No-op fallback is covered in unit and endpoint tests, not by silently passing live-AI tests.</p>
 <p>TaskFlow has no <code>.foundry/agent-metadata.yaml</code> by default because shipped agents are code-hosted over <code>IChatClient</code>, not server-hosted Foundry agents. Add <code>.foundry/agent-metadata.yaml</code> under the agent source folder only when a hosted or prompt agent joins Foundry deploy/eval workflows; keep project endpoint, agent name, datasets, evaluators, and thresholds there.</p>
 <h3 id="146-workflow-triggering">14.6 Workflow Triggering</h3>
 <p><code>Application.MessageHandlers.WorkflowTriggerHandler</code> implements <code>IWorkflowTrigger</code> with a single method <code>OnTaskItemCreatedAsync(TaskItemCreatedEvent)</code> that calls <code>engine.StartBackgroundAsync(StartRequest { WorkflowId = &quot;ai-task-triage&quot;, ... })</code>.</p>

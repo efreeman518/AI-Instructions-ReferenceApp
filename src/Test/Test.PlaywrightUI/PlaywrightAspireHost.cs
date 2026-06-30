@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Test.PlaywrightUI.Hosting;
 
 /// <summary>
-/// Starts the AppHost test mesh and exposes browser endpoints for C# and TypeScript Playwright tests.
+/// Starts AppHost test mesh exposes browser endpoints for C# TypeScript Playwright tests.
 /// </summary>
 internal sealed class PlaywrightAspireHost : IAsyncDisposable
 {
@@ -17,7 +17,6 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
     private const string BlazorResourceName = "taskflowblazor";
     private const string ReactResourceName = "taskflowreact";
     private const string HttpEndpointName = "http";
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(8);
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
 
     private readonly DistributedApplication _app;
@@ -28,12 +27,14 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         string gatewayBaseUrl,
         string blazorBaseUrl,
         IReadOnlyList<string> typeScriptProjects,
+        IReadOnlyList<string> diagnosticMessages,
         Dictionary<string, string?> originalEnvironment)
     {
         _app = app;
         GatewayBaseUrl = gatewayBaseUrl.TrimEnd('/');
         BlazorBaseUrl = blazorBaseUrl.TrimEnd('/');
         TypeScriptProjects = typeScriptProjects;
+        DiagnosticMessages = diagnosticMessages;
         _originalEnvironment = originalEnvironment;
     }
 
@@ -43,23 +44,30 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
     internal IReadOnlyList<string> TypeScriptProjects { get; }
 
+    internal IReadOnlyList<string> DiagnosticMessages { get; }
+
     internal static async Task<PlaywrightAspireHost> StartAsync(CancellationToken ct)
     {
         var originalEnvironment = CaptureEnvironment(
             "TASKFLOW_ASPIRE_TESTING",
             "TASKFLOW_ASPIRE_REACT_AVAILABLE",
+            "TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE",
             "PLAYWRIGHT_GATEWAY_URL",
             "PLAYWRIGHT_BLAZOR_URL",
             "PLAYWRIGHT_REACT_URL",
             "PLAYWRIGHT_UNO_URL");
 
-        var reactRunnable = IsReactRunnable();
-
-        Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", "true");
-        SetOrClear("TASKFLOW_ASPIRE_REACT_AVAILABLE", reactRunnable);
-
+        DistributedApplication? app = null;
         try
         {
+            var reactRunnable = IsReactRunnable();
+            var unoTarget = await WasmAppHost.PrepareAsync(ct);
+            var diagnostics = new List<string> { unoTarget.Message };
+
+            Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", "true");
+            SetOrClear("TASKFLOW_ASPIRE_REACT_AVAILABLE", reactRunnable);
+            SetOrClear("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE", unoTarget.HostWithAspire);
+
             var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
             var builder = await DistributedApplicationTestingBuilder.CreateAsync(
                 appHostProgramType,
@@ -69,7 +77,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                     appOptions.DisableDashboard = true;
                     appOptions.EnableResourceLogging = false;
                 },
-                cancellationToken: ct).WaitAsync(DefaultTimeout, ct);
+                cancellationToken: ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
 
             builder.Services.AddLogging(logging =>
             {
@@ -78,8 +86,8 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                 logging.AddFilter("Aspire.", LogLevel.Warning);
             });
 
-            var app = await builder.BuildAsync(ct).WaitAsync(DefaultTimeout, ct);
-            await app.StartAsync(ct).WaitAsync(DefaultTimeout, ct);
+            app = await builder.BuildAsync(ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
+            await app.StartAsync(ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
 
             var gatewayBaseUrl = await ResolveEndpointAsync(
                 app,
@@ -108,8 +116,14 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                 typeScriptProjects.Add("react");
             }
 
-            if (HasValue("PLAYWRIGHT_UNO_URL"))
+            if (unoTarget.RunTypeScriptProject)
             {
+                if (unoTarget.HostWithAspire)
+                {
+                    var unoBaseUrl = await WasmAppHost.ResolveEndpointAsync(app, ct);
+                    diagnostics.Add($"Uno WASM hosted by Aspire at {unoBaseUrl}.");
+                }
+
                 typeScriptProjects.Add("uno");
             }
 
@@ -118,10 +132,16 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                 gatewayBaseUrl,
                 blazorBaseUrl,
                 typeScriptProjects,
+                diagnostics,
                 originalEnvironment);
         }
         catch
         {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+
             RestoreEnvironment(originalEnvironment);
             throw;
         }
@@ -139,7 +159,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         }
         catch
         {
-            // Test process is already failing; still dispose and restore environment below.
+            // Test process already failing; still dispose restore environment below.
         }
         finally
         {
@@ -161,7 +181,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         }
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(resourceName, ct)
-            .WaitAsync(DefaultTimeout, ct);
+            .WaitAsync(WasmAppHost.StartupTimeout, ct);
 
         var endpoint = app.GetEndpoint(resourceName, HttpEndpointName).ToString().TrimEnd('/');
         Environment.SetEnvironmentVariable(environmentVariableName, endpoint);
@@ -214,7 +234,9 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             });
 
             if (process is null)
+            {
                 return false;
+            }
 
             if (!process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
             {
@@ -231,7 +253,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
             return process.ExitCode == 0;
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch
         {
             return false;
         }

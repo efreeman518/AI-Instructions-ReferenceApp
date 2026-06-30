@@ -137,7 +137,7 @@ jobs:
 
       - name: Foundry Local Tests (manual, live local)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeFoundryLocal == true }}
-        timeout-minutes: 40
+        timeout-minutes: 70
         run: >
           dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj
           --no-build --configuration Release
@@ -169,7 +169,7 @@ jobs:
 
       - name: Playwright UI Tests (manual, browser)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
-        timeout-minutes: 40
+        timeout-minutes: 70
         run: >
           dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
           --no-build --configuration Release

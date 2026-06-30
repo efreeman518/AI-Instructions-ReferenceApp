@@ -37,12 +37,20 @@ public static partial class RegisterServices
             return;
 
         logger.LogInformation("{AppName} {Environment} - Configure Foundry Local chat client.", appName, env);
+        var requireFoundryLocal = config.GetValue<bool>("AiServices:RequireFoundryLocal");
+        var localModel = config["AiServices:LocalModel"] ?? "qwen2.5-0.5b";
+        var localWebUrl = config["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415";
 
         try
         {
+            if (!Uri.TryCreate(localWebUrl, UriKind.Absolute, out _))
+            {
+                throw new ArgumentException("Foundry Local web URL must be absolute.", "AiServices:LocalWebUrl");
+            }
+
             var chatClient = await FoundryLocalChatClient.CreateAsync(
-                config["AiServices:LocalModel"] ?? "qwen2.5-0.5b",
-                config["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415",
+                localModel,
+                localWebUrl,
                 logger,
                 ct);
             builder.Services.AddSingleton<IChatClient>(chatClient);
@@ -50,6 +58,9 @@ public static partial class RegisterServices
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            if (requireFoundryLocal)
+                throw;
+
             logger.LogWarning(
                 ex,
                 "{AppName} {Environment} - Foundry Local unavailable. Falling back to no-op AI client.",

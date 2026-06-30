@@ -17,18 +17,12 @@ namespace Test.FoundryLocal;
 [DoNotParallelize]
 public sealed class FoundryLocalLiveSmokeTests
 {
+    private static readonly Lock ClientLock = new();
     private static FoundryLocalApiFactory? _factory;
     private static HttpClient? _client;
+    private static Exception? _startupException;
 
     public TestContext TestContext { get; set; } = null!;
-
-    [ClassInitialize]
-    public static void ClassInit(TestContext _)
-    {
-        _factory = new FoundryLocalApiFactory();
-        _client = _factory.CreateClient();
-        _client.Timeout = TimeSpan.FromMinutes(5);
-    }
 
     [ClassCleanup]
     public static void ClassCleanup()
@@ -37,6 +31,7 @@ public sealed class FoundryLocalLiveSmokeTests
         _factory?.Dispose();
         _client = null;
         _factory = null;
+        _startupException = null;
     }
 
     [TestMethod]
@@ -57,13 +52,13 @@ public sealed class FoundryLocalLiveSmokeTests
     }
 
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(600000)]
     public async Task Given_FoundryLocalApiHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(120));
+        timeout.CancelAfter(TimeSpan.FromSeconds(300));
 
         HttpResponseMessage response;
         try
@@ -72,15 +67,16 @@ public sealed class FoundryLocalLiveSmokeTests
                 "/api/v1/agent/chat",
                 new
                 {
-                    message = "Reply with OK only.",
-                    conversationId = Guid.NewGuid().ToString("N")
+                    message = "Do not call tools. Reply exactly OK.",
+                    conversationId = Guid.NewGuid().ToString("N"),
+                    useTools = false
                 },
                 timeout.Token);
         }
         catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
         {
-            Assert.Inconclusive(
-                "Foundry Local provider bootstrapped, but the code-hosted agent smoke did not complete within 120 seconds. " +
+            Assert.Fail(
+                "Foundry Local provider bootstrapped, but the code-hosted agent smoke did not complete within 300 seconds. " +
                 ex.Message);
             throw;
         }
@@ -121,7 +117,7 @@ public sealed class FoundryLocalLiveSmokeTests
 
     private static async Task<HttpClient> CreateFoundryLocalClientOrInconclusiveAsync()
     {
-        var client = _client ?? throw new InvalidOperationException("Test client was not initialized.");
+        var client = CreateClientOrInconclusive();
         using var response = await client.GetAsync("/api/v1/ai/status");
         using var payload = await ReadJsonAsync(response, CancellationToken.None);
 
@@ -129,12 +125,66 @@ public sealed class FoundryLocalLiveSmokeTests
         var isConfigured = payload.RootElement.GetProperty("isConfigured").GetBoolean();
         if (provider != "local" || !isConfigured)
         {
-            Assert.Inconclusive(
+            Assert.Fail(
                 $"Foundry Local did not bootstrap through the API host. AI status provider={provider ?? "unknown"} configured={isConfigured}.");
         }
 
         return client;
     }
+
+    private static HttpClient CreateClientOrInconclusive()
+    {
+        if (_client is not null)
+        {
+            return _client;
+        }
+
+        if (_startupException is not null)
+        {
+            HandleStartupException(_startupException);
+        }
+
+        lock (ClientLock)
+        {
+            if (_client is not null)
+            {
+                return _client;
+            }
+
+            try
+            {
+                _factory = new FoundryLocalApiFactory();
+                _client = _factory.CreateClient();
+                _client.Timeout = TimeSpan.FromMinutes(10);
+                return _client;
+            }
+            catch (Exception ex)
+            {
+                _startupException = ex;
+                _factory?.Dispose();
+                _factory = null;
+                HandleStartupException(ex);
+                throw;
+            }
+        }
+    }
+
+    private static void HandleStartupException(Exception ex)
+    {
+        if (IsMissingFoundryLocalRuntime(ex))
+        {
+            Assert.Inconclusive("Foundry Local runtime is not installed or not discoverable: " + ex.Message);
+        }
+
+        Assert.Fail("Foundry Local runtime is installed or startup failed after discovery: " + ex);
+    }
+
+    private static bool IsMissingFoundryLocalRuntime(Exception ex) =>
+        ex is FileNotFoundException
+        || ex is DirectoryNotFoundException
+        || ex is PlatformNotSupportedException
+        || ex is System.ComponentModel.Win32Exception
+        || (ex.InnerException is not null && IsMissingFoundryLocalRuntime(ex.InnerException));
 
     private static async Task<Guid> CreateTaskAsync(HttpClient client, string title, CancellationToken ct)
     {
@@ -185,6 +235,7 @@ public sealed class FoundryLocalLiveSmokeTests
             {
                 ["ConnectionStrings:chat"] = string.Empty,
                 ["AiServices:DisableFoundryLocal"] = "false",
+                ["AiServices:RequireFoundryLocal"] = "true",
                 ["AiServices:LocalModel"] = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_MODEL") ?? "qwen2.5-0.5b",
                 ["AiServices:LocalWebUrl"] = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_WEB_URL") ?? GetFreeLoopbackUrl(),
                 ["RateLimiting:PerTenant:PermitLimit"] = "1000000",

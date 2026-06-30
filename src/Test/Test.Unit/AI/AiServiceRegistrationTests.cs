@@ -71,6 +71,22 @@ public class AiServiceRegistrationTests
         Assert.AreEqual("none", provider.GetRequiredService<AiProviderInfo>().Name);
     }
 
+    [TestMethod]
+    public async Task RegisterAiChatClientAsync_WithRequiredFoundryLocalBootstrapFailure_Throws()
+    {
+        var builder = CreateHostBuilder(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:chat"] = "",
+            ["AiServices:DisableFoundryLocal"] = "false",
+            ["AiServices:RequireFoundryLocal"] = "true",
+            ["AiServices:LocalModel"] = "",
+            ["AiServices:LocalWebUrl"] = "not-a-url"
+        });
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
+            builder.RegisterAiChatClientAsync(NullLogger.Instance));
+    }
+
     /// <summary>Verifies add AI services with no config registers no op services behavior and protects the expected test contract.</summary>
     [TestMethod]
     public void AddAiServices_WithNoConfig_RegistersNoOpServices()

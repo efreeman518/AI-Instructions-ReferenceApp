@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: [["list"]],
   workers: 1,
   retries: 1,
-  timeout: 180_000,
+  timeout: (Number.parseInt(process.env.TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS ?? "", 10) || 120) * 1000,
 
   projects: [
     {

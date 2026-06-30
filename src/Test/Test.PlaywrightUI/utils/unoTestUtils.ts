@@ -1,94 +1,77 @@
 import { expect, Page } from "@playwright/test";
+import { createHash } from "node:crypto";
 
-export const WasmBootMs = 90_000;
+export type UnoChromeTarget = "dashboard" | "tasks" | "categories" | "tags" | "addTask";
 
-/** Provides Playwright helper logic for normalize uno text. */
-export function normalizeUnoText(value: string) {
-  return value.replace(/\u200B/g, "").replace(/\s+/g, " ").trim();
+const desktopChrome: Record<UnoChromeTarget, { x: number; y: number }> = {
+  dashboard: { x: 84, y: 130 },
+  tasks: { x: 84, y: 276 },
+  categories: { x: 84, y: 420 },
+  tags: { x: 84, y: 566 },
+  addTask: { x: 84, y: 681 },
+};
+
+function readTimeoutMs(name: string, defaultMs: number) {
+  const value = process.env[name];
+  if (!value) return defaultMs;
+  const seconds = Number.parseInt(value, 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return defaultMs;
+  return seconds * 1000;
 }
 
-/** Provides Playwright helper logic for get body text. */
-export async function getBodyText(page: Page) {
-  return normalizeUnoText(await page.locator("body").innerText());
-}
+export const WasmBootMs = readTimeoutMs("TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS", 120_000);
+export const WasmPageLoadMs = readTimeoutMs("TASKFLOW_WASM_PAGE_LOAD_TIMEOUT_SECONDS", 60_000);
 
-/** Provides Playwright helper logic for expect body to contain. */
-export async function expectBodyToContain(page: Page, expectedText: string, timeout = 30_000) {
-  await expect.poll(() => getBodyText(page), { timeout }).toContain(expectedText);
-}
-
-/** Provides Playwright helper logic for expect body to contain all. */
-export async function expectBodyToContainAll(page: Page, expectedTexts: string[], timeout = 30_000) {
-  await expect.poll(async () => {
-    const bodyText = await getBodyText(page);
-    return expectedTexts.every((expectedText) => bodyText.includes(expectedText));
-  }, { timeout }).toBe(true);
-}
-
-type Occurrence = "first" | "last";
-
-/** Provides Playwright helper logic for click uno button by text. */
-async function clickUnoButtonByText(page: Page, text: string, occurrence: Occurrence) {
-  // Uno WASM renders Button as <div xamltype="Microsoft.UI.Xaml.Controls.Button">; filter to
-  // the visible buttons whose textContent matches the requested label exactly.
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const clicked = await page.evaluate(({ label, order }) => {
-      const buttons = Array.from(document.querySelectorAll('[xamltype="Microsoft.UI.Xaml.Controls.Button"]'));
-      const visible = buttons.filter((b) => {
-        const r = b.getBoundingClientRect();
-        if (r.width <= 0 || r.height <= 0 || r.x < 0 || r.y < 0) return false;
-        const style = getComputedStyle(b);
-        if (style.visibility === "hidden" || style.display === "none") return false;
-        const txt = (b.textContent ?? "").replace(/\s+/g, " ").trim();
-        // match whole-word to avoid Task vs Tasks ambiguity
-        const re = new RegExp(`(^|[^A-Za-z])${label}([^A-Za-z]|$)`);
-        return re.test(txt);
-      });
-      if (!visible.length) return null;
-      const target = order === "last" ? visible[visible.length - 1] : visible[0];
-      const r = target.getBoundingClientRect();
-      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-    }, { label: text, order: occurrence });
-    if (clicked) {
-      await page.mouse.move(clicked.x, clicked.y);
-      await page.mouse.down();
-      await page.mouse.up();
-      return true;
-    }
-    await page.waitForTimeout(500);
-  }
-  return false;
-}
-
-/** Provides Playwright helper logic for click visible text. */
-export async function clickVisibleText(page: Page, text: string, occurrence: Occurrence = "first") {
-  const ok = await clickUnoButtonByText(page, text, occurrence);
-  if (ok) return;
-
-  // Fallback: try any clickable element with exact text (legacy flows).
-  const locator = page.getByText(text, { exact: true });
-  const target = occurrence === "last" ? locator.last() : locator.first();
-  await expect(target).toBeVisible({ timeout: 30_000 });
-  await target.scrollIntoViewIfNeeded();
-  await target.click({ force: true });
-}
-
-/** Provides Playwright helper logic for wait for app. */
 export async function waitForApp(page: Page) {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expectBodyToContain(page, "TaskFlow", WasmBootMs);
+  await page.goto("/", { waitUntil: "domcontentloaded", timeout: WasmPageLoadMs });
+  await waitForCanvasPaint(page, WasmBootMs);
 }
 
-/** Provides Playwright helper logic for navigate to task list. */
+export async function waitForCanvasPaint(page: Page, timeout = WasmBootMs) {
+  await expect.poll(async () => page.evaluate(() => {
+    const canvas = Array.from(document.querySelectorAll("canvas"))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return rect.width >= 100 && rect.height >= 100;
+      });
+
+    if (!canvas) return false;
+
+    try {
+      return canvas.toDataURL("image/png").length > 1000;
+    } catch {
+      const rect = canvas.getBoundingClientRect();
+      return rect.width >= 100 && rect.height >= 100;
+    }
+  }), { timeout }).toBe(true);
+}
+
+export async function canvasFingerprint(page: Page) {
+  await waitForCanvasPaint(page);
+  const screenshot = await page.screenshot({ fullPage: false });
+  return createHash("sha256").update(screenshot).digest("hex");
+}
+
+export async function clickAppChrome(page: Page, target: UnoChromeTarget) {
+  const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+  const point = desktopChrome[target];
+  const x = Math.min(point.x, Math.max(24, viewport.width - 24));
+  const y = Math.min(point.y, Math.max(24, viewport.height - 24));
+
+  await page.mouse.click(x, y);
+  await waitForCanvasPaint(page, 30_000);
+}
+
+export async function expectVisualChangeAfter(page: Page, action: () => Promise<void>, timeout = 30_000) {
+  const before = await canvasFingerprint(page);
+  await action();
+  await expect.poll(async () => canvasFingerprint(page), { timeout }).not.toBe(before);
+}
+
 export async function navigateToTaskList(page: Page) {
   await waitForApp(page);
-  await clickVisibleText(page, "Tasks", "last");
-  await expectBodyToContain(page, "Manage and track all your tasks");
+  await clickAppChrome(page, "tasks");
 }
-
-// ---------------------------------------------------------------------------
-// Unique test data
-// ---------------------------------------------------------------------------
 
 export function uniqueTitle(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

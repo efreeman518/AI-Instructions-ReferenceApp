@@ -19,13 +19,14 @@ var unoWasmAvailableInTesting =
 // Keep SQL password stable across restarts so persistent SQL volumes remain usable.
 // Tests can still override via Parameters__sql-password.
 var defaultSqlPassword = LocalSqlSettings.SharedSaPassword;
+var sqlServerImageTag = isTesting ? "2022-latest" : "2025-latest";
 
 // Infrastructure resources
 var sqlPassword = builder.AddParameter("sql-password", defaultSqlPassword, secret: true);
 // In Testing mode: non-persistent, no named volume, random port - ensures fresh container with known password.
 // In dev/prod: persistent with named volume on fixed port.
 var sql = builder.AddSqlServer("sql", sqlPassword, port: isTesting ? null : 38433)
-    .WithImageTag("2025-latest");
+    .WithImageTag(sqlServerImageTag);
 if (!isTesting)
     sql = sql.WithLifetime(ContainerLifetime.Persistent)
              .WithDataVolume("taskflow-sql-data");
@@ -53,12 +54,11 @@ domainEventsTopic.AddServiceBusSubscription("function-processor");
 serviceBus.AddServiceBusQueue("TaskCommands");
 
 // The Service Bus emulator bundles its own SQL Server sidecar (ServiceBus1-mssql); the Aspire package
-// hardcodes that image to an older tag, and RunAsEmulator's callback cannot reach it. Override it here so
-// it matches the `sql` container's 2025-latest tag - keeps the image set on latest and lets Docker share
-// layers instead of pulling a second SQL Server major version (cuts CI disk usage).
+// hardcodes that image, and RunAsEmulator's callback cannot reach it. Override it here so it matches
+// the `sql` container tag and lets Docker share layers instead of pulling a second SQL Server major version.
 builder.CreateResourceBuilder(
         (ContainerResource)builder.Resources.Single(r => r.Name == "ServiceBus1-mssql"))
-    .WithImageTag("2025-latest");
+    .WithImageTag(sqlServerImageTag);
 
 // Azure Cosmos DB - emulator (see AzureStorage comment re: Persistent lifetime)
 // Skipped in Testing: the emulator is heavy (~1.3 GB) and not needed for audit pipeline tests.

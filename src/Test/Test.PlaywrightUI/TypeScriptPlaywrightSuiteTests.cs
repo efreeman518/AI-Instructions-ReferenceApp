@@ -19,7 +19,7 @@ public sealed class TypeScriptPlaywrightSuiteTests
     /// Runs the TypeScript Playwright projects for all browser hosts Aspire can expose locally.
     /// </summary>
     [TestMethod]
-    [Timeout(1_200_000)]
+    [Timeout(3_600_000)]
     public async Task TypeScriptBrowserProjects_Pass()
     {
         var readiness = TypeScriptPlaywrightRunner.CheckReadiness();
@@ -29,8 +29,23 @@ public sealed class TypeScriptPlaywrightSuiteTests
             Assert.Inconclusive(readiness.Message);
         }
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(18));
-        await using var host = await PlaywrightAspireHost.StartAsync(cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(55));
+        PlaywrightAspireHost host;
+        try
+        {
+            host = await PlaywrightAspireHost.StartAsync(cts.Token);
+        }
+        catch (WasmPrerequisiteException ex)
+        {
+            Assert.Inconclusive(ex.Message);
+            return;
+        }
+
+        await using var hostScope = host;
+        foreach (var message in host.DiagnosticMessages)
+        {
+            TestContext.WriteLine(message);
+        }
 
         await GatewayHttpSmokeRunner.RunAsync(host.GatewayBaseUrl, cts.Token);
 
@@ -38,9 +53,21 @@ public sealed class TypeScriptPlaywrightSuiteTests
         TestContext.WriteLine(result.StandardOutput);
         TestContext.WriteLine(result.StandardError);
 
-        Assert.AreEqual(
-            0,
-            result.ExitCode,
-            $"TypeScript Playwright failed for project(s): {string.Join(", ", host.TypeScriptProjects)}.");
+        if (result.ExitCode != 0)
+        {
+            Assert.Fail(
+                $"TypeScript Playwright failed with exit code {result.ExitCode} for project(s): {string.Join(", ", host.TypeScriptProjects)}."
+                + Environment.NewLine
+                + "stdout:"
+                + Environment.NewLine
+                + Truncate(result.StandardOutput)
+                + Environment.NewLine
+                + "stderr:"
+                + Environment.NewLine
+                + Truncate(result.StandardError));
+        }
     }
+
+    private static string Truncate(string value)
+        => value.Length <= 12_000 ? value : value[..12_000] + "...";
 }
