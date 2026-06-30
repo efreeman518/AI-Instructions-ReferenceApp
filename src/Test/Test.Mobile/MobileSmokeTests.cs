@@ -12,6 +12,7 @@ public sealed class MobileSmokeTests
 
     /// <summary>Verifies task flow mobile app launches and renders native surface behavior and protects the expected test contract.</summary>
     [TestMethod]
+    [Timeout(300_000)]
     public void TaskFlowMobile_AppLaunches_AndRendersNativeSurface()
     {
         var settings = MobileTestSettings.From(TestContext);

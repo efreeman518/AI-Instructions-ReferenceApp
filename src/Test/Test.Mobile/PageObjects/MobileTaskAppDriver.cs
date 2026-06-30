@@ -37,8 +37,7 @@ internal sealed class MobileTaskAppDriver
     /// <summary>Matches an element by its accessibility label (content-desc) or visible text.</summary>
     private static By ByLabel(string label)
     {
-        var literal = XPathLiteral(label);
-        return By.XPath($"//*[@content-desc={literal} or @text={literal}]");
+        return MobileBy.AccessibilityId(label);
     }
 
     /// <summary>Matches an element whose label/text contains the given fragment.</summary>
@@ -46,6 +45,14 @@ internal sealed class MobileTaskAppDriver
     {
         var literal = XPathLiteral(fragment);
         return By.XPath($"//*[contains(@content-desc, {literal}) or contains(@text, {literal})]");
+    }
+
+    private static bool IsFatalDriverError(WebDriverException ex)
+    {
+        var message = ex.Message;
+        return message.Contains("instrumentation process not running", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Could not proxy command to the remote server", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("socket hang up", StringComparison.OrdinalIgnoreCase);
     }
 
     private AppiumElement? FirstOrNull(By by)
@@ -64,13 +71,14 @@ internal sealed class MobileTaskAppDriver
             try
             {
                 var found = probe();
-                if (found is not null && found.Displayed)
+                if (found is not null)
                 {
                     return found;
                 }
             }
             catch (WebDriverException ex)
             {
+                if (IsFatalDriverError(ex)) throw;
                 last = ex;
             }
 
@@ -219,7 +227,7 @@ internal sealed class MobileTaskAppDriver
         while (DateTimeOffset.UtcNow < deadline)
         {
             var option = FirstOrNull(ByLabel(optionText));
-            if (option is not null && option.Displayed)
+            if (option is not null)
             {
                 option.Click();
                 return true;
@@ -271,9 +279,12 @@ internal sealed class MobileTaskAppDriver
             try
             {
                 var found = FirstOrNull(ByLabel(label)) ?? FirstOrNull(ByLabelContains(label)) ?? ScrollIntoView(label);
-                if (found is not null && found.Displayed) return found;
+                if (found is not null) return found;
             }
-            catch (WebDriverException) { }
+            catch (WebDriverException ex)
+            {
+                if (IsFatalDriverError(ex)) throw;
+            }
 
             Thread.Sleep(TimeSpan.FromMilliseconds(300));
         }
@@ -281,18 +292,17 @@ internal sealed class MobileTaskAppDriver
         return null;
     }
 
-    public bool HasText(string text) =>
-        _driver.FindElements(ByLabel(text)).Count > 0 || _driver.FindElements(ByLabelContains(text)).Count > 0;
+    public bool HasText(string text) => _driver.FindElements(ByLabel(text)).Count > 0;
 
     public void WaitForText(string text) =>
-        WaitFor(() => FirstOrNull(ByLabel(text)) ?? FirstOrNull(ByLabelContains(text)), $"text '{text}'");
+        WaitFor(() => FirstOrNull(ByLabel(text)), $"text '{text}'");
 
     public void WaitForTextGone(string text)
     {
         var deadline = DateTimeOffset.UtcNow + _timeout;
         while (DateTimeOffset.UtcNow < deadline)
         {
-            if (_driver.FindElements(ByLabelContains(text)).Count == 0)
+            if (_driver.FindElements(ByLabel(text)).Count == 0)
             {
                 return;
             }

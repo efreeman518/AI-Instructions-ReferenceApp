@@ -1066,6 +1066,12 @@ API: Sets IRequestContext (tenant, user, roles)
 <td>MSTest, <strong>Microsoft.Playwright</strong>, TypeScript <strong>@playwright/test</strong></td>
 </tr>
 <tr>
+<td><strong>Test.Mobile</strong></td>
+<td>Opt-in native mobile UI smoke for Uno Android/iOS heads. Tests validate Appium sessions but do not launch emulators or Appium from test methods. <code>run-mobile-tests.ps1</code> owns Android APK build, emulator readiness, Appium readiness, and enabled <code>dotnet test</code>.</td>
+<td>Default solution runs report Inconclusive when <code>TASKFLOW_MOBILE_TESTS_ENABLED</code> is not true. Explicit mobile lane fails fast for missing APK, emulator, Appium, or UiAutomator2. Coverage stays on stable launch, first-viewport accessibility, and native text entry; deep CRUD and long-scroll persistence remain in API, integration, unit, and Playwright lanes.</td>
+<td>MSTest, <strong>Appium.WebDriver</strong>, Appium UiAutomator2</td>
+</tr>
+<tr>
 <td><strong>Test.Integration.FlowEngine</strong></td>
 <td>Workflow-definition validity tier for every JSON file shipped under <code>TaskFlow.Api/Workflows/</code>. Asserts JSON -&gt; <code>WorkflowDefinition</code> deserialization, <code>WorkflowDefinitionValidator.ValidateAndThrow</code> passes (unknown node types, dangling edges, malformed schemas), in-memory <code>IWorkflowRegistry</code> round-trip preserves node count + status, <code>WorkflowDefinitionBuilder.FromJson</code> hydrates id/version/nodes, and the copy-on-build glob does not silently drop files.</td>
 <td>Catches authoring mistakes that would otherwise only surface at first-instance-start in dev. Runs without any Aspire stack or Docker - uses <code>EF.FlowEngine.Testing</code>&#39;s in-memory registry. Fast (sub-second) and is the first line of defense on every PR that touches a workflow JSON.</td>

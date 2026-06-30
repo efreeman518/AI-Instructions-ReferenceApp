@@ -148,6 +148,8 @@ D9 uses the same `IChatClient` as D1-D8. With AI disabled, the workflow still st
 
 ## Local Mobile UI Tests
 
+Use `src/Test/Test.Mobile/run-mobile-tests.ps1` for Android local runs. Test methods do not start Appium or emulators; the runner starts or verifies those dependencies, then enables the mobile lane.
+
 TaskFlow mobile smoke tests use MSTest + Appium for the Uno Android/iOS heads. Android runs locally on Windows; iOS requires macOS or a Mac host with Xcode.
 
 Before building the Android package, restore the Uno app with all mobile targets included:
