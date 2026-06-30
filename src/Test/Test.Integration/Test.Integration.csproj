@@ -10,6 +10,7 @@
     <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Testcontainers.Azurite" />
     <PackageReference Include="Azure.Data.Tables" />
+    <PackageReference Include="EF.Data" />
     <PackageReference Include="EF.IntegrationTesting" />
     <!-- FlowEngine workflow integration tests: full in-process host + self-call connector. -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />

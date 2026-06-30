@@ -35,6 +35,9 @@ param apiImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:la
 @description('Scheduler container image')
 param schedulerImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
+@description('Database migrator container image')
+param migratorImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
 @description('Blazor container image')
 param blazorImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
@@ -170,6 +173,29 @@ var commonEnvVars = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
 ]
 
+// SQL auth gap: these apps use Entra auth connection strings, but this template does not yet
+// create database users or grants. Add a SQL data-plane step before production: migrator
+// identity gets schema DDL plus migration history rights; API, Scheduler, and Functions get
+// runtime DML only on taskflow, flowengine, and Scheduler schemas. Do not grant DDL to runtime apps.
+module migrator 'modules/container-app-job.bicep' = {
+  name: 'migrator'
+  scope: rg
+  params: {
+    jobName: '${prefix}-dbmigrator'
+    location: location
+    environmentId: containerAppsEnv.outputs.id
+    containerImage: migratorImage
+    cpu: '0.25'
+    memory: '0.5Gi'
+    envVars: union(commonEnvVars, [
+      { name: 'ConnectionStrings__TaskFlowDbContextTrxn', value: sqlDatabase.outputs.connectionString }
+      { name: 'ConnectionStrings__TaskFlowFlowEngineDbContext', value: sqlDatabase.outputs.connectionString }
+      { name: 'ConnectionStrings__TickerQDbContext', value: sqlDatabase.outputs.connectionString }
+    ])
+    tags: tags
+  }
+}
+
 module gateway 'modules/container-app.bicep' = {
   name: 'gateway'
   scope: rg
@@ -208,6 +234,7 @@ module api 'modules/container-app.bicep' = {
     envVars: union(commonEnvVars, [
       { name: 'ConnectionStrings__TaskFlowDbContextTrxn', value: sqlDatabase.outputs.connectionString }
       { name: 'ConnectionStrings__TaskFlowDbContextQuery', value: sqlDatabase.outputs.connectionString }
+      { name: 'ConnectionStrings__TaskFlowFlowEngineDbContext', value: sqlDatabase.outputs.connectionString }
       { name: 'ConnectionStrings__CosmosDb1', value: cosmosDb.outputs.accountEndpoint }
       { name: 'ConnectionStrings__BlobStorage1', value: storage.outputs.appStorageBlobEndpoint }
       { name: 'ConnectionStrings__TableStorage1', value: storage.outputs.appStorageTableEndpoint }
@@ -232,7 +259,10 @@ module scheduler 'modules/container-app.bicep' = {
     minReplicas: 0
     maxReplicas: 1
     envVars: union(commonEnvVars, [
+      { name: 'ConnectionStrings__TaskFlowDbContextTrxn', value: sqlDatabase.outputs.connectionString }
       { name: 'ConnectionStrings__TaskFlowDbContextQuery', value: sqlDatabase.outputs.connectionString }
+      { name: 'ConnectionStrings__TaskFlowFlowEngineDbContext', value: sqlDatabase.outputs.connectionString }
+      { name: 'ConnectionStrings__TickerQDbContext', value: sqlDatabase.outputs.connectionString }
       { name: 'SERVICEBUS__fullyQualifiedNamespace', value: serviceBus.outputs.namespaceEndpoint }
     ])
     tags: tags
@@ -496,6 +526,7 @@ output blazorFqdn string = blazor.outputs.fqdn
 output staticWebAppName string = staticWebApp.outputs.name
 output staticWebAppDefaultHostname string = staticWebApp.outputs.defaultHostname
 output functionAppName string = functions.outputs.functionAppName
+output migrationJobName string = migrator.outputs.name
 output deployIdentityClientId string = deployIdentity.outputs.clientId
 output deployIdentityPrincipalId string = deployIdentity.outputs.principalId
 output keyVaultName string = keyVault.outputs.name

@@ -74,6 +74,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'KeyVault__Uri', value: keyVaultUri }
         { name: 'ConnectionStrings__TaskFlowDbContextTrxn', value: sqlConnectionString }
         { name: 'ConnectionStrings__TaskFlowDbContextQuery', value: sqlConnectionString }
+        { name: 'ConnectionStrings__TaskFlowFlowEngineDbContext', value: sqlConnectionString }
         { name: 'ConnectionStrings__CosmosDb1', value: cosmosEndpoint }
         { name: 'ConnectionStrings__BlobStorage1', value: storageBlobEndpoint }
         {

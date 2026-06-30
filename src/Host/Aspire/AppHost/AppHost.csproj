@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\TaskFlow.Api\TaskFlow.Api.csproj" />
+    <ProjectReference Include="..\..\TaskFlow.DatabaseMigrator\TaskFlow.DatabaseMigrator.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Scheduler\TaskFlow.Scheduler.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Gateway\TaskFlow.Gateway.csproj" />
     <ProjectReference Include="..\..\TaskFlow.Functions\TaskFlow.Functions.csproj" />

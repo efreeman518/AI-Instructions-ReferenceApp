@@ -15,11 +15,15 @@ var reactAvailableInTesting =
     Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_REACT_AVAILABLE") == "true";
 var unoWasmAvailableInTesting =
     Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE") == "true";
+// Opt-in only: normal Aspire tests keep AI deterministic by disabling Foundry Local.
+// Set this before the AppHost is built to run the explicit local-AI Aspire smoke lane.
+var foundryLocalAvailableInTesting =
+    Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL") == "true";
 
 // Keep SQL password stable across restarts so persistent SQL volumes remain usable.
 // Tests can still override via Parameters__sql-password.
 var defaultSqlPassword = LocalSqlSettings.SharedSaPassword;
-var sqlServerImageTag = isTesting ? "2022-latest" : "2025-latest";
+var sqlServerImageTag = "2025-latest";
 
 // Infrastructure resources
 var sqlPassword = builder.AddParameter("sql-password", defaultSqlPassword, secret: true);
@@ -85,7 +89,8 @@ if (!isTesting)
 // Azure-only escalation - see the commented "Foundry project + prompt agent" block after the API host
 // and README "AI Demos" -> "Projects and agents". They are documented but not wired by default.
 //
-// Test mode forces no-op for local AI; Azure Foundry can still be explicitly configured.
+// Test mode forces no-op for local AI unless TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL=true;
+// Azure Foundry can still be explicitly configured.
 IResourceBuilder<FoundryDeploymentResource>? chat = null;
 var azureFoundryConfigured = builder.ExecutionContext.IsPublishMode
     || !string.IsNullOrWhiteSpace(builder.Configuration["AiServices:FoundryEndpoint"])
@@ -109,14 +114,24 @@ if (azureFoundryConfigured)
     //     .AddDeployment("chat", FoundryModel.OpenAI.Gpt4oMini);
 }
 
+// Single migration owner. Runtime hosts wait for this project and never mutate schema on startup.
+// Connection names stay separate even when local Aspire maps them to the same taskflowdb database.
+var migrator = builder.AddProject<Projects.TaskFlow_DatabaseMigrator>("taskflowmigrator")
+    .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
+    .WithReference(taskflowDb, connectionName: "TaskFlowFlowEngineDbContext")
+    .WithReference(taskflowDb, connectionName: "TickerQDbContext")
+    .WaitFor(sql);
+
 // API host
 var api = builder.AddProject<Projects.TaskFlow_Api>("taskflowapi")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
     .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
+    .WithReference(taskflowDb, connectionName: "TaskFlowFlowEngineDbContext")
     .WithReference(redis, connectionName: "Redis1")
     .WithReference(tables)
     .WithReference(blobs)
     .WithReference(serviceBus)
+    .WaitForCompletion(migrator)
     .WaitFor(sql)
     .WaitFor(redis)
     .WaitFor(serviceBus);
@@ -148,9 +163,30 @@ if (chat is not null)
 
 if (isTesting)
 {
-    api = api
-        .WithEnvironment("Cors__AllowedOrigins__0", "http://localhost")
-        .WithEnvironment("AiServices__DisableFoundryLocal", "true");
+    api = api.WithEnvironment("Cors__AllowedOrigins__0", "http://localhost");
+
+    if (foundryLocalAvailableInTesting)
+    {
+        // This is deliberately API-only. Functions stay local-AI disabled in test mode so
+        // the optional lane does not start multiple Foundry Local hosts in the same graph.
+        // RequireFoundryLocal prevents an opt-in smoke from silently falling back to no-op.
+        api = api
+            .WithEnvironment("AiServices__DisableFoundryLocal", "false")
+            .WithEnvironment("AiServices__RequireFoundryLocal", "true");
+
+        // Let local smoke runs pin the model or HTTP endpoint without changing appsettings.
+        var foundryLocalModel = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_MODEL");
+        if (!string.IsNullOrWhiteSpace(foundryLocalModel))
+            api = api.WithEnvironment("AiServices__LocalModel", foundryLocalModel);
+
+        var foundryLocalWebUrl = Environment.GetEnvironmentVariable("TASKFLOW_FOUNDRY_LOCAL_WEB_URL");
+        if (!string.IsNullOrWhiteSpace(foundryLocalWebUrl))
+            api = api.WithEnvironment("AiServices__LocalWebUrl", foundryLocalWebUrl);
+    }
+    else
+    {
+        api = api.WithEnvironment("AiServices__DisableFoundryLocal", "true");
+    }
 }
 
 if (!string.IsNullOrWhiteSpace(applicationStyle))
@@ -177,10 +213,13 @@ if (!isTesting)
     var scheduler = builder.AddProject<Projects.TaskFlow_Scheduler>("taskflowscheduler")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
+        .WithReference(taskflowDb, connectionName: "TaskFlowFlowEngineDbContext")
+        .WithReference(taskflowDb, connectionName: "TickerQDbContext")
         .WithReference(redis, connectionName: "Redis1")
         .WithReference(tables)
         .WithReference(serviceBus)
         .WithReplicas(1)
+        .WaitForCompletion(migrator)
         .WaitFor(sql)
         .WaitFor(serviceBus);
 
@@ -214,9 +253,11 @@ if (!isTesting || functionsAvailableInTesting)
         .WithHostStorage(storage)
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextTrxn")
         .WithReference(taskflowDb, connectionName: "TaskFlowDbContextQuery")
+        .WithReference(taskflowDb, connectionName: "TaskFlowFlowEngineDbContext")
         .WithReference(tables)
         .WithReference(blobs)
         .WithReference(serviceBus)
+        .WaitForCompletion(migrator)
         .WaitFor(sql)
         .WaitFor(storage)
         .WaitFor(serviceBus);

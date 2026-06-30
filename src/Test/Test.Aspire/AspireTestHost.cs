@@ -1,4 +1,5 @@
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using AppHost;
 using EF.IntegrationTesting.Aspire;
@@ -32,6 +33,7 @@ internal static class AspireTestHost
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
 
     internal const string ResourceLoggingEnvironmentVariable = "TASKFLOW_ASPIRE_RESOURCE_LOGGING";
+    internal const string FoundryLocalOptInEnvironmentVariable = "TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL";
 
     /// <summary>Guards the lazy single-start so concurrent <c>[ClassInitialize]</c> calls boot the graph once.</summary>
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -177,12 +179,58 @@ internal static class AspireTestHost
     /// Tests should call this for any non-SQL resource (taskflowapi, taskflowfunctions, TableStorage1) before
     /// talking to it - Aspire reports Running before warm-up completes.
     /// </summary>
-    internal static Task WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
+    internal static async Task WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
         if (AspireApp is null)
             throw new InvalidOperationException("AspireApp is not initialized.");
 
-        return AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
+        try
+        {
+            await AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
+        }
+        catch
+        {
+            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
+            await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
+            throw;
+        }
+    }
+
+    private static async Task DumpResourceDiagnosticsAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        if (AspireApp is null)
+            return;
+
+        if (AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
+        {
+            Console.WriteLine(
+                $"{resourceName}: state={resourceEvent.Snapshot.State?.Text}, health={resourceEvent.Snapshot.HealthStatus}");
+        }
+        else
+        {
+            Console.WriteLine($"{resourceName}: no resource state available.");
+        }
+
+        var logs = AspireApp.Services.GetService<ResourceLoggerService>();
+        if (logs is null)
+        {
+            Console.WriteLine(
+                $"{resourceName}: resource logging disabled; set {ResourceLoggingEnvironmentVariable}=true to capture Aspire resource logs.");
+            return;
+        }
+
+        try
+        {
+            await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(cancellationToken))
+            {
+                foreach (var line in batch)
+                    Console.WriteLine($"{resourceName}: {line}");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"{resourceName}: resource logs unavailable: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -195,6 +243,8 @@ internal static class AspireTestHost
     {
         return IsAzureFoundryRequested()
             ? AspireAiProvider.AzureFoundry
+            : IsFoundryLocalRequested()
+                ? AspireAiProvider.FoundryLocal
             : AspireAiProvider.None;
     }
 
@@ -204,6 +254,8 @@ internal static class AspireTestHost
             || HasValue("AiServices__FoundryEndpoint")
             || HasValue("AiServices:FoundryEndpoint");
     }
+
+    private static bool IsFoundryLocalRequested() => IsEnabled(FoundryLocalOptInEnvironmentVariable);
 
     private static bool IsEnabled(string variableName) =>
         string.Equals(Environment.GetEnvironmentVariable(variableName), "true", StringComparison.OrdinalIgnoreCase);
@@ -302,5 +354,6 @@ internal static class AspireTestHost
 internal enum AspireAiProvider
 {
     None,
+    FoundryLocal,
     AzureFoundry
 }

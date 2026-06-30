@@ -4,53 +4,48 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace TaskFlow.Infrastructure.Data;
 
-/// <summary>Provides design time DB context factory trxn behavior for the Infrastructure layer.</summary>
+/// <summary>Creates the transactional context for EF tooling.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryTrxn : IDesignTimeDbContextFactory<TaskFlowDbContextTrxn>
 {
-    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowDbContextTrxn CreateDbContext(string[] args)
     {
-        string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
-        if (string.IsNullOrEmpty(connString))
-            throw new InvalidOperationException("The connection string was not set in the 'EFCORETOOLSDB' environment variable.");
-
-        Console.WriteLine(connString);
+        var connString = DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextTrxn>();
         optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
-        return new TaskFlowDbContextTrxn(optionsBuilder.Options) { AuditId = "DesignTimeAuditId", TenantId = Guid.NewGuid() };
+        return new TaskFlowDbContextTrxn(optionsBuilder.Options)
+        {
+            AuditId = "DesignTimeAuditId",
+            TenantId = Guid.NewGuid()
+        };
     }
 }
 
-/// <summary>Carries design time DB context factory query CQRS data between endpoints and handlers.</summary>
+/// <summary>Creates the query context for EF tooling.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskFlowDbContextQuery>
 {
-    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowDbContextQuery CreateDbContext(string[] args)
     {
-        string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
-        if (string.IsNullOrEmpty(connString))
-            throw new InvalidOperationException("The connection string was not set in the 'EFCORETOOLSDB' environment variable.");
-
-        Console.WriteLine(connString);
+        var connString = DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextQuery>();
         optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
-        return new TaskFlowDbContextQuery(optionsBuilder.Options) { AuditId = "DesignTimeAuditId", TenantId = Guid.NewGuid() };
+        return new TaskFlowDbContextQuery(optionsBuilder.Options)
+        {
+            AuditId = "DesignTimeAuditId",
+            TenantId = Guid.NewGuid()
+        };
     }
 }
 
-/// <summary>Provides design time DB context factory flow engine behavior for the Infrastructure layer.</summary>
+/// <summary>Creates the FlowEngine context for EF tooling.</summary>
 [ExcludeFromCodeCoverage]
 public class DesignTimeDbContextFactoryFlowEngine : IDesignTimeDbContextFactory<TaskFlowFlowEngineDbContext>
 {
-    /// <summary>Creates requested data after validation and maps the result to the caller contract.</summary>
     public TaskFlowFlowEngineDbContext CreateDbContext(string[] args)
     {
-        string? connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB");
-        if (string.IsNullOrEmpty(connString))
-            throw new InvalidOperationException("The connection string was not set in the 'EFCORETOOLSDB' environment variable.");
-
+        var connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB_FLOWENGINE")
+            ?? DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowFlowEngineDbContext>();
         optionsBuilder.UseSqlServer(connString, sql =>
         {
@@ -60,5 +55,36 @@ public class DesignTimeDbContextFactoryFlowEngine : IDesignTimeDbContextFactory<
                 TaskFlowFlowEngineDbContext.SchemaName);
         });
         return new TaskFlowFlowEngineDbContext(optionsBuilder.Options);
+    }
+}
+
+/// <summary>Creates the TickerQ context for EF tooling.</summary>
+[ExcludeFromCodeCoverage]
+public class DesignTimeDbContextFactoryTickerQ : IDesignTimeDbContextFactory<TaskFlowTickerQDbContext>
+{
+    public TaskFlowTickerQDbContext CreateDbContext(string[] args)
+    {
+        var connString = Environment.GetEnvironmentVariable("EFCORETOOLSDB_TICKERQ")
+            ?? DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
+        var optionsBuilder = new DbContextOptionsBuilder<TaskFlowTickerQDbContext>();
+        optionsBuilder.UseSqlServer(connString, sql =>
+        {
+            sql.UseLatestCompatibilityLevel();
+            sql.MigrationsAssembly(typeof(TaskFlowTickerQDbContext).Assembly.GetName().Name);
+            sql.MigrationsHistoryTable(
+                TaskFlowTickerQDbContext.MigrationHistoryTable,
+                TaskFlowTickerQDbContext.SchemaName);
+        });
+        return new TaskFlowTickerQDbContext(optionsBuilder.Options);
+    }
+}
+
+file static class DesignTimeConnectionStrings
+{
+    public static string Require(string environmentVariableName)
+    {
+        return Environment.GetEnvironmentVariable(environmentVariableName)
+            ?? throw new InvalidOperationException(
+                $"The connection string was not set in '{environmentVariableName}' environment variable.");
     }
 }

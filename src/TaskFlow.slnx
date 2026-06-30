@@ -20,6 +20,7 @@
   <Folder Name="/Host/">
     <Project Path="Host/TaskFlow.Bootstrapper/TaskFlow.Bootstrapper.csproj" />
     <Project Path="Host/TaskFlow.Api/TaskFlow.Api.csproj" />
+    <Project Path="Host/TaskFlow.DatabaseMigrator/TaskFlow.DatabaseMigrator.csproj" />
     <Project Path="Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj" />
     <Project Path="Host/TaskFlow.Gateway/TaskFlow.Gateway.csproj" />
     <Project Path="Host/TaskFlow.Functions/TaskFlow.Functions.csproj" />

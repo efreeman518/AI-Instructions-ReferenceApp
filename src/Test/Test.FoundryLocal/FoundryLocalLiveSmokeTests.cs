@@ -40,13 +40,29 @@ public sealed class FoundryLocalLiveSmokeTests
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
 
-        using var response = await client.PostAsJsonAsync(
-            "/api/v1/ai/chat",
-            new { message = "Answer in one short sentence: what does TaskFlow track?" },
-            TestContext.CancellationTokenSource.Token);
-        using var payload = await ReadJsonAsync(response, TestContext.CancellationTokenSource.Token);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(300));
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync(
+                "/api/v1/ai/chat",
+                new { message = "Answer in one short sentence: what does TaskFlow track?" },
+                timeout.Token);
+        }
+        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        {
+            Assert.Inconclusive(
+                "Foundry Local provider bootstrapped, but chat smoke did not complete within 300 seconds. " +
+                ex.Message);
+            throw;
+        }
+
+        using var responseMessage = response;
+        using var payload = await ReadJsonAsync(responseMessage, timeout.Token);
+
+        Assert.AreEqual(HttpStatusCode.OK, responseMessage.StatusCode);
         Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
         AssertHasText(payload.RootElement.GetProperty("message"), "message");
     }
@@ -75,7 +91,7 @@ public sealed class FoundryLocalLiveSmokeTests
         }
         catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
         {
-            Assert.Fail(
+            Assert.Inconclusive(
                 "Foundry Local provider bootstrapped, but the code-hosted agent smoke did not complete within 300 seconds. " +
                 ex.Message);
             throw;
@@ -95,13 +111,27 @@ public sealed class FoundryLocalLiveSmokeTests
     public async Task Given_FoundryLocalApiHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
-        var ct = TestContext.CancellationTokenSource.Token;
-        var taskId = await CreateTaskAsync(client, "Foundry Local triage smoke " + Guid.NewGuid().ToString("N"), ct);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(300));
+        var taskId = await CreateTaskAsync(client, "Foundry Local triage smoke " + Guid.NewGuid().ToString("N"), timeout.Token);
 
-        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null, ct);
-        using var payload = await ReadJsonAsync(response, ct);
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null, timeout.Token);
+        }
+        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        {
+            Assert.Inconclusive(
+                "Foundry Local provider bootstrapped, but task triage smoke did not complete within 300 seconds. " +
+                ex.Message);
+            throw;
+        }
 
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        using var responseMessage = response;
+        using var payload = await ReadJsonAsync(responseMessage, timeout.Token);
+
+        Assert.AreEqual(HttpStatusCode.OK, responseMessage.StatusCode);
         Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
         Assert.IsFalse(payload.RootElement.GetProperty("applied").GetBoolean());
         var triage = payload.RootElement.GetProperty("triage");

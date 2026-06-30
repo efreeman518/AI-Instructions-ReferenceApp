@@ -80,8 +80,6 @@ public static partial class RegisterServices
     /// </summary>
     private static void AddStartupTasks(IServiceCollection services)
     {
-        services.AddScoped<IStartupTask, ApplyEFMigrationsStartup>();
-        services.AddScoped<IStartupTask, ApplyFlowEngineMigrationsStartup>();
         services.AddScoped<IStartupTask, WarmupDependencies>();
     }
 

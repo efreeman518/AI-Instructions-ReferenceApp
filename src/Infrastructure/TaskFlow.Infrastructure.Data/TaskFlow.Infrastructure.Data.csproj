@@ -10,6 +10,7 @@
     <PackageReference Include="EF.FlowEngine.HumanTaskStore.Sql" />
     <PackageReference Include="EF.FlowEngine.CircuitBreaker.Sql" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="TickerQ.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>

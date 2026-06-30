@@ -10,13 +10,11 @@ using TaskFlow.Infrastructure.Repositories;
 
 namespace TaskFlow.Bootstrapper;
 
-/// <summary>Configures register services host behavior for TaskFlow runtime services.</summary>
+/// <summary>Configures database services for TaskFlow runtime hosts.</summary>
 public static partial class RegisterServices
 {
     /// <summary>
-    /// Registers the write DbContext, read DbContext, FlowEngine DbContext, and repositories.
-    /// The write context carries the audit interceptor; the query context is no-tracking and
-    /// uses ApplicationIntent=ReadOnly when the connection string does not already specify it.
+    /// Registers write DbContext, read DbContext, FlowEngine DbContext, and repositories.
     /// </summary>
     private static void AddDatabaseServices(IServiceCollection services, IConfiguration config)
     {
@@ -25,6 +23,8 @@ public static partial class RegisterServices
 
         var dbConnectionStringTrxn = config.GetConnectionString("TaskFlowDbContextTrxn") ?? "";
         var dbConnectionStringQuery = config.GetConnectionString("TaskFlowDbContextQuery") ?? "";
+        var dbConnectionStringFlowEngine =
+            config.GetConnectionString("TaskFlowFlowEngineDbContext") ?? dbConnectionStringTrxn;
         var maxRetryCount = config.GetValue<int?>("Database:Retry:MaxRetryCount") ?? 5;
         var maxRetryDelaySeconds = config.GetValue<int?>("Database:Retry:MaxRetryDelaySeconds") ?? 30;
 
@@ -50,22 +50,18 @@ public static partial class RegisterServices
         services.AddScoped(sp => sp.GetRequiredService<DbContextScopedFactory<TaskFlowDbContextQuery, string, Guid?>>()
             .CreateDbContext());
 
-        // FlowEngine DbContext - same SQL Server connection, separate schema + migration history.
-        // Inherits FlowEngineOutboxDbContext to enable atomic state+outbox saves.
         services.AddPooledDbContextFactory<TaskFlowFlowEngineDbContext>((sp, options) =>
         {
-            ConfigureFlowEngineSqlOptions(options, dbConnectionStringTrxn, maxRetryCount, maxRetryDelaySeconds);
+            ConfigureFlowEngineSqlOptions(
+                options,
+                dbConnectionStringFlowEngine,
+                maxRetryCount,
+                maxRetryDelaySeconds);
         });
 
-        // Generic repository pair (open-generic) - serves every entity with no bespoke read/write
-        // logic: CRUD-only / append-only / join entities resolve IRepositoryTrxn<TEntity,TId> / IRepositoryQuery<TEntity,TId>
-        // with no per-entity class (TaskItemTag both sides; the write side of Tag, Comment,
-        // ChecklistItem). Backed by the EF.Data package via the closed-over-context subclasses.
         services.AddScoped(typeof(IRepositoryTrxn<,>), typeof(TaskFlowRepositoryTrxn<,>));
         services.AddScoped(typeof(IRepositoryQuery<,>), typeof(TaskFlowRepositoryQuery<,>));
 
-        // Bespoke repositories - entity-specific read/write logic the generic pair does not cover
-        // (multi-include loads, child-collection sync, polymorphic/hierarchy queries).
         services.AddScoped<ICategoryRepositoryTrxn, CategoryRepositoryTrxn>();
         services.AddScoped<ICategoryRepositoryQuery, CategoryRepositoryQuery>();
         services.AddScoped<ITaskItemRepositoryTrxn, TaskItemRepositoryTrxn>();
@@ -73,16 +69,11 @@ public static partial class RegisterServices
         services.AddScoped<IAttachmentRepositoryTrxn, AttachmentRepositoryTrxn>();
         services.AddScoped<IAttachmentRepositoryQuery, AttachmentRepositoryQuery>();
 
-        // Read side only - paged Search projections; write side folded into the generic pair above.
         services.AddScoped<ITagRepositoryQuery, TagRepositoryQuery>();
         services.AddScoped<ICommentRepositoryQuery, CommentRepositoryQuery>();
         services.AddScoped<IChecklistItemRepositoryQuery, ChecklistItemRepositoryQuery>();
     }
 
-    /// <summary>
-    /// Applies provider-specific SQL options while keeping retry policy consistent between
-    /// local SQL Server and Azure SQL.
-    /// </summary>
     private static void ConfigureSqlOptions(
         DbContextOptionsBuilder options,
         string connectionString,
@@ -93,13 +84,15 @@ public static partial class RegisterServices
 
         var maxRetryDelay = TimeSpan.FromSeconds(maxRetryDelaySeconds);
 
-        if (connectionString.Contains("database.windows.net"))
+        if (connectionString.Contains("database.windows.net", StringComparison.OrdinalIgnoreCase))
         {
             options.UseAzureSql(connectionString, sqlOptions =>
             {
                 sqlOptions.UseLatestCompatibilityLevel();
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
-                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay,
+                    errorNumbersToAdd: null);
             });
         }
         else
@@ -107,16 +100,14 @@ public static partial class RegisterServices
             options.UseSqlServer(connectionString, sqlOptions =>
             {
                 sqlOptions.UseLatestCompatibilityLevel();
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
-                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay,
+                    errorNumbersToAdd: null);
             });
         }
     }
 
-    /// <summary>
-    /// Uses the app transaction connection for FlowEngine state but isolates schema and
-    /// migration history so workflow tables never collide with application migrations.
-    /// </summary>
     private static void ConfigureFlowEngineSqlOptions(
         DbContextOptionsBuilder options,
         string connectionString,
@@ -127,13 +118,15 @@ public static partial class RegisterServices
 
         var maxRetryDelay = TimeSpan.FromSeconds(maxRetryDelaySeconds);
 
-        if (connectionString.Contains("database.windows.net"))
+        if (connectionString.Contains("database.windows.net", StringComparison.OrdinalIgnoreCase))
         {
             options.UseAzureSql(connectionString, sqlOptions =>
             {
                 sqlOptions.UseLatestCompatibilityLevel();
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
-                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay,
+                    errorNumbersToAdd: null);
                 sqlOptions.MigrationsHistoryTable(
                     TaskFlowFlowEngineDbContext.MigrationHistoryTable,
                     TaskFlowFlowEngineDbContext.SchemaName);
@@ -144,8 +137,10 @@ public static partial class RegisterServices
             options.UseSqlServer(connectionString, sqlOptions =>
             {
                 sqlOptions.UseLatestCompatibilityLevel();
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: maxRetryCount,
-                    maxRetryDelay: maxRetryDelay, errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: maxRetryCount,
+                    maxRetryDelay: maxRetryDelay,
+                    errorNumbersToAdd: null);
                 sqlOptions.MigrationsHistoryTable(
                     TaskFlowFlowEngineDbContext.MigrationHistoryTable,
                     TaskFlowFlowEngineDbContext.SchemaName);

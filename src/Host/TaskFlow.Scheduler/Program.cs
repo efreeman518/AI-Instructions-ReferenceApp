@@ -17,7 +17,7 @@ builder.AddTickerQConfig();
 
 var app = builder.Build();
 
-await app.ConfigureTickerQDatabase();
+await app.ValidateTickerQDatabase();
 
 app.UseTickerQ();
 app.MapDefaultEndpoints();

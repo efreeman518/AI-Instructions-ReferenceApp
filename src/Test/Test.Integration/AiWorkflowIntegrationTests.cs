@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Test.Integration.Infrastructure;
 
 namespace Test.Integration;
@@ -35,10 +35,11 @@ public sealed class AiWorkflowIntegrationTests
     {
         SkipIfNoSql();
         var ct = TestContext.CancellationTokenSource.Token;
+        var connectionString = await IsolatedMigratedConnectionStringAsync(ct);
 
         // Non-Critical suggestion -> no human quorum -> PATCH priority -> publish -> n-output-ok.
         using var factory = new FlowEngineWorkflowApiFactory(
-            IsolatedConnectionString(),
+            connectionString,
             _ => """{"suggestedPriority":"High","suggestedCategory":"Bug","confidence":0.9}""");
         using var client = factory.CreateClient();
 
@@ -65,9 +66,10 @@ public sealed class AiWorkflowIntegrationTests
     {
         SkipIfNoSql();
         var ct = TestContext.CancellationTokenSource.Token;
+        var connectionString = await IsolatedMigratedConnectionStringAsync(ct);
 
         using var factory = new FlowEngineWorkflowApiFactory(
-            IsolatedConnectionString(),
+            connectionString,
             _ => """{"subtasks":[{"title":"Sub A","estimateHours":1},{"title":"Sub B","estimateHours":2}]}""");
         using var client = factory.CreateClient();
 
@@ -95,14 +97,19 @@ public sealed class AiWorkflowIntegrationTests
             Assert.Inconclusive($"SQL container unavailable: {SqlContainerFixture.StartupError.Message}");
     }
 
-    // The full in-process host runs migrations and background services (FlowEngine sweep/outbox) against
-    // its database for the whole test, so it must not share the component-tier tests' database. Point it
-    // at a dedicated catalog on the same SQL container; EF migrations create it on first use.
-    private static string IsolatedConnectionString() =>
-        new SqlConnectionStringBuilder(SqlContainerFixture.ConnectionString)
-        {
-            InitialCatalog = "TaskFlow_FlowEngineWorkflowTests"
-        }.ConnectionString;
+    // Runtime hosts do not migrate. Component test owns schema prep before API factory starts.
+    private static async Task<string> IsolatedMigratedConnectionStringAsync(CancellationToken ct)
+    {
+        var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TaskFlow_FlowEngineWorkflowTests");
+
+        await using var trxn = SqlContainerFixture.CreateTrxnContext(connectionString);
+        await trxn.Database.MigrateAsync(ct);
+
+        await using var flowEngine = SqlContainerFixture.CreateFlowEngineContext(connectionString);
+        await flowEngine.Database.MigrateAsync(ct);
+
+        return connectionString;
+    }
 
     private static async Task<Guid> CreateTaskAsync(HttpClient client, string title, int priority, CancellationToken ct)
     {

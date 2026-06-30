@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "4837490025004949750"
+      "templateHash": "4317804484939077104"
     }
   },
   "parameters": {
@@ -73,6 +73,13 @@
       "defaultValue": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
       "metadata": {
         "description": "Scheduler container image"
+      }
+    },
+    "migratorImage": {
+      "type": "string",
+      "defaultValue": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+      "metadata": {
+        "description": "Database migrator container image"
       }
     },
     "blazorImage": {
@@ -1069,6 +1076,174 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
+      "name": "migrator",
+      "resourceGroup": "[format('{0}-rg', variables('prefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "jobName": {
+            "value": "[format('{0}-dbmigrator', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "environmentId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'containerAppsEnv'), '2025-04-01').outputs.id.value]"
+          },
+          "containerImage": {
+            "value": "[parameters('migratorImage')]"
+          },
+          "cpu": {
+            "value": "0.25"
+          },
+          "memory": {
+            "value": "0.5Gi"
+          },
+          "envVars": {
+            "value": "[union(createArray(createObject('name', 'AppConfig__Endpoint', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig'), '2025-04-01').outputs.endpoint.value), createObject('name', 'KeyVault__Uri', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault'), '2025-04-01').outputs.uri.value), createObject('name', 'ASPNETCORE_ENVIRONMENT', 'value', 'Production')), createArray(createObject('name', 'ConnectionStrings__TaskFlowDbContextTrxn', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowFlowEngineDbContext', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TickerQDbContext', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value)))]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "5733347083968510086"
+            }
+          },
+          "parameters": {
+            "jobName": {
+              "type": "string",
+              "metadata": {
+                "description": "Container app job name"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region"
+              }
+            },
+            "environmentId": {
+              "type": "string",
+              "metadata": {
+                "description": "Container Apps Environment ID"
+              }
+            },
+            "containerImage": {
+              "type": "string",
+              "metadata": {
+                "description": "Container image"
+              }
+            },
+            "cpu": {
+              "type": "string",
+              "defaultValue": "0.25",
+              "metadata": {
+                "description": "CPU cores"
+              }
+            },
+            "memory": {
+              "type": "string",
+              "defaultValue": "0.5Gi",
+              "metadata": {
+                "description": "Memory"
+              }
+            },
+            "envVars": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Environment variables"
+              }
+            },
+            "replicaTimeout": {
+              "type": "int",
+              "defaultValue": 1800,
+              "metadata": {
+                "description": "Replica timeout in seconds"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/jobs",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('jobName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "environmentId": "[parameters('environmentId')]",
+                "configuration": {
+                  "replicaRetryLimit": 0,
+                  "replicaTimeout": "[parameters('replicaTimeout')]",
+                  "triggerType": "Manual",
+                  "manualTriggerConfig": {
+                    "replicaCompletionCount": 1,
+                    "parallelism": 1
+                  }
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "[parameters('jobName')]",
+                      "image": "[parameters('containerImage')]",
+                      "resources": {
+                        "cpu": "[json(parameters('cpu'))]",
+                        "memory": "[parameters('memory')]"
+                      },
+                      "env": "[parameters('envVars')]"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/jobs', parameters('jobName'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('jobName')]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/jobs', parameters('jobName')), '2024-03-01', 'full').identity.principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'containerAppsEnv')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}-rg', variables('prefix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
       "name": "gateway",
       "resourceGroup": "[format('{0}-rg', variables('prefix'))]",
       "properties": {
@@ -1319,7 +1494,7 @@
             "value": 3
           },
           "envVars": {
-            "value": "[union(createArray(createObject('name', 'AppConfig__Endpoint', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig'), '2025-04-01').outputs.endpoint.value), createObject('name', 'KeyVault__Uri', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault'), '2025-04-01').outputs.uri.value), createObject('name', 'ASPNETCORE_ENVIRONMENT', 'value', 'Production')), createArray(createObject('name', 'ConnectionStrings__TaskFlowDbContextTrxn', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowDbContextQuery', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__CosmosDb1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'cosmosDb'), '2025-04-01').outputs.accountEndpoint.value), createObject('name', 'ConnectionStrings__BlobStorage1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.appStorageBlobEndpoint.value), createObject('name', 'ConnectionStrings__TableStorage1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.appStorageTableEndpoint.value), createObject('name', 'SERVICEBUS__fullyQualifiedNamespace', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'serviceBus'), '2025-04-01').outputs.namespaceEndpoint.value)))]"
+            "value": "[union(createArray(createObject('name', 'AppConfig__Endpoint', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig'), '2025-04-01').outputs.endpoint.value), createObject('name', 'KeyVault__Uri', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault'), '2025-04-01').outputs.uri.value), createObject('name', 'ASPNETCORE_ENVIRONMENT', 'value', 'Production')), createArray(createObject('name', 'ConnectionStrings__TaskFlowDbContextTrxn', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowDbContextQuery', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowFlowEngineDbContext', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__CosmosDb1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'cosmosDb'), '2025-04-01').outputs.accountEndpoint.value), createObject('name', 'ConnectionStrings__BlobStorage1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.appStorageBlobEndpoint.value), createObject('name', 'ConnectionStrings__TableStorage1', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.appStorageTableEndpoint.value), createObject('name', 'SERVICEBUS__fullyQualifiedNamespace', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'serviceBus'), '2025-04-01').outputs.namespaceEndpoint.value)))]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -1533,7 +1708,7 @@
             "value": 1
           },
           "envVars": {
-            "value": "[union(createArray(createObject('name', 'AppConfig__Endpoint', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig'), '2025-04-01').outputs.endpoint.value), createObject('name', 'KeyVault__Uri', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault'), '2025-04-01').outputs.uri.value), createObject('name', 'ASPNETCORE_ENVIRONMENT', 'value', 'Production')), createArray(createObject('name', 'ConnectionStrings__TaskFlowDbContextQuery', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'SERVICEBUS__fullyQualifiedNamespace', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'serviceBus'), '2025-04-01').outputs.namespaceEndpoint.value)))]"
+            "value": "[union(createArray(createObject('name', 'AppConfig__Endpoint', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'appConfig'), '2025-04-01').outputs.endpoint.value), createObject('name', 'KeyVault__Uri', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'keyVault'), '2025-04-01').outputs.uri.value), createObject('name', 'ASPNETCORE_ENVIRONMENT', 'value', 'Production')), createArray(createObject('name', 'ConnectionStrings__TaskFlowDbContextTrxn', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowDbContextQuery', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TaskFlowFlowEngineDbContext', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'ConnectionStrings__TickerQDbContext', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'sqlDatabase'), '2025-04-01').outputs.connectionString.value), createObject('name', 'SERVICEBUS__fullyQualifiedNamespace', 'value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'serviceBus'), '2025-04-01').outputs.namespaceEndpoint.value)))]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -2056,7 +2231,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "12302650088082026295"
+              "templateHash": "15839809790742923656"
             }
           },
           "parameters": {
@@ -2192,6 +2367,10 @@
                     },
                     {
                       "name": "ConnectionStrings__TaskFlowDbContextQuery",
+                      "value": "[parameters('sqlConnectionString')]"
+                    },
+                    {
+                      "name": "ConnectionStrings__TaskFlowFlowEngineDbContext",
                       "value": "[parameters('sqlConnectionString')]"
                     },
                     {
@@ -3509,6 +3688,10 @@
     "functionAppName": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'functions'), '2025-04-01').outputs.functionAppName.value]"
+    },
+    "migrationJobName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}-rg', variables('prefix'))), 'Microsoft.Resources/deployments', 'migrator'), '2025-04-01').outputs.name.value]"
     },
     "deployIdentityClientId": {
       "type": "string",

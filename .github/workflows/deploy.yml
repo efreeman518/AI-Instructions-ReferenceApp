@@ -61,6 +61,15 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-scheduler:${{ steps.meta.outputs.version }}
           build-args: NUGET_TOKEN=${{ secrets.NUGET_PAT }}
 
+      - name: Build & push Database Migrator
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/Host/TaskFlow.DatabaseMigrator/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-db-migrator:${{ steps.meta.outputs.version }}
+          build-args: NUGET_TOKEN=${{ secrets.NUGET_PAT }}
+
       - name: Build & push Blazor
         uses: docker/build-push-action@v6
         with:
@@ -79,6 +88,7 @@ jobs:
       resource-group: ${{ steps.deploy.outputs.resourceGroupName }}
       function-app-name: ${{ steps.deploy.outputs.functionAppName }}
       swa-name: ${{ steps.deploy.outputs.staticWebAppName }}
+      migration-job-name: ${{ steps.deploy.outputs.migrationJobName }}
     steps:
       - uses: actions/checkout@v4
 
@@ -104,14 +114,61 @@ jobs:
             sqlAdminPrincipalName=${{ secrets.SQL_ADMIN_PRINCIPAL_NAME }}
             sqlAdminPrincipalType=User
             gatewayImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-gateway:${{ needs.build-and-push.outputs.image-tag }}
-            apiImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-api:${{ needs.build-and-push.outputs.image-tag }}
-            schedulerImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-scheduler:${{ needs.build-and-push.outputs.image-tag }}
-            blazorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-blazor:${{ needs.build-and-push.outputs.image-tag }}
+          apiImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-api:${{ needs.build-and-push.outputs.image-tag }}
+          schedulerImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-scheduler:${{ needs.build-and-push.outputs.image-tag }}
+          migratorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-db-migrator:${{ needs.build-and-push.outputs.image-tag }}
+          blazorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-blazor:${{ needs.build-and-push.outputs.image-tag }}
+
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-infra]
+    environment: dev
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Start migrator job
+        run: |
+          execution=$(az containerapp job start \
+            --name ${{ needs.deploy-infra.outputs.migration-job-name }} \
+            --resource-group ${{ needs.deploy-infra.outputs.resource-group }} \
+            --query name -o tsv)
+
+          echo "Started migration execution: $execution"
+
+          for attempt in {1..180}; do
+            status=$(az containerapp job execution show \
+              --name ${{ needs.deploy-infra.outputs.migration-job-name }} \
+              --resource-group ${{ needs.deploy-infra.outputs.resource-group }} \
+              --job-execution-name "$execution" \
+              --query properties.status -o tsv)
+
+            if [ "$status" = "Succeeded" ]; then
+              echo "Migration execution succeeded"
+              exit 0
+            fi
+
+            if [ "$status" = "Failed" ] || [ "$status" = "Canceled" ]; then
+              echo "Migration execution ended with status: $status"
+              exit 1
+            fi
+
+            echo "Migration execution status: $status"
+            sleep 10
+          done
+
+          echo "Migration execution timed out"
+          exit 1
 
   deploy-functions:
     name: Deploy Functions
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-infra]
+    needs: [build-and-push, deploy-infra, run-migrations]
     environment: dev
     steps:
       - uses: actions/checkout@v4
@@ -154,7 +211,7 @@ jobs:
   deploy-uno:
     name: Deploy Uno WASM (Static Web App)
     runs-on: ubuntu-latest
-    needs: [deploy-infra]
+    needs: [deploy-infra, run-migrations]
     environment: dev
     steps:
       - uses: actions/checkout@v4
@@ -214,7 +271,7 @@ jobs:
   summary:
     name: Deployment Summary
     runs-on: ubuntu-latest
-    needs: [deploy-infra, deploy-functions, deploy-uno]
+    needs: [deploy-infra, run-migrations, deploy-functions, deploy-uno]
     if: always()
     steps:
       - name: Print summary
@@ -223,6 +280,7 @@ jobs:
           echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Infrastructure | ${{ needs.deploy-infra.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Database migrations | ${{ needs.run-migrations.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Functions | ${{ needs.deploy-functions.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Uno WASM (SWA) | ${{ needs.deploy-uno.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

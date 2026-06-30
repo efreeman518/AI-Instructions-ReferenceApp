@@ -25,6 +25,11 @@ public sealed class TaskTriageService(
     ITaskItemService taskItemService) : ITaskTriageService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly ChatOptions TriageOptions = new()
+    {
+        Temperature = 0,
+        MaxOutputTokens = 128
+    };
 
     /// <inheritdoc />
     public async Task<TaskTriageResponse> TriageAsync(Guid taskId, bool apply, CancellationToken ct = default)
@@ -47,7 +52,7 @@ public sealed class TaskTriageService(
             Description: {{task.Description ?? "(none)"}}
             """;
 
-        var response = await chatClient.GetResponseAsync(prompt, cancellationToken: ct);
+        var response = await chatClient.GetResponseAsync(prompt, TriageOptions, cancellationToken: ct);
         var triage = ParseTriage(response.Text);
         if (triage is null || !IsValidTriage(triage))
         {

@@ -36,6 +36,7 @@ internal sealed class FlowEngineWorkflowApiFactory : WebApplicationFactory<Progr
         "ASPNETCORE_ENVIRONMENT",
         "ConnectionStrings__TaskFlowDbContextTrxn",
         "ConnectionStrings__TaskFlowDbContextQuery",
+        "ConnectionStrings__TaskFlowFlowEngineDbContext",
         "ConnectionStrings__chat",
         "AiServices__DisableFoundryLocal",
         "FlowEngine__TaskFlowApiBaseUrl",
@@ -55,6 +56,7 @@ internal sealed class FlowEngineWorkflowApiFactory : WebApplicationFactory<Progr
         // All three EF contexts (app trxn/query + FlowEngine state) read these connection strings.
         Environment.SetEnvironmentVariable("ConnectionStrings__TaskFlowDbContextTrxn", connectionString);
         Environment.SetEnvironmentVariable("ConnectionStrings__TaskFlowDbContextQuery", connectionString);
+        Environment.SetEnvironmentVariable("ConnectionStrings__TaskFlowFlowEngineDbContext", connectionString);
         // No live model and no Service Bus: leave the AI connection empty and disable Foundry Local.
         Environment.SetEnvironmentVariable("ConnectionStrings__chat", string.Empty);
         Environment.SetEnvironmentVariable("AiServices__DisableFoundryLocal", "true");

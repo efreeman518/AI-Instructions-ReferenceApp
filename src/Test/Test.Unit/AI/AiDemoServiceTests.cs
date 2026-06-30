@@ -65,13 +65,14 @@ public class AiDemoServiceTests
             .ReturnsAsync((DefaultRequest<TaskItemDto> request, CancellationToken _) =>
                 Result<DefaultResponse<TaskItemDto>>.Success(new DefaultResponse<TaskItemDto> { Item = request.Item }));
 
+        var chatClient = new StaticChatClient("""
+            ```json
+            {"suggestedPriority":"Critical","suggestedCategory":"Incident","confidence":0.94,"rationale":"Payment outage"}
+            ```
+            """);
         var service = new TaskTriageService(
             NullLogger<TaskTriageService>.Instance,
-            new StaticChatClient("""
-                ```json
-                {"suggestedPriority":"Critical","suggestedCategory":"Incident","confidence":0.94,"rationale":"Payment outage"}
-                ```
-                """),
+            chatClient,
             taskItemService.Object);
 
         var result = await service.TriageAsync(taskId, apply: true);
@@ -79,6 +80,8 @@ public class AiDemoServiceTests
         Assert.IsTrue(result.IsConfigured);
         Assert.IsTrue(result.Applied);
         Assert.AreEqual("Critical", result.Triage!.SuggestedPriority);
+        Assert.IsNotNull(chatClient.LastOptions);
+        Assert.AreEqual(128, chatClient.LastOptions.MaxOutputTokens);
         taskItemService.Verify(x => x.UpdateAsync(
             It.Is<DefaultRequest<TaskItemDto>>(request => request.Item.Priority == Priority.Critical),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -147,13 +150,18 @@ public class AiDemoServiceTests
     }
 
     /// <summary>Small deterministic chat client for parser tests.</summary>
-    private sealed class StaticChatClient(string responseText) : IChatClient
-    {
-        public Task<ChatResponse> GetResponseAsync(
-            IEnumerable<ChatMessage> messages,
-            ChatOptions? options = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText)));
+ private sealed class StaticChatClient(string responseText) : IChatClient
+ {
+ internal ChatOptions? LastOptions { get; private set; }
+
+ public Task<ChatResponse> GetResponseAsync(
+ IEnumerable<ChatMessage> messages,
+ ChatOptions? options = null,
+ CancellationToken cancellationToken = default)
+ {
+ LastOptions = options;
+ return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText)));
+ }
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> messages,

@@ -1,4 +1,5 @@
 using EF.IntegrationTesting.Testcontainers;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Infrastructure.Data;
 
@@ -37,6 +38,26 @@ internal static class SqlContainerFixture
     /// <summary>Disposes the SQL container.</summary>
     internal static async Task StopAsync() => await Sql.DisposeAsync();
 
+    /// <summary>Creates an empty isolated database and returns a connection string pointing to it.</summary>
+    internal static async Task<string> CreateEmptyDatabaseConnectionStringAsync(string prefix)
+    {
+        var builder = new SqlConnectionStringBuilder(Sql.ConnectionString);
+        var databaseName = $"{prefix}_{Guid.NewGuid():N}";
+        var masterBuilder = new SqlConnectionStringBuilder(builder.ConnectionString)
+        {
+            InitialCatalog = "master"
+        };
+
+        await using var connection = new SqlConnection(masterBuilder.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"CREATE DATABASE [{databaseName}]";
+        await command.ExecuteNonQueryAsync();
+
+        builder.InitialCatalog = databaseName;
+        return builder.ConnectionString;
+    }
+
     /// <summary>Builds a trxn context against the standalone SQL container.</summary>
     internal static TaskFlowDbContextTrxn CreateTrxnContext(string? connString = null) =>
         new(BuildSqlServerOptions<TaskFlowDbContextTrxn>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
@@ -45,7 +66,42 @@ internal static class SqlContainerFixture
     internal static TaskFlowDbContextQuery CreateQueryContext(string? connString = null) =>
         new(BuildSqlServerOptions<TaskFlowDbContextQuery>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
 
-    /// <summary>Builds SQL server options used by focused test cases.</summary>
+    /// <summary>Builds a FlowEngine context against the standalone SQL container.</summary>
+    internal static TaskFlowFlowEngineDbContext CreateFlowEngineContext(string? connString = null)
+    {
+        var options = new DbContextOptionsBuilder<TaskFlowFlowEngineDbContext>()
+            .UseSqlServer(connString ?? Sql.ConnectionString, sql =>
+            {
+                sql.UseLatestCompatibilityLevel();
+                sql.EnableRetryOnFailure();
+                sql.MigrationsHistoryTable(
+                    TaskFlowFlowEngineDbContext.MigrationHistoryTable,
+                    TaskFlowFlowEngineDbContext.SchemaName);
+            })
+            .Options;
+
+        return new TaskFlowFlowEngineDbContext(options);
+    }
+
+    /// <summary>Builds a TickerQ context against the standalone SQL container.</summary>
+    internal static TaskFlowTickerQDbContext CreateTickerQContext(string? connString = null)
+    {
+        var options = new DbContextOptionsBuilder<TaskFlowTickerQDbContext>()
+            .UseSqlServer(connString ?? Sql.ConnectionString, sql =>
+            {
+                sql.UseLatestCompatibilityLevel();
+                sql.EnableRetryOnFailure();
+                sql.MigrationsAssembly(typeof(TaskFlowTickerQDbContext).Assembly.GetName().Name);
+                sql.MigrationsHistoryTable(
+                    TaskFlowTickerQDbContext.MigrationHistoryTable,
+                    TaskFlowTickerQDbContext.SchemaName);
+            })
+            .Options;
+
+        return new TaskFlowTickerQDbContext(options);
+    }
+
+    /// <summary>Builds SQL Server options used by focused test cases.</summary>
     private static DbContextOptions<TContext> BuildSqlServerOptions<TContext>(string connectionString)
         where TContext : DbContext =>
         new DbContextOptionsBuilder<TContext>()

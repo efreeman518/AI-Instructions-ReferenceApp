@@ -11,6 +11,7 @@ public sealed class AspireAiProviderSelectionTests
     {
         using var _ = new EnvironmentOverride(
             ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", null),
+            ("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", null),
             ("TASKFLOW_USE_AZURE_FOUNDRY", null),
             ("AiServices__FoundryEndpoint", null),
             ("AiServices:FoundryEndpoint", null));
@@ -24,6 +25,7 @@ public sealed class AspireAiProviderSelectionTests
     {
         using var _ = new EnvironmentOverride(
             ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", null),
+            ("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", null),
             ("TASKFLOW_USE_AZURE_FOUNDRY", "true"),
             ("AiServices__FoundryEndpoint", null),
             ("AiServices:FoundryEndpoint", null));
@@ -36,11 +38,39 @@ public sealed class AspireAiProviderSelectionTests
     {
         using var _ = new EnvironmentOverride(
             ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", "true"),
+            ("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", null),
             ("TASKFLOW_USE_AZURE_FOUNDRY", null),
             ("AiServices__FoundryEndpoint", null),
             ("AiServices:FoundryEndpoint", null));
 
         Assert.AreEqual(AspireAiProvider.None, AspireTestHost.SelectRequestedAiProviderForTesting());
+    }
+
+    [TestMethod]
+    public void Given_AspireLocalOptIn_When_NoAzureConfig_Then_FoundryLocalSelected()
+    {
+        using var _ = new EnvironmentOverride(
+            ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", null),
+            ("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", "true"),
+            ("TASKFLOW_USE_AZURE_FOUNDRY", null),
+            ("AiServices__FoundryEndpoint", null),
+            ("AiServices:FoundryEndpoint", null));
+
+        Assert.AreEqual(AspireAiProvider.FoundryLocal, AspireTestHost.SelectRequestedAiProviderForTesting());
+    }
+
+    [TestMethod]
+    [TestCategory("AzureFoundry")]
+    public void Given_AzureAndAspireLocalOptIn_When_SelectingLiveAiProvider_Then_AzureFoundryWins()
+    {
+        using var _ = new EnvironmentOverride(
+            ("TASKFLOW_ENABLE_FOUNDRY_LOCAL", null),
+            ("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", "true"),
+            ("TASKFLOW_USE_AZURE_FOUNDRY", "true"),
+            ("AiServices__FoundryEndpoint", null),
+            ("AiServices:FoundryEndpoint", null));
+
+        Assert.AreEqual(AspireAiProvider.AzureFoundry, AspireTestHost.SelectRequestedAiProviderForTesting());
     }
 
     private sealed class EnvironmentOverride : IDisposable
