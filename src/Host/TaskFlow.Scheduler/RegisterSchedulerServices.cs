@@ -147,6 +147,17 @@ public static class RegisterSchedulerServices
             logger.LogInformation("TickerQ schema not found; creating operational-store schema.");
             await ExecuteCreateScriptAsync(db);
         }
+        else if (!await VerifyTickerQSchemaCurrentAsync(db, logger))
+        {
+            if (!autoCreate)
+            {
+                throw new InvalidOperationException(
+                    "TickerQ schema is out of date. Run a deployment script or set Scheduling:AutoCreateSchema=true for local startup.");
+            }
+
+            logger.LogInformation("TickerQ schema is out of date; applying operational-store schema updates.");
+            await ExecuteUpdateScriptAsync(db);
+        }
 
         if (config.GetValue("Scheduling:GenerateDeploymentScript", false))
             await GenerateDeploymentScriptAsync(db, logger);
@@ -212,6 +223,21 @@ public static class RegisterSchedulerServices
         }
     }
 
+    /// <summary>Verifies ticker q schema matches the currently referenced package version.</summary>
+    private static async Task<bool> VerifyTickerQSchemaCurrentAsync(TickerQDbContext db, ILogger logger)
+    {
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT TOP 1 [IsSystemPaused] FROM [Scheduler].[CronTickers]");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "TickerQ schema is missing one or more required columns.");
+            return false;
+        }
+    }
+
     /// <summary>Provides the execute create script operation for register scheduler services.</summary>
     private static async Task ExecuteCreateScriptAsync(TickerQDbContext db)
     {
@@ -223,6 +249,23 @@ public static class RegisterSchedulerServices
         {
             await db.Database.ExecuteSqlRawAsync(batch);
         }
+    }
+
+    /// <summary>Applies additive updates needed by local TickerQ operational-store schemas.</summary>
+    private static async Task ExecuteUpdateScriptAsync(TickerQDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'[Scheduler].[CronTickers]')
+                    AND name = N'IsSystemPaused')
+            BEGIN
+                ALTER TABLE [Scheduler].[CronTickers]
+                    ADD [IsSystemPaused] bit NOT NULL
+                        CONSTRAINT [DF_CronTickers_IsSystemPaused] DEFAULT CAST(0 AS bit)
+            END
+            """);
     }
 
     /// <summary>Generates deployment script from current configuration.</summary>
