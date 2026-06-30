@@ -69,6 +69,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="3.8.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.9" />
@@ -133,6 +135,9 @@
     <PackageVersion Include="Refit" Version="12.1.0" />
     <PackageVersion Include="Refit.HttpClientFactory" Version="12.1.0" />
     <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
+    <PackageVersion Include="Uno.Extensions.Navigation" Version="7.1.4" />
+    <PackageVersion Include="Uno.Extensions.Navigation.WinUI" Version="7.1.4" />
+    <PackageVersion Include="Uno.Extensions.Reactive" Version="7.1.4" />
   </ItemGroup>
   <ItemGroup Label="Security transitive overrides">
     <PackageVersion Include="MessagePack" Version="3.1.7" />

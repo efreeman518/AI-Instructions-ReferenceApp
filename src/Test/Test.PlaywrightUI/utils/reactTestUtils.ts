@@ -1,7 +1,14 @@
 import { expect, type Page } from "@playwright/test";
 
+function requireBaseUrl() {
+  if (!process.env.PLAYWRIGHT_REACT_URL && !process.env.TASKFLOW_REACT_BASE_URL) {
+    throw new Error("PLAYWRIGHT_REACT_URL or TASKFLOW_REACT_BASE_URL is required for direct React Playwright runs. Use the C# Aspire wrapper or set one of those variables.");
+  }
+}
+
 /** Provides Playwright helper logic for wait for react app. */
 export async function waitForReactApp(page: Page) {
+  requireBaseUrl();
   await page.goto("/tasks", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { exact: true, name: "Tasks" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("navigation")).toContainText("TaskFlow");
@@ -9,6 +16,7 @@ export async function waitForReactApp(page: Page) {
 
 /** Provides Playwright helper logic for navigate to task list. */
 export async function navigateToTaskList(page: Page) {
+  requireBaseUrl();
   await page.goto("/tasks", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { exact: true, name: "Tasks" })).toBeVisible({ timeout: 10_000 });
 }

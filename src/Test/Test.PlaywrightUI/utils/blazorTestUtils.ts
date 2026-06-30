@@ -13,7 +13,14 @@ import { expect, Page } from "@playwright/test";
 // Navigation
 // ---------------------------------------------------------------------------
 
+function requireBaseUrl() {
+  if (!process.env.PLAYWRIGHT_BLAZOR_URL) {
+    throw new Error("PLAYWRIGHT_BLAZOR_URL is required for direct Blazor Playwright runs. Use the C# Aspire wrapper or set PLAYWRIGHT_BLAZOR_URL.");
+  }
+}
+
 export async function waitForApp(page: Page) {
+  requireBaseUrl();
   await page.goto("/tasks", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: /new task/i })).toBeVisible({ timeout: 15_000 });
@@ -29,6 +36,7 @@ export async function navigateToNewTask(page: Page) {
 
 /** Provides Playwright helper logic for navigate to task list. */
 export async function navigateToTaskList(page: Page) {
+  requireBaseUrl();
   await page.goto("/tasks", { waitUntil: "networkidle" });
   await expect(page.locator(".mud-table")).toBeVisible({ timeout: 10_000 });
 }

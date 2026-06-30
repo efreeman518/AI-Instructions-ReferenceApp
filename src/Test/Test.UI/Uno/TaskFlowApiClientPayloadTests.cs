@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using TaskFlow.Uno.Core.Client;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates the Kiota-generated <c>TaskFlowApiClient</c> outgoing payload shape: child collections
@@ -13,8 +13,7 @@ namespace Test.Unit.Uno;
 /// without ever opening a socket - payload-shape regression coverage for client serialization rules.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class TaskFlowApiClientPayloadTests
 {
     /// <summary>Verifies task items post sets child task item ID when missing behavior and protects the expected test contract.</summary>

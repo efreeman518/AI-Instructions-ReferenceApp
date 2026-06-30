@@ -175,8 +175,8 @@
 </thead>
 <tbody><tr>
 <td><strong>UI</strong></td>
-<td>TaskFlow.Uno, TaskFlow.Blazor</td>
-<td>User interfaces - Uno MVUX + Kiota; Blazor MudBlazor + Refit</td>
+<td>TaskFlow.Uno, TaskFlow.Uno.Core, TaskFlow.Uno.Presentation, TaskFlow.Blazor</td>
+<td>User interfaces - Uno app head + plain SDK UI core/presentation; Blazor MudBlazor + Refit</td>
 <td>Application.Models (shared contract)</td>
 </tr>
 <tr>
@@ -325,8 +325,8 @@
 </tr>
 <tr>
 <td><strong>Uno WASM App</strong></td>
-<td><code>TaskFlow.Uno</code></td>
-<td>Cross-platform UI (browser + desktop + mobile) - Uno Platform MVUX</td>
+<td><code>TaskFlow.Uno</code>, <code>TaskFlow.Uno.Core</code>, <code>TaskFlow.Uno.Presentation</code></td>
+<td>Cross-platform UI app head plus platform-agnostic services and MVUX presentation models</td>
 <td>Gateway</td>
 </tr>
 <tr>
@@ -995,9 +995,15 @@ API: Sets IRequestContext (tenant, user, roles)
 </thead>
 <tbody><tr>
 <td><strong>Test.Unit</strong></td>
-<td>Pure-CPU verification of domain logic, DTO &lt;-&gt; entity mapping, application service and CQRS handler success/failure/conflict paths, custom CQRS validation, in-memory repository CRUD, and Uno API-service mappers.</td>
+<td>Pure-CPU verification of domain logic, DTO &lt;-&gt; entity mapping, application service and CQRS handler success/failure/conflict paths, custom CQRS validation, and infrastructure-free application behavior.</td>
 <td>Fastest feedback loop - millisecond runs, zero infrastructure. Catches regressions in pure logic before slower suites are touched.</td>
 <td>MSTest, <strong>Moq</strong>, EF Core InMemory provider</td>
+</tr>
+<tr>
+<td><strong>Test.UI</strong></td>
+<td>Fast headless UI verification for <code>TaskFlow.Uno.Core</code> UI services/client wrappers and <code>TaskFlow.Uno.Presentation</code> MVUX models, state/feed behavior, and presentation commands. Never references the <code>TaskFlow.Uno</code> Uno.Sdk app head.</td>
+<td>Keeps UI logic fast and platform-agnostic while preserving category semantics: <code>UI</code> for the lane, <code>Presentation</code> for MVUX-specific tests.</td>
+<td>MSTest, <strong>Moq</strong>, Uno Extensions Reactive/Navigation</td>
 </tr>
 <tr>
 <td><strong>Test.Mutation</strong></td>
@@ -1308,7 +1314,7 @@ public sealed class SqlApiFactory
 --- PageObjects/
     --- GatewayPageObject.cs
     --- BlazorTaskListPageObject.cs
---- package.json              # @playwright/test ^1.59.1
+--- package.json              # @playwright/test latest
 --- playwright.config.ts      # Three projects: &#39;blazor&#39;, &#39;react&#39;, and &#39;uno&#39;
 --- tests/
 -   --- blazor/task-crud.spec.ts
@@ -1393,6 +1399,7 @@ await expectTaskInTable(page, taskTitle);            // .mud-table-body
 <h3 id="127-running-tests">12.7 Running Tests</h3>
 <pre><code class="language-bash"># CI default gate (fast, no Docker)
 dotnet test src/Test/Test.Unit/Test.Unit.csproj
+dotnet test src/Test/Test.UI/Test.UI.csproj
 dotnet test src/Test/Test.Architecture/Test.Architecture.csproj
 dotnet test src/Test/Test.Endpoints/Test.Endpoints.csproj
 dotnet test src/Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj

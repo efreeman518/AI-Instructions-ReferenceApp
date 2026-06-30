@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using TaskFlow.Uno.Core.Business.Notifications;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>BusyTracker</c> ref-counting semantics: nested begins, double-dispose idempotence,
@@ -10,8 +10,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: pure in-memory primitive; no infra.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class BusyTrackerTests
 {
     /// <summary>Verifies begin increments and sets is active behavior and protects the expected test contract.</summary>

@@ -10,9 +10,6 @@ namespace Test.PlaywrightUI.Hosting;
 /// </summary>
 internal sealed class PlaywrightAspireHost : IAsyncDisposable
 {
-    internal const string DefaultGatewayUrl = "http://localhost:5007";
-    internal const string DefaultBlazorUrl = "https://localhost:7201";
-
     private const string GatewayResourceName = "taskflowgateway";
     private const string BlazorResourceName = "taskflowblazor";
     private const string ReactResourceName = "taskflowreact";
@@ -46,8 +43,16 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
     internal IReadOnlyList<string> DiagnosticMessages { get; }
 
-    internal static async Task<PlaywrightAspireHost> StartAsync(CancellationToken ct)
+    internal static Task<PlaywrightAspireHost> StartAsync(CancellationToken ct)
+        => StartAsync(new[] { "blazor", "react", "uno" }, ct);
+
+    internal static async Task<PlaywrightAspireHost> StartAsync(IReadOnlyCollection<string> requestedProjects, CancellationToken ct)
     {
+        var requestedProjectSet = requestedProjects.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var wantsBlazor = requestedProjectSet.Contains("blazor");
+        var wantsReact = requestedProjectSet.Contains("react");
+        var wantsUno = requestedProjectSet.Contains("uno");
+
         var originalEnvironment = CaptureEnvironment(
             "TASKFLOW_ASPIRE_TESTING",
             "TASKFLOW_ASPIRE_REACT_AVAILABLE",
@@ -60,8 +65,10 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         DistributedApplication? app = null;
         try
         {
-            var reactRunnable = IsReactRunnable();
-            var unoTarget = await WasmAppHost.PrepareAsync(ct);
+            var reactRunnable = wantsReact && IsReactRunnable();
+            var unoTarget = wantsUno
+                ? await WasmAppHost.PrepareAsync(ct)
+                : new WasmHostTarget(false, false, "Uno WASM project not requested.");
             var diagnostics = new List<string> { unoTarget.Message };
 
             Environment.SetEnvironmentVariable("TASKFLOW_ASPIRE_TESTING", "true");
@@ -95,15 +102,23 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                 "PLAYWRIGHT_GATEWAY_URL",
                 ct);
 
-            var blazorBaseUrl = await ResolveEndpointAsync(
-                app,
-                BlazorResourceName,
-                "PLAYWRIGHT_BLAZOR_URL",
-                ct);
+            var blazorBaseUrl = string.Empty;
+            if (wantsBlazor)
+            {
+                blazorBaseUrl = await ResolveEndpointAsync(
+                    app,
+                    BlazorResourceName,
+                    "PLAYWRIGHT_BLAZOR_URL",
+                    ct);
+            }
 
-            var typeScriptProjects = new List<string> { "blazor" };
+            var typeScriptProjects = new List<string>();
+            if (wantsBlazor)
+            {
+                typeScriptProjects.Add("blazor");
+            }
 
-            if (HasValue("PLAYWRIGHT_REACT_URL") || HasValue("TASKFLOW_REACT_BASE_URL"))
+            if (wantsReact && (HasValue("PLAYWRIGHT_REACT_URL") || HasValue("TASKFLOW_REACT_BASE_URL")))
             {
                 var reactBaseUrl = Environment.GetEnvironmentVariable("PLAYWRIGHT_REACT_URL")
                     ?? Environment.GetEnvironmentVariable("TASKFLOW_REACT_BASE_URL");

@@ -21,7 +21,7 @@ namespace Test.Aspire;
 /// and table visibility.
 /// </summary>
 [TestClass]
-[TestCategory("Integration")]
+[TestCategory("Aspire")]
 [DoNotParallelize]
 public class ApiAuditPipelineTests
 {

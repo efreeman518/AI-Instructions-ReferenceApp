@@ -1,6 +1,6 @@
 using TaskFlow.Uno.Core.Business.Notifications;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>NotificationService</c> behavior: ShowSuccess/ShowError/ShowProblem append the right
@@ -9,8 +9,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: stateful in-memory service.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class NotificationServiceTests
 {
     /// <summary>Verifies show success appends item behavior and protects the expected test contract.</summary>

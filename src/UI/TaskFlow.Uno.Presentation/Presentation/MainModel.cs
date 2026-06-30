@@ -1,6 +1,6 @@
 using TaskFlow.Uno.Core.Business.Notifications;
 
-namespace TaskFlow.Uno.Presentation;
+namespace TaskFlow.Uno.Presentation.Presentation;
 
 /// <summary>Drives main state, navigation, and commands for the Uno presentation layer.</summary>
 public partial record MainModel

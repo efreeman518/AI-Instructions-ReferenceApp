@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 
-namespace TaskFlow.Uno.Presentation;
+namespace TaskFlow.Uno.Presentation.Presentation;
 
 /// <summary>
 /// MVUX state model for the task editor. It buffers child comments and checklist items in

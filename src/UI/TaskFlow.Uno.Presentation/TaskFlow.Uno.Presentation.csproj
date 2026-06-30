@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>TaskFlow Uno presentation models and headless UI state</Description>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Uno.Extensions.Navigation" />
+    <PackageReference Include="Uno.Extensions.Navigation.WinUI" />
+    <PackageReference Include="Uno.Extensions.Reactive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Collections.Immutable" />
+    <Using Include="Uno.Extensions.Navigation" />
+    <Using Include="Uno.Extensions.Reactive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
+  </ItemGroup>
+
+</Project>

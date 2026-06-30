@@ -19,7 +19,7 @@ namespace Test.Aspire;
 /// inconclusive when Azure Functions Core Tools (<c>func</c>) is not installed.
 /// </summary>
 [TestClass]
-[TestCategory("Integration")]
+[TestCategory("Aspire")]
 [DoNotParallelize]
 public class FunctionAuditPipelineTests
 {

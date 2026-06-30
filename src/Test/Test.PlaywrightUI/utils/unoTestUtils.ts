@@ -22,7 +22,14 @@ function readTimeoutMs(name: string, defaultMs: number) {
 export const WasmBootMs = readTimeoutMs("TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS", 120_000);
 export const WasmPageLoadMs = readTimeoutMs("TASKFLOW_WASM_PAGE_LOAD_TIMEOUT_SECONDS", 60_000);
 
+function requireBaseUrl() {
+  if (!process.env.PLAYWRIGHT_UNO_URL) {
+    throw new Error("PLAYWRIGHT_UNO_URL is required for direct Uno WASM Playwright runs. Use the C# Aspire wrapper or set PLAYWRIGHT_UNO_URL.");
+  }
+}
+
 export async function waitForApp(page: Page) {
+  requireBaseUrl();
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: WasmPageLoadMs });
   await waitForCanvasPaint(page, WasmBootMs);
 }

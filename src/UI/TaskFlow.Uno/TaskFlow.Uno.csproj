@@ -68,6 +68,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
+    <ProjectReference Include="..\TaskFlow.Uno.Presentation\TaskFlow.Uno.Presentation.csproj" />
   </ItemGroup>
 
   <!-- Workaround: Resizetizer sets WasmPWAManifestFile to a directory when

@@ -4,7 +4,7 @@ using System.Text.Json;
 using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client.Http;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>ProblemDetailsDelegatingHandler</c>: passes successes through, ignores non-problem-json
@@ -13,8 +13,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: stub <see cref="System.Net.Http.HttpMessageHandler"/>; no real server.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class ProblemDetailsDelegatingHandlerTests
 {
     /// <summary>Verifies success response passes through without notifying behavior and protects the expected test contract.</summary>

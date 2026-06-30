@@ -2,7 +2,7 @@ using System.Net;
 using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Client.Http;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>BusyDelegatingHandler</c> increments <c>BusyTracker.Pending</c> while a request is
@@ -11,8 +11,7 @@ namespace Test.Unit.Uno;
 /// no real socket, no real server.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class BusyDelegatingHandlerTests
 {
     /// <summary>Verifies send increments during request decrements after behavior and protects the expected test contract.</summary>

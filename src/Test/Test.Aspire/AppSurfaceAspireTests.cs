@@ -7,7 +7,7 @@ namespace Test.Aspire;
 /// Aspire mesh smoke coverage for app-facing resources that the test graph now includes by default.
 /// </summary>
 [TestClass]
-[TestCategory("Integration")]
+[TestCategory("Aspire")]
 [DoNotParallelize]
 public class AppSurfaceAspireTests
 {

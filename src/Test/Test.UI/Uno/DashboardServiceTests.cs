@@ -4,7 +4,7 @@ using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>DashboardService.GetSummaryAsync</c> aggregates the mocked task data (totals by status,
@@ -12,8 +12,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: in-memory composition; no real server, no real DB.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class DashboardServiceTests
 {
     /// <summary>Verifies get summary aggregates mock data behavior and protects the expected test contract.</summary>

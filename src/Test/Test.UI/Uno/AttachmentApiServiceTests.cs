@@ -4,7 +4,7 @@ using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>AttachmentApiService</c> against the in-memory <c>MockHttpMessageHandler</c>: search,
@@ -12,8 +12,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: a real <c>HttpClient</c> is used but no real server - the mock handler short-circuits.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class AttachmentApiServiceTests
 {
     private MockHttpMessageHandler _handler = null!;

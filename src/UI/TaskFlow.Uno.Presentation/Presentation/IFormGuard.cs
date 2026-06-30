@@ -1,4 +1,4 @@
-namespace TaskFlow.Uno.Presentation;
+namespace TaskFlow.Uno.Presentation.Presentation;
 
 // Cross-model guard consulted by the shell chrome (menu buttons) before
 // switching sibling routes. A detail model registers IsDirtyAsync when it
@@ -12,7 +12,7 @@ public interface IFormGuard
 }
 
 /// <summary>Drives form guard state, navigation, and commands for the Uno presentation layer.</summary>
-internal sealed class FormGuard : IFormGuard
+public sealed class FormGuard : IFormGuard
 {
     public Func<CancellationToken, ValueTask<bool>>? IsDirtyAsync { get; set; }
 

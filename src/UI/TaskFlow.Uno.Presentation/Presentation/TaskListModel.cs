@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 
-namespace TaskFlow.Uno.Presentation;
+namespace TaskFlow.Uno.Presentation.Presentation;
 
 /// <summary>Drives task list state, navigation, and commands for the Uno presentation layer.</summary>
 public partial record TaskListModel

@@ -20,7 +20,7 @@ import {
  * Full Task CRUD lifecycle exercised through the Blazor MudBlazor UI.
  *
  * Prerequisites:
- *   1. Blazor app running on https://localhost:7201
+ *   1. PLAYWRIGHT_BLAZOR_URL points at the hosted Blazor app
  *   2. API running with seed data (Aspire AppHost or standalone)
  *   3. `npx playwright install --with-deps chromium`
  *

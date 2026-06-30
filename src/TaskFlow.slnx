@@ -32,11 +32,13 @@
   <Folder Name="/UI/">
     <Project Path="UI/TaskFlow.Uno/TaskFlow.Uno.csproj" />
     <Project Path="UI/TaskFlow.Uno.Core/TaskFlow.Uno.Core.csproj" />
+    <Project Path="UI/TaskFlow.Uno.Presentation/TaskFlow.Uno.Presentation.csproj" />
     <Project Path="UI/TaskFlow.Blazor/TaskFlow.Blazor.csproj" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/Test.Support/Test.Support.csproj" />
     <Project Path="Test/Test.Unit/Test.Unit.csproj" />
+    <Project Path="Test/Test.UI/Test.UI.csproj" />
     <Project Path="Test/Test.Integration/Test.Integration.csproj" />
     <Project Path="Test/Test.Aspire/Test.Aspire.csproj" />
     <Project Path="Test/Test.FoundryLocal/Test.FoundryLocal.csproj" />

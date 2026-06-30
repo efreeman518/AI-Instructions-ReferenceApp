@@ -20,7 +20,7 @@ import {
  * Full Task CRUD lifecycle exercised through the React + TypeScript UI.
  *
  * Prerequisites:
- *   1. React app running on http://localhost:5178, preferably via Aspire AppHost
+ *   1. PLAYWRIGHT_REACT_URL or TASKFLOW_REACT_BASE_URL points at the hosted React app
  *   2. Gateway/API running with the normal TaskFlow Aspire stack
  *   3. `npx playwright install chromium`
  *

@@ -4,7 +4,7 @@ using TaskFlow.Uno.Core.Business.Notifications;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates <c>TagApiService</c> against <c>MockHttpMessageHandler</c>: CRUD methods map Kiota payloads
@@ -12,8 +12,7 @@ namespace Test.Unit.Uno;
 /// Pure-unit tier: in-process <c>HttpClient</c> with mock handler - no real server.
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class TagApiServiceTests
 {
     private MockHttpMessageHandler _handler = null!;

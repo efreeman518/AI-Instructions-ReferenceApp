@@ -2,7 +2,7 @@ using TaskFlow.Uno.Core.Business.Models;
 using TaskFlow.Uno.Core.Business.Services;
 using TaskFlow.Uno.Core.Client;
 
-namespace Test.Unit.Uno;
+namespace Test.UI.Uno;
 
 /// <summary>
 /// Validates the <c>MockHttpMessageHandler</c> used by the Uno design-mode client: routes return the
@@ -11,8 +11,7 @@ namespace Test.Unit.Uno;
 /// mock surface alone, not API behavior (which Test.Endpoints and Test.E2E cover).
 /// </summary>
 [TestClass]
-[TestCategory("Unit")]
-[TestCategory("Uno")]
+[TestCategory("UI")]
 public class MockHttpMessageHandlerTests
 {
     private MockHttpMessageHandler _handler = null!;
