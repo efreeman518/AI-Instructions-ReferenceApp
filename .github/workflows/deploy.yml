@@ -114,10 +114,10 @@ jobs:
             sqlAdminPrincipalName=${{ secrets.SQL_ADMIN_PRINCIPAL_NAME }}
             sqlAdminPrincipalType=User
             gatewayImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-gateway:${{ needs.build-and-push.outputs.image-tag }}
-          apiImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-api:${{ needs.build-and-push.outputs.image-tag }}
-          schedulerImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-scheduler:${{ needs.build-and-push.outputs.image-tag }}
-          migratorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-db-migrator:${{ needs.build-and-push.outputs.image-tag }}
-          blazorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-blazor:${{ needs.build-and-push.outputs.image-tag }}
+            apiImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-api:${{ needs.build-and-push.outputs.image-tag }}
+            schedulerImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-scheduler:${{ needs.build-and-push.outputs.image-tag }}
+            migratorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-db-migrator:${{ needs.build-and-push.outputs.image-tag }}
+            blazorImage=${{ env.REGISTRY }}/${{ github.repository_owner }}/taskflow-blazor:${{ needs.build-and-push.outputs.image-tag }}
 
   run-migrations:
     name: Run Database Migrations
