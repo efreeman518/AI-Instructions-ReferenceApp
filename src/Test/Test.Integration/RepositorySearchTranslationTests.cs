@@ -13,6 +13,9 @@ namespace Test.Integration;
 /// <summary>
 /// Exercises repository search predicates against real SQL so translated filters over tenant IDs,
 /// nullable FKs, enums, owned values, and projected DTOs cannot regress behind in-memory endpoint tests.
+/// Each case asserts the returned page AND <c>Total</c>: a positional <c>QueryPageProjectionAsync</c>
+/// call (swapped pageSize/pageIndex, or includeTotal:false yielding Total = -1) is invisible to the
+/// fake providers used in fast tiers and only surfaces here against real SQL.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -74,6 +77,7 @@ public class RepositorySearchTranslationTests
             });
 
             Assert.AreEqual(1, page.Data.Count);
+            Assert.AreEqual(1, page.Total);
             Assert.AreEqual($"{marker}-Child", page.Data[0].Name);
         }
     }
@@ -101,6 +105,7 @@ public class RepositorySearchTranslationTests
         });
 
         Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Name);
     }
 
@@ -131,6 +136,7 @@ public class RepositorySearchTranslationTests
         });
 
         Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Body);
     }
 
@@ -171,6 +177,7 @@ public class RepositorySearchTranslationTests
         });
 
         Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Title);
     }
 
@@ -225,6 +232,7 @@ public class RepositorySearchTranslationTests
         });
 
         Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(1, page.Total);
         Assert.AreEqual($"{marker}-Child", page.Data[0].Title);
         Assert.AreEqual(categoryId, page.Data[0].CategoryId);
         Assert.AreEqual(dueDate, page.Data[0].DueDate);
@@ -265,6 +273,7 @@ public class RepositorySearchTranslationTests
         });
 
         Assert.AreEqual(1, page.Data.Count);
+        Assert.AreEqual(1, page.Total);
         Assert.AreEqual($"{marker}.txt", page.Data[0].FileName);
     }
 }
