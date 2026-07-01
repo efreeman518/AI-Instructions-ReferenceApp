@@ -59,6 +59,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <!-- Temporary direct reference lifting a vulnerable transitive - see Directory.Packages.props. -->
     <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 

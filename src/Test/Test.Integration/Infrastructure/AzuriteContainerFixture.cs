@@ -10,9 +10,10 @@ namespace Test.Integration.Infrastructure;
 /// </summary>
 internal static class AzuriteContainerFixture
 {
-    // Pin the image explicitly - the parameterless AzuriteBuilder() ctor is obsolete in Testcontainers.Azurite 4.x.
+    // Pass the image explicitly (the parameterless AzuriteBuilder() ctor is obsolete); pin the tag
+    // to latest like every other emulator.
     private static readonly AzuriteContainer Azurite =
-        new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:3.33.0").Build();
+        new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:latest").Build();
 
     /// <summary>Startup failure captured by <see cref="StartAsync"/>; null when the container started cleanly.</summary>
     internal static Exception? StartupError { get; private set; }

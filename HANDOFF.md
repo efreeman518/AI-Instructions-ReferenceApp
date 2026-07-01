@@ -24,6 +24,7 @@ enabledFeatures:
   includeFunctionApp: true
   includeUnoUI: true
   includeBlazorUI: true
+  includeReactUI: true           # Vite SPA via AddViteApp; not a .slnx member - see DESIGN-DECISIONS D-018
   includeNotifications: false
   includeAiServices: true        # scaffold mode (deployment-only, no-op stubs)
   includeFlowEngine: true        # agent nodes use the Aspire IChatClient

@@ -21,6 +21,7 @@ flowchart TD
     D015["D-015: FlowEngine orchestration engine"]
     D016["D-016: FlowEngine state isolation"]
     D017["D-017: Workflow trigger model"]
+    D018["D-018: React SPA"]
 
     D001 --> D002
     D001 --> D003
@@ -35,6 +36,7 @@ flowchart TD
     D015 --> D016
     D015 --> D017
     D006 --> D017
+    D010 --> D018
 ```
 
 ## Decisions
@@ -50,12 +52,13 @@ flowchart TD
 | D-007 | Lifecycle | Task lifecycle | `Open -> InProgress -> Blocked/Completed/Cancelled`, reopen from completed/cancelled | none | confirmed | Captures realistic task workflow and supports rule tests. | Phase 1, Phase 5a |
 | D-008 | Relationships | Category hierarchy depth | Self-referencing category tree, max five levels | none | confirmed | Allows business grouping while bounding query/UI complexity. | Phase 1, Phase 5a, UI |
 | D-009 | Workflows | Scheduled jobs | Overdue check, recurring task generation, stale cleanup | D-007, D-006 | confirmed | Exercises scheduler, Service Bus, and domain-service reuse. | Phase 5c |
-| D-010 | Profile | Reference app scope | Full scaffold, comprehensive tests, optional hosts enabled | none | confirmed | Reference app must prove every major instruction pattern. | All phases |
+| D-010 | Profile | Reference app scope | Full scaffold, comprehensive tests, optional hosts enabled | none | confirmed | Reference app must prove every major instruction pattern - once, not per entity. Deliberate per-entity asymmetry: `StructureValidator` on aggregate roots only (TaskItem, Category, Tag, Attachment), `CommandValidators` and a standalone updater on TaskItem only (sole aggregate with child collections), dedicated `RepositoryTrxn` on aggregate roots per GR-15; simple children (Comment, ChecklistItem) use generic repositories and inline updates. | All phases |
 | D-011 | Local dependencies | Local boot strategy | Emulators where available; no-op/lazy-optional for deployment-only services | D-010 | confirmed | Scaffold must run locally without Azure provisioning. | Phase 3, Phase 5b, Phase 5e |
 | D-012 | Relationships | Attachment ownership | Polymorphic `OwnerType` + `OwnerId`, no owner navigation collections | D-003, D-005 | confirmed | Avoids conflicting FK constraints for shared attachment ownership. | Phase 1, Phase 2, Phase 5a |
-| D-015 | Orchestration | Workflow engine selection | `EF.FlowEngine` 1.0.104 (SQL state store, outbox, circuit breaker, admin API, Blazor dashboard) | D-003 | confirmed | Demonstrates durable AI-driven orchestration with human-in-loop, sagas, and atomic outbox. Reuses existing SQL Server + Azure OpenAI; no new infrastructure resource. Three workflows shipped: `ai-task-triage`, `ai-task-decomposer`, `compliance-check`. | Phase 5e+, Section 14 |
+| D-015 | Orchestration | Workflow engine selection | `EF.FlowEngine` (SQL state store, outbox, circuit breaker, admin API, Blazor dashboard; version pinned in `Directory.Packages.props`) | D-003 | confirmed | Demonstrates durable AI-driven orchestration with human-in-loop, sagas, and atomic outbox. Reuses existing SQL Server + Azure OpenAI; no new infrastructure resource. Three workflows shipped: `ai-task-triage`, `ai-task-decomposer`, `compliance-check`. | Phase 5e+, Section 14 |
 | D-016 | Data | FlowEngine state isolation | Separate `flowengine` schema in same SQL DB, separate `TaskFlowFlowEngineDbContext` implementing all three FE mixins, separate `__EFMigrationsHistory_FlowEngine` table | D-015 | confirmed | Variant A from gap-analysis: atomic outbox preserved (single `SaveChangesAsync` writes state + outbox). Sidesteps multi-inheritance conflict with `EF.Data.DbContextBase<TUser,TKey>` (audit interceptor base). Schemas evolve independently. | Section 14, Bootstrapper |
 | D-017 | Orchestration | Workflow trigger model | Workflows started via `IWorkflowTrigger` (manual today); event-driven wiring left to integrator | D-015, D-006 | confirmed | Reference app demonstrates the trigger surface without prescribing one auto-fire pattern. Three viable wirings documented (Section 14.6): Service Bus subscriber, inline service call, TickerQ cron job. | `WorkflowTriggerHandler`, future Functions |
+| D-018 | UI | React SPA | `src/UI/TaskFlow.React` Vite/React SPA wired via `AddViteApp` in the AppHost (`includeReactUI: true`); intentionally not a `.slnx` member (Vite app, not a .NET project) | D-010 | confirmed | Proves the third UI pattern (`includeReactUI`) alongside Blazor and Uno. Built/tested via `npm ci` in CI and `Test.PlaywrightUI`. | CI, `Test.PlaywrightUI`, AppHost |
 
 ## Deferred Decisions
 
