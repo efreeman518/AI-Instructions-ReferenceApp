@@ -79,6 +79,6 @@ internal static class CqrsHandlerSupport
     {
         if (result.IsSuccess) return RequestValidationResult.Valid();
         if (result.Errors.Count > 0) return RequestValidationResult.Failure(result.Errors);
-        return RequestValidationResult.Failure([result.ErrorMessage ?? "Validation failed."]);
+        return RequestValidationResult.Failure(result.ErrorMessage ?? "Validation failed.");
     }
 }

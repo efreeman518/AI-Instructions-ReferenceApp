@@ -1,3 +1,5 @@
+using EF.Domain.Contracts;
+
 namespace TaskFlow.Application.Models.Shared;
 
 /// <summary>Carries entity base data across API, application, and UI boundaries.</summary>

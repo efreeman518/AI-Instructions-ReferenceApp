@@ -73,7 +73,7 @@ public static class AttachmentEndpoints
         return result.Match<IResult>(
             response => TypedResults.Ok(response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+                errors: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
             () => TypedResults.NotFound(id));
     }
 
@@ -88,7 +88,7 @@ public static class AttachmentEndpoints
         return result.Match<IResult>(
             response => TypedResults.Created(httpContext.Request.Path, response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                messages: errors, traceId: httpContext.TraceIdentifier,
+                errors: errors, traceId: httpContext.TraceIdentifier,
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
@@ -108,7 +108,7 @@ public static class AttachmentEndpoints
         return result.Match<IResult>(
             response => TypedResults.Created(httpContext.Request.Path, response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                messages: errors, traceId: httpContext.TraceIdentifier,
+                errors: errors, traceId: httpContext.TraceIdentifier,
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
@@ -129,7 +129,7 @@ public static class AttachmentEndpoints
         return result.Match(
             response => response.Item is null ? Results.NotFound(id) : TypedResults.Ok(response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                messages: errors, traceId: httpContext.TraceIdentifier,
+                errors: errors, traceId: httpContext.TraceIdentifier,
                 includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 
@@ -143,7 +143,7 @@ public static class AttachmentEndpoints
             () => TypedResults.NoContent(),
             errors => TypedResults.Problem(
                 ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                    messages: errors, traceId: httpContext.TraceIdentifier,
+                    errors: errors, traceId: httpContext.TraceIdentifier,
                     includeStackTrace: _problemDetailsIncludeStackTrace)));
     }
 }

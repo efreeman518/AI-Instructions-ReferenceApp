@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using EF.Common.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
+using Test.Support;
 
 namespace Test.E2E;
 
@@ -24,11 +24,7 @@ namespace Test.E2E;
 public class TaskItemCrudE2ETests
 {
     private static SqlApiFactory _factory = null!;
-    private static readonly JsonSerializerOptions _json = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
+    private static readonly JsonSerializerOptions _json = JsonTestOptions.Default;
 
     /// <summary>Initializes shared test fixtures before the class-level test run begins.</summary>
     [ClassInitialize]

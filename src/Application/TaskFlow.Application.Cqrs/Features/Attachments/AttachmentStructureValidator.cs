@@ -1,4 +1,5 @@
 using EF.Common.Contracts;
+using EF.Domain.Contracts;
 using TaskFlow.Application.Cqrs.Shared;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Constants;
@@ -14,15 +15,15 @@ internal static class AttachmentStructureValidator
         var common = StructureValidators.ValidateCreate(dto);
         if (common.IsFailure) return Result<AttachmentDto>.Failure(common.ErrorMessage!);
 
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(dto.FileName)) errors.Add("FileName is required.");
-        if (dto.FileName?.Length > DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX) errors.Add($"FileName cannot exceed {DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX} characters.");
-        if (string.IsNullOrWhiteSpace(dto.ContentType)) errors.Add("ContentType is required.");
-        if (dto.ContentType?.Length > DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX) errors.Add($"ContentType cannot exceed {DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX} characters.");
-        if (dto.FileSizeBytes <= 0) errors.Add("FileSizeBytes must be greater than zero.");
-        if (string.IsNullOrWhiteSpace(dto.StorageUri)) errors.Add("StorageUri is required.");
-        if (dto.StorageUri?.Length > DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX) errors.Add($"StorageUri cannot exceed {DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX} characters.");
-        if (dto.OwnerId == Guid.Empty) errors.Add("OwnerId is required.");
+        var errors = new List<DomainError>();
+        if (string.IsNullOrWhiteSpace(dto.FileName)) errors.Add(DomainError.Create("FileName is required."));
+        if (dto.FileName?.Length > DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX) errors.Add(DomainError.Create($"FileName cannot exceed {DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX} characters."));
+        if (string.IsNullOrWhiteSpace(dto.ContentType)) errors.Add(DomainError.Create("ContentType is required."));
+        if (dto.ContentType?.Length > DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX) errors.Add(DomainError.Create($"ContentType cannot exceed {DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX} characters."));
+        if (dto.FileSizeBytes <= 0) errors.Add(DomainError.Create("FileSizeBytes must be greater than zero."));
+        if (string.IsNullOrWhiteSpace(dto.StorageUri)) errors.Add(DomainError.Create("StorageUri is required."));
+        if (dto.StorageUri?.Length > DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX) errors.Add(DomainError.Create($"StorageUri cannot exceed {DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX} characters."));
+        if (dto.OwnerId == Guid.Empty) errors.Add(DomainError.Create("OwnerId is required."));
         return errors.Count > 0 ? Result<AttachmentDto>.Failure(errors) : Result<AttachmentDto>.Success(dto);
     }
 
@@ -32,14 +33,14 @@ internal static class AttachmentStructureValidator
         var common = StructureValidators.ValidateUpdate(dto);
         if (common.IsFailure) return Result<AttachmentDto>.Failure(common.ErrorMessage!);
 
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(dto.FileName)) errors.Add("FileName is required.");
-        if (dto.FileName?.Length > DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX) errors.Add($"FileName cannot exceed {DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX} characters.");
-        if (string.IsNullOrWhiteSpace(dto.ContentType)) errors.Add("ContentType is required.");
-        if (dto.ContentType?.Length > DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX) errors.Add($"ContentType cannot exceed {DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX} characters.");
-        if (dto.FileSizeBytes <= 0) errors.Add("FileSizeBytes must be greater than zero.");
-        if (string.IsNullOrWhiteSpace(dto.StorageUri)) errors.Add("StorageUri is required.");
-        if (dto.StorageUri?.Length > DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX) errors.Add($"StorageUri cannot exceed {DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX} characters.");
+        var errors = new List<DomainError>();
+        if (string.IsNullOrWhiteSpace(dto.FileName)) errors.Add(DomainError.Create("FileName is required."));
+        if (dto.FileName?.Length > DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX) errors.Add(DomainError.Create($"FileName cannot exceed {DomainConstants.RULE_ATTACHMENT_FILENAME_LENGTH_MAX} characters."));
+        if (string.IsNullOrWhiteSpace(dto.ContentType)) errors.Add(DomainError.Create("ContentType is required."));
+        if (dto.ContentType?.Length > DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX) errors.Add(DomainError.Create($"ContentType cannot exceed {DomainConstants.RULE_ATTACHMENT_CONTENTTYPE_LENGTH_MAX} characters."));
+        if (dto.FileSizeBytes <= 0) errors.Add(DomainError.Create("FileSizeBytes must be greater than zero."));
+        if (string.IsNullOrWhiteSpace(dto.StorageUri)) errors.Add(DomainError.Create("StorageUri is required."));
+        if (dto.StorageUri?.Length > DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX) errors.Add(DomainError.Create($"StorageUri cannot exceed {DomainConstants.RULE_ATTACHMENT_STORAGEURI_LENGTH_MAX} characters."));
         return errors.Count > 0 ? Result<AttachmentDto>.Failure(errors) : Result<AttachmentDto>.Success(dto);
     }
 }

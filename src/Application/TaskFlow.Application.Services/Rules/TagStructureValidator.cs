@@ -1,4 +1,5 @@
 using EF.Common.Contracts;
+using EF.Domain.Contracts;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Constants;
 
@@ -13,10 +14,10 @@ internal static class TagStructureValidator
         var common = StructureValidators.ValidateCreate(dto);
         if (common.IsFailure) return Result<TagDto>.Failure(common.ErrorMessage!);
 
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add("Tag name is required.");
-        if (dto.Name?.Length > DomainConstants.RULE_TAG_NAME_LENGTH_MAX) errors.Add($"Tag name cannot exceed {DomainConstants.RULE_TAG_NAME_LENGTH_MAX} characters.");
-        if (dto.Color?.Length > DomainConstants.RULE_TAG_COLOR_LENGTH_MAX) errors.Add($"Color cannot exceed {DomainConstants.RULE_TAG_COLOR_LENGTH_MAX} characters.");
+        var errors = new List<DomainError>();
+        if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add(DomainError.Create("Tag name is required."));
+        if (dto.Name?.Length > DomainConstants.RULE_TAG_NAME_LENGTH_MAX) errors.Add(DomainError.Create($"Tag name cannot exceed {DomainConstants.RULE_TAG_NAME_LENGTH_MAX} characters."));
+        if (dto.Color?.Length > DomainConstants.RULE_TAG_COLOR_LENGTH_MAX) errors.Add(DomainError.Create($"Color cannot exceed {DomainConstants.RULE_TAG_COLOR_LENGTH_MAX} characters."));
         return errors.Count > 0 ? Result<TagDto>.Failure(errors) : Result<TagDto>.Success(dto);
     }
 
@@ -26,10 +27,10 @@ internal static class TagStructureValidator
         var common = StructureValidators.ValidateUpdate(dto);
         if (common.IsFailure) return Result<TagDto>.Failure(common.ErrorMessage!);
 
-        var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add("Tag name is required.");
-        if (dto.Name?.Length > DomainConstants.RULE_TAG_NAME_LENGTH_MAX) errors.Add($"Tag name cannot exceed {DomainConstants.RULE_TAG_NAME_LENGTH_MAX} characters.");
-        if (dto.Color?.Length > DomainConstants.RULE_TAG_COLOR_LENGTH_MAX) errors.Add($"Color cannot exceed {DomainConstants.RULE_TAG_COLOR_LENGTH_MAX} characters.");
+        var errors = new List<DomainError>();
+        if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add(DomainError.Create("Tag name is required."));
+        if (dto.Name?.Length > DomainConstants.RULE_TAG_NAME_LENGTH_MAX) errors.Add(DomainError.Create($"Tag name cannot exceed {DomainConstants.RULE_TAG_NAME_LENGTH_MAX} characters."));
+        if (dto.Color?.Length > DomainConstants.RULE_TAG_COLOR_LENGTH_MAX) errors.Add(DomainError.Create($"Color cannot exceed {DomainConstants.RULE_TAG_COLOR_LENGTH_MAX} characters."));
         return errors.Count > 0 ? Result<TagDto>.Failure(errors) : Result<TagDto>.Success(dto);
     }
 }

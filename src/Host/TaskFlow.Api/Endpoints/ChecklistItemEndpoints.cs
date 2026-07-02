@@ -49,7 +49,7 @@ public static class ChecklistItemEndpoints
         return result.Match<IResult>(
             response => TypedResults.Ok(response),
             errors => TypedResults.Problem(ProblemDetailsHelper.BuildProblemDetailsResponseMultiple(
-                messages: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
+                errors: errors, statusCodeOverride: StatusCodes.Status400BadRequest)),
             () => TypedResults.NotFound(id));
     }
 }

@@ -2,12 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using EF.Common.Contracts;
 using NBomber.Contracts;
 using NBomber.CSharp;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
+using Test.Support;
 
 [assembly: DoNotParallelize]
 
@@ -42,10 +42,7 @@ public class TaskItemLoadTests
     private const string TaskItemsSearchPath = "/api/v1/task-items/search";
     private static readonly string ReportFolder = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "load-reports"));
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() }
-    };
+    private static readonly JsonSerializerOptions JsonOptions = JsonTestOptions.Default;
 
     /// <summary>Verifies that given task item search endpoint, when load applied, then meets performance baseline.</summary>
     [TestMethod]
