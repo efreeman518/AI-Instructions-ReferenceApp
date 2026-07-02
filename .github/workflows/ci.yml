@@ -5,6 +5,12 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  # Weekly deep-lane run (Mon 06:17 UTC): keeps the Docker-backed E2E/Integration/
+  # Aspire lanes continuously green instead of only when manually dispatched.
+  # FoundryLocal (model download) and PlaywrightUI (browser + full stack) stay
+  # dispatch-only for cost/flakiness reasons.
+  schedule:
+    - cron: "17 6 * * 1"
   workflow_dispatch:
     inputs:
       includeE2E:
@@ -40,7 +46,7 @@ jobs:
       # Reclaim ~20+ GB (Android SDK, Haskell, large apt packages) before the Docker-backed steps run.
       # Keep dotnet and the tool cache - the build depends on them.
       - name: Free disk space
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includeE2E || inputs.includeIntegration || inputs.includeAspireMesh || inputs.includeFoundryLocal || inputs.includePlaywrightUI) }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.includeE2E || inputs.includeIntegration || inputs.includeAspireMesh || inputs.includeFoundryLocal || inputs.includePlaywrightUI)) || github.event_name == 'schedule' }}
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -108,8 +114,8 @@ jobs:
           --logger "trx;LogFileName=flowengine-results.trx"
           --results-directory ./TestResults
 
-      - name: E2E Tests (manual, SQL)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeE2E == true }}
+      - name: E2E Tests (manual or scheduled, SQL)
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeE2E == true) || github.event_name == 'schedule' }}
         timeout-minutes: 20
         run: >
           dotnet test src/Test/Test.E2E/Test.E2E.csproj
@@ -117,8 +123,8 @@ jobs:
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./TestResults
 
-      - name: Integration Tests (manual, component)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true }}
+      - name: Integration Tests (manual or scheduled, component)
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true) || github.event_name == 'schedule' }}
         timeout-minutes: 20
         run: >
           dotnet test src/Test/Test.Integration/Test.Integration.csproj
@@ -126,8 +132,8 @@ jobs:
           --logger "trx;LogFileName=integration-results.trx"
           --results-directory ./TestResults
 
-      - name: Aspire Mesh Tests (manual, full graph)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeAspireMesh == true }}
+      - name: Aspire Mesh Tests (manual or scheduled, full graph)
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeAspireMesh == true) || github.event_name == 'schedule' }}
         timeout-minutes: 30
         run: >
           dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
