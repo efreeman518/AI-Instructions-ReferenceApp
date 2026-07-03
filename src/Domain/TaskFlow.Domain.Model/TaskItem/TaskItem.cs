@@ -2,11 +2,11 @@ using EF.Domain;
 using EF.Domain.Contracts;
 using TaskFlow.Domain.Model.ValueObjects;
 using TaskFlow.Domain.Shared;
+using TaskFlow.Domain.Shared.Constants;
+using TaskFlow.Domain.Shared.Enums;
 using DomainCategoryId = TaskFlow.Domain.Shared.CategoryId;
 using DomainTaskItemId = TaskFlow.Domain.Shared.TaskItemId;
 using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
-using TaskFlow.Domain.Shared.Constants;
-using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model;
 

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Infrastructure.Data;
-using TaskFlow.Scheduler.Abstractions;
 using TaskFlow.Scheduler.Handlers;
 using TaskFlow.Scheduler.Infrastructure;
 using TaskFlow.Scheduler.Jobs;

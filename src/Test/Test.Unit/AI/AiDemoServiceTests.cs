@@ -150,18 +150,18 @@ public class AiDemoServiceTests
     }
 
     /// <summary>Small deterministic chat client for parser tests.</summary>
- private sealed class StaticChatClient(string responseText) : IChatClient
- {
- internal ChatOptions? LastOptions { get; private set; }
+    private sealed class StaticChatClient(string responseText) : IChatClient
+    {
+        internal ChatOptions? LastOptions { get; private set; }
 
- public Task<ChatResponse> GetResponseAsync(
- IEnumerable<ChatMessage> messages,
- ChatOptions? options = null,
- CancellationToken cancellationToken = default)
- {
- LastOptions = options;
- return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText)));
- }
+        public Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
+        {
+            LastOptions = options;
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText)));
+        }
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> messages,

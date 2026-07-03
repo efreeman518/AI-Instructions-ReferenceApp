@@ -1,5 +1,5 @@
-using TaskFlow.Application.Contracts;
 using Microsoft.AspNetCore.Authorization;
+using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api.Auth;
 

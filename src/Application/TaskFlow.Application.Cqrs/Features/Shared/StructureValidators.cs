@@ -1,5 +1,4 @@
 using EF.Common.Contracts;
-using EF.Domain.Contracts;
 using TaskFlow.Application.Models.Shared;
 
 namespace TaskFlow.Application.Cqrs.Shared;

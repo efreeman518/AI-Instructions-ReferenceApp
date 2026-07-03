@@ -1,6 +1,6 @@
 using EF.Common.Contracts;
-using TaskFlow.Application.Cqrs.Shared;
 using EF.CQRS.Validation;
+using TaskFlow.Application.Cqrs.Shared;
 
 namespace TaskFlow.Application.Cqrs.Features.TaskItems;
 

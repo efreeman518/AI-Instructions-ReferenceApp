@@ -1,7 +1,7 @@
-using System.Data;
 using EF.Data.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Data;
 using TaskFlow.Infrastructure.Data;
 using Test.Integration.Infrastructure;
 

@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Moq;
 using TaskFlow.Uno.Presentation.Presentation;
-using Uno.Extensions.Navigation;
-using Uno.Extensions.Reactive;
 using Uno.Extensions.Reactive.Core;
 
 namespace Test.UI.Presentation;

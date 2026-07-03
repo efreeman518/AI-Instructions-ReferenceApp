@@ -1,8 +1,8 @@
 using EF.AspNetCore;
 using EF.Common.Contracts;
+using EF.CQRS.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using EF.CQRS.Abstractions;
 using TaskFlow.Application.Cqrs.Features.ChecklistItems;
 using TaskFlow.Application.Models;
 

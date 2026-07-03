@@ -1,8 +1,8 @@
 using EF.Domain;
 using EF.Domain.Contracts;
+using TaskFlow.Domain.Shared.Enums;
 using DomainAttachmentId = TaskFlow.Domain.Shared.AttachmentId;
 using DomainTenantId = TaskFlow.Domain.Shared.TenantId;
-using TaskFlow.Domain.Shared.Enums;
 
 namespace TaskFlow.Domain.Model;
 

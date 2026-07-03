@@ -1,6 +1,6 @@
-using TickerQ.Utilities.Base;
 using TaskFlow.Scheduler.Handlers;
 using TaskFlow.Scheduler.Telemetry;
+using TickerQ.Utilities.Base;
 
 namespace TaskFlow.Scheduler.Jobs;
 

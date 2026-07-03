@@ -1,6 +1,6 @@
-using System.Net.Http.Headers;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
 
 namespace TaskFlow.Gateway.HealthChecks;
 

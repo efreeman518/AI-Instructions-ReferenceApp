@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using TaskFlow.Application.Contracts.Messaging;
 
 namespace TaskFlow.Infrastructure.Storage;

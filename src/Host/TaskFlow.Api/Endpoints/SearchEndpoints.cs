@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using TaskFlow.Infrastructure.AI.Search;
 
 namespace TaskFlow.Api.Endpoints;

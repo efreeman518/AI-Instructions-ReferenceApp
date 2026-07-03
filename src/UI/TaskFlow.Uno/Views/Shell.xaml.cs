@@ -1,5 +1,3 @@
-using Microsoft.UI.Xaml.Controls;
-using Uno.Toolkit.UI;
 using Uno.UI.Extensions;
 
 namespace TaskFlow.Uno.Views;

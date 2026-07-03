@@ -60,15 +60,21 @@ public class ChecklistItemApiService(
     /// <summary>Maps to model into the target contract used by callers.</summary>
     private static ChecklistItemModel MapToModel(ChecklistItemDto dto) => new()
     {
-        Id = dto.Id, Title = dto.Title ?? string.Empty, IsCompleted = dto.IsCompleted ?? false,
-        SortOrder = dto.SortOrder ?? 0, CompletedDate = dto.CompletedDate,
+        Id = dto.Id,
+        Title = dto.Title ?? string.Empty,
+        IsCompleted = dto.IsCompleted ?? false,
+        SortOrder = dto.SortOrder ?? 0,
+        CompletedDate = dto.CompletedDate,
         TaskItemId = dto.TaskItemId ?? Guid.Empty
     };
 
     /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static ChecklistItemDto MapToDto(ChecklistItemModel model) => new()
     {
-        Id = model.Id, Title = model.Title, IsCompleted = model.IsCompleted,
-        SortOrder = model.SortOrder, TaskItemId = model.TaskItemId
+        Id = model.Id,
+        Title = model.Title,
+        IsCompleted = model.IsCompleted,
+        SortOrder = model.SortOrder,
+        TaskItemId = model.TaskItemId
     };
 }

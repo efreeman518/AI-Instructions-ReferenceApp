@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using TaskFlow.Uno.Core.Business.Notifications;
 
 namespace TaskFlow.Uno.Views.Controls;

@@ -10,11 +10,11 @@ public interface INotificationService
     /// <summary>Provides the show success operation for notification service.</summary>
     ValueTask ShowSuccess(string message, string? title = null, CancellationToken ct = default);
     /// <summary>Provides the show info operation for notification service.</summary>
-    ValueTask ShowInfo   (string message, string? title = null, CancellationToken ct = default);
+    ValueTask ShowInfo(string message, string? title = null, CancellationToken ct = default);
     /// <summary>Provides the show warning operation for notification service.</summary>
     ValueTask ShowWarning(string message, string? title = null, CancellationToken ct = default);
     /// <summary>Provides the show error operation for notification service.</summary>
-    ValueTask ShowError  (string message, string? title = null, CancellationToken ct = default);
+    ValueTask ShowError(string message, string? title = null, CancellationToken ct = default);
 
     /// <summary>Provides the show problem operation for notification service.</summary>
     ValueTask ShowProblem(ProblemDetailsPayload problem, CancellationToken ct = default);

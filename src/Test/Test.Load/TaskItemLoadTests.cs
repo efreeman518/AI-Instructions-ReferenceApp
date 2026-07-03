@@ -1,10 +1,10 @@
+using EF.Common.Contracts;
+using NBomber.Contracts;
+using NBomber.CSharp;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using EF.Common.Contracts;
-using NBomber.Contracts;
-using NBomber.CSharp;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Shared.Enums;
 using Test.Support;

@@ -1,8 +1,8 @@
-using System.ClientModel;
 using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OpenAI;
+using System.ClientModel;
 
 namespace TaskFlow.Bootstrapper;
 

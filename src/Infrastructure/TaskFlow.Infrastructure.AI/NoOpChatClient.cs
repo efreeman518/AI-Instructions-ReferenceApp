@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace TaskFlow.Infrastructure.AI;
 

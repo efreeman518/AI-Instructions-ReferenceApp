@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 using EF.FlowEngine;
 using EF.FlowEngine.Abstractions;
 using EF.FlowEngine.Clients;
@@ -9,6 +7,8 @@ using EF.FlowEngine.Model;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace Test.Unit.AI;
 
@@ -27,7 +27,7 @@ public sealed class FlowEngineWorkflowTests
     [TestMethod]
     public async Task TriageWorkflow_HappyPath_CompletesApplied()
     {
-        var taskId    = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
         int patchHits = 0;
 
         using var provider = BuildProvider(
@@ -68,7 +68,7 @@ public sealed class FlowEngineWorkflowTests
     [TestMethod]
     public async Task DecomposerWorkflow_HappyPath_CreatesSubtasksAndCompletes()
     {
-        var taskId   = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
         int postHits = 0;
 
         using var provider = BuildProvider(
@@ -111,7 +111,7 @@ public sealed class FlowEngineWorkflowTests
     // file ({id}@{version}.json) which only exists after SaveAsync writes it.
     private static async Task SeedWorkflowsAsync(IServiceProvider provider)
     {
-        var fileReg   = new JsonFileWorkflowRegistry("Workflows");
+        var fileReg = new JsonFileWorkflowRegistry("Workflows");
         var engineReg = provider.GetRequiredService<IWorkflowRegistry>();
         foreach (var id in new[] { "ai-task-triage", "ai-task-decomposer" })
         {
@@ -155,11 +155,11 @@ public sealed class FlowEngineWorkflowTests
         return await engine.StartAsync(new StartRequest
         {
             WorkflowId = workflowId,
-            TenantId   = TenantId.ToString(),
-            Params     = new Dictionary<string, ContextValue>
+            TenantId = TenantId.ToString(),
+            Params = new Dictionary<string, ContextValue>
             {
-                ["tenantId"]    = Param(TenantId.ToString()),
-                ["taskId"]      = Param(taskId.ToString()),
+                ["tenantId"] = Param(TenantId.ToString()),
+                ["taskId"] = Param(taskId.ToString()),
                 ["description"] = Param("A sample task description for deterministic workflow tests.")
             }
         });
@@ -179,17 +179,17 @@ public sealed class FlowEngineWorkflowTests
     private static ClientResponse OkResponse() => new()
     {
         StatusCode = 200,
-        Outcome    = DecisionOutcome.Match,
-        Body       = JsonSerializer.SerializeToElement(new { }),
-        Headers    = new Dictionary<string, string>()
+        Outcome = DecisionOutcome.Match,
+        Body = JsonSerializer.SerializeToElement(new { }),
+        Headers = new Dictionary<string, string>()
     };
 
     private static ClientResponse CreatedResponse() => new()
     {
         StatusCode = 201,
-        Outcome    = DecisionOutcome.Match,
-        Body       = JsonSerializer.SerializeToElement(new { }),
-        Headers    = new Dictionary<string, string>()
+        Outcome = DecisionOutcome.Match,
+        Body = JsonSerializer.SerializeToElement(new { }),
+        Headers = new Dictionary<string, string>()
     };
 
     // Stub IRequestResponseClient used in place of the resilience-wrapped HttpClient.

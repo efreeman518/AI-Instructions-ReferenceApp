@@ -60,12 +60,16 @@ public class TagApiService(
     /// <summary>Maps to model into the target contract used by callers.</summary>
     private static TagModel MapToModel(TagDto dto) => new()
     {
-        Id = dto.Id, Name = dto.Name ?? string.Empty, Color = dto.Color
+        Id = dto.Id,
+        Name = dto.Name ?? string.Empty,
+        Color = dto.Color
     };
 
     /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static TagDto MapToDto(TagModel model) => new()
     {
-        Id = model.Id, Name = model.Name, Color = model.Color
+        Id = model.Id,
+        Name = model.Name,
+        Color = model.Color
     };
 }

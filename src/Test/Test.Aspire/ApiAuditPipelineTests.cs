@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Azure;
@@ -7,6 +5,8 @@ using Azure.Data.Tables;
 using EF.Common.Contracts;
 using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
 using TaskFlow.Application.Models;
 using TaskFlow.Infrastructure.Storage;
 

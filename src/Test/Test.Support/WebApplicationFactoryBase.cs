@@ -1,7 +1,6 @@
 using EF.Data;
 using EF.IntegrationTesting.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

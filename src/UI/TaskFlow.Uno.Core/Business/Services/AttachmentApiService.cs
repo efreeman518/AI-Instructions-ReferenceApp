@@ -50,17 +50,23 @@ public class AttachmentApiService(
     /// <summary>Maps to model into the target contract used by callers.</summary>
     private static AttachmentModel MapToModel(AttachmentDto dto) => new()
     {
-        Id = dto.Id, FileName = dto.FileName ?? string.Empty,
+        Id = dto.Id,
+        FileName = dto.FileName ?? string.Empty,
         ContentType = dto.ContentType ?? string.Empty,
-        FileSizeBytes = dto.FileSizeBytes ?? 0, StorageUri = dto.StorageUri ?? string.Empty,
-        OwnerType = dto.OwnerType ?? "TaskItem", OwnerId = dto.OwnerId ?? Guid.Empty
+        FileSizeBytes = dto.FileSizeBytes ?? 0,
+        StorageUri = dto.StorageUri ?? string.Empty,
+        OwnerType = dto.OwnerType ?? "TaskItem",
+        OwnerId = dto.OwnerId ?? Guid.Empty
     };
 
     /// <summary>Maps to DTO into the target contract used by callers.</summary>
     private static AttachmentDto MapToDto(AttachmentModel model) => new()
     {
-        FileName = model.FileName, ContentType = model.ContentType,
-        FileSizeBytes = model.FileSizeBytes, StorageUri = model.StorageUri,
-        OwnerType = model.OwnerType, OwnerId = model.OwnerId
+        FileName = model.FileName,
+        ContentType = model.ContentType,
+        FileSizeBytes = model.FileSizeBytes,
+        StorageUri = model.StorageUri,
+        OwnerType = model.OwnerType,
+        OwnerId = model.OwnerId
     };
 }

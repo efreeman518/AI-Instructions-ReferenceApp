@@ -1,6 +1,4 @@
 using TaskFlow.Application.Mappers;
-using TaskFlow.Domain.Model;
-using Test.Support;
 using Test.Support.Builders;
 
 namespace Test.Unit.Mappers;

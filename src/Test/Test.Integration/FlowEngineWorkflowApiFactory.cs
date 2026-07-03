@@ -1,15 +1,14 @@
-using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using EF.FlowEngine.Abstractions;
 using EF.FlowEngine.Clients;
 using EF.FlowEngine.Model;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace Test.Integration;
 

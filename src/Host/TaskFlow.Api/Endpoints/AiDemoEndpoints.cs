@@ -1,9 +1,6 @@
-using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.AI;
+using System.Runtime.CompilerServices;
 using TaskFlow.Infrastructure.AI;
 using TaskFlow.Infrastructure.AI.Demos;
 

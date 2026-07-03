@@ -1,4 +1,4 @@
-using EF.Domain.Contracts;
+using EF.Common.Contracts;
 
 namespace TaskFlow.Application.Models.Shared;
 

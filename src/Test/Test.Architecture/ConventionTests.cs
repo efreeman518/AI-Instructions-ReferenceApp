@@ -1,5 +1,5 @@
-using System.Reflection;
 using EF.Domain.Contracts;
+using System.Reflection;
 using TaskFlow.Domain.Shared;
 
 namespace Test.Architecture;

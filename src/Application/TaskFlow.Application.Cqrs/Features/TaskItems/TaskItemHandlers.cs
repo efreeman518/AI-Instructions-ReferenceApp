@@ -1,12 +1,12 @@
 using EF.Common.Contracts;
-using TaskFlow.Application.Cqrs.Shared;
+using EF.CQRS.Abstractions;
 using EF.Data.Contracts;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Application.Contracts.Events;
 using TaskFlow.Application.Contracts.Messaging;
 using TaskFlow.Application.Contracts.Repositories;
-using EF.CQRS.Abstractions;
+using TaskFlow.Application.Cqrs.Shared;
 using TaskFlow.Application.Mappers;
 using TaskFlow.Application.Models;
 using TaskFlow.Domain.Model;

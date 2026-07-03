@@ -1,5 +1,5 @@
-using System.Net;
 using Aspire.Hosting.Testing;
+using System.Net;
 
 namespace Test.Aspire;
 
