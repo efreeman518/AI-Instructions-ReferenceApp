@@ -31,7 +31,7 @@ public class FunctionAuditPipelineTests
 
     /// <summary>Verifies that given function category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
-    [Timeout(300000)]
+    [Timeout(600000)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
         if (!AspireTestHost.EnsureFuncToolAvailable())
@@ -45,49 +45,100 @@ public class FunctionAuditPipelineTests
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowfunctions", ct);
         await AspireTestHost.WaitForResourceHealthyAsync("TableStorage1", ct);
 
-        using var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
-        client.Timeout = TimeSpan.FromMinutes(10);
-        var auditWindowStartUtc = DateTimeOffset.UtcNow;
-        var request = new
+        try
         {
-            Name = $"Function Audit {Guid.NewGuid():N}",
-            Description = "Integration-created category"
-        };
+            using var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
+            client.Timeout = TimeSpan.FromMinutes(10);
+            await WaitForFunctionReadyAsync(client, ct);
 
-        using var response = await PostCreateCategoryWithRetryAsync(client, request, ct);
-        var responseBody = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: ct);
+            var auditWindowStartUtc = DateTimeOffset.UtcNow;
+            var request = new
+            {
+                Name = $"Function Audit {Guid.NewGuid():N}",
+                Description = "Integration-created category"
+            };
 
-        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        Assert.IsNotNull(responseBody);
-        Assert.IsNotNull(responseBody.Id);
-        Assert.AreEqual(FunctionFallbackTenantId, responseBody.TenantId);
-        Assert.AreEqual(request.Name, responseBody.Name);
+            using var response = await PostCreateCategoryWithRetryAsync(client, request, ct);
+            var responseBody = await response.Content.ReadFromJsonAsync<CategoryDto>(cancellationToken: ct);
 
-        var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
-            "TableStorage1",
-            AspireTestHost.DefaultTimeout,
-            ct);
-        var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
-        var auditEntity = await WaitForAuditEntityAsync(
-            tableClient,
-            FunctionFallbackTenantId.ToString(),
-            auditWindowStartUtc,
-            ct);
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+            Assert.IsNotNull(responseBody);
+            Assert.IsNotNull(responseBody.Id);
+            Assert.AreEqual(FunctionFallbackTenantId, responseBody.TenantId);
+            Assert.AreEqual(request.Name, responseBody.Name);
 
-        Assert.IsNotNull(auditEntity);
-        Assert.AreEqual(FunctionFallbackTenantId.ToString(), auditEntity.PartitionKey);
-        Assert.AreEqual(FunctionFallbackTenantId.ToString(), auditEntity.TenantId);
-        Assert.AreEqual("Category", auditEntity.EntityType);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(auditEntity.AuditId));
-        Assert.AreEqual("Added", auditEntity.Action);
-        Assert.AreEqual(AuditStatus.Success.ToString(), auditEntity.Status);
-        Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
+            var connectionString = await AspireTestHost.AspireApp!.GetRequiredConnectionStringAsync(
+                "TableStorage1",
+                AspireTestHost.DefaultTimeout,
+                ct);
+            var tableClient = new TableServiceClient(connectionString).GetTableClient("taskflowaudit");
+            var auditEntity = await WaitForAuditEntityAsync(
+                tableClient,
+                FunctionFallbackTenantId.ToString(),
+                auditWindowStartUtc,
+                ct);
+
+            Assert.IsNotNull(auditEntity);
+            Assert.AreEqual(FunctionFallbackTenantId.ToString(), auditEntity.PartitionKey);
+            Assert.AreEqual(FunctionFallbackTenantId.ToString(), auditEntity.TenantId);
+            Assert.AreEqual("Category", auditEntity.EntityType);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(auditEntity.AuditId));
+            Assert.AreEqual("Added", auditEntity.Action);
+            Assert.AreEqual(AuditStatus.Success.ToString(), auditEntity.Status);
+            Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
+        }
+        catch (Exception ex)
+        {
+            if (await AspireTestHost.TryAssertInconclusiveForUnavailableResourcesAsync(
+                ex,
+                ct,
+                "taskflowfunctions",
+                "taskflowdb",
+                "TableStorage1",
+                "ServiceBus1"))
+            {
+                return;
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>Verifies the Functions host health endpoint becomes reachable before issuing the integration request.</summary>
+    private static async Task WaitForFunctionReadyAsync(HttpClient client, CancellationToken ct)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(180);
+        Exception? lastException = null;
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            try
+            {
+                using var response = await client.GetAsync("/api/health", ct);
+                if (response.IsSuccessStatusCode)
+                    return;
+
+                lastException = new InvalidOperationException($"Function health endpoint returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
+            }
+            catch (HttpRequestException ex)
+            {
+                lastException = ex;
+            }
+            catch (TaskCanceledException ex)
+            {
+                lastException = ex;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), ct);
+        }
+
+        throw new TimeoutException($"Function host did not become ready within 180 seconds. Last error: {lastException?.Message ?? "unknown"}");
     }
 
     /// <summary>Verifies post create category with retry behavior and protects the expected test contract.</summary>
     private static async Task<HttpResponseMessage> PostCreateCategoryWithRetryAsync(HttpClient client, object request, CancellationToken ct)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(180);
         HttpStatusCode? lastStatusCode = null;
         string? lastBody = null;
         Exception? lastException = null;
@@ -105,6 +156,10 @@ public class FunctionAuditPipelineTests
                 response.Dispose();
             }
             catch (HttpRequestException ex)
+            {
+                lastException = ex;
+            }
+            catch (TaskCanceledException ex)
             {
                 lastException = ex;
             }

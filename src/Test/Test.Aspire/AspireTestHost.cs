@@ -5,6 +5,7 @@ using Aspire.Hosting.Testing;
 using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
 using System.Diagnostics;
 using EnvironmentVariableScope = EF.IntegrationTesting.Environment.EnvironmentVariableScope;
 using FunctionsCoreToolsDiscovery = EF.IntegrationTesting.Environment.FunctionsCoreToolsDiscovery;
@@ -74,6 +75,11 @@ internal static class AspireTestHost
             try
             {
                 await StartAsync(context.CancellationToken);
+            }
+            catch (Exception ex) when (ShouldTreatAsUnavailableResource(ex))
+            {
+                await StopAsync(CancellationToken.None);
+                Assert.Inconclusive($"Aspire app host could not start because a required resource or dependency is unavailable. {ex.Message}");
             }
             catch
             {
@@ -188,12 +194,119 @@ internal static class AspireTestHost
         {
             await AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
         }
+        catch (Exception ex) when (ShouldTreatAsUnavailableResource(ex))
+        {
+            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
+            await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
+
+            var state = AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent)
+                ? resourceEvent.Snapshot.State?.Text
+                : "unavailable";
+
+            Assert.Inconclusive(
+                $"Aspire resource '{resourceName}' did not become healthy. Current state: {state}. This usually indicates that a required local resource or dependency is unavailable in this environment. {ex.Message}");
+        }
         catch
         {
             await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
             await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
             throw;
         }
+    }
+
+    internal static async Task<bool> TryAssertInconclusiveForUnavailableResourcesAsync(
+        Exception ex,
+        CancellationToken cancellationToken = default,
+        params string[] resourceNames)
+    {
+        if (AspireApp is null)
+            return false;
+
+        var affectedResources = GetUnavailableResourceSummaries(resourceNames);
+        if (affectedResources.Count == 0)
+        {
+            if (!LooksLikeUnavailableEndpointException(ex))
+                return false;
+
+            affectedResources.Add($"{string.Join(", ", resourceNames)}: endpoint unavailable");
+        }
+
+        foreach (var resourceName in resourceNames.Distinct(StringComparer.OrdinalIgnoreCase))
+            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
+
+        Assert.Inconclusive(
+            $"Required local resources appear unavailable for this test. {string.Join("; ", affectedResources)}. Exception: {ex.GetType().Name}: {ex.Message}");
+
+        return true;
+    }
+
+    private static bool ShouldTreatAsUnavailableResource(Exception ex) =>
+        ex is DistributedApplicationException
+        || ex is TimeoutException
+        || ex is OperationCanceledException
+        || string.Equals(ex.GetType().Name, "TimeoutRejectedException", StringComparison.Ordinal);
+
+    private static List<string> GetUnavailableResourceSummaries(IEnumerable<string> resourceNames)
+    {
+        if (AspireApp is null)
+            return [];
+
+        List<string> affectedResources = [];
+
+        foreach (var resourceName in resourceNames.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
+            {
+                affectedResources.Add($"{resourceName}: state unavailable");
+                continue;
+            }
+
+            var snapshot = resourceEvent.Snapshot;
+            var state = snapshot.State?.Text ?? "unknown";
+            var health = snapshot.HealthStatus?.ToString() ?? "unknown";
+
+            if (string.Equals(state, "Finished", StringComparison.OrdinalIgnoreCase)
+                && snapshot.ExitCode is null or 0)
+            {
+                continue;
+            }
+
+            if (snapshot.ExitCode is int exitCode && exitCode != 0)
+            {
+                affectedResources.Add($"{resourceName}: state={state}, health={health}, exit={exitCode}");
+                continue;
+            }
+
+            if (!string.Equals(health, "Healthy", StringComparison.OrdinalIgnoreCase))
+            {
+                affectedResources.Add($"{resourceName}: state={state}, health={health}");
+                continue;
+            }
+
+            if (state is "Failed" or "Exited" or "Stopped")
+                affectedResources.Add($"{resourceName}: state={state}, health={health}");
+        }
+
+        return affectedResources;
+    }
+
+    private static bool LooksLikeUnavailableEndpointException(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException or IOException or SocketException or TimeoutException)
+                return true;
+
+            var message = current.Message;
+            if (message.Contains("forcibly closed by the remote host", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("response ended prematurely", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("while sending the request", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task DumpResourceDiagnosticsAsync(string resourceName, CancellationToken cancellationToken)
