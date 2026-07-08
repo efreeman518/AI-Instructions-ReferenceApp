@@ -17,7 +17,7 @@ public class NotificationServiceTests
     public async Task ShowSuccess_Appends_Item()
     {
         var svc = new NotificationService();
-        await svc.ShowSuccess("Saved.", "Done");
+        await svc.ShowSuccess("Saved.", "Done", TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
         Assert.AreEqual(NotificationSeverity.Success, svc.Items[0].Severity);
@@ -30,7 +30,7 @@ public class NotificationServiceTests
     public async Task ShowError_Persists_NoAutoDismiss()
     {
         var svc = new NotificationService();
-        await svc.ShowError("Boom");
+        await svc.ShowError("Boom", ct: TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
         Assert.IsNull(svc.Items[0].AutoDismissAfter);
@@ -48,7 +48,7 @@ public class NotificationServiceTests
             Detail = "Name is required"
         };
 
-        await svc.ShowProblem(problem);
+        await svc.ShowProblem(problem, TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
         var n = svc.Items[0];
@@ -66,9 +66,9 @@ public class NotificationServiceTests
         var p = new ProblemDetailsPayload { Status = 500, Title = "Oops", Detail = "first" };
         var q = new ProblemDetailsPayload { Status = 500, Title = "Oops", Detail = "second" };
 
-        await svc.ShowProblem(p);
-        await svc.ShowProblem(q);
-        await svc.ShowProblem(q);
+        await svc.ShowProblem(p, TestContext.CancellationToken);
+        await svc.ShowProblem(q, TestContext.CancellationToken);
+        await svc.ShowProblem(q, TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
         Assert.AreEqual("second", svc.Items[0].Message);
@@ -79,13 +79,13 @@ public class NotificationServiceTests
     public async Task Dismiss_Removes_Item_By_Id()
     {
         var svc = new NotificationService();
-        await svc.ShowError("first");
-        await svc.ShowError("second");
+        await svc.ShowError("first", ct: TestContext.CancellationToken);
+        await svc.ShowError("second", ct: TestContext.CancellationToken);
 
         var idToKeep = svc.Items[0].Id;
         var idToRemove = svc.Items[1].Id;
 
-        await svc.Dismiss(idToRemove);
+        await svc.Dismiss(idToRemove, TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
         Assert.AreEqual(idToKeep, svc.Items[0].Id);
@@ -96,10 +96,12 @@ public class NotificationServiceTests
     public async Task Dismiss_Unknown_Id_IsNoOp()
     {
         var svc = new NotificationService();
-        await svc.ShowError("x");
+        await svc.ShowError("x", ct: TestContext.CancellationToken);
 
-        await svc.Dismiss(Guid.NewGuid());
+        await svc.Dismiss(Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.HasCount(1, svc.Items);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

@@ -42,7 +42,7 @@ public class TagApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         // Mock SearchTags orders alphabetically - "backend" sorts before "frontend".
@@ -56,7 +56,7 @@ public class TagApiServiceTests
     {
         var tagId = Guid.Parse("22222222-2222-2222-2222-111111111111");
 
-        var result = await _service.GetAsync(tagId);
+        var result = await _service.GetAsync(tagId, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.AreEqual("frontend", result.Name);
@@ -69,7 +69,7 @@ public class TagApiServiceTests
     {
         var newTag = new TagModel { Name = "urgent", Color = "#EF4444" };
 
-        var result = await _service.CreateAsync(newTag);
+        var result = await _service.CreateAsync(newTag, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -87,7 +87,7 @@ public class TagApiServiceTests
             Color = "#000000"
         };
 
-        var result = await _service.UpdateAsync(tag);
+        var result = await _service.UpdateAsync(tag, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -97,6 +97,8 @@ public class TagApiServiceTests
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
-        await _service.DeleteAsync(Guid.NewGuid());
+        await _service.DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

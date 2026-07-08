@@ -18,7 +18,7 @@ public class NoOpSearchServiceTests
     [TestMethod]
     public async Task SearchTaskItemsAsync_ReturnsEmptyResults()
     {
-        var results = await _service.SearchTaskItemsAsync("test query", SearchMode.Keyword, Guid.NewGuid());
+        var results = await _service.SearchTaskItemsAsync("test query", SearchMode.Keyword, Guid.NewGuid(), ct: TestContext.CancellationToken);
 
         Assert.IsNotNull(results);
         Assert.IsEmpty(results);
@@ -38,7 +38,7 @@ public class NoOpSearchServiceTests
             LastUpdated = DateTimeOffset.UtcNow
         };
 
-        await _service.IndexTaskItemAsync(doc);
+        await _service.IndexTaskItemAsync(doc, TestContext.CancellationToken);
         // No exception = success
     }
 
@@ -46,7 +46,9 @@ public class NoOpSearchServiceTests
     [TestMethod]
     public async Task RemoveTaskItemAsync_CompletesWithoutError()
     {
-        await _service.RemoveTaskItemAsync(Guid.NewGuid().ToString());
+        await _service.RemoveTaskItemAsync(Guid.NewGuid().ToString(), TestContext.CancellationToken);
         // No exception = success
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

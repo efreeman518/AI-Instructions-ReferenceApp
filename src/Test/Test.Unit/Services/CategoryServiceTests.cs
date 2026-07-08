@@ -62,7 +62,7 @@ public class CategoryServiceTests
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var dto = new CategoryDto { Name = "Test Category", Description = "Desc" };
-        var result = await CreateService().CreateAsync(new DefaultRequest<CategoryDto> { Item = dto });
+        var result = await CreateService().CreateAsync(new DefaultRequest<CategoryDto> { Item = dto }, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Test Category", result.Value!.Item!.Name);
@@ -74,7 +74,7 @@ public class CategoryServiceTests
     public async Task Given_InvalidDto_When_CreateAsync_Then_ReturnsFailure()
     {
         var dto = new CategoryDto { Name = "" };
-        var result = await CreateService().CreateAsync(new DefaultRequest<CategoryDto> { Item = dto });
+        var result = await CreateService().CreateAsync(new DefaultRequest<CategoryDto> { Item = dto }, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsFailure);
     }
@@ -87,7 +87,7 @@ public class CategoryServiceTests
         var entity = new CategoryBuilder().Build();
         _repoQueryMock.Setup(r => r.GetCategoryAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
-        var result = await CreateService().GetAsync(entity.Id);
+        var result = await CreateService().GetAsync(entity.Id, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(entity.Name, result.Value!.Item!.Name);
@@ -100,7 +100,7 @@ public class CategoryServiceTests
     {
         _repoQueryMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
-        var result = await CreateService().GetAsync(Guid.NewGuid());
+        var result = await CreateService().GetAsync(Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsNone);
     }
@@ -115,7 +115,7 @@ public class CategoryServiceTests
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
         var dto = new CategoryDto { Id = entity.Id, Name = "Updated Name" };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto });
+        var result = await CreateService().UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto }, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("Updated Name", result.Value!.Item!.Name);
@@ -129,7 +129,7 @@ public class CategoryServiceTests
         _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
         var dto = new CategoryDto { Id = Guid.NewGuid(), Name = "Updated" };
-        var result = await CreateService().UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto });
+        var result = await CreateService().UpdateAsync(new DefaultRequest<CategoryDto> { Item = dto }, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNull(result.Value?.Item);
@@ -144,7 +144,7 @@ public class CategoryServiceTests
         _repoTrxnMock.Setup(r => r.GetCategoryAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         _repoTrxnMock.Setup(r => r.SaveChangesAsync(It.IsAny<OptimisticConcurrencyWinner>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
 
-        var result = await CreateService().DeleteAsync(entity.Id);
+        var result = await CreateService().DeleteAsync(entity.Id, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         _repoTrxnMock.Verify(r => r.Delete(entity), Times.Once);
@@ -157,7 +157,7 @@ public class CategoryServiceTests
     {
         _repoTrxnMock.Setup(r => r.GetCategoryAsync(It.IsAny<CategoryId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
-        var result = await CreateService().DeleteAsync(Guid.NewGuid());
+        var result = await CreateService().DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
     }
@@ -173,9 +173,11 @@ public class CategoryServiceTests
             .ReturnsAsync(pagedResponse);
 
         var request = new SearchRequest<CategorySearchFilter> { PageSize = 10, PageIndex = 0 };
-        var response = await CreateService().SearchAsync(request);
+        var response = await CreateService().SearchAsync(request, TestContext.CancellationToken);
 
         Assert.AreEqual(2, response.Total);
         Assert.HasCount(2, response.Data);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

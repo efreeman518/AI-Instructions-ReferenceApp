@@ -37,10 +37,10 @@ public class MockHttpMessageHandlerTests
     public async Task SearchTaskItems_ReturnsMockData()
     {
         var response = await _httpClient.PostAsJsonAsync("/api/v1/task-items/search",
-            new SearchRequest<TaskItemSearchFilter> { PageNumber = 1, PageSize = 50 });
+            new SearchRequest<TaskItemSearchFilter> { PageNumber = 1, PageSize = 50 }, cancellationToken: TestContext.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<PagedResponse<TaskItemDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponse<TaskItemDto>>(TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotEmpty(result.Items!);
@@ -52,10 +52,10 @@ public class MockHttpMessageHandlerTests
     public async Task SearchCategories_ReturnsMockData()
     {
         var response = await _httpClient.PostAsJsonAsync("/api/v1/categories/search",
-            new SearchRequest<CategorySearchFilter> { PageNumber = 1, PageSize = 100 });
+            new SearchRequest<CategorySearchFilter> { PageNumber = 1, PageSize = 100 }, cancellationToken: TestContext.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<PagedResponse<CategoryDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponse<CategoryDto>>(TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotEmpty(result.Items!);
@@ -67,10 +67,10 @@ public class MockHttpMessageHandlerTests
     public async Task SearchTags_ReturnsMockData()
     {
         var response = await _httpClient.PostAsJsonAsync("/api/v1/tags/search",
-            new SearchRequest<TagSearchFilter> { PageNumber = 1, PageSize = 100 });
+            new SearchRequest<TagSearchFilter> { PageNumber = 1, PageSize = 100 }, cancellationToken: TestContext.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<PagedResponse<TagDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResponse<TagDto>>(TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotEmpty(result.Items!);
@@ -82,7 +82,7 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task DeleteTaskItem_ReturnsNoContent()
     {
-        var response = await _httpClient.DeleteAsync($"/api/v1/task-items/{Guid.NewGuid()}");
+        var response = await _httpClient.DeleteAsync($"/api/v1/task-items/{Guid.NewGuid()}", TestContext.CancellationToken);
 
         Assert.AreEqual(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
@@ -91,8 +91,10 @@ public class MockHttpMessageHandlerTests
     [TestMethod]
     public async Task UnknownRoute_ReturnsNotFound()
     {
-        var response = await _httpClient.GetAsync("/api/unknown-endpoint");
+        var response = await _httpClient.GetAsync("/api/unknown-endpoint", TestContext.CancellationToken);
 
         Assert.AreEqual(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

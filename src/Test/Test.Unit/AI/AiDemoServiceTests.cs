@@ -36,7 +36,7 @@ public class AiDemoServiceTests
             new NoOpChatClient(NullLogger<NoOpChatClient>.Instance),
             taskItemService.Object);
 
-        var result = await service.TriageAsync(taskId, apply: true);
+        var result = await service.TriageAsync(taskId, apply: true, TestContext.CancellationToken);
 
         Assert.IsFalse(result.IsConfigured);
         Assert.IsFalse(result.Applied);
@@ -75,7 +75,7 @@ public class AiDemoServiceTests
             chatClient,
             taskItemService.Object);
 
-        var result = await service.TriageAsync(taskId, apply: true);
+        var result = await service.TriageAsync(taskId, apply: true, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsConfigured);
         Assert.IsTrue(result.Applied);
@@ -105,7 +105,7 @@ public class AiDemoServiceTests
             new StaticChatClient("""{"suggestedPriority":null,"confidence":0.7}"""),
             taskItemService.Object);
 
-        var result = await service.TriageAsync(taskId, apply: true);
+        var result = await service.TriageAsync(taskId, apply: true, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsConfigured);
         Assert.IsFalse(result.Applied);
@@ -136,7 +136,7 @@ public class AiDemoServiceTests
                 """),
             taskItemService.Object);
 
-        var result = await service.DraftAndCreateAsync("Prepare compliance summary");
+        var result = await service.DraftAndCreateAsync("Prepare compliance summary", TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsConfigured);
         Assert.IsTrue(result.Created);
@@ -178,4 +178,6 @@ public class AiDemoServiceTests
         {
         }
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

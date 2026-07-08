@@ -30,7 +30,7 @@ public class GenericRepositoryIntegrationTests
         if (SqlContainerFixture.StartupError != null)
             return; // tests mark themselves Inconclusive in TestSetup
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(_.CancellationToken);
     }
 
     /// <summary>Marks the test Inconclusive when the SQL container failed to start (assembly-init safety).</summary>
@@ -57,19 +57,19 @@ public class GenericRepositoryIntegrationTests
         await trxnRepo.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, CancellationToken.None);
 
         // Assert - tracked GetAsync on the write repo
-        var tracked = await trxnRepo.GetAsync(tag.Id);
+        var tracked = await trxnRepo.GetAsync(tag.Id, TestContext.CancellationToken);
         Assert.IsNotNull(tracked, "generic Trxn GetAsync should return the persisted tag");
         Assert.AreEqual(tag.Name, tracked.Name);
 
         // Assert - no-tracking GetAsync on a fresh query context
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
         var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
-        var read = await queryRepo.GetAsync(tag.Id);
+        var read = await queryRepo.GetAsync(tag.Id, TestContext.CancellationToken);
         Assert.IsNotNull(read, "generic Query GetAsync should return the persisted tag");
         Assert.AreEqual(tag.Name, read.Name);
 
         // Assert - GetAsync for a missing id returns null
-        Assert.IsNull(await queryRepo.GetAsync(DomainId.From<TagId>(Guid.NewGuid())));
+        Assert.IsNull(await queryRepo.GetAsync(DomainId.From<TagId>(Guid.NewGuid()), TestContext.CancellationToken));
     }
 
     /// <summary>Verifies the generic Query repo's ListAsync returns exactly the entities matching the predicate.</summary>
@@ -92,11 +92,13 @@ public class GenericRepositoryIntegrationTests
         await using var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
         var queryRepo = new TaskFlowRepositoryQuery<Tag, TagId>(queryCtx);
 
-        var matches = await queryRepo.ListAsync(t => t.Name.StartsWith(prefix));
+        var matches = await queryRepo.ListAsync(t => t.Name.StartsWith(prefix), TestContext.CancellationToken);
 
         Assert.AreEqual(2, matches.Count, "ListAsync should return exactly the two tags matching the unique prefix");
         CollectionAssert.AreEquivalent(
             new[] { tagA.Id, tagB.Id },
             matches.Select(t => t.Id).ToList());
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

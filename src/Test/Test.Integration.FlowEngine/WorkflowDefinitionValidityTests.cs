@@ -83,18 +83,18 @@ public class WorkflowDefinitionValidityTests
         var def = JsonSerializer.Deserialize<WorkflowDefinition>(ReadWorkflowFile(fileName), JsonOpts)!;
 
         var registry = new InMemoryWorkflowRegistry();
-        await registry.SaveAsync(def);
+        await registry.SaveAsync(def, TestContext.CancellationToken);
 
         // Our JSON ships with status=Active, so the explicit transition is a no-op; mirror
         // the seeding service's idempotent pattern (swallow Active->Active) so the test is
         // robust if we ever flip the JSON to ship as Draft.
         try
         {
-            await registry.TransitionStatusAsync(id, version, DefinitionStatus.Active);
+            await registry.TransitionStatusAsync(id, version, DefinitionStatus.Active, TestContext.CancellationToken);
         }
         catch (InvalidOperationException) { /* already Active */ }
 
-        var loaded = await registry.GetAsync(id, version);
+        var loaded = await registry.GetAsync(id, version, TestContext.CancellationToken);
         Assert.IsNotNull(loaded, "Registry returned null for the version just saved");
         Assert.AreEqual(DefinitionStatus.Active, loaded!.Status, "Definition should be Active after save");
         Assert.AreEqual(def.Nodes.Count, loaded.Nodes.Count, "Node count drifted on round-trip");
@@ -135,4 +135,6 @@ public class WorkflowDefinitionValidityTests
         var path = Path.Combine(AppContext.BaseDirectory, "Workflows", fileName);
         return File.ReadAllText(path);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

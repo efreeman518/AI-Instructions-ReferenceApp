@@ -44,10 +44,10 @@ public class TaskItemEndpointTests
         using var client = CreateClient();
         var dto = new TaskItemDto { Title = "Test Task", Priority = Priority.Medium };
 
-        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Test Task", created.Title);
         Assert.IsNotNull(created.Id);
@@ -60,13 +60,13 @@ public class TaskItemEndpointTests
     {
         using var client = CreateClient();
         var dto = new TaskItemDto { Title = "GetTest", Priority = Priority.Low };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
 
-        var response = await client.GetAsync($"/api/v1/task-items/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/task-items/{created!.Id}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(result);
         Assert.AreEqual("GetTest", result.Title);
     }
@@ -78,7 +78,7 @@ public class TaskItemEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/task-items/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/task-items/{Guid.NewGuid()}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -90,8 +90,8 @@ public class TaskItemEndpointTests
     {
         using var client = CreateClient();
         var dto = new TaskItemDto { Title = "Before Update", Priority = Priority.Medium };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
 
         var updateDto = new TaskItemDto
         {
@@ -100,10 +100,10 @@ public class TaskItemEndpointTests
             Priority = Priority.High,
             Status = created.Status
         };
-        var response = await client.PutAsJsonAsync($"/api/v1/task-items/{created.Id}", new DefaultRequest<TaskItemDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/task-items/{created.Id}", new DefaultRequest<TaskItemDto> { Item = updateDto }, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.AreEqual("After Update", updated!.Title);
     }
 
@@ -114,15 +114,15 @@ public class TaskItemEndpointTests
     {
         using var client = CreateClient();
         var dto = new TaskItemDto { Title = "ToDelete", Priority = Priority.Low };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
 
-        var response = await client.DeleteAsync($"/api/v1/task-items/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/task-items/{created!.Id}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify deleted
-        var getResponse = await client.GetAsync($"/api/v1/task-items/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/task-items/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
@@ -135,9 +135,9 @@ public class TaskItemEndpointTests
 
         // Seed
         await client.PostAsJsonAsync("/api/v1/task-items",
-            new DefaultRequest<TaskItemDto> { Item = new TaskItemDto { Title = "SearchTarget Alpha", Priority = Priority.High } });
+            new DefaultRequest<TaskItemDto> { Item = new TaskItemDto { Title = "SearchTarget Alpha", Priority = Priority.High } }, cancellationToken: TestContext.CancellationToken);
         await client.PostAsJsonAsync("/api/v1/task-items",
-            new DefaultRequest<TaskItemDto> { Item = new TaskItemDto { Title = "Other Beta", Priority = Priority.Low } });
+            new DefaultRequest<TaskItemDto> { Item = new TaskItemDto { Title = "Other Beta", Priority = Priority.Low } }, cancellationToken: TestContext.CancellationToken);
 
         var searchRequest = new SearchRequest<TaskItemSearchFilter>
         {
@@ -146,9 +146,9 @@ public class TaskItemEndpointTests
             Filter = new TaskItemSearchFilter { SearchTerm = "SearchTarget" }
         };
 
-        var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest);
+        var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest, cancellationToken: TestContext.CancellationToken);
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, responseBody);
         var doc = JsonDocument.Parse(responseBody);
         var root = doc.RootElement;
@@ -170,9 +170,9 @@ public class TaskItemEndpointTests
             Filter = new TaskItemSearchFilter()
         };
 
-        var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest);
+        var response = await client.PostAsJsonAsync("/api/v1/task-items/search", searchRequest, cancellationToken: TestContext.CancellationToken);
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, responseBody);
         var doc = JsonDocument.Parse(responseBody);
         var root = doc.RootElement;
@@ -188,12 +188,12 @@ public class TaskItemEndpointTests
 
         // Create
         var dto = new TaskItemDto { Title = "CrudCycle", Priority = Priority.Critical };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
+        var createResponse = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.Created, createResponse.StatusCode);
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
 
         // Read
-        var getResponse = await client.GetAsync($"/api/v1/task-items/{created!.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/task-items/{created!.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, getResponse.StatusCode);
 
         // Update
@@ -204,15 +204,17 @@ public class TaskItemEndpointTests
             Priority = Priority.Low,
             Status = created.Status
         };
-        var updateResponse = await client.PutAsJsonAsync($"/api/v1/task-items/{created.Id}", new DefaultRequest<TaskItemDto> { Item = updateDto });
+        var updateResponse = await client.PutAsJsonAsync($"/api/v1/task-items/{created.Id}", new DefaultRequest<TaskItemDto> { Item = updateDto }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, updateResponse.StatusCode);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/v1/task-items/{created.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/v1/task-items/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         // Verify deleted
-        var verifyResponse = await client.GetAsync($"/api/v1/task-items/{created.Id}");
+        var verifyResponse = await client.GetAsync($"/api/v1/task-items/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NotFound, verifyResponse.StatusCode);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

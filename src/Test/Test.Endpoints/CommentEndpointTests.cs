@@ -37,8 +37,8 @@ public class CommentEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForComment", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         return created!.Id!.Value;
     }
 
@@ -53,7 +53,7 @@ public class CommentEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/comments/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/comments/{Guid.NewGuid()}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -68,15 +68,15 @@ public class CommentEndpointTests
 
         var dto = new CommentDto { Body = "Nested add", TaskItemId = taskId };
         var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/comments",
-            new DefaultRequest<CommentDto> { Item = dto });
+            new DefaultRequest<CommentDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.Created, addResp.StatusCode,
-            $"Add failed: {await addResp.Content.ReadAsStringAsync()}");
+            $"Add failed: {await addResp.Content.ReadAsStringAsync(TestContext.CancellationToken)}");
 
-        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item;
+        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Nested add", created.Body);
 
-        var getResp = await client.GetAsync($"/api/v1/comments/{created.Id}");
+        var getResp = await client.GetAsync($"/api/v1/comments/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
     }
 
@@ -89,19 +89,19 @@ public class CommentEndpointTests
         var taskId = await CreateParentTaskItem(client);
 
         var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/comments",
-            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Original", TaskItemId = taskId } });
-        var commentId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item!.Id!.Value;
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Original", TaskItemId = taskId } }, cancellationToken: TestContext.CancellationToken);
+        var commentId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions, TestContext.CancellationToken))!.Item!.Id!.Value;
 
         var updResp = await client.PutAsJsonAsync($"/api/v1/task-items/{taskId}/comments/{commentId}",
-            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Edited", TaskItemId = taskId } });
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Edited", TaskItemId = taskId } }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, updResp.StatusCode);
-        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions))!.Item;
+        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<CommentDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.AreEqual("Edited", updated!.Body);
 
-        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/comments/{commentId}");
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/comments/{commentId}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
 
-        var getResp = await client.GetAsync($"/api/v1/comments/{commentId}");
+        var getResp = await client.GetAsync($"/api/v1/comments/{commentId}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NotFound, getResp.StatusCode);
     }
 
@@ -113,8 +113,10 @@ public class CommentEndpointTests
         using var client = CreateClient();
 
         var response = await client.PostAsJsonAsync($"/api/v1/task-items/{Guid.NewGuid()}/comments",
-            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Orphan" } });
+            new DefaultRequest<CommentDto> { Item = new CommentDto { Body = "Orphan" } }, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

@@ -32,7 +32,7 @@ public class TaskFlowApiClientPayloadTests
             ChecklistItems = [new ChecklistItemDto { Title = "step 1", IsCompleted = false, SortOrder = 1 }]
         };
 
-        var result = await apiClient.Api.TaskItems.PostAsync(dto);
+        var result = await apiClient.Api.TaskItems.PostAsync(dto, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(handler.LastRequestBody);
@@ -65,7 +65,7 @@ public class TaskFlowApiClientPayloadTests
             ChecklistItems = [new ChecklistItemDto { Title = "step 1", IsCompleted = false, SortOrder = 1 }]
         };
 
-        var result = await apiClient.Api.TaskItems[taskId].PutAsync(dto);
+        var result = await apiClient.Api.TaskItems[taskId].PutAsync(dto, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(handler.LastRequestBody);
@@ -97,4 +97,6 @@ public class TaskFlowApiClientPayloadTests
             };
         }
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

@@ -45,7 +45,7 @@ public class TaskItemApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         Assert.AreEqual("Build dashboard UI", results[0].Title);
@@ -57,7 +57,7 @@ public class TaskItemApiServiceTests
     [TestMethod]
     public async Task SearchAsync_IncludesOverdueTask()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         var overdueTask = results.FirstOrDefault(t => t.Title == "Fix login validation");
         Assert.IsNotNull(overdueTask);
@@ -70,7 +70,7 @@ public class TaskItemApiServiceTests
     {
         var newTask = new TaskItemModel { Title = "Test task", Priority = "Medium" };
 
-        var result = await _service.CreateAsync(newTask);
+        var result = await _service.CreateAsync(newTask, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -93,7 +93,7 @@ public class TaskItemApiServiceTests
             ChecklistItems = [new ChecklistItemModel { Title = "todo", SortOrder = 1, IsCompleted = false, TaskItemId = Guid.Empty }]
         };
 
-        var result = await service.CreateAsync(model);
+        var result = await service.CreateAsync(model, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(captureHandler.LastRequestBody);
@@ -113,7 +113,7 @@ public class TaskItemApiServiceTests
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
-        await _service.DeleteAsync(Guid.NewGuid());
+        await _service.DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
         // No exception = success
     }
 
@@ -136,4 +136,6 @@ public class TaskItemApiServiceTests
             };
         }
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

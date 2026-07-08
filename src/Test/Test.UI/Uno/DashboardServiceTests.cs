@@ -24,7 +24,7 @@ public class DashboardServiceTests
         var taskService = new TaskItemApiService(apiClient, Mock.Of<INotificationService>());
         var dashboardService = new DashboardService(taskService);
 
-        var summary = await dashboardService.GetSummaryAsync();
+        var summary = await dashboardService.GetSummaryAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(14, summary.TotalTasks);
         Assert.AreEqual(7, summary.OpenTasks);
@@ -36,4 +36,6 @@ public class DashboardServiceTests
         Assert.IsGreaterThanOrEqualTo(1, summary.OverdueTasks);     // at least "Fix login validation" is overdue
         Assert.IsNotEmpty(summary.RecentActivity);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

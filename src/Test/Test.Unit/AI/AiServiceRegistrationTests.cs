@@ -31,7 +31,7 @@ public class AiServiceRegistrationTests
             ["AiServices:DisableFoundryLocal"] = "false"
         });
 
-        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance, TestContext.CancellationToken);
 
         var provider = builder.Services.BuildServiceProvider();
         Assert.AreEqual("azure", provider.GetRequiredService<AiProviderInfo>().Name);
@@ -45,7 +45,7 @@ public class AiServiceRegistrationTests
             ["AiServices:DisableFoundryLocal"] = "true"
         });
 
-        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance, TestContext.CancellationToken);
         builder.Services.AddAiServices(builder.Configuration);
 
         var provider = builder.Services.BuildServiceProvider();
@@ -63,7 +63,7 @@ public class AiServiceRegistrationTests
             ["AiServices:LocalWebUrl"] = "not-a-url"
         });
 
-        await builder.RegisterAiChatClientAsync(NullLogger.Instance);
+        await builder.RegisterAiChatClientAsync(NullLogger.Instance, TestContext.CancellationToken);
         builder.Services.AddAiServices(builder.Configuration);
 
         var provider = builder.Services.BuildServiceProvider();
@@ -84,7 +84,7 @@ public class AiServiceRegistrationTests
         });
 
         await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
-            builder.RegisterAiChatClientAsync(NullLogger.Instance));
+            builder.RegisterAiChatClientAsync(NullLogger.Instance, TestContext.CancellationToken));
     }
 
     /// <summary>Verifies add AI services with no config registers no op services behavior and protects the expected test contract.</summary>
@@ -230,4 +230,6 @@ public class AiServiceRegistrationTests
         builder.Services.AddLogging();
         return builder;
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

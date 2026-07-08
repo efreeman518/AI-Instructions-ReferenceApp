@@ -42,7 +42,7 @@ public class CommentApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         Assert.AreEqual("Looking good so far!", results[0].Body);
@@ -54,7 +54,7 @@ public class CommentApiServiceTests
     {
         var commentId = Guid.Parse("44444444-4444-4444-4444-111111111111");
 
-        var result = await _service.GetAsync(commentId);
+        var result = await _service.GetAsync(commentId, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.AreEqual("Looking good so far!", result.Body);
@@ -68,7 +68,7 @@ public class CommentApiServiceTests
         var taskId = Guid.Parse("33333333-3333-3333-3333-111111111111");
         var newComment = new CommentModel { Body = "New comment", TaskItemId = taskId };
 
-        var result = await _service.CreateAsync(newComment);
+        var result = await _service.CreateAsync(newComment, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -85,7 +85,7 @@ public class CommentApiServiceTests
             TaskItemId = Guid.Parse("33333333-3333-3333-3333-111111111111")
         };
 
-        var result = await _service.UpdateAsync(comment);
+        var result = await _service.UpdateAsync(comment, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -95,6 +95,8 @@ public class CommentApiServiceTests
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
-        await _service.DeleteAsync(Guid.NewGuid());
+        await _service.DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

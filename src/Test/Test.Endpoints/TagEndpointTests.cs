@@ -36,10 +36,10 @@ public class TagEndpointTests
         using var client = CreateClient();
         var dto = new TagDto { Name = "Urgent", Color = "#FF0000" };
 
-        var response = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
+        var response = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Urgent", created.Name);
         Assert.IsNotNull(created.Id);
@@ -52,13 +52,13 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "GetTag", Color = "#00FF00" };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
 
-        var response = await client.GetAsync($"/api/v1/tags/{created!.Id}");
+        var response = await client.GetAsync($"/api/v1/tags/{created!.Id}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var result = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(result);
         Assert.AreEqual("GetTag", result.Name);
     }
@@ -70,7 +70,7 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/tags/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/tags/{Guid.NewGuid()}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -82,14 +82,14 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "BeforeTag", Color = "#111111" };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
 
         var updateDto = new TagDto { Id = created!.Id, Name = "AfterTag", Color = "#222222" };
-        var response = await client.PutAsJsonAsync($"/api/v1/tags/{created.Id}", new DefaultRequest<TagDto> { Item = updateDto });
+        var response = await client.PutAsJsonAsync($"/api/v1/tags/{created.Id}", new DefaultRequest<TagDto> { Item = updateDto }, cancellationToken: TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var updated = (await response.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
         Assert.AreEqual("AfterTag", updated!.Name);
     }
 
@@ -100,14 +100,16 @@ public class TagEndpointTests
     {
         using var client = CreateClient();
         var dto = new TagDto { Name = "ToDeleteTag", Color = "#333333" };
-        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto });
-        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>())!.Item;
+        var createResponse = await client.PostAsJsonAsync("/api/v1/tags", new DefaultRequest<TagDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await createResponse.Content.ReadFromJsonAsync<DefaultResponse<TagDto>>(TestContext.CancellationToken))!.Item;
 
-        var response = await client.DeleteAsync($"/api/v1/tags/{created!.Id}");
+        var response = await client.DeleteAsync($"/api/v1/tags/{created!.Id}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-        var getResponse = await client.GetAsync($"/api/v1/tags/{created.Id}");
+        var getResponse = await client.GetAsync($"/api/v1/tags/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

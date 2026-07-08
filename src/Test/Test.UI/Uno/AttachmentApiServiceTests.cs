@@ -42,7 +42,7 @@ public class AttachmentApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         Assert.AreEqual("design.pdf", results[0].FileName);
@@ -56,7 +56,7 @@ public class AttachmentApiServiceTests
     {
         var attachmentId = Guid.Parse("66666666-6666-6666-6666-111111111111");
 
-        var result = await _service.GetAsync(attachmentId);
+        var result = await _service.GetAsync(attachmentId, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.AreEqual("design.pdf", result.FileName);
@@ -78,7 +78,7 @@ public class AttachmentApiServiceTests
             OwnerId = taskId
         };
 
-        var result = await _service.CreateAsync(newAttachment);
+        var result = await _service.CreateAsync(newAttachment, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -88,6 +88,8 @@ public class AttachmentApiServiceTests
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
-        await _service.DeleteAsync(Guid.NewGuid());
+        await _service.DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

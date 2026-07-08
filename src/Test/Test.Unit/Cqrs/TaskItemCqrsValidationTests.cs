@@ -36,7 +36,7 @@ public sealed class TaskItemCqrsValidationTests
             Item = new TaskItemDto { Title = "" }
         });
 
-        var result = await decorator.HandleAsync(command);
+        var result = await decorator.HandleAsync(command, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsFailure);
         Assert.IsFalse(inner.WasCalled);
@@ -62,4 +62,6 @@ public sealed class TaskItemCqrsValidationTests
             }));
         }
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

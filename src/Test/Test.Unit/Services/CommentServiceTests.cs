@@ -58,7 +58,7 @@ public class CommentServiceTests
         var entity = new CommentBuilder().Build();
         _repoQueryMock.Setup(r => r.GetCommentAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
-        var result = await CreateService().GetAsync(entity.Id);
+        var result = await CreateService().GetAsync(entity.Id, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(entity.Body, result.Value!.Item!.Body);
@@ -71,7 +71,7 @@ public class CommentServiceTests
     {
         _repoQueryMock.Setup(r => r.GetCommentAsync(It.IsAny<CommentId>(), It.IsAny<CancellationToken>())).ReturnsAsync((Comment?)null);
 
-        var result = await CreateService().GetAsync(Guid.NewGuid());
+        var result = await CreateService().GetAsync(Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsNone);
     }
@@ -87,8 +87,10 @@ public class CommentServiceTests
             .ReturnsAsync(pagedResponse);
 
         var request = new SearchRequest<CommentSearchFilter> { PageSize = 10, PageIndex = 0 };
-        var response = await CreateService().SearchAsync(request);
+        var response = await CreateService().SearchAsync(request, TestContext.CancellationToken);
 
         Assert.AreEqual(1, response.Total);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

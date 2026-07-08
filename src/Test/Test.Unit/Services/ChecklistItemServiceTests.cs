@@ -58,7 +58,7 @@ public class ChecklistItemServiceTests
         var entity = new ChecklistItemBuilder().Build();
         _repoQueryMock.Setup(r => r.GetChecklistItemAsync(entity.Id, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
-        var result = await CreateService().GetAsync(entity.Id);
+        var result = await CreateService().GetAsync(entity.Id, TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(entity.Title, result.Value!.Item!.Title);
@@ -71,7 +71,7 @@ public class ChecklistItemServiceTests
     {
         _repoQueryMock.Setup(r => r.GetChecklistItemAsync(It.IsAny<ChecklistItemId>(), It.IsAny<CancellationToken>())).ReturnsAsync((ChecklistItem?)null);
 
-        var result = await CreateService().GetAsync(Guid.NewGuid());
+        var result = await CreateService().GetAsync(Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsTrue(result.IsNone);
     }
@@ -87,8 +87,10 @@ public class ChecklistItemServiceTests
             .ReturnsAsync(pagedResponse);
 
         var request = new SearchRequest<ChecklistItemSearchFilter> { PageSize = 10, PageIndex = 0 };
-        var response = await CreateService().SearchAsync(request);
+        var response = await CreateService().SearchAsync(request, TestContext.CancellationToken);
 
         Assert.AreEqual(1, response.Total);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

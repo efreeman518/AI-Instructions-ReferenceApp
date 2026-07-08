@@ -20,7 +20,7 @@ public class NoOpTaskAssistantAgentTests
     {
         var request = new AgentChatRequest { Message = "Hello" };
 
-        var response = await _agent.ChatAsync(request, Guid.NewGuid());
+        var response = await _agent.ChatAsync(request, Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsNotNull(response);
         Assert.IsFalse(response.IsConfigured);
@@ -35,7 +35,7 @@ public class NoOpTaskAssistantAgentTests
         var conversationId = "conv-123";
         var request = new AgentChatRequest { Message = "Hi", ConversationId = conversationId };
 
-        var response = await _agent.ChatAsync(request, Guid.NewGuid());
+        var response = await _agent.ChatAsync(request, Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.AreEqual(conversationId, response.ConversationId);
     }
@@ -46,9 +46,11 @@ public class NoOpTaskAssistantAgentTests
     {
         var request = new AgentChatRequest { Message = "Hi" };
 
-        var response = await _agent.ChatAsync(request, Guid.NewGuid());
+        var response = await _agent.ChatAsync(request, Guid.NewGuid(), TestContext.CancellationToken);
 
         Assert.IsNotNull(response.ConversationId);
         Assert.IsTrue(Guid.TryParse(response.ConversationId, out _));
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

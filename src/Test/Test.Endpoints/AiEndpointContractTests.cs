@@ -35,7 +35,7 @@ public sealed class AiEndpointContractTests
         using var factory = CreateAiFactory(_ => "Fake Foundry response.");
         using var client = factory.CreateClient();
 
-        using var response = await client.PostAsJsonAsync("/api/v1/ai/chat", new { message = "hello" });
+        using var response = await client.PostAsJsonAsync("/api/v1/ai/chat", new { message = "hello" }, cancellationToken: TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -61,9 +61,9 @@ public sealed class AiEndpointContractTests
         });
         using var client = factory.CreateClient();
 
-        using var statusResponse = await client.GetAsync("/api/v1/ai/status");
+        using var statusResponse = await client.GetAsync("/api/v1/ai/status", TestContext.CancellationToken);
         using var status = await ReadJsonAsync(statusResponse);
-        using var chatResponse = await client.PostAsJsonAsync("/api/v1/ai/chat", new { message = "hello" });
+        using var chatResponse = await client.PostAsJsonAsync("/api/v1/ai/chat", new { message = "hello" }, cancellationToken: TestContext.CancellationToken);
         using var chat = await ReadJsonAsync(chatResponse);
 
         Assert.AreEqual(HttpStatusCode.OK, statusResponse.StatusCode);
@@ -81,8 +81,8 @@ public sealed class AiEndpointContractTests
         using var factory = CreateAiFactory(_ => "streamed fake response");
         using var client = factory.CreateClient();
 
-        using var response = await client.PostAsJsonAsync("/api/v1/ai/chat/stream", new { message = "stream" });
-        var body = await response.Content.ReadAsStringAsync();
+        using var response = await client.PostAsJsonAsync("/api/v1/ai/chat/stream", new { message = "stream" }, cancellationToken: TestContext.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         StringAssert.Contains(response.Content.Headers.ContentType?.MediaType, "text/event-stream");
@@ -100,7 +100,7 @@ public sealed class AiEndpointContractTests
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/agent/chat",
-            new { message = "help", conversationId });
+            new { message = "help", conversationId }, cancellationToken: TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -118,7 +118,7 @@ public sealed class AiEndpointContractTests
         using var client = factory.CreateClient();
         var taskId = await CreateTaskAsync(client, "Triage contract task", Priority.Low);
 
-        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null);
+        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null, TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -136,7 +136,7 @@ public sealed class AiEndpointContractTests
         using var client = factory.CreateClient();
         var taskId = await CreateTaskAsync(client, "Triage parse guard task", Priority.Low);
 
-        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=true", null);
+        using var response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=true", null, TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -157,7 +157,7 @@ public sealed class AiEndpointContractTests
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/ai/tasks/draft",
-            new { title = "Draft contract task" });
+            new { title = "Draft contract task" }, cancellationToken: TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -176,7 +176,7 @@ public sealed class AiEndpointContractTests
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/ai/tasks/draft",
-            new { title = "Draft parse guard task" });
+            new { title = "Draft parse guard task" }, cancellationToken: TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -194,7 +194,7 @@ public sealed class AiEndpointContractTests
         using var factory = CreateAiFactory(_ => "Work on the highest risk task next.");
         using var client = factory.CreateClient();
 
-        using var response = await client.PostAsync("/api/v1/ai/next-action", null);
+        using var response = await client.PostAsync("/api/v1/ai/next-action", null, TestContext.CancellationToken);
         using var payload = await ReadJsonAsync(response);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -318,4 +318,6 @@ public sealed class AiEndpointContractTests
                 IsConfigured = true
             });
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

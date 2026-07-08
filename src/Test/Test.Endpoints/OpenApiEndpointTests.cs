@@ -24,11 +24,11 @@ public sealed class OpenApiEndpointTests
     {
         using var client = _factory.CreateClient();
 
-        using var response = await client.GetAsync("/openapi/v1.json");
+        using var response = await client.GetAsync("/openapi/v1.json", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.CancellationToken));
         Assert.AreEqual("v1", document.RootElement.GetProperty("info").GetProperty("version").GetString());
 
         var paths = document.RootElement.GetProperty("paths")
@@ -46,4 +46,6 @@ public sealed class OpenApiEndpointTests
                 || path.StartsWith("/api/flowengine", StringComparison.Ordinal)),
             "OpenAPI v1 document should not include unversioned operational/admin routes.");
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

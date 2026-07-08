@@ -83,7 +83,7 @@ public class AuditLogRepositoryAzuriteTests
         }
         finally
         {
-            await tableServiceClient.DeleteTableAsync(tableName);
+            await tableServiceClient.DeleteTableAsync(tableName, TestContext.CancellationToken);
         }
     }
 
@@ -106,4 +106,6 @@ public class AuditLogRepositoryAzuriteTests
         /// <summary>Creates client used by the surrounding test cases.</summary>
         public TableServiceClient CreateClient(string name) => client;
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

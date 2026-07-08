@@ -42,7 +42,7 @@ public class CategoryApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedCategories()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         Assert.AreEqual("Development", results[0].Name);
@@ -55,9 +55,11 @@ public class CategoryApiServiceTests
     {
         var newCategory = new CategoryModel { Name = "Test category", IsActive = true };
 
-        var result = await _service.CreateAsync(newCategory);
+        var result = await _service.CreateAsync(newCategory, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

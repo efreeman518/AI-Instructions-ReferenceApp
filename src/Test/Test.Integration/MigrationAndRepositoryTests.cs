@@ -40,16 +40,16 @@ public class MigrationAndRepositoryTests
     public async Task Migrations_ApplyCleanly_ToSqlContainer()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
-        Assert.IsTrue(await db.Database.CanConnectAsync());
+        Assert.IsTrue(await db.Database.CanConnectAsync(TestContext.CancellationToken));
 
         // Verify all 7 tables exist in taskflow schema
         var conn = db.Database.GetDbConnection();
-        await conn.OpenAsync();
+        await conn.OpenAsync(TestContext.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'taskflow'";
-        var tableCount = (int)(await cmd.ExecuteScalarAsync())!;
+        var tableCount = (int)(await cmd.ExecuteScalarAsync(TestContext.CancellationToken))!;
         Assert.IsGreaterThanOrEqualTo(tableCount, 7, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
     }
 
@@ -59,32 +59,32 @@ public class MigrationAndRepositoryTests
     public async Task Category_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         // Create
         var category = new CategoryBuilder().WithName("Integration Cat").Build();
         db.Categories.Add(category);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
         var id = category.Id;
         Assert.AreNotEqual(Guid.Empty, id);
 
         // Read
-        var fetched = await db.Categories.FindAsync(id);
+        var fetched = await db.Categories.FindAsync([id], TestContext.CancellationToken);
         Assert.IsNotNull(fetched);
         Assert.AreEqual("Integration Cat", fetched.Name);
 
         // Update
         fetched.Update(name: "Updated Cat");
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
-        var updated = await db.Categories.FindAsync(id);
+        var updated = await db.Categories.FindAsync([id], TestContext.CancellationToken);
         Assert.AreEqual("Updated Cat", updated!.Name);
 
         // Delete
         db.Categories.Remove(updated);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
-        var deleted = await db.Categories.FindAsync(id);
+        var deleted = await db.Categories.FindAsync([id], TestContext.CancellationToken);
         Assert.IsNull(deleted);
     }
 
@@ -94,16 +94,16 @@ public class MigrationAndRepositoryTests
     public async Task TaskItem_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         // Create
         var task = new TaskItemBuilder().WithTitle("Integration Task").WithPriority(Priority.High).Build();
         db.TaskItems.Add(task);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
         var id = task.Id;
 
         // Read
-        var fetched = await db.TaskItems.FindAsync(id);
+        var fetched = await db.TaskItems.FindAsync([id], TestContext.CancellationToken);
         Assert.IsNotNull(fetched);
         Assert.AreEqual("Integration Task", fetched.Title);
         Assert.AreEqual(Priority.High, fetched.Priority);
@@ -111,16 +111,16 @@ public class MigrationAndRepositoryTests
 
         // Update
         fetched.Update(title: "Updated Task");
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
-        var updated = await db.TaskItems.FindAsync(id);
+        var updated = await db.TaskItems.FindAsync([id], TestContext.CancellationToken);
         Assert.AreEqual("Updated Task", updated!.Title);
 
         // Delete
         db.TaskItems.Remove(updated);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
-        var deleted = await db.TaskItems.FindAsync(id);
+        var deleted = await db.TaskItems.FindAsync([id], TestContext.CancellationToken);
         Assert.IsNull(deleted);
     }
 
@@ -130,13 +130,13 @@ public class MigrationAndRepositoryTests
     public async Task Tag_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         var tag = new TagBuilder().WithName("IntegrationTag").WithColor("#00FF00").Build();
         db.Tags.Add(tag);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
-        var fetched = await db.Tags.FindAsync(tag.Id);
+        var fetched = await db.Tags.FindAsync([tag.Id], TestContext.CancellationToken);
         Assert.IsNotNull(fetched);
         Assert.AreEqual("IntegrationTag", fetched.Name);
         Assert.AreEqual("#00FF00", fetched.Color);
@@ -148,12 +148,12 @@ public class MigrationAndRepositoryTests
     public async Task TaskItem_WithChildren_PersistsCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         // Create parent task
         var task = new TaskItemBuilder().WithTitle("Parent Task").Build();
         db.TaskItems.Add(task);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Add comment
         var commentResult = Comment.Create(TenantAId, task.Id, "Test comment body");
@@ -163,13 +163,13 @@ public class MigrationAndRepositoryTests
         var checklistResult = ChecklistItem.Create(TenantAId, task.Id, "Checklist step 1", 0);
         db.ChecklistItems.Add(checklistResult.Value!);
 
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Verify via includes
         var loaded = await db.TaskItems
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
-            .FirstOrDefaultAsync(t => t.Id == task.Id);
+            .FirstOrDefaultAsync(t => t.Id == task.Id, TestContext.CancellationToken);
 
         Assert.IsNotNull(loaded);
         Assert.HasCount(1, loaded.Comments);
@@ -195,10 +195,10 @@ public class MigrationAndRepositoryTests
         // Seed a bare parent task.
         await using (var seed = SqlContainerFixture.CreateTrxnContext())
         {
-            await seed.Database.MigrateAsync();
+            await seed.Database.MigrateAsync(TestContext.CancellationToken);
             var seeded = new TaskItemBuilder().WithTenantId(TenantA).WithTitle("Updater Parent").Build();
             seed.TaskItems.Add(seeded);
-            await seed.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await seed.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
             parentId = seeded.Id;
         }
 
@@ -209,7 +209,7 @@ public class MigrationAndRepositoryTests
             .IgnoreQueryFilters()
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
-            .FirstAsync(t => t.Id == typedParentId);
+            .FirstAsync(t => t.Id == typedParentId, TestContext.CancellationToken);
 
         // Desired-state DTO adds a NEW comment + checklist item (no Ids -> create path).
         var dto = new TaskItemDto
@@ -226,7 +226,7 @@ public class MigrationAndRepositoryTests
 
         // Inserts the navigation-added children. Succeeds because the key is ValueGeneratedNever;
         // without that baseline EF would emit an UPDATE against a non-existent row and throw.
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Verify the children actually persisted via a clean reload.
         await using var verify = SqlContainerFixture.CreateTrxnContext();
@@ -234,7 +234,7 @@ public class MigrationAndRepositoryTests
             .IgnoreQueryFilters()
             .Include(t => t.Comments)
             .Include(t => t.ChecklistItems)
-            .FirstAsync(t => t.Id == typedParentId);
+            .FirstAsync(t => t.Id == typedParentId, TestContext.CancellationToken);
 
         Assert.HasCount(1, reloaded.Comments);
         Assert.AreEqual("Added via updater", reloaded.Comments.First().Body);
@@ -248,24 +248,24 @@ public class MigrationAndRepositoryTests
     public async Task TaskItemTag_ManyToMany_WorksCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         var task = new TaskItemBuilder().WithTitle("Tagged Task").Build();
         db.TaskItems.Add(task);
 
         var tag = new TagBuilder().WithName("M2MTag").Build();
         db.Tags.Add(tag);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Create bridge entity
         var taskItemTag = TaskItemTag.Create(TenantAId, task.Id, tag.Id);
         db.TaskItemTags.Add(taskItemTag.Value!);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Verify via include
         var loaded = await db.TaskItems
             .Include(t => t.TaskItemTags).ThenInclude(tt => tt.Tag)
-            .FirstOrDefaultAsync(t => t.Id == task.Id);
+            .FirstOrDefaultAsync(t => t.Id == task.Id, TestContext.CancellationToken);
 
         Assert.IsNotNull(loaded);
         Assert.HasCount(1, loaded.TaskItemTags);
@@ -278,7 +278,7 @@ public class MigrationAndRepositoryTests
     public async Task TenantQueryFilter_FiltersByTenant_WhenTenantIdSet()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         // Insert categories for two different tenants
         var catA = new CategoryBuilder().WithTenantId(TenantA).WithName("Tenant A Cat").Build();
@@ -286,14 +286,14 @@ public class MigrationAndRepositoryTests
 
         db.Categories.Add(catA);
         db.Categories.Add(catB);
-        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Verify both exist without filter (using raw SQL to bypass query filter)
         var conn = db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(TestContext.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM taskflow.Category WHERE Name LIKE 'Tenant%Cat'";
-        var rawCount = (int)(await cmd.ExecuteScalarAsync())!;
+        var rawCount = (int)(await cmd.ExecuteScalarAsync(TestContext.CancellationToken))!;
         Assert.IsGreaterThanOrEqualTo(rawCount, 2, $"Expected at least 2 categories in raw query, found {rawCount}");
 
         // When query filter is active, only matching tenant data is visible.
@@ -303,13 +303,13 @@ public class MigrationAndRepositoryTests
         // defined via HasQueryFilter in OnModelCreating).
         var allViaEf = await db.Categories.IgnoreQueryFilters()
             .Where(c => c.Name.EndsWith("Cat"))
-            .ToListAsync();
+            .ToListAsync(TestContext.CancellationToken);
         Assert.IsGreaterThanOrEqualTo(allViaEf.Count, 2);
 
         // With query filters active (default), filtered count should differ based on context TenantId
         var filteredCount = await db.Categories
             .Where(c => c.Name.EndsWith("Cat"))
-            .CountAsync();
+            .CountAsync(TestContext.CancellationToken);
 
         // The filter is active - the count depends on the context's TenantId.
         // Since our test context doesn't match either tenant, we may get 0 or partial.
@@ -323,18 +323,18 @@ public class MigrationAndRepositoryTests
     public async Task Attachment_TableAndConstraints_ExistCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.CancellationToken);
 
         // Verify Attachments table exists with expected columns
         var conn = db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(TestContext.CancellationToken);
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = 'taskflow' AND TABLE_NAME = 'Attachment'
             AND COLUMN_NAME IN ('Id','TenantId','FileName','ContentType','FileSizeBytes','StorageUri','OwnerType','OwnerId')";
-        var colCount = (int)(await cmd.ExecuteScalarAsync())!;
+        var colCount = (int)(await cmd.ExecuteScalarAsync(TestContext.CancellationToken))!;
         Assert.AreEqual(8, colCount, "Attachments table should have 8 expected columns");
 
         // Verify polymorphic index exists
@@ -344,7 +344,9 @@ public class MigrationAndRepositoryTests
             JOIN sys.tables t ON i.object_id = t.object_id
             JOIN sys.schemas s ON t.schema_id = s.schema_id
             WHERE s.name = 'taskflow' AND t.name = 'Attachment' AND i.name LIKE '%OwnerType_OwnerId%'";
-        var idxCount = (int)(await idxCmd.ExecuteScalarAsync())!;
+        var idxCount = (int)(await idxCmd.ExecuteScalarAsync(TestContext.CancellationToken))!;
         Assert.AreEqual(1, idxCount, "Expected composite index on OwnerType+OwnerId");
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

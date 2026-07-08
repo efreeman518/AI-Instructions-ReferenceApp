@@ -6,6 +6,8 @@ namespace Test.Unit.Infrastructure;
 [TestClass]
 public sealed class DatabaseMigrationRunnerTests
 {
+    public TestContext TestContext { get; set; } = null!;
+
     [TestMethod]
     public async Task RunAsync_OrdersTargetsByOrderThenName()
     {
@@ -18,7 +20,7 @@ public sealed class DatabaseMigrationRunnerTests
             ],
             NullLogger<DatabaseMigrationRunner>.Instance);
 
-        await runner.RunAsync();
+        await runner.RunAsync(TestContext.CancellationTokenSource.Token);
 
         CollectionAssert.AreEqual(new[] { "first", "second", "third" }, calls);
     }
@@ -35,7 +37,8 @@ public sealed class DatabaseMigrationRunnerTests
             ],
             NullLogger<DatabaseMigrationRunner>.Instance);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => runner.RunAsync());
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            () => runner.RunAsync(TestContext.CancellationTokenSource.Token));
         CollectionAssert.AreEqual(new[] { "first", "fail" }, calls);
     }
 

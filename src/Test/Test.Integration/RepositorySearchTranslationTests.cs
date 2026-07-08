@@ -31,7 +31,7 @@ public class RepositorySearchTranslationTests
             return;
 
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(_.CancellationToken);
     }
 
     /// <summary>Marks the test Inconclusive when the SQL container failed to start.</summary>
@@ -59,7 +59,7 @@ public class RepositorySearchTranslationTests
                 .Build();
 
             db.Categories.AddRange(parent, child);
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
             await using var queryDb = SqlContainerFixture.CreateQueryContext();
             var repo = new CategoryRepositoryQuery(queryDb);
@@ -74,7 +74,7 @@ public class RepositorySearchTranslationTests
                     ParentCategoryId = parent.Id,
                     IsActive = true
                 }
-            });
+            }, TestContext.CancellationToken);
 
             Assert.AreEqual(1, page.Data.Count);
             Assert.AreEqual(1, page.Total);
@@ -92,7 +92,7 @@ public class RepositorySearchTranslationTests
         await using (var db = SqlContainerFixture.CreateTrxnContext())
         {
             db.Tags.Add(new TagBuilder().WithTenantId(TenantId).WithName(marker).Build());
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
         }
 
         await using var queryDb = SqlContainerFixture.CreateQueryContext();
@@ -102,7 +102,7 @@ public class RepositorySearchTranslationTests
             PageIndex = 1,
             PageSize = 10,
             Filter = new TagSearchFilter { SearchTerm = marker, TenantId = TenantId }
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(1, page.Data.Count);
         Assert.AreEqual(1, page.Total);
@@ -122,7 +122,7 @@ public class RepositorySearchTranslationTests
             var task = new TaskItemBuilder().WithTenantId(TenantId).WithTitle($"{marker}-Task").Build();
             db.TaskItems.Add(task);
             db.Comments.Add(new CommentBuilder().WithTenantId(TenantId).WithTaskItemId(task.Id).WithBody(marker).Build());
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
             taskId = task.Id;
         }
 
@@ -133,7 +133,7 @@ public class RepositorySearchTranslationTests
             PageIndex = 1,
             PageSize = 10,
             Filter = new CommentSearchFilter { SearchTerm = marker, TenantId = TenantId, TaskItemId = taskId }
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(1, page.Data.Count);
         Assert.AreEqual(1, page.Total);
@@ -157,7 +157,7 @@ public class RepositorySearchTranslationTests
                 .WithTaskItemId(task.Id)
                 .WithTitle(marker)
                 .Build());
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
             taskId = task.Id;
         }
 
@@ -174,7 +174,7 @@ public class RepositorySearchTranslationTests
                 TaskItemId = taskId,
                 IsCompleted = false
             }
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(1, page.Data.Count);
         Assert.AreEqual(1, page.Total);
@@ -206,7 +206,7 @@ public class RepositorySearchTranslationTests
 
             db.Categories.Add(category);
             db.TaskItems.AddRange(parent, child);
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
             categoryId = category.Id;
             parentTaskItemId = parent.Id;
@@ -229,7 +229,7 @@ public class RepositorySearchTranslationTests
                 DueAfter = dueDate.AddDays(-2),
                 DueBefore = dueDate.AddDays(1)
             }
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(1, page.Data.Count);
         Assert.AreEqual(1, page.Total);
@@ -254,7 +254,7 @@ public class RepositorySearchTranslationTests
                 .WithOwnerType(AttachmentOwnerType.TaskItem)
                 .WithOwnerId(ownerId)
                 .Build());
-            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+            await db.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
         }
 
         await using var queryDb = SqlContainerFixture.CreateQueryContext();
@@ -270,10 +270,12 @@ public class RepositorySearchTranslationTests
                 OwnerType = AttachmentOwnerType.TaskItem,
                 OwnerId = ownerId
             }
-        });
+        }, TestContext.CancellationToken);
 
         Assert.AreEqual(1, page.Data.Count);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual($"{marker}.txt", page.Data[0].FileName);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

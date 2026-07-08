@@ -27,8 +27,8 @@ public sealed class DatabaseMigratorIntegrationTests
         var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TaskFlowMigrator");
         var runner = CreateRunner(connectionString);
 
-        await runner.RunAsync();
-        await runner.RunAsync();
+        await runner.RunAsync(TestContext.CancellationToken);
+        await runner.RunAsync(TestContext.CancellationToken);
 
         await using var trxn = SqlContainerFixture.CreateTrxnContext(connectionString);
         var taskFlowTableCount = await CountTablesAsync(trxn, "taskflow");
@@ -43,7 +43,7 @@ public sealed class DatabaseMigratorIntegrationTests
             TaskFlowFlowEngineDbContext.MigrationHistoryTable));
 
         await using var tickerQ = SqlContainerFixture.CreateTickerQContext(connectionString);
-        Assert.IsTrue(await TaskFlowTickerQSchemaValidator.SchemaExistsAsync(tickerQ));
+        Assert.IsTrue(await TaskFlowTickerQSchemaValidator.SchemaExistsAsync(tickerQ, TestContext.CancellationToken));
         Assert.IsTrue(await TableExistsAsync(
             tickerQ,
             TaskFlowTickerQDbContext.SchemaName,
@@ -60,8 +60,8 @@ public sealed class DatabaseMigratorIntegrationTests
         var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TickerQMissing");
         await using var tickerQ = SqlContainerFixture.CreateTickerQContext(connectionString);
 
-        Assert.IsTrue(await tickerQ.Database.CanConnectAsync());
-        Assert.IsFalse(await TaskFlowTickerQSchemaValidator.SchemaExistsAsync(tickerQ));
+        Assert.IsTrue(await tickerQ.Database.CanConnectAsync(TestContext.CancellationToken));
+        Assert.IsFalse(await TaskFlowTickerQSchemaValidator.SchemaExistsAsync(tickerQ, TestContext.CancellationToken));
     }
 
     private static DatabaseMigrationRunner CreateRunner(string connectionString)
@@ -203,4 +203,6 @@ WHERE s.name = @schema AND t.name = @table
         public Task<TContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(create());
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

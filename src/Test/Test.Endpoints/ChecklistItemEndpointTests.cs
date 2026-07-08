@@ -38,8 +38,8 @@ public class ChecklistItemEndpointTests
     private async Task<Guid> CreateParentTaskItem(HttpClient client)
     {
         var dto = new TaskItemDto { Title = "ParentForChecklist", Priority = Priority.Medium };
-        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto });
-        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions))!.Item;
+        var response = await client.PostAsJsonAsync("/api/v1/task-items", new DefaultRequest<TaskItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
+        var created = (await response.Content.ReadFromJsonAsync<DefaultResponse<TaskItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         return created!.Id!.Value;
     }
 
@@ -54,7 +54,7 @@ public class ChecklistItemEndpointTests
     {
         using var client = CreateClient();
 
-        var response = await client.GetAsync($"/api/v1/checklist-items/{Guid.NewGuid()}");
+        var response = await client.GetAsync($"/api/v1/checklist-items/{Guid.NewGuid()}", TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -69,15 +69,15 @@ public class ChecklistItemEndpointTests
 
         var dto = new ChecklistItemDto { Title = "Nested step", SortOrder = 1, IsCompleted = false, TaskItemId = taskId };
         var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items",
-            new DefaultRequest<ChecklistItemDto> { Item = dto });
+            new DefaultRequest<ChecklistItemDto> { Item = dto }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.Created, addResp.StatusCode,
-            $"Add failed: {await addResp.Content.ReadAsStringAsync()}");
+            $"Add failed: {await addResp.Content.ReadAsStringAsync(TestContext.CancellationToken)}");
 
-        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item;
+        var created = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.IsNotNull(created);
         Assert.AreEqual("Nested step", created.Title);
 
-        var getResp = await client.GetAsync($"/api/v1/checklist-items/{created.Id}");
+        var getResp = await client.GetAsync($"/api/v1/checklist-items/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, getResp.StatusCode);
     }
 
@@ -90,19 +90,21 @@ public class ChecklistItemEndpointTests
         var taskId = await CreateParentTaskItem(client);
 
         var addResp = await client.PostAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items",
-            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step", SortOrder = 1, TaskItemId = taskId } });
-        var itemId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item!.Id!.Value;
+            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step", SortOrder = 1, TaskItemId = taskId } }, cancellationToken: TestContext.CancellationToken);
+        var itemId = (await addResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item!.Id!.Value;
 
         var updResp = await client.PutAsJsonAsync($"/api/v1/task-items/{taskId}/checklist-items/{itemId}",
-            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step done", IsCompleted = true, SortOrder = 1, TaskItemId = taskId } });
+            new DefaultRequest<ChecklistItemDto> { Item = new ChecklistItemDto { Title = "Step done", IsCompleted = true, SortOrder = 1, TaskItemId = taskId } }, cancellationToken: TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, updResp.StatusCode);
-        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions))!.Item;
+        var updated = (await updResp.Content.ReadFromJsonAsync<DefaultResponse<ChecklistItemDto>>(_jsonOptions, TestContext.CancellationToken))!.Item;
         Assert.IsTrue(updated!.IsCompleted);
 
-        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/checklist-items/{itemId}");
+        var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/checklist-items/{itemId}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
 
-        var getResp = await client.GetAsync($"/api/v1/checklist-items/{itemId}");
+        var getResp = await client.GetAsync($"/api/v1/checklist-items/{itemId}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NotFound, getResp.StatusCode);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

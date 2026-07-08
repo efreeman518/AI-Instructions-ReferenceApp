@@ -42,7 +42,7 @@ public class ChecklistItemApiServiceTests
     [TestMethod]
     public async Task SearchAsync_ReturnsMappedModels()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.IsNotEmpty(results);
         Assert.HasCount(2, results);
@@ -56,7 +56,7 @@ public class ChecklistItemApiServiceTests
     [TestMethod]
     public async Task SearchAsync_SortOrderIsPreserved()
     {
-        var results = await _service.SearchAsync();
+        var results = await _service.SearchAsync(ct: TestContext.CancellationToken);
 
         Assert.AreEqual(1, results[0].SortOrder);
         Assert.AreEqual(2, results[1].SortOrder);
@@ -68,7 +68,7 @@ public class ChecklistItemApiServiceTests
     {
         var checklistId = Guid.Parse("55555555-5555-5555-5555-111111111111");
 
-        var result = await _service.GetAsync(checklistId);
+        var result = await _service.GetAsync(checklistId, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.AreEqual("Design mockups", result.Title);
@@ -82,7 +82,7 @@ public class ChecklistItemApiServiceTests
         var taskId = Guid.Parse("33333333-3333-3333-3333-111111111111");
         var newItem = new ChecklistItemModel { Title = "New checklist item", TaskItemId = taskId };
 
-        var result = await _service.CreateAsync(newItem);
+        var result = await _service.CreateAsync(newItem, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -101,7 +101,7 @@ public class ChecklistItemApiServiceTests
             TaskItemId = Guid.Parse("33333333-3333-3333-3333-111111111111")
         };
 
-        var result = await _service.UpdateAsync(item);
+        var result = await _service.UpdateAsync(item, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
@@ -111,6 +111,8 @@ public class ChecklistItemApiServiceTests
     [TestMethod]
     public async Task DeleteAsync_DoesNotThrow()
     {
-        await _service.DeleteAsync(Guid.NewGuid());
+        await _service.DeleteAsync(Guid.NewGuid(), TestContext.CancellationToken);
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }

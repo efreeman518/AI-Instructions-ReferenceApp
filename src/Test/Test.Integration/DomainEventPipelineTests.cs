@@ -34,7 +34,7 @@ public class DomainEventPipelineTests
         if (SqlContainerFixture.StartupError != null)
             return; // tests mark themselves Inconclusive in TestSetup
         await using var db = SqlContainerFixture.CreateTrxnContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(_.CancellationToken);
     }
 
     /// <summary>Marks the test Inconclusive when the SQL container failed to start (assembly-init safety).</summary>
@@ -57,14 +57,14 @@ public class DomainEventPipelineTests
 
         var category = Category.Create(TenantId, "Work").Value!;
         ctx.Categories.Add(category);
-        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         var taskResult = TaskItem.Create(TenantId, "Integration Test Task",
             "Verify projection pipeline", Priority.High, category.Id);
         Assert.IsTrue(taskResult.IsSuccess);
         var task = taskResult.Value!;
         ctx.TaskItems.Add(task);
-        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Create a query context for the repo
         var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
@@ -79,10 +79,10 @@ public class DomainEventPipelineTests
             NullLogger<TaskViewProjectionService>.Instance);
 
         // Act - run projection (same as what Function trigger calls)
-        await projectionService.ProjectTaskItemAsync(task.Id.Value);
+        await projectionService.ProjectTaskItemAsync(task.Id.Value, TestContext.CancellationToken);
 
         // Assert - TaskView was produced with correct data
-        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString());
+        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString(), TestContext.CancellationToken);
         Assert.IsNotNull(taskView, "TaskView should be created by projection");
         Assert.AreEqual("Integration Test Task", taskView.Title);
         Assert.AreEqual("Verify projection pipeline", taskView.Description);
@@ -105,7 +105,7 @@ public class DomainEventPipelineTests
         var taskResult = TaskItem.Create(TenantId, "Task With Children");
         var task = taskResult.Value!;
         ctx.TaskItems.Add(task);
-        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         // Add a comment
         var commentResult = Comment.Create(TenantId, task.Id, "Test comment");
@@ -120,7 +120,7 @@ public class DomainEventPipelineTests
         var checklistResult = ChecklistItem.Create(TenantId, task.Id, "Step 1");
         ctx.ChecklistItems.Add(checklistResult.Value!);
 
-        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins);
+        await ctx.SaveChangesAsync(OptimisticConcurrencyWinner.ClientWins, cancellationToken: TestContext.CancellationToken);
 
         var queryCtx = SqlContainerFixture.CreateQueryContext(connStr);
         var taskViewRepo = new InMemoryTaskViewRepository();
@@ -130,9 +130,9 @@ public class DomainEventPipelineTests
             taskViewRepo,
             NullLogger<TaskViewProjectionService>.Instance);
 
-        await projectionService.ProjectTaskItemAsync(task.Id.Value);
+        await projectionService.ProjectTaskItemAsync(task.Id.Value, TestContext.CancellationToken);
 
-        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString());
+        var taskView = await taskViewRepo.GetAsync(task.Id.Value.ToString(), TenantGuid.ToString(), TestContext.CancellationToken);
         Assert.IsNotNull(taskView);
         Assert.AreEqual(1, taskView.CommentCount);
         Assert.AreEqual(1, taskView.AttachmentCount);
@@ -159,6 +159,8 @@ public class DomainEventPipelineTests
         Assert.IsTrue(doc.RootElement.TryGetProperty("TaskItemId", out var prop));
         Assert.AreEqual(taskItemId, prop.GetGuid());
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }
 
 /// <summary>

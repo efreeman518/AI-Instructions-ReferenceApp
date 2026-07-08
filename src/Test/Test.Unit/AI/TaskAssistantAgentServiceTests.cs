@@ -21,7 +21,7 @@ public sealed class TaskAssistantAgentServiceTests
 
         var response = await agent.ChatAsync(
             new AgentChatRequest { Message = "Reply OK.", UseTools = false },
-            tenantId: null);
+            tenantId: null, TestContext.CancellationToken);
 
         Assert.IsTrue(response.IsConfigured);
         Assert.AreEqual(ChatToolMode.None, chatClient.LastOptions?.ToolMode);
@@ -69,4 +69,6 @@ public sealed class TaskAssistantAgentServiceTests
         {
         }
     }
+
+    public TestContext TestContext { get; set; } = null!;
 }
