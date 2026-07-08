@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TaskFlow.Domain.Model;
@@ -22,6 +23,17 @@ public class TaskItemConfiguration() : EntityBaseConfiguration<TaskItem, TaskIte
         builder.Property(e => e.Features).HasConversion<int>();
         builder.Property(e => e.EstimatedEffort).HasPrecision(10, 2);
         builder.Property(e => e.ActualEffort).HasPrecision(10, 2);
+
+        // Sensitive columns protected with SQL Always Encrypted (see D-019 and the InitialCreate migration).
+        // Stored as varbinary(200); a UTF8 converter keeps the domain property a plain string. EF bypasses
+        // the converter on null, so the columns stay nullable. The ENCRYPTED WITH clause is applied by the
+        // migration (Always Encrypted has no fluent mapping); this config only defines the storage shape.
+        builder.Property(e => e.SecureDeterministic)
+            .HasConversion(v => Encoding.UTF8.GetBytes(v!), v => Encoding.UTF8.GetString(v))
+            .HasColumnType("varbinary(200)");
+        builder.Property(e => e.SecureRandom)
+            .HasConversion(v => Encoding.UTF8.GetBytes(v!), v => Encoding.UTF8.GetString(v))
+            .HasColumnType("varbinary(200)");
 
         builder.OwnsOne(e => e.DateRange, dr =>
         {

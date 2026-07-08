@@ -86,6 +86,8 @@ entities:
       - { name: EstimatedEffort, kind: number, required: false, description: "Estimated hours of effort" }
       - { name: ActualEffort, kind: number, required: false, description: "Actual hours spent" }
       - { name: CompletedDate, kind: date, required: false, description: "Date-time when the task was marked completed" }
+      - { name: SecureDeterministic, kind: string, required: false, sensitive: true, encryption: always-encrypted-deterministic, description: "Contrived sensitive value protected with SQL Always Encrypted DETERMINISTIC encryption (equality-queryable). Persisted as varbinary(200) via a UTF8 value converter. See D-019." }
+      - { name: SecureRandom, kind: string, required: false, sensitive: true, encryption: always-encrypted-randomized, description: "Contrived sensitive value protected with SQL Always Encrypted RANDOMIZED encryption (not queryable). Persisted as varbinary(200) via a UTF8 value converter. See D-019." }
     children:
       - { name: SubTasks, entity: TaskItem, relationship: self-referencing, selfReferenceKey: ParentTaskItemId }
       - { name: Comments, entity: Comment, relationship: one-to-many, cascadeDelete: true }
@@ -100,6 +102,7 @@ entities:
       - { name: MaxSubTaskDepth, condition: "Sub-task hierarchy must not exceed 3 levels deep", errorMessage: "Sub-task nesting exceeds maximum depth of 3." }
       - { name: CompletedDateOnlyWhenCompleted, condition: "CompletedDate is set only when Status is Completed", errorMessage: "CompletedDate can only be set on completed tasks." }
       - { name: EffortNonNegative, condition: "EstimatedEffort and ActualEffort must be non-negative when set", errorMessage: "Effort values must be non-negative." }
+      - { name: SecurePropertyMaxBytes, condition: "SecureDeterministic and SecureRandom UTF8 byte length must not exceed 200 (varbinary(200) Always Encrypted column budget)", errorMessage: "Secure property exceeds the maximum length." }
     stateMachine:
       field: Status
       initial: None

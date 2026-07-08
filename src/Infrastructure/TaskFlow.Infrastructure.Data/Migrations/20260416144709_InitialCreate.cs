@@ -1,3 +1,5 @@
+using Azure.Identity;
+using EF.Data;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -93,6 +95,8 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                     EstimatedEffort = table.Column<decimal>(type: "decimal(10,4)", precision: 10, scale: 2, nullable: true),
                     ActualEffort = table.Column<decimal>(type: "decimal(10,4)", precision: 10, scale: 2, nullable: true),
                     CompletedDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    SecureDeterministic = table.Column<byte[]>(type: "varbinary(200)", nullable: true),
+                    SecureRandom = table.Column<byte[]>(type: "varbinary(200)", nullable: true),
                     CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ParentTaskItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     StartDate = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
@@ -325,6 +329,49 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 table: "TaskItemTag",
                 columns: new[] { "TaskItemId", "TagId" },
                 unique: true);
+
+            ConfigureAlwaysEncrypted(migrationBuilder);
+        }
+
+        /// <summary>
+        /// Applies SQL Always Encrypted to TaskItem.SecureDeterministic / SecureRandom (D-019).
+        /// Always Encrypted has no fluent EF mapping, so the CMK/CEK creation and the ENCRYPTED WITH
+        /// ALTER are emitted as raw SQL via EF.Data.MigrationSupport.
+        /// Gated off by default: the block runs only when SKIP_ALWAYS_ENCRYPTED_SETUP=false, so local
+        /// build/test/run keep plain varbinary(200) columns and need no Azure Key Vault.
+        /// The identity running the migration must hold Key Vault Crypto User on the CMK key.
+        /// </summary>
+        private static void ConfigureAlwaysEncrypted(MigrationBuilder migrationBuilder)
+        {
+            var skipAlwaysEncryptedSetup = !string.Equals(
+                Environment.GetEnvironmentVariable("SKIP_ALWAYS_ENCRYPTED_SETUP"),
+                "false",
+                StringComparison.OrdinalIgnoreCase);
+            if (skipAlwaysEncryptedSetup)
+            {
+                return;
+            }
+
+            var urlAkvCmk = Environment.GetEnvironmentVariable("AKVCMKURL");
+            if (string.IsNullOrWhiteSpace(urlAkvCmk))
+            {
+                throw new InvalidOperationException(
+                    "AKVCMKURL environment variable is required when SKIP_ALWAYS_ENCRYPTED_SETUP is not 'true'.");
+            }
+
+            const string schemaTable = "[taskflow].[TaskItem]";
+            const string cmkName = "CMK_WITH_AKV";
+            const string cekName = "CEK_WITH_AKV";
+
+            var support = new MigrationSupport(migrationBuilder, new DefaultAzureCredential());
+            support.CreateColumnMasterKey(urlAkvCmk, cmkName);
+            support.CreateColumnEncryptionKey(urlAkvCmk, cmkName, cekName);
+
+            // varbinary has no collation, so pass collate: null for both columns.
+            support.AlterColumnEncryption(
+                cekName, schemaTable, "[SecureDeterministic] varbinary(200)", collate: null, encType: "DETERMINISTIC");
+            support.AlterColumnEncryption(
+                cekName, schemaTable, "[SecureRandom] varbinary(200)", collate: null, encType: "RANDOMIZED");
         }
 
         /// <inheritdoc />

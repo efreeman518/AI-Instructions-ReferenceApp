@@ -21,7 +21,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Project | Category filter | Verified count | Notes |
 |---|---|---:|---|
-| Test.Unit | `TestCategory=Unit` | 243 | mocked unit tests; verified 2026-06-18 |
+| Test.Unit | `TestCategory=Unit` | 200 | mocked unit tests; re-verified 2026-07-08 (added 3 TaskItem secure-property tests for D-019; count reconciled - prior 243 was stale from earlier unrelated test churn) |
 | Test.Architecture | `TestCategory=Architecture` | 22 | NetArchTest layering rules; verified 2026-06-18 |
 | Test.Endpoints | `TestCategory=Endpoint` | 34 | WebApplicationFactory in-memory contract tests; verified 2026-06-18 |
 | Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-06-18 through Podman-backed Docker context |
@@ -32,7 +32,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 | Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
-**Current automated verification:** 347 tests passing across Unit/Architecture/Endpoint/E2E/Integration/Integration.FlowEngine/Aspire. Docker-compatible runtime verified through Podman context `podman-machine-default`; Aspire runtime verified with `ASPIRE_CONTAINER_RUNTIME=podman`.
+**Current automated verification:** Test.Unit re-verified 2026-07-08 (200 passing, incl. D-019 secure-property tests) plus the `has-pending-model-changes` drift check for `TaskFlowDbContextTrxn` (clean). Architecture/Endpoint/E2E/Integration/Integration.FlowEngine/Aspire counts carry forward from 2026-06-18 and were NOT re-run this session (need a container runtime); re-run the full suite to reconfirm the aggregate. Docker-compatible runtime verified through Podman context `podman-machine-default`; Aspire runtime verified with `ASPIRE_CONTAINER_RUNTIME=podman`.
 
 ### Playwright (`src/Test/Test.PlaywrightUI/`)
 
@@ -46,7 +46,7 @@ Run `dotnet list package --vulnerable --include-transitive` and capture findings
 - **Moderate:** logged here, tracked but not blocking
 - **Low:** team discretion
 
-Last audited: 2026-06-18 with `dotnet list src\TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`.
+Last audited: 2026-06-18 with `dotnet list src\TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`. NOTE: 2026-07-08 added `Aspire.Hosting.Azure.KeyVault` 13.4.6 and `Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider` 7.0.2 (D-019); re-run the vulnerability audit to reconfirm.
 
 | Package | Version | Severity | Direct/Transitive | Advisory | Notes |
 |---|---|---|---|---|---|
@@ -87,7 +87,7 @@ Verified through the Aspire Gateway: D1 basic chat, D2 streaming chat, D3 code-h
 `infra/` contains the Bicep deployment baseline:
 
 - `main.bicep` - top-level entry
-- `modules/` - SQL, Cosmos DB, Service Bus, Storage, Key Vault, App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, Cosmos RBAC
+- `modules/` - SQL, Cosmos DB, Service Bus, Storage, Key Vault (incl. the D-019 Always Encrypted CMK RSA key `taskflow-cmk`, gated by `enableAlwaysEncrypted`), App Configuration, Functions, Container Apps + environment, Static Web App, Log Analytics, deploy identity, role assignment, Cosmos RBAC
 
 Deployment plan: [.azure/deployment-plan.md](.azure/deployment-plan.md).
 

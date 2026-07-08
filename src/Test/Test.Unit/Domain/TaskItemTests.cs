@@ -1,5 +1,6 @@
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared;
+using TaskFlow.Domain.Shared.Constants;
 using TaskFlow.Domain.Shared.Enums;
 using Test.Support;
 
@@ -146,6 +147,40 @@ public class TaskItemTests
         var result = TaskItem.Create(TenantId, "SubTask", parentTaskItemId: parentId);
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(parentId, result.Value!.ParentTaskItemId!.Value);
+    }
+
+    /// <summary>Verifies that secure properties (Always Encrypted, D-019) round-trip through Create.</summary>
+    [TestMethod]
+    [TestCategory("Unit")]
+    public void Given_SecureValues_When_TaskItemCreated_Then_SecurePropertiesSet()
+    {
+        var result = TaskItem.Create(
+            TenantId, "Task", secureDeterministic: "lookup-token", secureRandom: "top secret note");
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual("lookup-token", result.Value!.SecureDeterministic);
+        Assert.AreEqual("top secret note", result.Value.SecureRandom);
+    }
+
+    /// <summary>Verifies that a null secure value on Update leaves the existing secure value unchanged.</summary>
+    [TestMethod]
+    [TestCategory("Unit")]
+    public void Given_NullSecureUpdate_When_Updated_Then_SecureValuePreserved()
+    {
+        var task = TaskItem.Create(TenantId, "Task", secureDeterministic: "keep-me").Value!;
+        var result = task.Update(secureRandom: "added");
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual("keep-me", result.Value!.SecureDeterministic);
+        Assert.AreEqual("added", result.Value.SecureRandom);
+    }
+
+    /// <summary>Verifies that a secure value exceeding the varbinary(200) UTF8 budget fails validation.</summary>
+    [TestMethod]
+    [TestCategory("Unit")]
+    public void Given_OversizedSecureValue_When_TaskItemCreated_Then_ReturnsDomainFailure()
+    {
+        var tooLong = new string('x', DomainConstants.RULE_SECURE_PROPERTY_MAX_BYTES + 1);
+        var result = TaskItem.Create(TenantId, "Task", secureRandom: tooLong);
+        Assert.IsTrue(result.IsFailure);
     }
 
     /// <summary>Verifies that given same status, when transitioned, then no op success.</summary>

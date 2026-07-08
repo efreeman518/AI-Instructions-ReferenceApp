@@ -22,6 +22,7 @@ flowchart TD
     D016["D-016: FlowEngine state isolation"]
     D017["D-017: Workflow trigger model"]
     D018["D-018: React SPA"]
+    D019["D-019: Always Encrypted secure columns"]
 
     D001 --> D002
     D001 --> D003
@@ -37,6 +38,7 @@ flowchart TD
     D015 --> D017
     D006 --> D017
     D010 --> D018
+    D003 --> D019
 ```
 
 ## Decisions
@@ -59,6 +61,7 @@ flowchart TD
 | D-016 | Data | FlowEngine state isolation | Separate `flowengine` schema in same SQL DB, separate `TaskFlowFlowEngineDbContext` implementing all three FE mixins, separate `__EFMigrationsHistory_FlowEngine` table | D-015 | confirmed | Variant A from gap-analysis: atomic outbox preserved (single `SaveChangesAsync` writes state + outbox). Sidesteps multi-inheritance conflict with `EF.Data.DbContextBase<TUser,TKey>` (audit interceptor base). Schemas evolve independently. | Section 14, Bootstrapper |
 | D-017 | Orchestration | Workflow trigger model | Workflows started via `IWorkflowTrigger` (manual today); event-driven wiring left to integrator | D-015, D-006 | confirmed | Reference app demonstrates the trigger surface without prescribing one auto-fire pattern. Three viable wirings documented (Section 14.6): Service Bus subscriber, inline service call, TickerQ cron job. | `WorkflowTriggerHandler`, future Functions |
 | D-018 | UI | React SPA | `src/UI/TaskFlow.React` Vite/React SPA wired via `AddViteApp` in the AppHost (`includeReactUI: true`); intentionally not a `.slnx` member (Vite app, not a .NET project) | D-010 | confirmed | Proves the third UI pattern (`includeReactUI`) alongside Blazor and Uno. Built/tested via `npm ci` in CI and `Test.PlaywrightUI`. | CI, `Test.PlaywrightUI`, AppHost |
+| D-019 | Security | Column-level encryption for sensitive properties | SQL Always Encrypted on `TaskItem.SecureDeterministic` (DETERMINISTIC) and `TaskItem.SecureRandom` (RANDOMIZED); CMK/CEK created in `InitialCreate` via `EF.Data.MigrationSupport`, CMK stored as an Azure Key Vault RSA key. Local build/test/run stay green because the AKV setup is gated by `SKIP_ALWAYS_ENCRYPTED_SETUP` (default skipped -> plain `varbinary(200)` columns); the full path is opt-in via `TASKFLOW_ENABLE_ALWAYS_ENCRYPTED` on the Aspire AppHost. | D-003 | confirmed | Demonstrates the standard EF-Core-plus-raw-SQL Always Encrypted pattern (no fluent support) while preserving the reference-app "no cloud required locally" invariant. Deterministic column shows equality querying; randomized shows non-queryable at-rest protection. | Phase 5a, `infra/`, AppHost |
 
 ## Deferred Decisions
 
@@ -79,3 +82,4 @@ flowchart TD
 - [x] Lifecycle states closed before events/scheduler/notifications.
 - [x] External dependency modes closed before local boot strategy.
 - [x] UI/API client needs closed before endpoint contract generation.
+- [x] Authoritative SQL store (D-003) closed before column-level encryption (D-019).

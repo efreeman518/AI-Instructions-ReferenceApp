@@ -275,6 +275,12 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("SecureDeterministic")
+                        .HasColumnType("varbinary(200)");
+
+                    b.Property<string>("SecureRandom")
+                        .HasColumnType("varbinary(200)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 

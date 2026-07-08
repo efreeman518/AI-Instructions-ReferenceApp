@@ -82,6 +82,7 @@
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.6" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.6" />
     <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="13.4.6" />
     <PackageVersion Include="KubernetesClient" Version="19.0.2" />
   </ItemGroup>
   <ItemGroup Label="YARP">
@@ -172,6 +173,8 @@
   <ItemGroup Label="AI Services">
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <!-- Always Encrypted CMK provider (D-019); pinned to match EF.Data 1.0.88's transitive dependency. -->
+    <PackageVersion Include="Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider" Version="7.0.2" />
     <PackageVersion Include="Azure.Search.Documents" Version="12.0.0" />
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.11.1" />
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.11.1" />

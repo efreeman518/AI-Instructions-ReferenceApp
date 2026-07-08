@@ -22,6 +22,12 @@ This file records the shared domain language used by the TaskFlow reference app.
 | `TaskItemTag` | join entity | Explicit many-to-many bridge between task item and tag. | Use as a real entity when association metadata is needed. |
 | `DateRange` | value-object | Start and due date pair for a task item. | EF owned value object on `TaskItem`. |
 | `RecurrencePattern` | value-object | Recurrence interval, frequency, and end conditions. | EF owned value object on `TaskItem`. |
+| `Secure Property` | concept | A domain property whose column is protected at rest with SQL Always Encrypted. TaskFlow demonstrates `SecureDeterministic` and `SecureRandom` on `TaskItem`. | `string?` domain property, `varbinary(200)` column via UTF8 value converter. See D-019. |
+| `Always Encrypted` | pattern | SQL Server client-side column encryption: the driver encrypts/decrypts; the server only stores ciphertext. | Enabled per-connection via `Column Encryption Setting=Enabled`; keys managed in Azure Key Vault. |
+| `Column Master Key (CMK)` | concept | The key-encrypting key for Always Encrypted, stored in Azure Key Vault as an RSA key. | `CMK_WITH_AKV`; created in a migration via `EF.Data.MigrationSupport`. |
+| `Column Encryption Key (CEK)` | concept | The data-encrypting key, itself encrypted by the CMK and stored as SQL metadata. | `CEK_WITH_AKV`. |
+| `Deterministic Encryption` | concept | Always Encrypted mode producing identical ciphertext for identical plaintext; supports equality lookups. | Used by `SecureDeterministic`. |
+| `Randomized Encryption` | concept | Always Encrypted mode producing non-repeatable ciphertext; not queryable. | Used by `SecureRandom`. |
 | `GlobalAdmin` | role | Cross-tenant administrator. | May bypass tenant-specific checks where explicitly allowed. |
 | `TenantAdmin` | role | Administrator inside one tenant. | Use for tenant-scoped administration. |
 | `TenantMember` | role | Normal authenticated tenant user. | Use for tenant-scoped user actions. |
@@ -110,6 +116,7 @@ This file records the shared domain language used by the TaskFlow reference app.
 | Blob Storage | Attachment content store. | upload, download, SAS URI. |
 | Azure AI Search | Hybrid/vector task search. | index, search, embed, retrieve. |
 | Azure OpenAI | Task assistant agent backing model. | chat, tool, summarize, ground. |
+| Azure Key Vault | Stores the Always Encrypted Column Master Key (RSA). | sign, wrap/unwrap, Crypto User role. See D-019. |
 
 ## Orchestration Vocabulary (FlowEngine)
 

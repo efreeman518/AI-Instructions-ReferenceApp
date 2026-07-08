@@ -26,6 +26,11 @@ public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenant
     public decimal? ActualEffort { get; private set; }
     public DateTimeOffset? CompletedDate { get; private set; }
 
+    // Sensitive properties - persisted with SQL Always Encrypted (varbinary(200)). See D-019.
+    // Deterministic: equality-queryable; Randomized: not queryable.
+    public string? SecureDeterministic { get; private set; }
+    public string? SecureRandom { get; private set; }
+
     // Foreign keys
     public DomainCategoryId? CategoryId { get; private set; }
     public DomainTaskItemId? ParentTaskItemId { get; private set; }
@@ -62,9 +67,14 @@ public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenant
     public static DomainResult<TaskItem> Create(
         DomainTenantId tenantId, string title, string? description = null,
         Priority priority = Priority.None, DomainCategoryId? categoryId = null,
-        DomainTaskItemId? parentTaskItemId = null)
+        DomainTaskItemId? parentTaskItemId = null,
+        string? secureDeterministic = null, string? secureRandom = null)
     {
-        var entity = new TaskItem(tenantId, title, description, priority, categoryId, parentTaskItemId);
+        var entity = new TaskItem(tenantId, title, description, priority, categoryId, parentTaskItemId)
+        {
+            SecureDeterministic = secureDeterministic,
+            SecureRandom = secureRandom
+        };
         return entity.Valid();
     }
 
@@ -76,7 +86,8 @@ public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenant
         string? title = null, string? description = null,
         Priority? priority = null, TaskFeatures? features = null,
         decimal? estimatedEffort = null, decimal? actualEffort = null,
-        DomainCategoryId? categoryId = null, DomainTaskItemId? parentTaskItemId = null)
+        DomainCategoryId? categoryId = null, DomainTaskItemId? parentTaskItemId = null,
+        string? secureDeterministic = null, string? secureRandom = null)
     {
         if (title is not null) Title = title;
         if (description is not null) Description = description;
@@ -86,6 +97,8 @@ public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenant
         if (actualEffort.HasValue) ActualEffort = actualEffort.Value;
         if (categoryId.HasValue) CategoryId = categoryId.Value.Value == Guid.Empty ? null : categoryId.Value;
         if (parentTaskItemId.HasValue) ParentTaskItemId = parentTaskItemId.Value.Value == Guid.Empty ? null : parentTaskItemId.Value;
+        if (secureDeterministic is not null) SecureDeterministic = secureDeterministic;
+        if (secureRandom is not null) SecureRandom = secureRandom;
         return Valid();
     }
 
@@ -252,8 +265,15 @@ public class TaskItem : EntityBase<DomainTaskItemId>, ITenantEntity<DomainTenant
         if (string.IsNullOrWhiteSpace(Title)) errors.Add(DomainError.Create("Title is required."));
         if (Title is not null && Title.Length < DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN)
             errors.Add(DomainError.Create($"Title must be at least {DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN} characters."));
+        if (ExceedsSecureBudget(SecureDeterministic) || ExceedsSecureBudget(SecureRandom))
+            errors.Add(DomainError.Create($"Secure property must not exceed {DomainConstants.RULE_SECURE_PROPERTY_MAX_BYTES} bytes (UTF8)."));
         return errors.Count > 0
             ? DomainResult<TaskItem>.Failure(errors)
             : DomainResult<TaskItem>.Success(this);
     }
+
+    /// <summary>True when a secure property's UTF8 encoding exceeds the Always Encrypted varbinary(200) budget.</summary>
+    private static bool ExceedsSecureBudget(string? value) =>
+        value is not null
+        && System.Text.Encoding.UTF8.GetByteCount(value) > DomainConstants.RULE_SECURE_PROPERTY_MAX_BYTES;
 }

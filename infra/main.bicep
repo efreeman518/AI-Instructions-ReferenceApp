@@ -41,6 +41,9 @@ param migratorImage string = 'mcr.microsoft.com/azuredocs/containerapps-hellowor
 @description('Blazor container image')
 param blazorImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
+@description('Opt-in for the SQL Always Encrypted demo (D-019): grants Key Vault Crypto User to the API and migrator identities and wires the CMK key URL. Off by default to keep the baseline deploy unchanged.')
+param enableAlwaysEncrypted bool = false
+
 // ---- Variables ----
 
 var prefix = '${resourcePrefix}-${environmentName}'
@@ -62,6 +65,7 @@ var roles = {
   serviceBusDataReceiver: '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
   // Key Vault
   keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6'
+  keyVaultCryptoUser: '14b46e9e-c2b7-41b4-b07b-48a6ebf60603' // Always Encrypted CMK sign/wrap/unwrap (D-019)
   // App Configuration
   appConfigDataReader: '516239f1-63e1-4d78-a4de-a74fb236a071'
   // Contributor (for deploy identity)
@@ -173,6 +177,17 @@ var commonEnvVars = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
 ]
 
+// Always Encrypted (D-019) env wiring. Migrator creates the CMK/CEK and alters columns (runs setup);
+// API registers the AKV provider and turns on column encryption. Both need the CMK key URL.
+var alwaysEncryptedMigratorEnvVars = enableAlwaysEncrypted ? [
+  { name: 'SKIP_ALWAYS_ENCRYPTED_SETUP', value: 'false' }
+  { name: 'AKVCMKURL', value: keyVault.outputs.cmkKeyUri }
+] : []
+var alwaysEncryptedApiEnvVars = enableAlwaysEncrypted ? [
+  { name: 'TASKFLOW_ENABLE_ALWAYS_ENCRYPTED', value: 'true' }
+  { name: 'AKVCMKURL', value: keyVault.outputs.cmkKeyUri }
+] : []
+
 // SQL auth gap: these apps use Entra auth connection strings, but this template does not yet
 // create database users or grants. Add a SQL data-plane step before production: migrator
 // identity gets schema DDL plus migration history rights; API, Scheduler, and Functions get
@@ -191,7 +206,7 @@ module migrator 'modules/container-app-job.bicep' = {
       { name: 'ConnectionStrings__TaskFlowDbContextTrxn', value: sqlDatabase.outputs.connectionString }
       { name: 'ConnectionStrings__TaskFlowFlowEngineDbContext', value: sqlDatabase.outputs.connectionString }
       { name: 'ConnectionStrings__TickerQDbContext', value: sqlDatabase.outputs.connectionString }
-    ])
+    ], alwaysEncryptedMigratorEnvVars)
     tags: tags
   }
 }
@@ -239,7 +254,7 @@ module api 'modules/container-app.bicep' = {
       { name: 'ConnectionStrings__BlobStorage1', value: storage.outputs.appStorageBlobEndpoint }
       { name: 'ConnectionStrings__TableStorage1', value: storage.outputs.appStorageTableEndpoint }
       { name: 'SERVICEBUS__fullyQualifiedNamespace', value: serviceBus.outputs.namespaceEndpoint }
-    ])
+    ], alwaysEncryptedApiEnvVars)
     tags: tags
   }
 }
@@ -406,6 +421,27 @@ module apiServiceBusSender 'modules/role-assignment.bicep' = {
     principalId: api.outputs.principalId
     roleDefinitionId: roles.serviceBusDataSender
     roleDescription: 'API: Service Bus Data Sender'
+  }
+}
+
+// Always Encrypted (D-019): API decrypts (unwrapKey) at runtime; migrator creates the CMK/CEK (sign + wrapKey).
+module apiKvCryptoUser 'modules/role-assignment.bicep' = if (enableAlwaysEncrypted) {
+  name: 'apiKvCryptoUser'
+  scope: rg
+  params: {
+    principalId: api.outputs.principalId
+    roleDefinitionId: roles.keyVaultCryptoUser
+    roleDescription: 'API: Key Vault Crypto User (Always Encrypted)'
+  }
+}
+
+module migratorKvCryptoUser 'modules/role-assignment.bicep' = if (enableAlwaysEncrypted) {
+  name: 'migratorKvCryptoUser'
+  scope: rg
+  params: {
+    principalId: migrator.outputs.principalId
+    roleDefinitionId: roles.keyVaultCryptoUser
+    roleDescription: 'Migrator: Key Vault Crypto User (Always Encrypted)'
   }
 }
 
