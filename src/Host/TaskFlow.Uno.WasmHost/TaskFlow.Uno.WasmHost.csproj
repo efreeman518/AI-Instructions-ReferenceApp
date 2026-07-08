@@ -23,4 +23,8 @@
           Timeout="$(UnoWasmBuildTimeoutMilliseconds)" />
   </Target>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire\ServiceDefaults\ServiceDefaults.csproj" />
+  </ItemGroup>
+
 </Project>

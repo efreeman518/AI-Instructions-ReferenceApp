@@ -25,8 +25,8 @@ param cosmosEndpoint string
 @description('Storage blob endpoint')
 param storageBlobEndpoint string
 
-@description('Log Analytics workspace ID')
-param logAnalyticsWorkspaceId string
+@description('Shared Application Insights connection string')
+param appInsightsConnectionString string
 
 @description('Tags')
 param tags object = {}
@@ -79,23 +79,15 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'ConnectionStrings__BlobStorage1', value: storageBlobEndpoint }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
+          value: appInsightsConnectionString
         }
+        // The Functions host process emits request telemetry itself; suppress the worker's ASP.NET Core
+        // instrumentation so requests are not double-reported by the Azure Monitor distro in ServiceDefaults.
+        { name: 'TASKFLOW_SUPPRESS_ASPNETCORE_INSTRUMENTATION', value: 'true' }
       ]
       minTlsVersion: '1.2'
       ftpsState: 'Disabled'
     }
-  }
-}
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${resourcePrefix}-func-ai'
-  location: location
-  tags: tags
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspaceId
   }
 }
 

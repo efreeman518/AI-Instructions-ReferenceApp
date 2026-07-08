@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -38,17 +39,34 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
+        // The Azure Functions host process already emits request telemetry for each invocation. When this
+        // worker also runs the Azure Monitor distro (which includes ASP.NET Core instrumentation), that
+        // request would be reported twice with the same OperationId. Functions sets this flag so the worker
+        // skips ASP.NET Core request instrumentation while still exporting its own traces, metrics, and logs.
+        var suppressAspNetCoreInstrumentation = string.Equals(
+            builder.Configuration["TASKFLOW_SUPPRESS_ASPNETCORE_INSTRUMENTATION"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
-                metrics.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
+                metrics.AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
+
+                if (!suppressAspNetCoreInstrumentation)
+                {
+                    metrics.AddAspNetCoreInstrumentation();
+                }
             })
             .WithTracing(tracing =>
             {
-                tracing.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                tracing.AddHttpClientInstrumentation();
+
+                if (!suppressAspNetCoreInstrumentation)
+                {
+                    tracing.AddAspNetCoreInstrumentation();
+                }
             });
 
         builder.AddOpenTelemetryExporters();
@@ -65,6 +83,17 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        // Enable the Azure Monitor (Application Insights) distro only when a connection string is
+        // configured. This keeps local runs working without any real Azure resource while lighting
+        // up traces, metrics, and logs export the moment APPLICATIONINSIGHTS_CONNECTION_STRING is set.
+        var useAzureMonitor = !string.IsNullOrWhiteSpace(
+            builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
+
+        if (useAzureMonitor)
+        {
+            builder.Services.AddOpenTelemetry().UseAzureMonitor();
         }
 
         return builder;

@@ -93,6 +93,19 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   }
 }
 
+// Single shared, workspace-based Application Insights resource for all TaskFlow hosts. Its connection
+// string is fanned out below; hosts export via the Azure Monitor OpenTelemetry distro in ServiceDefaults.
+module appInsights 'modules/app-insights.bicep' = {
+  name: 'appInsights'
+  scope: rg
+  params: {
+    resourcePrefix: prefix
+    location: location
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    tags: tags
+  }
+}
+
 module containerAppsEnv 'modules/container-apps-environment.bicep' = {
   name: 'containerAppsEnv'
   scope: rg
@@ -175,6 +188,7 @@ var commonEnvVars = [
   { name: 'AppConfig__Endpoint', value: appConfig.outputs.endpoint }
   { name: 'KeyVault__Uri', value: keyVault.outputs.uri }
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.outputs.connectionString }
 ]
 
 // Always Encrypted (D-019) env wiring. Migrator creates the CMK/CEK and alters columns (runs setup);
@@ -301,6 +315,7 @@ module blazor 'modules/container-app.bicep' = {
     envVars: [
       { name: 'ApiBaseUrl', value: 'https://${gateway.outputs.fqdn}' }
       { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+      { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.outputs.connectionString }
     ]
     tags: tags
   }
@@ -331,7 +346,7 @@ module functions 'modules/functions.bicep' = {
     sqlConnectionString: sqlDatabase.outputs.connectionString
     cosmosEndpoint: cosmosDb.outputs.accountEndpoint
     storageBlobEndpoint: storage.outputs.appStorageBlobEndpoint
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    appInsightsConnectionString: appInsights.outputs.connectionString
     tags: tags
   }
 }

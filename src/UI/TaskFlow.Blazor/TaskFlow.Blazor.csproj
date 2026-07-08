@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Models\TaskFlow.Application.Models.csproj" />
     <ProjectReference Include="..\..\Domain\TaskFlow.Domain.Shared\TaskFlow.Domain.Shared.csproj" />
+    <ProjectReference Include="..\..\Host\Aspire\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

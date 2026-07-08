@@ -4,6 +4,10 @@ using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Shared Aspire service defaults so this static-asset host reports telemetry (incl. Azure Monitor
+// when configured) and health alongside the other .NET hosts. No-ops cleanly without Azure config.
+builder.AddServiceDefaults();
+
 var distPath = builder.Configuration["UnoWasm:DistPath"];
 
 if (string.IsNullOrWhiteSpace(distPath))
@@ -36,6 +40,8 @@ if (File.Exists(staticWebAssetsManifestPath))
 }
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 var indexPath = Path.Combine(distPath, "wwwroot", "index.html");
 if (!File.Exists(indexPath))

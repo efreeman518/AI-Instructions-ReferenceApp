@@ -9,6 +9,11 @@ using TaskFlow.Blazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Shared Aspire service defaults: OpenTelemetry (incl. Azure Monitor when configured), health
+// checks, service discovery, and HTTP resilience. Keeps this server-hosted UI participating in
+// the same telemetry pipeline as the backend hosts while still running with no Azure config.
+builder.AddServiceDefaults();
+
 // Blazor Server host for CRUD pages and FlowEngine dashboard pages. API calls go through
 // the gateway so auth, claim forwarding, and routing match the other front ends.
 builder.Services.AddRazorComponents()
@@ -61,6 +66,8 @@ var flowEngineAdminBaseUrl = builder.Configuration["FlowEngine:AdminApiBaseUrl"]
 builder.Services.AddFlowEngineDashboard(adminApiBaseUrl: flowEngineAdminBaseUrl);
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 if (!app.Environment.IsDevelopment())
 {
