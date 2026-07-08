@@ -5,8 +5,8 @@ using Aspire.Hosting.Testing;
 using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Sockets;
 using System.Diagnostics;
+using System.Net.Sockets;
 using EnvironmentVariableScope = EF.IntegrationTesting.Environment.EnvironmentVariableScope;
 using FunctionsCoreToolsDiscovery = EF.IntegrationTesting.Environment.FunctionsCoreToolsDiscovery;
 

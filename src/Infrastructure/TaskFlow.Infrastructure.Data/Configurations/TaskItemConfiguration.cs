@@ -1,6 +1,6 @@
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Text;
 using TaskFlow.Domain.Model;
 using TaskFlow.Domain.Shared;
 
