@@ -27,7 +27,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 | Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-06-18 through Podman-backed Docker context |
 | Test.Integration | `TestCategory=Integration` | 15 | service-level vs real SQL via Testcontainers; verified 2026-06-18 through Podman-backed Docker context |
 | Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; verified 2026-06-18 |
-| Test.Aspire | multiple (`Integration`, `LiveAI`) | 10 | Aspire mesh tests for API, Gateway, Blazor, React, Uno, Functions, audit, and AI capability probes; verified 2026-06-18 through Podman-backed Docker context |
+| Test.Aspire | multiple (`Aspire`, `Foundry`, `Integration`, `LiveAI`) | 13 | Single shared RID-free Aspire mesh graph for API, Gateway, Blazor, React, Uno, Functions, audit, and Azure Foundry capability probes; Foundry Local live coverage belongs to `Test.FoundryLocal`; verified 2026-07-08 through Podman-backed Docker context |
 | Test.PlaywrightUI | n/a (Node.js) | - | hosted-stack required (see below) |
 | Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |

@@ -97,7 +97,8 @@ internal static class AspireTestHost
     {
         // AppHost.cs reads these via Environment.GetEnvironmentVariable, so they must be process env vars.
         _environment = new EnvironmentVariableScope()
-            .Set("TASKFLOW_ASPIRE_TESTING", "true");
+            .Set("TASKFLOW_ASPIRE_TESTING", "true")
+            .Set(FoundryLocalOptInEnvironmentVariable, "false");
 
         if (EnsureFuncToolAvailable())
             _environment.Set("TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE", "true");

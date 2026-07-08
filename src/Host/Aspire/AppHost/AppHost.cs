@@ -16,7 +16,7 @@ var reactAvailableInTesting =
 var unoWasmAvailableInTesting =
     Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE") == "true";
 // Opt-in only: normal Aspire tests keep AI deterministic by disabling Foundry Local.
-// Set this before the AppHost is built to run the explicit local-AI Aspire smoke lane.
+// Set before AppHost build only for manual local-AI AppHost runs.
 var foundryLocalAvailableInTesting =
     Environment.GetEnvironmentVariable("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL") == "true";
 
