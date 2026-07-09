@@ -21,7 +21,7 @@ public sealed class DatabaseMigratorIntegrationTests
     }
 
     [TestMethod]
-    [Timeout(180000)]
+    [Timeout(180000, CooperativeCancellation = true)]
     public async Task DatabaseMigrator_AppliesAllTargets_AndIsIdempotent()
     {
         var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TaskFlowMigrator");
@@ -32,11 +32,11 @@ public sealed class DatabaseMigratorIntegrationTests
 
         await using var trxn = SqlContainerFixture.CreateTrxnContext(connectionString);
         var taskFlowTableCount = await CountTablesAsync(trxn, "taskflow");
-        Assert.IsTrue(taskFlowTableCount >= 7, $"Expected at least 7 taskflow tables, found {taskFlowTableCount}.");
+        Assert.IsGreaterThanOrEqualTo(7, taskFlowTableCount, $"Expected at least 7 taskflow tables, found {taskFlowTableCount}.");
 
         await using var flowEngine = SqlContainerFixture.CreateFlowEngineContext(connectionString);
         var flowEngineTableCount = await CountTablesAsync(flowEngine, TaskFlowFlowEngineDbContext.SchemaName);
-        Assert.IsTrue(flowEngineTableCount >= 4, $"Expected at least 4 FlowEngine tables, found {flowEngineTableCount}.");
+        Assert.IsGreaterThanOrEqualTo(4, flowEngineTableCount, $"Expected at least 4 FlowEngine tables, found {flowEngineTableCount}.");
         Assert.IsTrue(await TableExistsAsync(
             flowEngine,
             TaskFlowFlowEngineDbContext.SchemaName,
@@ -54,7 +54,7 @@ public sealed class DatabaseMigratorIntegrationTests
     }
 
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TickerQValidation_FailsWhenSchemaMissing()
     {
         var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TickerQMissing");

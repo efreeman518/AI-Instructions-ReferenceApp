@@ -145,13 +145,13 @@ public class MapperProjectionParityTests
         var checklistItems = fullDto.ChecklistItems ?? throw new AssertFailedException("TaskItem DTO checklist items were not projected.");
 
         var expectedComment = entity.Comments.Single().ToDto();
-        Assert.AreEqual(1, comments.Count);
+        Assert.HasCount(1, comments);
         Assert.AreEqual(expectedComment.Id, comments[0].Id);
         Assert.AreEqual(expectedComment.Body, comments[0].Body);
         Assert.AreEqual(expectedComment.TaskItemId, comments[0].TaskItemId);
 
         var expectedChecklist = entity.ChecklistItems.Single().ToDto();
-        Assert.AreEqual(1, checklistItems.Count);
+        Assert.HasCount(1, checklistItems);
         Assert.AreEqual(expectedChecklist.Id, checklistItems[0].Id);
         Assert.AreEqual(expectedChecklist.Title, checklistItems[0].Title);
         Assert.AreEqual(expectedChecklist.SortOrder, checklistItems[0].SortOrder);

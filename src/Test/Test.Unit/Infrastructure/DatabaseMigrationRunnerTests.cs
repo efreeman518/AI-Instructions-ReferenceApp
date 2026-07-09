@@ -8,6 +8,10 @@ public sealed class DatabaseMigrationRunnerTests
 {
     public TestContext TestContext { get; set; } = null!;
 
+    private static readonly string[] expected = new[] { "first", "second", "third" };
+
+    private static readonly string[] expectedUntilFailure = new[] { "first", "fail" };
+
     [TestMethod]
     public async Task RunAsync_OrdersTargetsByOrderThenName()
     {
@@ -20,9 +24,9 @@ public sealed class DatabaseMigrationRunnerTests
             ],
             NullLogger<DatabaseMigrationRunner>.Instance);
 
-        await runner.RunAsync(TestContext.CancellationTokenSource.Token);
+        await runner.RunAsync(TestContext.CancellationToken);
 
-        CollectionAssert.AreEqual(new[] { "first", "second", "third" }, calls);
+        CollectionAssert.AreEqual(expected, calls);
     }
 
     [TestMethod]
@@ -38,8 +42,8 @@ public sealed class DatabaseMigrationRunnerTests
             NullLogger<DatabaseMigrationRunner>.Instance);
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(
-            () => runner.RunAsync(TestContext.CancellationTokenSource.Token));
-        CollectionAssert.AreEqual(new[] { "first", "fail" }, calls);
+            () => runner.RunAsync(TestContext.CancellationToken));
+        CollectionAssert.AreEqual(expectedUntilFailure, calls);
     }
 
     private sealed class RecordingTarget(string name, int order, List<string> calls) : IDatabaseMigrationTarget

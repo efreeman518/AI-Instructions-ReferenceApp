@@ -41,7 +41,7 @@ public class OverdueTaskCheckHandler : IScheduledJobHandler
                 && t.Status != TaskItemStatus.Cancelled)
             .ToList() ?? [];
 
-        _logger.LogInformation("Found {Count} overdue tasks", overdueTasks.Count);
+        _logger.OverdueTasksFound(overdueTasks.Count);
 
         // Future: publish TaskItemOverdueSuspected domain events for notification/escalation
     }

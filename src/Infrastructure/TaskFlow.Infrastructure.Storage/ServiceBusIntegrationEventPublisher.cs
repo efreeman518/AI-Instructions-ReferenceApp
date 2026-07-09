@@ -53,6 +53,6 @@ public class ServiceBusIntegrationEventPublisher : IIntegrationEventPublisher
         message.ApplicationProperties["PublishedAt"] = DateTimeOffset.UtcNow.ToString("O");
 
         await sender.SendMessageAsync(message, ct);
-        _logger.LogInformation("Published {EventType} to {TopicOrQueue}", typeof(TEvent).Name, topicOrQueue);
+        _logger.EventPublished(typeof(TEvent).Name, topicOrQueue);
     }
 }

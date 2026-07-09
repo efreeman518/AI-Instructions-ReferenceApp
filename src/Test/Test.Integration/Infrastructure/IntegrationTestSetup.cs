@@ -8,7 +8,7 @@ namespace Test.Integration.Infrastructure;
 /// Component tier only - no Aspire graph, no <c>AppHost</c> reference.
 /// </summary>
 [TestClass]
-public class IntegrationTestSetup
+public static class IntegrationTestSetup
 {
     /// <summary>Starts the component-tier store containers in parallel before any test runs.</summary>
     [AssemblyInitialize]

@@ -36,14 +36,15 @@ public sealed class OpenApiEndpointTests
             .Select(path => path.Name)
             .ToArray();
 
-        Assert.IsTrue(
-            paths.Any(path => path.StartsWith("/api/v1/task-items", StringComparison.Ordinal)),
+        Assert.Contains(
+            path => path.StartsWith("/api/v1/task-items", StringComparison.Ordinal), paths,
             "OpenAPI v1 document must include versioned domain API routes.");
 
-        Assert.IsFalse(
-            paths.Any(path => path.StartsWith("/health", StringComparison.Ordinal)
+        Assert.DoesNotContain(
+            path => path.StartsWith("/health", StringComparison.Ordinal)
                 || path.StartsWith("/alive", StringComparison.Ordinal)
-                || path.StartsWith("/api/flowengine", StringComparison.Ordinal)),
+                || path.StartsWith("/api/flowengine", StringComparison.Ordinal),
+            paths,
             "OpenAPI v1 document should not include unversioned operational/admin routes.");
     }
 

@@ -29,7 +29,7 @@ public class AuditLogRepositoryAzuriteTests
 
     /// <summary>Verifies that given audit entry, when append to azurite, then table entity persisted with expected keys.</summary>
     [TestMethod]
-    [Timeout(300000)]
+    [Timeout(300000, CooperativeCancellation = true)]
     public async Task Given_AuditEntry_When_AppendAsyncToAzurite_Then_TableEntityPersistedWithExpectedKeys()
     {
         var ct = CancellationToken.None;

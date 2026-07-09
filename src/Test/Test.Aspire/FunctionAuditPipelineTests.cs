@@ -31,7 +31,7 @@ public class FunctionAuditPipelineTests
 
     /// <summary>Verifies that given function category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
-    [Timeout(600000)]
+    [Timeout(600000, CooperativeCancellation = true)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
         if (!AspireTestHost.EnsureFuncToolAvailable())
@@ -85,7 +85,7 @@ public class FunctionAuditPipelineTests
             Assert.IsFalse(string.IsNullOrWhiteSpace(auditEntity.AuditId));
             Assert.AreEqual("Added", auditEntity.Action);
             Assert.AreEqual(AuditStatus.Success.ToString(), auditEntity.Status);
-            Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
+            Assert.IsGreaterThanOrEqualTo(auditWindowStartUtc, auditEntity.RecordedUtc);
         }
         catch (Exception ex)
         {

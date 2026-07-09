@@ -13,7 +13,9 @@ Reference implementation for [AI-Instructions-Scaffold](https://github.com/efree
 | Domain | `src/Domain/` | Aggregates, entities, domain events |
 | Application | `src/Application/` | Use cases, service contracts, message handlers |
 | Infrastructure | `src/Infrastructure/` | EF Core, Azure AI, Storage, Repos |
-| Host | `src/Host/` | API, Functions, Scheduler, Gateway, Aspire |
+| Host | `src/Host/` | API, Functions, Scheduler, Gateway, Bootstrapper, DatabaseMigrator, Aspire (AppHost + ServiceDefaults), Uno WASM host |
+| UI | `src/UI/` | Blazor, React, and Uno (WASM + mobile) clients |
+| Shared | `src/Shared/` | Dependency-free cross-cutting libraries (e.g. `TaskFlow.Observability`) |
 
 **Azure services:** SQL Server, Cosmos DB, Service Bus, Blob Storage, Azure AI Search, Microsoft Foundry.
 
@@ -22,6 +24,67 @@ Reference implementation for [AI-Instructions-Scaffold](https://github.com/efree
 Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bicep (`infra/`).
 
 **Detailed docs:** [Tech Design](docs/tech-design.html) - [Tech Design Maintenance](docs/TECH-DESIGN-MAINTENANCE.md) - [DESIGN-DECISIONS.md](.scaffold/DESIGN-DECISIONS.md) - [UBIQUITOUS-LANGUAGE.md](.scaffold/UBIQUITOUS-LANGUAGE.md)
+
+## Getting Started
+
+### Prerequisites
+
+- **.NET 10 SDK** - the exact version is pinned by [`src/global.json`](src/global.json).
+- **Workloads:** `dotnet workload install wasm-tools aspire` (required for the Uno WASM host and the Aspire AppHost).
+- **Container runtime** (Docker or Podman) - the Aspire AppHost runs SQL Server, Azurite, Service Bus, Redis, and Cosmos DB emulators locally, and the Docker-backed test lanes need it.
+- **Private NuGet feed access:** the `EF.*` (FlowEngine) packages restore from GitHub Packages via the `efreeman518-github` source in [`src/nuget.config`](src/nuget.config). Supply a `NUGET_PAT` (a GitHub token with `read:packages`) before restoring.
+- **Local tools:** `dotnet tool restore` restores Stryker.NET and the other tools declared in the tool manifest.
+
+### Run
+
+```powershell
+dotnet restore src/TaskFlow.slnx
+dotnet run --project src/Host/Aspire/AppHost
+```
+
+Use the Aspire dashboard to discover the Gateway, API, and Blazor URLs; ports are allocated per run. See [AI Demos](#ai-demos-azure-ai-foundry-and-foundry-local) for AI-specific run modes.
+
+## AI Coding Instructions
+
+This repo is the compiled proof for the [AI-Instructions-Scaffold](https://github.com/efreeman518/AI-Instructions-Scaffold) instruction payload, so its agent-facing conventions are part of the reference surface:
+
+- [`AGENTS.md`](AGENTS.md) - single source of maintainer-session instructions, read natively by CLI agents and GitHub Copilot (including VS Code).
+- [`CLAUDE.md`](CLAUDE.md) - thin Claude Code entry point that imports `AGENTS.md`.
+- [`.mcp.json`](.mcp.json) - Model Context Protocol server configuration (Uno platform + Uno dev server).
+- [`.scaffold/`](.scaffold/) - binding source-of-truth artifacts (`domain-specification.yaml`, `UBIQUITOUS-LANGUAGE.md`, `DESIGN-DECISIONS.md`).
+
+## Logging and Code Quality
+
+### Logging strategy
+
+All logging uses the `Microsoft.Extensions.Logging` **`[LoggerMessage]` source generators** rather than runtime-formatted `ILogger` calls. Each project keeps its log definitions in a `LogMessages.cs` file that declares `static partial` methods; the generator emits allocation-free, cached delegates and satisfies analyzer [CA1873](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1873) (avoid unguarded expensive logging arguments) at the source.
+
+EventIds are centralized in the dependency-free **`TaskFlow.Observability`** shared project ([`src/Shared/TaskFlow.Observability/LogEventIds.cs`](src/Shared/TaskFlow.Observability/LogEventIds.cs)). Every subsystem owns a 1000-wide bucket starting at `10000`, so events stay unique and stable when logs from all hosts are aggregated into a single sink (Application Insights, the Aspire dashboard, Seq, etc.). Declare each event as `<AreaBase> + n` and never renumber a shipped EventId - treat it like public API and deprecate rather than reuse.
+
+| Subsystem | Base constant | Range |
+|-----------|---------------|-------|
+| API host and middleware | `ApiBase` | 10000-10999 |
+| Bootstrapper registration | `BootstrapperBase` | 11000-11999 |
+| Gateway (proxy / token service) | `GatewayBase` | 12000-12999 |
+| Azure Functions triggers | `FunctionsBase` | 13000-13999 |
+| Scheduler background jobs | `SchedulerBase` | 14000-14999 |
+| Infrastructure.AI | `InfrastructureAiBase` | 15000-15999 |
+| Infrastructure.Storage | `InfrastructureStorageBase` | 16000-16999 |
+| Application.Cqrs | `ApplicationCqrsBase` | 17000-17999 |
+| Application.Services | `ApplicationServicesBase` | 18000-18999 |
+| Application.MessageHandlers | `ApplicationMessageHandlersBase` | 19000-19999 |
+
+The non-zero base avoids colliding with low-numbered EventIds from framework and third-party libraries, and the buckets leave room to grow. `TaskFlow.Observability` intentionally has no dependencies so any layer (domain, application, infrastructure, hosts) can reference it without introducing improper coupling.
+
+### Goal: no errors or warnings
+
+The repository is kept clean at the **error and warning** severities, and CI enforces that gate:
+
+- **Build enforcement:** [`src/Directory.Build.props`](src/Directory.Build.props) sets `TreatWarningsAsErrors=true` with `Nullable=enable`, so any warning fails the build for every project in the solution.
+- **CI analyzer gate:** the `Analyzer cleanliness` step runs `dotnet format analyzers src/TaskFlow.slnx --severity warn --verify-no-changes --no-restore` on every push and pull request, failing the build if analyzer or code-style diagnostics at `warn` or higher remain.
+- **Info-level advisories:** info-severity advisories (for example the CA1873 logging guards) surface in the IDE but do not block CI. The `[LoggerMessage]` strategy above keeps them low; once the source is verified clean at `--severity info`, raise the CI gate to match.
+
+Keep the tree green: prefer fixing the root cause over suppressing a diagnostic, and add a scoped, commented `#pragma`/`.editorconfig` entry only when a suppression is genuinely warranted.
 
 ## AI Demos (Azure AI Foundry and Foundry Local)
 
@@ -91,15 +154,17 @@ Scaffold agents should preserve these AI test contracts:
 
 ### CI test lanes
 
-GitHub Actions runs the fast, no-Docker gate on every push and pull request: Unit, Architecture, Endpoint, and FlowEngine definition tests. `workflow_dispatch` exposes the heavier lanes as explicit inputs:
+GitHub Actions runs the fast, no-Docker gate on every push and pull request: Unit, Architecture, Endpoint, and FlowEngine definition tests. The heavier lanes run automatically on a weekly schedule (Mondays 06:17 UTC) and can also be launched on demand through `workflow_dispatch` inputs:
 
-| Input | Test project | Notes |
-|-------|--------------|-------|
-| `includeE2E` | `Test.E2E` | SQL-backed HTTP workflows; requires Docker |
-| `includeIntegration` | `Test.Integration` | SQL + Azurite component tests; requires Docker |
-| `includeAspireMesh` | `Test.Aspire` | Full Aspire AppHost graph; Azure Foundry smoke returns inconclusive unless configured |
-| `includeFoundryLocal` | `Test.FoundryLocal` | RID-bound Foundry Local live smoke; may download local model assets |
-| `includePlaywrightUI` | `Test.PlaywrightUI` | Browser smoke path; restores Playwright and React npm packages |
+| Input | Test project | Trigger | Notes |
+|-------|--------------|---------|-------|
+| `includeE2E` | `Test.E2E` | Weekly + manual | SQL-backed HTTP workflows; requires Docker |
+| `includeIntegration` | `Test.Integration` | Weekly + manual | SQL + Azurite component tests; requires Docker |
+| `includeAspireMesh` | `Test.Aspire` | Weekly + manual | Full Aspire AppHost graph; Azure Foundry smoke returns inconclusive unless configured |
+| `includeFoundryLocal` | `Test.FoundryLocal` | Manual only | RID-bound Foundry Local live smoke; may download local model assets |
+| `includePlaywrightUI` | `Test.PlaywrightUI` | Manual only | Browser smoke path; restores Playwright and React npm packages |
+
+The weekly run keeps the Docker-backed E2E, Integration, and Aspire lanes continuously green; Foundry Local and Playwright UI stay dispatch-only for cost and flakiness reasons.
 
 ### Aspire-backed UI tests
 

@@ -72,6 +72,6 @@ public class TaskViewProjectionService : ITaskViewProjectionService
         };
 
         await _taskViewRepo.UpsertAsync(taskView, ct);
-        _logger.LogInformation("Projected TaskItem {Id} to TaskView", taskItemId);
+        _logger.TaskItemProjected(taskItemId);
     }
 }

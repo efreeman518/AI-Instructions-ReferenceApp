@@ -48,7 +48,7 @@ public class TaskItemCrudE2ETests
     }
 
     /// <summary>Creates client used by the surrounding test cases.</summary>
-    private HttpClient CreateClient() => _factory.CreateClient();
+    private static HttpClient CreateClient() => _factory.CreateClient();
 
     // -- TaskItem full CRUD ------------------------------------
 

@@ -34,10 +34,6 @@ public class AuditHandler(
     {
         await auditLogRepository.AppendAsync(message, cancellationToken).ConfigureAwait(false);
 
-        logger.LogDebug(
-            "Persisted audit message {AuditEntryId} for {EntityType} {Action}",
-            message.Id,
-            message.EntityType,
-            message.Action);
+        logger.AuditMessagePersisted(message.Id, message.EntityType, message.Action);
     }
 }

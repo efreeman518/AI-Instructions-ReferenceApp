@@ -26,7 +26,7 @@ public class TagEndpointTests
     public static void ClassCleanup() => _factory?.Dispose();
 
     /// <summary>Creates client used by the surrounding test cases.</summary>
-    private HttpClient CreateClient() => _factory.CreateClient();
+    private static HttpClient CreateClient() => _factory.CreateClient();
 
     /// <summary>Verifies that given valid payload, when post tag, then returns 201.</summary>
     [TestCategory("Endpoint")]

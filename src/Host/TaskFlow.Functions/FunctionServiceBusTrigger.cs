@@ -35,8 +35,7 @@ public class FunctionServiceBusTrigger(
         if (context.BindingContext.BindingData.TryGetValue("Subject", out var subjectObj))
             eventType = subjectObj?.ToString() ?? eventType;
 
-        logger.LogInformation("Service Bus trigger: received {EventType}, length {Length}",
-            eventType, messageBody.Length);
+        logger.ServiceBusReceived(eventType, messageBody.Length);
 
         switch (eventType)
         {

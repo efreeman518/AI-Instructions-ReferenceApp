@@ -31,7 +31,7 @@ public class CommentEndpointTests
     public static void ClassCleanup() => _factory?.Dispose();
 
     /// <summary>Creates client used by the surrounding test cases.</summary>
-    private HttpClient CreateClient() => _factory.CreateClient();
+    private static HttpClient CreateClient() => _factory.CreateClient();
 
     /// <summary>Creates parent task item used by the surrounding test cases.</summary>
     private async Task<Guid> CreateParentTaskItem(HttpClient client)

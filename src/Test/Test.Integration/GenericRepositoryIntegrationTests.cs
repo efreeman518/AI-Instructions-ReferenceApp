@@ -44,7 +44,7 @@ public class GenericRepositoryIntegrationTests
     /// <summary>Verifies that a tag persisted via the generic Trxn repo is readable by tracked and no-tracking GetAsync.</summary>
     [TestMethod]
     [TestCategory("Integration")]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Given_TagCreatedViaGenericTrxn_When_GetAsync_Then_ReturnsEntity()
     {
         var connStr = SqlContainerFixture.ConnectionString;
@@ -75,7 +75,7 @@ public class GenericRepositoryIntegrationTests
     /// <summary>Verifies the generic Query repo's ListAsync returns exactly the entities matching the predicate.</summary>
     [TestMethod]
     [TestCategory("Integration")]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Given_MultipleTags_When_ListAsync_Then_ReturnsPredicateMatches()
     {
         var connStr = SqlContainerFixture.ConnectionString;
@@ -94,7 +94,7 @@ public class GenericRepositoryIntegrationTests
 
         var matches = await queryRepo.ListAsync(t => t.Name.StartsWith(prefix), TestContext.CancellationToken);
 
-        Assert.AreEqual(2, matches.Count, "ListAsync should return exactly the two tags matching the unique prefix");
+        Assert.HasCount(2, matches, "ListAsync should return exactly the two tags matching the unique prefix");
         CollectionAssert.AreEquivalent(
             new[] { tagA.Id, tagB.Id },
             matches.Select(t => t.Id).ToList());

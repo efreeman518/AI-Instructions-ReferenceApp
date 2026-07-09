@@ -12,7 +12,7 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
     public HttpResponseData HealthCheck(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req)
     {
-        logger.LogInformation("Health check requested at {UtcNow}", DateTime.UtcNow);
+        logger.HealthCheckRequested(DateTime.UtcNow);
         var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
         response.WriteString("Healthy");
         return response;
@@ -24,7 +24,7 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/tasks")] HttpRequestData req,
         CancellationToken ct)
     {
-        logger.LogInformation("TaskApiProxy invoked at {UtcNow}", DateTime.UtcNow);
+        logger.TaskApiProxyInvoked(DateTime.UtcNow);
 
         // Read-only proxy: forwards to the task service for lightweight queries
         // Future: wire to ITaskItemService.SearchAsync for direct read access

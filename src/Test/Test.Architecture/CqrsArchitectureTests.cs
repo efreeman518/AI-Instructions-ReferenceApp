@@ -21,7 +21,7 @@ public sealed class CqrsArchitectureTests : BaseTest
                 || n == "MediatR")
             .ToList();
 
-        Assert.AreEqual(0, forbiddenReferences.Count, string.Join(Environment.NewLine, forbiddenReferences));
+        Assert.IsEmpty(forbiddenReferences, string.Join(Environment.NewLine, forbiddenReferences));
 
         var forbiddenTypes = EfCqrsAssembly.GetTypes()
             .Where(t => t.Name.Contains("Dispatcher", StringComparison.OrdinalIgnoreCase)
@@ -30,7 +30,7 @@ public sealed class CqrsArchitectureTests : BaseTest
             .Select(t => t.FullName)
             .ToList();
 
-        Assert.AreEqual(0, forbiddenTypes.Count, string.Join(Environment.NewLine, forbiddenTypes));
+        Assert.IsEmpty(forbiddenTypes, string.Join(Environment.NewLine, forbiddenTypes));
     }
 
     /// <summary>Verifies CQRS application does not depend on host or infrastructure behavior and protects the expected test contract.</summary>
@@ -49,7 +49,7 @@ public sealed class CqrsArchitectureTests : BaseTest
                 || n.StartsWith("TaskFlow.Bootstrapper", StringComparison.Ordinal))
             .ToList();
 
-        Assert.AreEqual(0, forbidden.Count, string.Join(Environment.NewLine, forbidden));
+        Assert.IsEmpty(forbidden, string.Join(Environment.NewLine, forbidden));
     }
 
     /// <summary>Verifies CQRS application uses no dispatcher or mediat r behavior and protects the expected test contract.</summary>
@@ -66,7 +66,7 @@ public sealed class CqrsArchitectureTests : BaseTest
             .Select(t => t.FullName)
             .ToList();
 
-        Assert.AreEqual(0, offenders.Count, string.Join(Environment.NewLine, offenders));
+        Assert.IsEmpty(offenders, string.Join(Environment.NewLine, offenders));
     }
 
     /// <summary>Verifies CQRS handlers implement exactly one request handler contract behavior and protects the expected test contract.</summary>
@@ -85,7 +85,7 @@ public sealed class CqrsArchitectureTests : BaseTest
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == requestHandlerDefinition)
                 .ToList();
 
-            Assert.AreEqual(1, contracts.Count, $"{handler.FullName} must implement one IRequestHandler<,>.");
+            Assert.HasCount(1, contracts, $"{handler.FullName} must implement one IRequestHandler<,>.");
         }
     }
 
@@ -100,7 +100,7 @@ public sealed class CqrsArchitectureTests : BaseTest
             .Select(t => t.FullName)
             .ToList();
 
-        Assert.AreEqual(0, offenders.Count, string.Join(Environment.NewLine, offenders));
+        Assert.IsEmpty(offenders, string.Join(Environment.NewLine, offenders));
     }
 
     /// <summary>Verifies CQRS handler catalog has one registration per request behavior and protects the expected test contract.</summary>
@@ -113,6 +113,6 @@ public sealed class CqrsArchitectureTests : BaseTest
             .Select(g => g.Key.FullName)
             .ToList();
 
-        Assert.AreEqual(0, duplicates.Count, string.Join(Environment.NewLine, duplicates));
+        Assert.IsEmpty(duplicates, string.Join(Environment.NewLine, duplicates));
     }
 }

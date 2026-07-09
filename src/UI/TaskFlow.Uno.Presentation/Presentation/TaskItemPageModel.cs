@@ -55,7 +55,7 @@ public partial record TaskItemPageModel
 
         Messenger.Register<TaskItemPageModel, TaskFormResetMessage>(this, static (recipient, msg) =>
         {
-            _ = recipient.Reset();
+            _ = recipient.Reset().AsTask();
         });
     }
 

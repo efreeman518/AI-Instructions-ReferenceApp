@@ -106,8 +106,8 @@ internal static class TypeScriptPlaywrightRunner
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Failed to start Playwright project {project}.");
 
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(ReadSeconds(ProjectTimeoutVariable, project == "uno" ? 360 : 180)));

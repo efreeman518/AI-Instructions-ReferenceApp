@@ -188,7 +188,7 @@
 <tr>
 <td><strong>Bootstrapper</strong></td>
 <td>TaskFlow.Bootstrapper</td>
-<td>DI composition root - wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (<code>RegisterServices.FlowEngine.cs</code>) and FE-migration startup task.</td>
+<td>DI composition root - wires all layers (not a layer itself; referenced by Hosts and Tests). Also owns FlowEngine registration (<code>RegisterServices.FlowEngine.cs</code>) and the <code>WarmupDependencies</code> connection-warmup startup task.</td>
 <td>Application, Infrastructure</td>
 </tr>
 <tr>
@@ -710,12 +710,14 @@ API: Sets IRequestContext (tenant, user, roles)
 # Uno WASM and Blazor (with FlowEngine Dashboard) run separately
 </code></pre>
 <p><strong>Service dependencies</strong>: API waits for SQL + Redis. Gateway waits for API. Functions wait for SQL + Storage.</p>
-<p><strong>Startup tasks (Development / Aspire only)</strong>: on first boot the API runs two <code>IStartupTask</code> implementations from <code>TaskFlow.Bootstrapper</code>:</p>
+<p><strong>Schema migrations (single migration owner)</strong>: runtime hosts never mutate the schema on startup. A dedicated migration project, <code>TaskFlow.DatabaseMigrator</code> (Aspire resource <code>taskflowmigrator</code>), applies all migrations once and the API, Gateway, Functions, and Scheduler gate on it via <code>.WaitForCompletion(migrator)</code>. It applies three targets in a fixed order, each keeping its own migration history table even when local Aspire maps them to the same <code>taskflowdb</code> database:</p>
 <ol>
-<li><code>ApplyEFMigrationsStartup</code> - applies app-schema migrations against <code>TaskFlowDbContextTrxn</code>.</li>
-<li><code>ApplyFlowEngineMigrationsStartup</code> - applies the FlowEngine <code>flowengine</code> schema migrations against <code>TaskFlowFlowEngineDbContext</code> (separate migration history table <code>__EFMigrationsHistory_FlowEngine</code>).</li>
+<li><code>TaskFlowDbContextTrxn</code> - the application (write) schema.</li>
+<li><code>TaskFlowFlowEngineDbContext</code> - the FlowEngine schema (separate migration history table <code>__EFMigrationsHistory_FlowEngine</code>).</li>
+<li><code>TaskFlowTickerQDbContext</code> - the Scheduler/TickerQ schema.</li>
 </ol>
-<p>Both are gated on <code>ASPNETCORE_ENVIRONMENT=Development</code> or an Aspire signal and log-and-continue on failure so a missing local DB does not block boot. In production migrations run via the deployment pipeline, not at startup.</p>
+<p>When Always Encrypted is enabled (D-019) the migrator also creates the CMK/CEK and alters the encrypted columns. The same migration project runs in the deployment pipeline for cloud environments.</p>
+<p><strong>Startup task</strong>: on boot the API runs a single <code>IStartupTask</code> from <code>TaskFlow.Bootstrapper</code>, <code>WarmupDependencies</code>, which opens the transactional and query <code>DbContext</code> instances and calls <code>CanConnectAsync</code> to warm connection pools. It logs-and-continues on failure so a slow or missing local DB does not block boot; it does not apply migrations.</p>
 <p>After migrations apply, the FlowEngine workflow-seeding hosted service (<code>AddWorkflowJsonSeeding</code>) walks <code>TaskFlow.Api/Workflows/*.json</code> and upserts each definition into the registry (idempotent - skips existing versions). See <a href="#143-shipped-workflows">Section 14.3</a> for the three workflows shipped.</p>
 <h3 id="92-cloud-deployment-azure">9.2 Cloud Deployment (Azure)</h3>
 <figure class="diagram-container">
@@ -1181,7 +1183,7 @@ dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 </tr>
 <tr>
 <td><strong>Startup tasks</strong></td>
-<td><code>Test.Support</code> sets the TaskFlow startup-task service type to remove migrations/seeding startup tasks from WebApplicationFactory hosts.</td>
+<td><code>Test.Support</code> sets the TaskFlow startup-task service type (<code>TaskFlow.Bootstrapper.IStartupTask</code>) so the base factory removes the <code>WarmupDependencies</code> startup task from WebApplicationFactory hosts.</td>
 </tr>
 <tr>
 <td><strong>Pooled DbContext</strong></td>

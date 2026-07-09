@@ -42,7 +42,7 @@ public class StaleTaskCleanupHandler : IScheduledJobHandler
                 && t.DueDate.Value < DateTimeOffset.UtcNow.AddDays(-staleDays))
             .ToList() ?? [];
 
-        _logger.LogInformation("Found {Count} stale tasks (cancelled > {StaleDays} days ago)", staleTasks.Count, staleDays);
+        _logger.StaleTasksFound(staleTasks.Count, staleDays);
 
         // Future: archive or soft-delete stale tasks
     }

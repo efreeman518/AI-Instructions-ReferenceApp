@@ -38,7 +38,7 @@ internal sealed class DefaultExceptionHandler(
         // Client disconnections and bad-request exceptions are not server errors;
         // log them at lower severity to avoid flooding error dashboards.
         if (exception is OperationCanceledException)
-            logger.LogInformation("Request cancelled by client: {Path}", httpContext.Request.Path);
+            logger.RequestCancelledByClient(httpContext.Request.Path);
         else if (statusCode < 500)
             logger.LogWarning(exception, "Client error {StatusCode}: {ExceptionType} - {Message}",
                 statusCode, exception.GetType().Name, exception.Message);

@@ -9,7 +9,7 @@ public class NoOpTaskViewRepository(ILogger<NoOpTaskViewRepository> logger) : IT
     /// <summary>Writes upsert to the configured read model store.</summary>
     public Task UpsertAsync(TaskViewDto taskView, CancellationToken ct = default)
     {
-        logger.LogDebug("NoOp: Would upsert TaskView {Id}", taskView.Id);
+        logger.NoOpTaskViewUpsert(taskView.Id);
         return Task.CompletedTask;
     }
 

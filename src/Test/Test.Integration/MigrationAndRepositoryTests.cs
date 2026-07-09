@@ -36,7 +36,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies migrations apply cleanly to SQL container behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Migrations_ApplyCleanly_ToSqlContainer()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -55,7 +55,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies category CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Category_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -90,7 +90,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies task item CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TaskItem_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -126,7 +126,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies tag CRUD operations work against real SQL behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Tag_CrudOperations_WorkAgainstRealSql()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -144,7 +144,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies task item with children persists correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TaskItem_WithChildren_PersistsCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -187,7 +187,7 @@ public class MigrationAndRepositoryTests
     /// child whose config skips it) and the save would throw <c>DbUpdateConcurrencyException</c>.
     /// </summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TaskItem_UpdateFromDto_AddsChildrenToReloadedParent_AgainstRealSql()
     {
         Guid parentId;
@@ -244,7 +244,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies task item tag many to many works correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TaskItemTag_ManyToMany_WorksCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -274,7 +274,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies tenant query filter filters by tenant when tenant ID set behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TenantQueryFilter_FiltersByTenant_WhenTenantIdSet()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -319,7 +319,7 @@ public class MigrationAndRepositoryTests
 
     /// <summary>Verifies attachment table and constraints exist correctly behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Attachment_TableAndConstraints_ExistCorrectly()
     {
         await using var db = SqlContainerFixture.CreateTrxnContext();

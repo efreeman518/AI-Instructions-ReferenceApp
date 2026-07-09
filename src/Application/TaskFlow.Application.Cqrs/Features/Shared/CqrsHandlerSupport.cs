@@ -25,7 +25,7 @@ internal static class CqrsHandlerSupport
         }
         catch (OperationCanceledException)
         {
-            logger.LogDebug("{Operation} search cancelled by client.", operation);
+            logger.SearchCancelled(operation);
             return new PagedResponse<TDto>();
         }
     }
@@ -45,7 +45,7 @@ internal static class CqrsHandlerSupport
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, errorMessage, args);
+            logger.LogError(ex, "{ErrorMessage} {@Args}", errorMessage, args);
             return Result.Failure(ex.GetBaseException().Message);
         }
     }

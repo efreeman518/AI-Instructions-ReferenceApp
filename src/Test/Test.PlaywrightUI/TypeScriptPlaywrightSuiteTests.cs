@@ -19,7 +19,7 @@ public sealed class TypeScriptPlaywrightSuiteTests
     /// </summary>
     [TestMethod]
     [TestCategory("PlaywrightUI")]
-    [Timeout(3_600_000)]
+    [Timeout(3_600_000, CooperativeCancellation = true)]
     public Task BlazorTypeScriptProject_Passes() => RunTypeScriptProjectsAsync("blazor");
 
     /// <summary>
@@ -27,7 +27,7 @@ public sealed class TypeScriptPlaywrightSuiteTests
     /// </summary>
     [TestMethod]
     [TestCategory("PlaywrightUI")]
-    [Timeout(3_600_000)]
+    [Timeout(3_600_000, CooperativeCancellation = true)]
     public Task ReactTypeScriptProject_Passes() => RunTypeScriptProjectsAsync("react");
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed class TypeScriptPlaywrightSuiteTests
     /// </summary>
     [TestMethod]
     [TestCategory("WasmUI")]
-    [Timeout(3_600_000)]
+    [Timeout(3_600_000, CooperativeCancellation = true)]
     public Task UnoWasmCanvasSmoke_Passes() => RunTypeScriptProjectsAsync("uno");
 
     private async Task RunTypeScriptProjectsAsync(params string[] requestedProjects)
@@ -50,13 +50,20 @@ public sealed class TypeScriptPlaywrightSuiteTests
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(55));
         PlaywrightAspireHost host;
+        string? prerequisiteFailure = null;
         try
         {
             host = await PlaywrightAspireHost.StartAsync(requestedProjects, cts.Token);
         }
         catch (WasmPrerequisiteException ex)
         {
-            Assert.Inconclusive(ex.Message);
+            prerequisiteFailure = ex.Message;
+            host = null!;
+        }
+
+        if (prerequisiteFailure is not null)
+        {
+            Assert.Inconclusive(prerequisiteFailure);
             return;
         }
 

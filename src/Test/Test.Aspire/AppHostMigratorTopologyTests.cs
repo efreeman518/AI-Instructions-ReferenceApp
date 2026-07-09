@@ -9,11 +9,11 @@ public sealed class AppHostMigratorTopologyTests
     {
         var appHostSource = ReadAppHostSource();
 
-        StringAssert.Contains(appHostSource, "TaskFlow_DatabaseMigrator");
-        StringAssert.Contains(appHostSource, "connectionName: \"TaskFlowDbContextTrxn\"");
-        StringAssert.Contains(appHostSource, "connectionName: \"TaskFlowFlowEngineDbContext\"");
-        StringAssert.Contains(appHostSource, "connectionName: \"TickerQDbContext\"");
-        StringAssert.Contains(appHostSource, ".WaitForCompletion(migrator)");
+        Assert.Contains("TaskFlow_DatabaseMigrator", appHostSource);
+        Assert.Contains("connectionName: \"TaskFlowDbContextTrxn\"", appHostSource);
+        Assert.Contains("connectionName: \"TaskFlowFlowEngineDbContext\"", appHostSource);
+        Assert.Contains("connectionName: \"TickerQDbContext\"", appHostSource);
+        Assert.Contains(".WaitForCompletion(migrator)", appHostSource);
     }
 
     [TestMethod]
@@ -21,11 +21,11 @@ public sealed class AppHostMigratorTopologyTests
     {
         var appHostSource = ReadAppHostSource();
 
-        StringAssert.Contains(appHostSource, "TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL");
-        StringAssert.Contains(appHostSource, ".WithEnvironment(\"AiServices__DisableFoundryLocal\", \"false\")");
-        StringAssert.Contains(appHostSource, ".WithEnvironment(\"AiServices__RequireFoundryLocal\", \"true\")");
-        StringAssert.Contains(appHostSource, "TASKFLOW_FOUNDRY_LOCAL_MODEL");
-        StringAssert.Contains(appHostSource, "TASKFLOW_FOUNDRY_LOCAL_WEB_URL");
+        Assert.Contains("TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL", appHostSource);
+        Assert.Contains(".WithEnvironment(\"AiServices__DisableFoundryLocal\", \"false\")", appHostSource);
+        Assert.Contains(".WithEnvironment(\"AiServices__RequireFoundryLocal\", \"true\")", appHostSource);
+        Assert.Contains("TASKFLOW_FOUNDRY_LOCAL_MODEL", appHostSource);
+        Assert.Contains("TASKFLOW_FOUNDRY_LOCAL_WEB_URL", appHostSource);
     }
 
     [TestMethod]

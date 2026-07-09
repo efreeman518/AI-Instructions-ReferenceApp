@@ -6,7 +6,7 @@ namespace TaskFlow.Uno;
 /// <summary>Configures Uno application startup, dependency injection, and host-specific services.</summary>
 public partial class App : Application
 {
-    public static Window? MainWindow;
+    public static Window? MainWindow { get; private set; }
     public static IHost? Host { get; private set; }
 
     /// <summary>Initializes app with required dependencies and default state.</summary>

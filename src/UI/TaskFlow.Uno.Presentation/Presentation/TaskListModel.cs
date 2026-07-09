@@ -25,15 +25,15 @@ public partial record TaskListModel
         {
             if (message.ResetToFirstPage)
             {
-                _ = recipient.LoadPageAsync(1);
+                _ = recipient.LoadPageAsync(1).AsTask();
             }
             else
             {
-                _ = recipient.RefreshAsync();
+                _ = recipient.RefreshAsync().AsTask();
             }
         });
 
-        _ = LoadPageAsync(1);
+        _ = LoadPageAsync(1).AsTask();
     }
 
     private INavigator Navigator { get; }

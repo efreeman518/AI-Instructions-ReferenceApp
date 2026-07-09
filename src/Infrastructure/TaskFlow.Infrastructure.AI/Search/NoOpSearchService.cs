@@ -16,14 +16,14 @@ public class NoOpSearchService(ILogger<NoOpSearchService> logger) : ITaskFlowSea
     /// <summary>Provides the index task item operation for no op search service.</summary>
     public Task IndexTaskItemAsync(TaskItemSearchDocument document, CancellationToken ct = default)
     {
-        logger.LogDebug("AI Search not configured - skipping index for document '{Id}'", document.Id);
+        logger.SearchNotConfiguredIndexSkipped(document.Id);
         return Task.CompletedTask;
     }
 
     /// <summary>Removes remove task item while keeping aggregate relationship state consistent.</summary>
     public Task RemoveTaskItemAsync(string taskItemId, CancellationToken ct = default)
     {
-        logger.LogDebug("AI Search not configured - skipping removal for '{Id}'", taskItemId);
+        logger.SearchNotConfiguredRemovalSkipped(taskItemId);
         return Task.CompletedTask;
     }
 }

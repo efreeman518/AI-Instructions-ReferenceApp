@@ -13,8 +13,7 @@ public class FunctionBlobTrigger(ILogger<FunctionBlobTrigger> logger)
         string name,
         CancellationToken ct)
     {
-        logger.LogInformation("Blob trigger: processing attachment '{Name}', size {Size} bytes",
-            name, blobStream.Length);
+        logger.BlobProcessing(name, blobStream.Length);
 
         // Future: validate file, extract metadata, update Attachment entity
         return Task.CompletedTask;

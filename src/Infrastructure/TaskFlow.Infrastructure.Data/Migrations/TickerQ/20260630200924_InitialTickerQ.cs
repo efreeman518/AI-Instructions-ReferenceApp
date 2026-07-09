@@ -7,6 +7,8 @@ namespace TaskFlow.Infrastructure.Data.Migrations.TickerQ
     /// <inheritdoc />
     public partial class InitialTickerQ : Migration
     {
+        private static readonly string[] columns = new[] { "Status", "ExecutionTime" };
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -121,7 +123,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations.TickerQ
                 name: "IX_CronTickerOccurrence_Status_ExecutionTime",
                 schema: "Scheduler",
                 table: "CronTickerOccurrences",
-                columns: new[] { "Status", "ExecutionTime" });
+                columns: columns);
 
             migrationBuilder.CreateIndex(
                 name: "UQ_CronTickerId_ExecutionTime",
@@ -152,7 +154,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations.TickerQ
                 name: "IX_TimeTicker_Status_ExecutionTime",
                 schema: "Scheduler",
                 table: "TimeTickers",
-                columns: new[] { "Status", "ExecutionTime" });
+                columns: columns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeTickers_ParentId",

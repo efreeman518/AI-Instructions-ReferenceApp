@@ -45,9 +45,7 @@ public sealed class WorkflowTriggerHandler(
         try
         {
             var instance = await engine.StartBackgroundAsync(request, ct);
-            logger.LogInformation(
-                "Started workflow {WorkflowId} instance {InstanceId} for TaskItem {TaskId}",
-                request.WorkflowId, instance.InstanceId, evt.TaskItemId);
+            logger.WorkflowStarted(request.WorkflowId, instance.InstanceId, evt.TaskItemId);
         }
         catch (Exception ex)
         {

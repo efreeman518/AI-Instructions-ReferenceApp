@@ -22,6 +22,8 @@ public sealed class FlowEngineWorkflowTests
 {
     private static readonly Guid TenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
+    private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
+
     // ── ai-task-triage ─────────────────────────────────────────────────────────
 
     [TestMethod]
@@ -172,7 +174,7 @@ public sealed class FlowEngineWorkflowTests
     {
         Assert.IsInstanceOfType<JsonContextValue>(instance.Output, "expected JsonContextValue output");
         var dict = ((JsonContextValue)instance.Output!).Value
-            .Deserialize<Dictionary<string, JsonElement>>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            .Deserialize<Dictionary<string, JsonElement>>(WebJsonOptions);
         return dict?.TryGetValue(key, out var el) == true ? el.GetString() : null;
     }
 

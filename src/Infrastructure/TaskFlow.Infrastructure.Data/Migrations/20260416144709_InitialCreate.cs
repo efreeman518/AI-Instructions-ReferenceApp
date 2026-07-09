@@ -9,6 +9,8 @@ namespace TaskFlow.Infrastructure.Data.Migrations
     /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
+        private static readonly string[] columns = new[] { "OwnerType", "OwnerId" };
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -212,7 +214,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations
                 name: "IX_Attachment_OwnerType_OwnerId",
                 schema: "taskflow",
                 table: "Attachment",
-                columns: new[] { "OwnerType", "OwnerId" });
+                columns: columns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Attachment_TenantId_Id",

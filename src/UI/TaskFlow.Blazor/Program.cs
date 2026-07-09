@@ -38,6 +38,14 @@ var jsonOptions = new JsonSerializerOptions
 var gatewayBaseUrl = builder.Configuration["Gateway:BaseUrl"]
     ?? throw new InvalidOperationException("Gateway:BaseUrl not configured.");
 
+// AddServiceDefaults applies AddHeaderPropagation() to EVERY HttpClient via ConfigureHttpClientDefaults.
+// That handler only works behind UseHeaderPropagation() middleware, which this Blazor Server app does not
+// run - and outbound API calls happen inside the interactive SignalR circuit, outside any HTTP request
+// scope. As a result HeaderPropagationValues.Headers is unset and the handler throws on every request; the
+// globally-added standard resilience handler then retries that failure until its 30s total timeout, so the
+// call hangs and FloatService silently swallows the resulting cancellation (no error shown, page never
+// navigates). Clear the inherited additional handlers and add a single clean resilience handler instead.
+// No auth handler yet - gateway dev mode accepts unauthenticated requests.
 builder.Services
     .AddRefitClient<ITaskFlowApiClient>(new RefitSettings
     {
@@ -48,16 +56,18 @@ builder.Services
         client.BaseAddress = new Uri(gatewayBaseUrl);
         client.DefaultRequestHeaders.Add("Accept", "application/json");
     })
-    // No auth handler yet - gateway dev mode accepts unauthenticated requests.
+    .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear())
     .AddStandardResilienceHandler();
 
 // Raw HTTP client for the AI demo endpoints (the typed Refit client does not cover the AI routes,
 // and the streaming chat demo needs raw Server-Sent Events). Points at the gateway like the others.
+// Same reasoning as above: drop the inherited header-propagation handler so streaming calls don't hang.
 builder.Services.AddHttpClient("TaskFlowAi", client =>
 {
     client.BaseAddress = new Uri(gatewayBaseUrl);
     client.Timeout = TimeSpan.FromMinutes(2);
-});
+})
+.ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
 
 // FlowEngine Dashboard - talks to TaskFlow.Api's MapFlowEngineAdmin via the gateway.
 // Pages contributed by the package are picked up via Routes.razor's AdditionalAssemblies.

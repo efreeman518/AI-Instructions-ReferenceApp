@@ -58,12 +58,7 @@ public class AuditLogRepository(
 
         await table.UpsertEntityAsync(entity, TableUpdateMode.Replace, ct).ConfigureAwait(false);
 
-        _logger.LogInformation(
-            "Persisted audit entry {AuditEntryId} for tenant {TenantId} entity {EntityType} action {Action}",
-            entry.Id,
-            partitionKey,
-            entry.EntityType,
-            entry.Action);
+        _logger.AuditEntryPersisted(entry.Id, partitionKey, entry.EntityType, entry.Action);
     }
 
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>

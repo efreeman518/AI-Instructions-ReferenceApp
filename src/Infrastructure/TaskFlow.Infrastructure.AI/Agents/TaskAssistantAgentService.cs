@@ -64,10 +64,9 @@ public class TaskAssistantAgentService : ITaskAssistantAgent
     public async Task<AgentChatResponse> ChatAsync(
         AgentChatRequest request, Guid? tenantId, CancellationToken ct = default)
     {
-        _session ??= await _agent.CreateSessionAsync();
+        _session ??= await _agent.CreateSessionAsync(ct);
 
-        _logger.LogDebug("TaskAssistant processing message for tenant {TenantId}, conversation {ConversationId}",
-            tenantId, request.ConversationId);
+        _logger.AssistantProcessing(tenantId, request.ConversationId);
 
         var response = await _agent.RunAsync(
             request.Message,

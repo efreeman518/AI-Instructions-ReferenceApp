@@ -35,15 +35,16 @@ public sealed class FoundryLocalLiveSmokeTests
     }
 
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
 
         HttpResponseMessage response;
+        string? timeoutReason = null;
         try
         {
             response = await client.PostAsJsonAsync(
@@ -51,12 +52,17 @@ public sealed class FoundryLocalLiveSmokeTests
                 new { message = "Answer in one short sentence: what does TaskFlow track?" },
                 timeout.Token);
         }
-        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!TestContext.CancellationToken.IsCancellationRequested)
         {
-            Assert.Inconclusive(
+            timeoutReason =
                 "Foundry Local provider bootstrapped, but chat smoke did not complete within 300 seconds. " +
-                ex.Message);
-            throw;
+                ex.Message;
+            response = null!;
+        }
+
+        if (timeoutReason is not null)
+        {
+            Assert.Inconclusive(timeoutReason);
         }
 
         using var responseMessage = response;
@@ -68,15 +74,16 @@ public sealed class FoundryLocalLiveSmokeTests
     }
 
     [TestMethod]
-    [Timeout(600000)]
+    [Timeout(600000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
 
         HttpResponseMessage response;
+        string? timeoutReason = null;
         try
         {
             response = await client.PostAsJsonAsync(
@@ -89,12 +96,17 @@ public sealed class FoundryLocalLiveSmokeTests
                 },
                 timeout.Token);
         }
-        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!TestContext.CancellationToken.IsCancellationRequested)
         {
-            Assert.Inconclusive(
+            timeoutReason =
                 "Foundry Local provider bootstrapped, but the code-hosted agent smoke did not complete within 300 seconds. " +
-                ex.Message);
-            throw;
+                ex.Message;
+            response = null!;
+        }
+
+        if (timeoutReason is not null)
+        {
+            Assert.Inconclusive(timeoutReason);
         }
 
         using var responseMessage = response;
@@ -107,25 +119,31 @@ public sealed class FoundryLocalLiveSmokeTests
     }
 
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
         var client = await CreateFoundryLocalClientOrInconclusiveAsync();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationTokenSource.Token);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
         var taskId = await CreateTaskAsync(client, "Foundry Local triage smoke " + Guid.NewGuid().ToString("N"), timeout.Token);
 
         HttpResponseMessage response;
+        string? timeoutReason = null;
         try
         {
             response = await client.PostAsync($"/api/v1/ai/triage/{taskId}?apply=false", null, timeout.Token);
         }
-        catch (OperationCanceledException ex) when (!TestContext.CancellationTokenSource.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!TestContext.CancellationToken.IsCancellationRequested)
         {
-            Assert.Inconclusive(
+            timeoutReason =
                 "Foundry Local provider bootstrapped, but task triage smoke did not complete within 300 seconds. " +
-                ex.Message);
-            throw;
+                ex.Message;
+            response = null!;
+        }
+
+        if (timeoutReason is not null)
+        {
+            Assert.Inconclusive(timeoutReason);
         }
 
         using var responseMessage = response;

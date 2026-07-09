@@ -71,7 +71,9 @@ public sealed class AiEndpointContractTests
         Assert.IsFalse(status.RootElement.GetProperty("isConfigured").GetBoolean());
         Assert.AreEqual(HttpStatusCode.OK, chatResponse.StatusCode);
         Assert.IsFalse(chat.RootElement.GetProperty("isConfigured").GetBoolean());
-        StringAssert.Contains(chat.RootElement.GetProperty("message").GetString(), "not configured");
+        var chatMessage = chat.RootElement.GetProperty("message").GetString();
+        Assert.IsNotNull(chatMessage);
+        Assert.Contains("not configured", chatMessage);
     }
 
     [TestMethod]
@@ -85,9 +87,11 @@ public sealed class AiEndpointContractTests
         var body = await response.Content.ReadAsStringAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        StringAssert.Contains(response.Content.Headers.ContentType?.MediaType, "text/event-stream");
-        StringAssert.Contains(body, "data:");
-        StringAssert.Contains(body, "streamed fake response");
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        Assert.IsNotNull(mediaType);
+        Assert.Contains("text/event-stream", mediaType);
+        Assert.Contains("data:", body);
+        Assert.Contains("streamed fake response", body);
     }
 
     [TestMethod]

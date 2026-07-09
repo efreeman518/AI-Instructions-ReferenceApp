@@ -11,7 +11,7 @@ namespace Test.Mobile;
 public sealed class MobileTaskCrudTests : MobileUiTestBase
 {
     [TestMethod]
-    [Timeout(180_000)]
+    [Timeout(180_000, CooperativeCancellation = true)]
     public void TaskEditor_FirstViewportFields_AcceptNativeText() => RunMobileFlow(() =>
     {
         var title = TaskFlowMobileApp.UniqueTitle("MobileText");

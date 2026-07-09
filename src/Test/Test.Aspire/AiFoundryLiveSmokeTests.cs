@@ -18,7 +18,7 @@ namespace Test.Aspire;
 [TestCategory("LiveAI")]
 [TestCategory("Foundry")]
 [DoNotParallelize]
-public class AiFoundryLiveSmokeTests
+public partial class AiFoundryLiveSmokeTests
 {
     private const string LiveBaseUrlVariable = "TASKFLOW_LIVE_AI_BASE_URL";
     private const string ApiPrefix = "api/v1/";
@@ -32,7 +32,7 @@ public class AiFoundryLiveSmokeTests
 
     /// <summary>Verifies D1 reaches the active configured model and returns non-empty assistant text.</summary>
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
         using var client = await CreateFoundryClientOrInconclusiveAsync();
@@ -42,12 +42,12 @@ public class AiFoundryLiveSmokeTests
 
     /// <summary>Verifies D3 reaches the code-hosted task assistant agent over the active model.</summary>
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
         using var client = await CreateFoundryClientOrInconclusiveAsync();
 
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         using var response = await client.PostAsJsonAsync(
             ApiPath(client, "api/v1/agent/chat"),
             new
@@ -66,12 +66,12 @@ public class AiFoundryLiveSmokeTests
 
     /// <summary>Verifies D4 can classify a real task through the active model without applying writes.</summary>
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
         using var client = await CreateFoundryClientOrInconclusiveAsync();
 
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         var taskId = await CreateTaskAsync(client, "Live AI triage smoke " + Guid.NewGuid().ToString("N"), ct);
         using var response = await client.PostAsync(ApiPath(client, $"api/v1/ai/triage/{taskId}?apply=false"), null, ct);
         using var payload = await ReadJsonAsync(response, ct);
@@ -92,7 +92,7 @@ public class AiFoundryLiveSmokeTests
 
     private async Task AssertConfiguredChatAsync(HttpClient client, string message)
     {
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         using var response = await client.PostAsJsonAsync(ApiPath(client, "api/v1/ai/chat"), new { message }, ct);
         using var payload = await ReadJsonAsync(response, ct);
 
@@ -100,7 +100,8 @@ public class AiFoundryLiveSmokeTests
         Assert.IsTrue(payload.RootElement.GetProperty("isConfigured").GetBoolean());
         var assistantMessage = payload.RootElement.GetProperty("message").GetString();
         Assert.IsFalse(string.IsNullOrWhiteSpace(assistantMessage));
-        StringAssert.DoesNotMatch(assistantMessage, new("not configured", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+        Assert.IsNotNull(assistantMessage);
+        Assert.DoesNotMatchRegex(MyRegex(), assistantMessage);
     }
 
     internal async Task<HttpClient> CreateFoundryClientOrInconclusiveAsync()
@@ -148,7 +149,7 @@ public class AiFoundryLiveSmokeTests
 
     private async Task<HttpClient> CreateAspireGatewayClientAsync()
     {
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowapi", ct);
         await AspireTestHost.WaitForResourceHealthyAsync("taskflowgateway", ct);
 
@@ -168,7 +169,7 @@ public class AiFoundryLiveSmokeTests
                 : normalized;
     }
 
-    private async Task<Guid> CreateTaskAsync(HttpClient client, string title, CancellationToken ct)
+    private static async Task<Guid> CreateTaskAsync(HttpClient client, string title, CancellationToken ct)
     {
         using var response = await client.PostAsJsonAsync(
             ApiPath(client, "api/v1/task-items"),
@@ -196,15 +197,18 @@ public class AiFoundryLiveSmokeTests
             Assert.Fail($"Expected JSON response, got empty body from {response.RequestMessage?.RequestUri}.");
         }
 
+        JsonException? parseError = null;
         try
         {
             return JsonDocument.Parse(body);
         }
         catch (JsonException ex)
         {
-            Assert.Fail($"Expected JSON response. Parse error: {ex.Message}. Body: {Truncate(body)}");
-            throw;
+            parseError = ex;
         }
+
+        Assert.Fail($"Expected JSON response. Parse error: {parseError.Message}. Body: {Truncate(body)}");
+        throw parseError;
     }
 
     private static string Truncate(string value) =>
@@ -212,10 +216,11 @@ public class AiFoundryLiveSmokeTests
 
     private async Task AssertFoundryConfiguredOrInconclusiveAsync(HttpClient client)
     {
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
 
+        string? unavailableReason = null;
         try
         {
             using var response = await client.GetAsync(ApiPath(client, "api/v1/ai/status"), timeout.Token);
@@ -233,7 +238,12 @@ public class AiFoundryLiveSmokeTests
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            Assert.Inconclusive($"AI status endpoint unavailable: {ex.Message}");
+            unavailableReason = $"AI status endpoint unavailable: {ex.Message}";
+        }
+
+        if (unavailableReason is not null)
+        {
+            Assert.Inconclusive(unavailableReason);
         }
     }
 
@@ -242,4 +252,7 @@ public class AiFoundryLiveSmokeTests
         Assert.AreEqual(JsonValueKind.String, element.ValueKind, $"{propertyName} should be a JSON string.");
         Assert.IsFalse(string.IsNullOrWhiteSpace(element.GetString()), $"{propertyName} should not be blank.");
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex("not configured", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "en-US")]
+    private static partial System.Text.RegularExpressions.Regex MyRegex();
 }

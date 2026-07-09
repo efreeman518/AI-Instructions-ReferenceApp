@@ -29,10 +29,10 @@ public sealed class FlowEngineFoundryWorkflowTests
 
     /// <summary>Verifies the triage workflow reaches Foundry through its agent node.</summary>
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_TriageWorkflowStarted_Then_AgentProducesTriageContext()
     {
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         using var client = await CreateApiClientAsync(ct);
         await AssertFoundryProviderAvailableAsync(client, ct);
 
@@ -66,10 +66,10 @@ public sealed class FlowEngineFoundryWorkflowTests
 
     /// <summary>Verifies the decomposer workflow reaches Foundry and produces a subtask proposal.</summary>
     [TestMethod]
-    [Timeout(360000)]
+    [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_DecomposerWorkflowStarted_Then_AgentProducesSubtaskProposal()
     {
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         using var client = await CreateApiClientAsync(ct);
         await AssertFoundryProviderAvailableAsync(client, ct);
 
@@ -313,6 +313,7 @@ public sealed class FlowEngineFoundryWorkflowTests
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
 
+        string? unavailableReason = null;
         try
         {
             using var response = await client.GetAsync("/api/v1/ai/status", timeout.Token);
@@ -328,7 +329,12 @@ public sealed class FlowEngineFoundryWorkflowTests
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            Assert.Inconclusive($"AI status endpoint unavailable: {ex.Message}");
+            unavailableReason = $"AI status endpoint unavailable: {ex.Message}";
+        }
+
+        if (unavailableReason is not null)
+        {
+            Assert.Inconclusive(unavailableReason);
         }
     }
 }

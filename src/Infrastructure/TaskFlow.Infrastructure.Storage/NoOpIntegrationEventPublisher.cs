@@ -10,7 +10,7 @@ public class NoOpIntegrationEventPublisher(ILogger<NoOpIntegrationEventPublisher
     public Task PublishAsync<TEvent>(TEvent integrationEvent, string? correlationId = null,
         CancellationToken ct = default) where TEvent : class
     {
-        logger.LogDebug("NoOp: Would publish {EventType}", typeof(TEvent).Name);
+        logger.NoOpPublish(typeof(TEvent).Name);
         return Task.CompletedTask;
     }
 
@@ -18,7 +18,7 @@ public class NoOpIntegrationEventPublisher(ILogger<NoOpIntegrationEventPublisher
     public Task PublishAsync<TEvent>(TEvent integrationEvent, string topicOrQueue,
         string? correlationId = null, CancellationToken ct = default) where TEvent : class
     {
-        logger.LogDebug("NoOp: Would publish {EventType} to {TopicOrQueue}", typeof(TEvent).Name, topicOrQueue);
+        logger.NoOpPublishTo(typeof(TEvent).Name, topicOrQueue);
         return Task.CompletedTask;
     }
 }

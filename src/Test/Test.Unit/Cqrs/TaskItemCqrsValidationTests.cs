@@ -41,7 +41,7 @@ public sealed class TaskItemCqrsValidationTests
         Assert.IsTrue(result.IsFailure);
         Assert.IsFalse(inner.WasCalled);
         Assert.AreEqual(tenantId, command.Request.Item.TenantId);
-        StringAssert.Contains(string.Join(";", result.Errors), "Title is required");
+        Assert.Contains("Title is required", string.Join(";", result.Errors));
     }
 
     /// <summary>Supports test execution for Test.unit CQRS scenarios.</summary>

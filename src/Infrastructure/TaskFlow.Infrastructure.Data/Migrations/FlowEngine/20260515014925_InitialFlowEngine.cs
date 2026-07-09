@@ -7,6 +7,8 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
     /// <inheritdoc />
     public partial class InitialFlowEngine : Migration
     {
+        private static readonly string[] columns = new[] { "EventName", "CorrelationKey" };
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -139,7 +141,7 @@ namespace TaskFlow.Infrastructure.Data.Migrations.FlowEngine
                 name: "IX_Executions_EventName_CorrelationKey",
                 schema: "flowengine",
                 table: "Executions",
-                columns: new[] { "EventName", "CorrelationKey" });
+                columns: columns);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Executions_ParentInstanceId",

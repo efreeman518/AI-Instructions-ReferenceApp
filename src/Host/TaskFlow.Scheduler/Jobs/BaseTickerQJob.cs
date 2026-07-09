@@ -34,7 +34,7 @@ public abstract class BaseTickerQJob
     {
         var sw = Stopwatch.StartNew();
         TaskFlowSchedulerExceptionHandler.RegisterJobName(context.Id, jobName);
-        _logger.LogInformation("Job {JobName} starting at {UtcNow}", jobName, DateTime.UtcNow);
+        _logger.JobStarting(jobName, DateTime.UtcNow);
 
         try
         {
@@ -44,7 +44,7 @@ public abstract class BaseTickerQJob
 
             sw.Stop();
             _metrics.RecordJobSuccess(jobName, sw.Elapsed.TotalMilliseconds);
-            _logger.LogInformation("Job {JobName} completed in {ElapsedMs}ms", jobName, sw.ElapsedMilliseconds);
+            _logger.JobCompleted(jobName, sw.ElapsedMilliseconds);
             TaskFlowSchedulerExceptionHandler.UnregisterJobName(context.Id);
         }
         catch (Exception ex)

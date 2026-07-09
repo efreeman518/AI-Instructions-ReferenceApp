@@ -44,7 +44,7 @@ public class RepositorySearchTranslationTests
 
     /// <summary>Verifies category search translates tenant, parent, bool, and string filters against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task CategorySearch_FiltersByTenantParentAndName_AgainstRealSql()
     {
         var marker = $"SearchCategory-{Guid.NewGuid():N}";
@@ -76,7 +76,7 @@ public class RepositorySearchTranslationTests
                 }
             }, TestContext.CancellationToken);
 
-            Assert.AreEqual(1, page.Data.Count);
+            Assert.HasCount(1, page.Data);
             Assert.AreEqual(1, page.Total);
             Assert.AreEqual($"{marker}-Child", page.Data[0].Name);
         }
@@ -84,7 +84,7 @@ public class RepositorySearchTranslationTests
 
     /// <summary>Verifies tag search translates tenant and string filters against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TagSearch_FiltersByTenantAndName_AgainstRealSql()
     {
         var marker = $"SearchTag-{Guid.NewGuid():N}";
@@ -104,14 +104,14 @@ public class RepositorySearchTranslationTests
             Filter = new TagSearchFilter { SearchTerm = marker, TenantId = TenantId }
         }, TestContext.CancellationToken);
 
-        Assert.AreEqual(1, page.Data.Count);
+        Assert.HasCount(1, page.Data);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Name);
     }
 
     /// <summary>Verifies comment search translates tenant, task FK, and string filters against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task CommentSearch_FiltersByTenantTaskAndBody_AgainstRealSql()
     {
         var marker = $"SearchComment-{Guid.NewGuid():N}";
@@ -135,14 +135,14 @@ public class RepositorySearchTranslationTests
             Filter = new CommentSearchFilter { SearchTerm = marker, TenantId = TenantId, TaskItemId = taskId }
         }, TestContext.CancellationToken);
 
-        Assert.AreEqual(1, page.Data.Count);
+        Assert.HasCount(1, page.Data);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Body);
     }
 
     /// <summary>Verifies checklist search translates tenant, task FK, bool, and string filters against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task ChecklistItemSearch_FiltersByTenantTaskStatusAndTitle_AgainstRealSql()
     {
         var marker = $"SearchChecklist-{Guid.NewGuid():N}";
@@ -176,14 +176,14 @@ public class RepositorySearchTranslationTests
             }
         }, TestContext.CancellationToken);
 
-        Assert.AreEqual(1, page.Data.Count);
+        Assert.HasCount(1, page.Data);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual(marker, page.Data[0].Title);
     }
 
     /// <summary>Verifies task search translates typed IDs, enums, owned date range filters, and projection against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task TaskItemSearch_FiltersByTypedIdsEnumsDatesAndTitle_AgainstRealSql()
     {
         var marker = $"SearchTask-{Guid.NewGuid():N}";
@@ -231,7 +231,7 @@ public class RepositorySearchTranslationTests
             }
         }, TestContext.CancellationToken);
 
-        Assert.AreEqual(1, page.Data.Count);
+        Assert.HasCount(1, page.Data);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual($"{marker}-Child", page.Data[0].Title);
         Assert.AreEqual(categoryId, page.Data[0].CategoryId);
@@ -240,7 +240,7 @@ public class RepositorySearchTranslationTests
 
     /// <summary>Verifies attachment search translates tenant, enum, owner ID, and string filters against SQL.</summary>
     [TestMethod]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task AttachmentSearch_FiltersByTenantOwnerAndFileName_AgainstRealSql()
     {
         var marker = $"SearchAttachment-{Guid.NewGuid():N}";
@@ -272,7 +272,7 @@ public class RepositorySearchTranslationTests
             }
         }, TestContext.CancellationToken);
 
-        Assert.AreEqual(1, page.Data.Count);
+        Assert.HasCount(1, page.Data);
         Assert.AreEqual(1, page.Total);
         Assert.AreEqual($"{marker}.txt", page.Data[0].FileName);
     }

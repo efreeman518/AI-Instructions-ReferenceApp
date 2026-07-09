@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/TaskFlow.Observability/TaskFlow.Observability.csproj" />
+  </Folder>
   <Folder Name="/Domain/">
     <Project Path="Domain/TaskFlow.Domain.Shared/TaskFlow.Domain.Shared.csproj" />
     <Project Path="Domain/TaskFlow.Domain.Model/TaskFlow.Domain.Model.csproj" />

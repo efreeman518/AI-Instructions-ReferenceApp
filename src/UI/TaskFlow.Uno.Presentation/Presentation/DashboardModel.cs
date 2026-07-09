@@ -19,10 +19,10 @@ public partial record DashboardModel
 
         Messenger.Register<DashboardModel, TaskItemsChangedMessage>(this, static (recipient, msg) =>
         {
-            _ = recipient.RefreshAsync();
+            _ = recipient.RefreshAsync().AsTask();
         });
 
-        _ = RefreshAsync();
+        _ = RefreshAsync().AsTask();
     }
 
     private INavigator Navigator { get; }

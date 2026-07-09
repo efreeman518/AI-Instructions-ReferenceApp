@@ -36,7 +36,7 @@ public class TaskFlowSearchService(
             });
         }
 
-        logger.LogDebug("AI Search returned {Count} results for query '{Query}' (mode={Mode})", results.Count, query, mode);
+        logger.SearchReturned(results.Count, query, mode);
         return results;
     }
 
@@ -45,7 +45,7 @@ public class TaskFlowSearchService(
     {
         var batch = IndexDocumentsBatch.Upload([document]);
         await searchClient.IndexDocumentsAsync(batch, cancellationToken: ct);
-        logger.LogDebug("Indexed task item '{Id}' in search", document.Id);
+        logger.SearchIndexed(document.Id);
     }
 
     /// <summary>Removes remove task item while keeping aggregate relationship state consistent.</summary>
@@ -53,7 +53,7 @@ public class TaskFlowSearchService(
     {
         var batch = IndexDocumentsBatch.Delete("Id", [taskItemId]);
         await searchClient.IndexDocumentsAsync(batch, cancellationToken: ct);
-        logger.LogDebug("Removed task item '{Id}' from search index", taskItemId);
+        logger.SearchRemoved(taskItemId);
     }
 
     /// <summary>Builds search options from current configuration and inputs.</summary>

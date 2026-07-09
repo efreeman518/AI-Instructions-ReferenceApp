@@ -97,7 +97,7 @@ public class WorkflowDefinitionValidityTests
         var loaded = await registry.GetAsync(id, version, TestContext.CancellationToken);
         Assert.IsNotNull(loaded, "Registry returned null for the version just saved");
         Assert.AreEqual(DefinitionStatus.Active, loaded!.Status, "Definition should be Active after save");
-        Assert.AreEqual(def.Nodes.Count, loaded.Nodes.Count, "Node count drifted on round-trip");
+        Assert.HasCount(def.Nodes.Count, loaded.Nodes, "Node count drifted on round-trip");
     }
 
     /// <summary>Verifies workflow definition builder from JSON round trips behavior and protects the expected test contract.</summary>
@@ -112,7 +112,7 @@ public class WorkflowDefinitionValidityTests
 
         Assert.AreEqual(expectedId, def.Id, "Builder.FromJson should now hydrate Id");
         Assert.AreEqual(expectedVersion, def.Version, "Builder.FromJson should now hydrate Version");
-        Assert.IsTrue(def.Nodes.Count > 0, "Builder.FromJson should now hydrate Nodes");
+        Assert.IsNotEmpty(def.Nodes, "Builder.FromJson should now hydrate Nodes");
     }
 
     /// <summary>Verifies all three workflows are present in output behavior and protects the expected test contract.</summary>

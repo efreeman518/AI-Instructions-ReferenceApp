@@ -39,10 +39,10 @@ internal static class FoundryLocalChatClient
         var model = await catalog.GetModelAsync(modelAlias, ct)
             ?? throw new InvalidOperationException($"Foundry Local model '{modelAlias}' not found.");
 
-        logger.LogInformation("Downloading Foundry Local model {ModelAlias} if needed.", modelAlias);
+        logger.DownloadingFoundryModel(modelAlias);
         await model.DownloadAsync(_ => { }, ct);
 
-        logger.LogInformation("Loading Foundry Local model {ModelId}.", model.Id);
+        logger.LoadingFoundryModel(model.Id);
         await model.LoadAsync(ct);
         await manager.StartWebServiceAsync(ct);
 

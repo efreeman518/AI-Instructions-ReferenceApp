@@ -128,7 +128,7 @@ public partial class App : Application
     /// an interactive MSAL/Entra login. Intentionally left ungated so the normal non-mocked dev
     /// loop (UI + Aspire dev gateway) can log in; do not gate it behind USE_MOCKS.
     /// </summary>
-    private async ValueTask<IDictionary<string, string>?> ProcessCredentials(
+    private static async ValueTask<IDictionary<string, string>?> ProcessCredentials(
         IDictionary<string, string> credentials)
     {
         if (!(credentials?.TryGetValue("Username", out var username) ?? false)

@@ -8,7 +8,7 @@ namespace Test.Aspire;
 /// regardless of which mesh class warmed it up.
 /// </summary>
 [TestClass]
-public class AspireMeshLifecycle
+public static class AspireMeshLifecycle
 {
     /// <summary>No-op: the Aspire graph starts lazily on first mesh-test class, not at assembly load.</summary>
     [AssemblyInitialize]

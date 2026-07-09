@@ -23,7 +23,7 @@ public class TaskItemTools(
     /// </summary>
     public async Task<string> SearchTasks(string query, string status = "", string priority = "")
     {
-        logger.LogDebug("Agent tool: SearchTasks query='{Query}' status={Status} priority={Priority}", query, status, priority);
+        logger.AgentSearchTasks(query, status, priority);
 
         var results = await searchService.SearchTaskItemsAsync(query, SearchMode.Hybrid, tenantId: null, maxResults: 10);
 
@@ -41,7 +41,7 @@ public class TaskItemTools(
     /// </summary>
     public async Task<string> GetTaskDetails(string taskId)
     {
-        logger.LogDebug("Agent tool: GetTaskDetails id={TaskId}", taskId);
+        logger.AgentGetTaskDetails(taskId);
 
         if (!Guid.TryParse(taskId, out var id))
             return $"Invalid task ID: {taskId}";
@@ -70,7 +70,7 @@ public class TaskItemTools(
     /// </summary>
     public async Task<string> CreateTask(string title, string description = "", string priority = "")
     {
-        logger.LogDebug("Agent tool: CreateTask title='{Title}'", title);
+        logger.AgentCreateTask(title);
 
         var dto = new TaskItemDto
         {
@@ -92,7 +92,7 @@ public class TaskItemTools(
     /// </summary>
     public async Task<string> UpdateTaskStatus(string taskId, string newStatus)
     {
-        logger.LogDebug("Agent tool: UpdateTaskStatus id={TaskId} status={Status}", taskId, newStatus);
+        logger.AgentUpdateTaskStatus(taskId, newStatus);
 
         if (!Guid.TryParse(taskId, out var id))
             return $"Invalid task ID: {taskId}";

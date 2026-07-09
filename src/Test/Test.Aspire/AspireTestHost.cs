@@ -67,6 +67,7 @@ internal static class AspireTestHost
             return;
 
         await Gate.WaitAsync(context.CancellationToken);
+        string? unavailableReason = null;
         try
         {
             if (AspireApp is not null)
@@ -79,7 +80,7 @@ internal static class AspireTestHost
             catch (Exception ex) when (ShouldTreatAsUnavailableResource(ex))
             {
                 await StopAsync(CancellationToken.None);
-                Assert.Inconclusive($"Aspire app host could not start because a required resource or dependency is unavailable. {ex.Message}");
+                unavailableReason = $"Aspire app host could not start because a required resource or dependency is unavailable. {ex.Message}";
             }
             catch
             {
@@ -90,6 +91,11 @@ internal static class AspireTestHost
         finally
         {
             Gate.Release();
+        }
+
+        if (unavailableReason is not null)
+        {
+            Assert.Inconclusive(unavailableReason);
         }
     }
 
@@ -162,7 +168,7 @@ internal static class AspireTestHost
         {
             try
             {
-                await AspireApp.StopAsync(ct).WaitAsync(CleanupTimeout);
+                await AspireApp.StopAsync(ct).WaitAsync(CleanupTimeout, ct);
             }
             catch (TimeoutException)
             {
@@ -191,6 +197,7 @@ internal static class AspireTestHost
         if (AspireApp is null)
             throw new InvalidOperationException("AspireApp is not initialized.");
 
+        string? unhealthyReason = null;
         try
         {
             await AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
@@ -204,14 +211,19 @@ internal static class AspireTestHost
                 ? resourceEvent.Snapshot.State?.Text
                 : "unavailable";
 
-            Assert.Inconclusive(
-                $"Aspire resource '{resourceName}' did not become healthy. Current state: {state}. This usually indicates that a required local resource or dependency is unavailable in this environment. {ex.Message}");
+            unhealthyReason =
+                $"Aspire resource '{resourceName}' did not become healthy. Current state: {state}. This usually indicates that a required local resource or dependency is unavailable in this environment. {ex.Message}";
         }
         catch
         {
             await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
             await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
             throw;
+        }
+
+        if (unhealthyReason is not null)
+        {
+            Assert.Inconclusive(unhealthyReason);
         }
     }
 

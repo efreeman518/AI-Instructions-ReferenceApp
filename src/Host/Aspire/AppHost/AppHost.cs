@@ -311,5 +311,10 @@ if (!isTesting || functionsAvailableInTesting)
 
 await builder.Build().RunAsync();
 
+// Required so Aspire test hosts (AspireTestHost, PlaywrightAspireHost) can resolve this AppHost via
+// Type.GetType("Program, AppHost") for DistributedApplicationTestingBuilder. The .NET 10 auto-generated
+// Program is internal, so the explicit public declaration is load-bearing here despite ASP0027.
+#pragma warning disable ASP0027 // Public partial Program is required for cross-assembly reflection lookup.
 /// <summary>Configures program host behavior for TaskFlow runtime services.</summary>
 public partial class Program;
+#pragma warning restore ASP0027

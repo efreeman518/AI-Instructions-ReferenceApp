@@ -28,7 +28,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         var document = MapToDocument(taskView);
         await _container.UpsertItemAsync(document,
             new PartitionKey(document.TenantId), cancellationToken: ct);
-        _logger.LogDebug("Upserted TaskView {Id} for tenant {TenantId}", document.Id, document.TenantId);
+        _logger.TaskViewUpserted(document.Id, document.TenantId);
     }
 
     /// <summary>Loads requested data and maps missing records to the expected response.</summary>
@@ -85,7 +85,7 @@ public class CosmosTaskViewRepository : ITaskViewRepository
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            _logger.LogDebug("TaskView {Id} not found for deletion", id);
+            _logger.TaskViewNotFoundForDeletion(id);
         }
     }
 

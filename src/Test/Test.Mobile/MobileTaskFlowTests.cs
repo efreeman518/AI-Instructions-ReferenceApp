@@ -9,7 +9,7 @@ namespace Test.Mobile;
 public sealed class MobileTaskFlowTests : MobileUiTestBase
 {
     [TestMethod]
-    [Timeout(180_000)]
+    [Timeout(180_000, CooperativeCancellation = true)]
     public void TaskEditor_TopLevelControls_AreAccessible_ThroughNativeUi() => RunMobileFlow(() =>
     {
         App.Shell.StartNewTask();

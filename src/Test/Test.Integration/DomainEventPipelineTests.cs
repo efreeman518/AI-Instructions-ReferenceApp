@@ -48,7 +48,7 @@ public class DomainEventPipelineTests
     /// <summary>Verifies that given task item created, when projection runs, then task view produced.</summary>
     [TestMethod]
     [TestCategory("Integration")]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Given_TaskItemCreated_When_ProjectionRuns_Then_TaskViewProduced()
     {
         // Arrange - real SQL via TestContainers
@@ -96,7 +96,7 @@ public class DomainEventPipelineTests
     /// <summary>Verifies that given task item with children, when projection runs, then counts included.</summary>
     [TestMethod]
     [TestCategory("Integration")]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Given_TaskItemWithChildren_When_ProjectionRuns_Then_CountsIncluded()
     {
         var connStr = SqlContainerFixture.ConnectionString;
@@ -143,7 +143,7 @@ public class DomainEventPipelineTests
     /// <summary>Verifies that given service bus message body, when parsed, then task item ID extracted.</summary>
     [TestMethod]
     [TestCategory("Integration")]
-    [Timeout(120000)]
+    [Timeout(120000, CooperativeCancellation = true)]
     public async Task Given_ServiceBusMessageBody_When_Parsed_Then_TaskItemIdExtracted()
     {
         // Proves the Function trigger's message parsing logic works

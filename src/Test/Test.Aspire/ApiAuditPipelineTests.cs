@@ -33,7 +33,7 @@ public class ApiAuditPipelineTests
 
     /// <summary>Verifies that given API category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
-    [Timeout(300000)]
+    [Timeout(300000, CooperativeCancellation = true)]
     public async Task Given_ApiCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
         var ct = CancellationToken.None;
@@ -84,7 +84,7 @@ public class ApiAuditPipelineTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(auditEntity.AuditId));
         Assert.AreEqual("Added", auditEntity.Action);
         Assert.AreEqual(AuditStatus.Success.ToString(), auditEntity.Status);
-        Assert.IsTrue(auditEntity.RecordedUtc >= auditWindowStartUtc);
+        Assert.IsGreaterThanOrEqualTo(auditWindowStartUtc, auditEntity.RecordedUtc);
     }
 
     /// <summary>Verifies post create category with retry behavior and protects the expected test contract.</summary>

@@ -43,8 +43,10 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
     internal IReadOnlyList<string> DiagnosticMessages { get; }
 
+    internal static readonly string[] stringArray = new[] { "blazor", "react", "uno" };
+
     internal static Task<PlaywrightAspireHost> StartAsync(CancellationToken ct)
-        => StartAsync(new[] { "blazor", "react", "uno" }, ct);
+        => StartAsync(stringArray, ct);
 
     internal static async Task<PlaywrightAspireHost> StartAsync(IReadOnlyCollection<string> requestedProjects, CancellationToken ct)
     {

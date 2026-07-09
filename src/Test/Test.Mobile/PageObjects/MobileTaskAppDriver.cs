@@ -26,6 +26,8 @@ internal sealed class MobileTaskAppDriver
 
     public AppiumDriver Driver => _driver;
 
+    internal static readonly string[] args = new[] { "statusbar", "collapse" };
+
     /// <summary>XPath literal that tolerates embedded single quotes via concat().</summary>
     private static string XPathLiteral(string value)
     {
@@ -166,7 +168,7 @@ internal sealed class MobileTaskAppDriver
             _driver.ExecuteScript("mobile: shell", new Dictionary<string, object>
             {
                 ["command"] = "cmd",
-                ["args"] = new[] { "statusbar", "collapse" }
+                ["args"] = args
             });
         }
         catch (WebDriverException) { /* best-effort */ }

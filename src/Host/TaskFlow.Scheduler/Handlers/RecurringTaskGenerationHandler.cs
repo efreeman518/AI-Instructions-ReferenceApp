@@ -36,7 +36,7 @@ public class RecurringTaskGenerationHandler : IScheduledJobHandler
             .Where(t => !string.IsNullOrEmpty(t.RecurrenceFrequency))
             .ToList() ?? [];
 
-        _logger.LogInformation("Found {Count} recurring task templates to evaluate", recurringTasks.Count);
+        _logger.RecurringTemplatesFound(recurringTasks.Count);
 
         // Future: evaluate recurrence patterns and create new task instances
     }

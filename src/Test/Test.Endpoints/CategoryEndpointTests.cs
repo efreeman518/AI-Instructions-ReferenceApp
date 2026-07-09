@@ -26,7 +26,7 @@ public class CategoryEndpointTests
     public static void ClassCleanup() => _factory?.Dispose();
 
     /// <summary>Creates client used by the surrounding test cases.</summary>
-    private HttpClient CreateClient() => _factory.CreateClient();
+    private static HttpClient CreateClient() => _factory.CreateClient();
 
     /// <summary>Verifies that given valid payload, when post category, then returns 201.</summary>
     [TestCategory("Endpoint")]
@@ -143,7 +143,7 @@ public class CategoryEndpointTests
         var root = doc.RootElement;
         Assert.IsGreaterThanOrEqualTo(root.GetProperty("total").GetInt32(), 1);
         var data = root.GetProperty("data");
-        Assert.IsTrue(data.EnumerateArray().Any(e => e.GetProperty("name").GetString()!.Contains("SearchMe")));
+        Assert.Contains(e => e.GetProperty("name").GetString()!.Contains("SearchMe"), data.EnumerateArray());
     }
 
     /// <summary>Verifies that given full CRUD cycle, when all operations executed, then all succeed.</summary>

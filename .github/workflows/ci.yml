@@ -86,6 +86,12 @@ jobs:
         # the solution and referenced by AppHost.
         run: dotnet build src/TaskFlow.slnx --no-restore --configuration Release -m:1
 
+      - name: Analyzer cleanliness
+        # Gate at warn: errors and warnings must be clean. Info-level advisories (e.g. CA1873
+        # logging guards) stay visible in the IDE without blocking CI. Raise to --severity info
+        # once those advisories are remediated at source.
+        run: dotnet format analyzers src/TaskFlow.slnx --severity warn --verify-no-changes --no-restore
+
       - name: Unit Tests
         run: >
           dotnet test src/Test/Test.Unit/Test.Unit.csproj

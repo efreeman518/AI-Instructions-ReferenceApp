@@ -12,14 +12,14 @@ public sealed class MobileSmokeTests
 
     /// <summary>Verifies task flow mobile app launches and renders native surface behavior and protects the expected test contract.</summary>
     [TestMethod]
-    [Timeout(300_000)]
+    [Timeout(300_000, CooperativeCancellation = true)]
     public void TaskFlowMobile_AppLaunches_AndRendersNativeSurface()
     {
         var settings = MobileTestSettings.From(TestContext);
         if (!settings.Enabled)
         {
-            TestContext.WriteLine(settings.DisabledMessage);
-            Assert.Inconclusive(settings.DisabledMessage);
+            TestContext.WriteLine(MobileTestSettings.DisabledMessage);
+            Assert.Inconclusive(MobileTestSettings.DisabledMessage);
         }
 
         if (!File.Exists(settings.AppPath) && !Directory.Exists(settings.AppPath))
@@ -28,6 +28,7 @@ public sealed class MobileSmokeTests
         }
 
         AppiumDriver? driver = null;
+        string? driverUnavailableReason = null;
 
         try
         {
@@ -35,13 +36,13 @@ public sealed class MobileSmokeTests
             WaitForNativeSurface(driver, settings);
 
             var screenshotPath = MobileTestArtifacts.SaveScreenshot(driver, settings, TestContext, "taskflow-mobile-launch");
-            Assert.IsTrue(new FileInfo(screenshotPath).Length > 1024, "Launch screenshot was unexpectedly empty.");
+            Assert.IsGreaterThan(1024, new FileInfo(screenshotPath).Length, "Launch screenshot was unexpectedly empty.");
         }
         catch (WebDriverException ex)
         {
-            Assert.Fail(
+            driverUnavailableReason =
                 "Mobile driver/instrumentation unavailable. Confirm Appium server, platform driver, emulator/simulator, and app path. " +
-                $"Details: {ex.Message}");
+                $"Details: {ex.Message}";
         }
         finally
         {
@@ -50,6 +51,11 @@ public sealed class MobileSmokeTests
                 TrySavePageSource(driver, settings);
                 TryQuit(driver);
             }
+        }
+
+        if (driverUnavailableReason is not null)
+        {
+            Assert.Fail(driverUnavailableReason);
         }
     }
 

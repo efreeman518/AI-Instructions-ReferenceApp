@@ -39,7 +39,7 @@ public sealed class TokenService
             var tokenResult = await _credential.GetTokenAsync(
                 new TokenRequestContext([scope]), ct);
             _cache[clusterId] = (tokenResult.Token, tokenResult.ExpiresOn);
-            _logger.LogDebug("Token acquired for cluster {ClusterId}, expires {Expiry}", clusterId, tokenResult.ExpiresOn);
+            _logger.TokenAcquired(clusterId, tokenResult.ExpiresOn);
             return tokenResult.Token;
         }
 
@@ -48,7 +48,7 @@ public sealed class TokenService
         var expiry = DateTimeOffset.UtcNow.AddHours(1);
         _cache[clusterId] = (stubToken, expiry);
 
-        _logger.LogDebug("Scaffold token issued for cluster {ClusterId}, expires {Expiry}", clusterId, expiry);
+        _logger.ScaffoldTokenIssued(clusterId, expiry);
         return stubToken;
     }
 }

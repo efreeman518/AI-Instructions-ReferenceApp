@@ -29,7 +29,7 @@ public abstract class MobileUiTestBase
     {
         if (!Enabled)
         {
-            Assert.Inconclusive(Settings.DisabledMessage);
+            Assert.Inconclusive(MobileTestSettings.DisabledMessage);
         }
 
         body();
@@ -41,8 +41,8 @@ public abstract class MobileUiTestBase
         Settings = MobileTestSettings.From(TestContext);
         if (!Settings.Enabled)
         {
-            TestContext.WriteLine(Settings.DisabledMessage);
-            Assert.Inconclusive(Settings.DisabledMessage);
+            TestContext.WriteLine(MobileTestSettings.DisabledMessage);
+            Assert.Inconclusive(MobileTestSettings.DisabledMessage);
         }
 
         if (!File.Exists(Settings.AppPath) && !Directory.Exists(Settings.AppPath))

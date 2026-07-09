@@ -33,7 +33,7 @@ public sealed class TaskTriageService(
     /// <inheritdoc />
     public async Task<TaskTriageResponse> TriageAsync(Guid taskId, bool apply, CancellationToken ct = default)
     {
-        var getResult = await taskItemService.GetAsync(taskId);
+        var getResult = await taskItemService.GetAsync(taskId, ct);
         if (getResult.IsNone)
             return new TaskTriageResponse(taskId, null, false, true, $"Task {taskId} not found.");
         if (getResult.IsFailure)
@@ -63,7 +63,7 @@ public sealed class TaskTriageService(
         if (apply && Enum.TryParse<Priority>(triage.SuggestedPriority, ignoreCase: true, out var priority))
         {
             task.Priority = priority;
-            var update = await taskItemService.UpdateAsync(new DefaultRequest<TaskItemDto> { Item = task });
+            var update = await taskItemService.UpdateAsync(new DefaultRequest<TaskItemDto> { Item = task }, ct);
             applied = !update.IsFailure;
             if (!applied)
                 logger.LogWarning("Failed to apply triage priority to {TaskId}: {Error}", taskId, update.ErrorMessage);

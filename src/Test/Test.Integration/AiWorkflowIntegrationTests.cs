@@ -34,7 +34,7 @@ public sealed class AiWorkflowIntegrationTests
     public async Task TriageWorkflow_AppliesSuggestedPriority_ThroughRealApi()
     {
         SkipIfNoSql();
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         var connectionString = await IsolatedMigratedConnectionStringAsync(ct);
 
         // Non-Critical suggestion -> no human quorum -> PATCH priority -> publish -> n-output-ok.
@@ -58,14 +58,14 @@ public sealed class AiWorkflowIntegrationTests
         Assert.AreEqual("n-output-ok", node, $"Triage should reach the applied-priority terminal via the real PATCH self-call. Instance: {Truncate(body)}");
         var priorityAfter = await ReadTaskPriorityAsync(client, taskId, ct);
         Assert.AreNotEqual(priorityBefore, priorityAfter, "Priority should have been changed by the workflow's PATCH self-call.");
-        StringAssert.Contains(priorityAfter, "High", "Workflow should have applied the agent-suggested High priority.");
+        Assert.Contains("High", priorityAfter, "Workflow should have applied the agent-suggested High priority.");
     }
 
     [TestMethod]
     public async Task DecomposerWorkflow_CreatesChildTasks_ThroughRealApi()
     {
         SkipIfNoSql();
-        var ct = TestContext.CancellationTokenSource.Token;
+        var ct = TestContext.CancellationToken;
         var connectionString = await IsolatedMigratedConnectionStringAsync(ct);
 
         using var factory = new FlowEngineWorkflowApiFactory(

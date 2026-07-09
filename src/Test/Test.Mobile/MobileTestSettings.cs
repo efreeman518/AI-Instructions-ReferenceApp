@@ -46,7 +46,7 @@ internal sealed record MobileTestSettings
         };
     }
 
-    public string DisabledMessage =>
+    public static string DisabledMessage =>
         "Mobile UI tests are opt-in. Set TASKFLOW_MOBILE_TESTS_ENABLED=true, start Appium, build the app package, " +
         "then run dotnet test src/Test/Test.Mobile/Test.Mobile.csproj --filter TestCategory=MobileUI. " +
         "For Android, restore first with -p:BuildAllUnoTargets=true before the TargetFrameworkOverride build.";

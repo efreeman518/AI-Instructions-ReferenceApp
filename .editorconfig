@@ -16,3 +16,13 @@ trim_trailing_whitespace = false
 
 [*.{cmd,bat,ps1}]
 end_of_line = crlf
+
+# Analyzer severity policy - deliberate, not package-default.
+# Enforce TestContext-token flow in tests (matches the zero-warnings expectation).
+[**/*.cs]
+dotnet_diagnostic.MSTEST0049.severity = warning
+
+# EF Core migrations are scaffolded output - treat as generated so analyzers
+# do not gate on style/perf advisories that regenerate on the next 'ef migrations add'.
+[**/Migrations/**.cs]
+generated_code = true

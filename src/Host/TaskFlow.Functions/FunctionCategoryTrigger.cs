@@ -45,7 +45,7 @@ public class FunctionCategoryTrigger(
             return failed;
         }
 
-        logger.LogInformation("CreateCategory created {CategoryId}", result.Value.Item.Id);
+        logger.CategoryCreated(result.Value.Item.Id);
 
         var response = req.CreateResponse(HttpStatusCode.Created);
         await response.WriteAsJsonAsync(result.Value.Item, ct);

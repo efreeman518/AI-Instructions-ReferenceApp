@@ -10,7 +10,7 @@ public class NoOpAuditLogRepository(ILogger<NoOpAuditLogRepository> logger) : IA
     /// <summary>Appends append to the configured audit store.</summary>
     public Task AppendAsync<TTenantId>(AuditEntry<string, TTenantId> entry, CancellationToken ct = default)
     {
-        logger.LogDebug("NoOp: would persist audit entry {AuditEntryId}", entry.Id);
+        logger.NoOpAuditPersist(entry.Id);
         return Task.CompletedTask;
     }
 }

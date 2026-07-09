@@ -34,7 +34,7 @@ public class TaskItemEndpointTests
     public static void ClassCleanup() => _factory?.Dispose();
 
     /// <summary>Creates client used by the surrounding test cases.</summary>
-    private HttpClient CreateClient() => _factory.CreateClient();
+    private static HttpClient CreateClient() => _factory.CreateClient();
 
     /// <summary>Verifies that given valid payload, when post task item, then returns 201.</summary>
     [TestCategory("Endpoint")]
@@ -154,7 +154,7 @@ public class TaskItemEndpointTests
         var root = doc.RootElement;
         Assert.IsGreaterThanOrEqualTo(root.GetProperty("total").GetInt32(), 1);
         var data = root.GetProperty("data");
-        Assert.IsTrue(data.EnumerateArray().Any(e => e.GetProperty("title").GetString()!.Contains("SearchTarget")));
+        Assert.Contains(e => e.GetProperty("title").GetString()!.Contains("SearchTarget"), data.EnumerateArray());
     }
 
     /// <summary>Verifies that given empty database, when search, then returns empty page.</summary>

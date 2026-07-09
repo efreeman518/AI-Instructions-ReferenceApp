@@ -305,7 +305,7 @@ internal class TaskItemService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, errorMessage, args);
+            logger.LogError(ex, "{ErrorMessage} {@Args}", errorMessage, args);
             return Result.Failure(ex.GetBaseException().Message);
         }
     }

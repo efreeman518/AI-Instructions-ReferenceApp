@@ -26,7 +26,7 @@ public static partial class RegisterServices
         var chatConnection = config.GetConnectionString("chat");
         if (!string.IsNullOrWhiteSpace(chatConnection))
         {
-            logger.LogInformation("{AppName} {Environment} - Configure Azure AI Foundry chat client.", appName, env);
+            logger.ConfigureAzureChatClient(appName, env);
             builder.AddAzureChatCompletionsClient("chat")
                 .AddChatClient();
             builder.Services.AddSingleton(new AiProviderInfo("azure"));
@@ -36,7 +36,7 @@ public static partial class RegisterServices
         if (config.GetValue<bool>("AiServices:DisableFoundryLocal"))
             return;
 
-        logger.LogInformation("{AppName} {Environment} - Configure Foundry Local chat client.", appName, env);
+        logger.ConfigureFoundryLocalChatClient(appName, env);
         var requireFoundryLocal = config.GetValue<bool>("AiServices:RequireFoundryLocal");
         var localModel = config["AiServices:LocalModel"] ?? "qwen2.5-0.5b";
         var localWebUrl = config["AiServices:LocalWebUrl"] ?? "http://127.0.0.1:52415";
@@ -45,7 +45,7 @@ public static partial class RegisterServices
         {
             if (!Uri.TryCreate(localWebUrl, UriKind.Absolute, out _))
             {
-                throw new ArgumentException("Foundry Local web URL must be absolute.", "AiServices:LocalWebUrl");
+                throw new ArgumentException("Foundry Local web URL (AiServices:LocalWebUrl) must be absolute.");
             }
 
             var chatClient = await FoundryLocalChatClient.CreateAsync(

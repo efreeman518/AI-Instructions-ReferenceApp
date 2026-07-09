@@ -48,9 +48,9 @@ public class TaskItemMutationSamples
         var result = TaskItem.Create(TenantId, title);
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(
-            string.Join(";", result.Errors),
-            $"Title must be at least {DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN} characters.");
+        Assert.Contains(
+            $"Title must be at least {DomainConstants.RULE_DEFAULT_NAME_LENGTH_MIN} characters.",
+            string.Join(";", result.Errors));
     }
 
     /// <summary>Verifies that given whitespace title, when task item created, then fails with required title message.</summary>
@@ -60,7 +60,7 @@ public class TaskItemMutationSamples
         var result = TaskItem.Create(TenantId, "   ");
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(string.Join(";", result.Errors), "Title is required.");
+        Assert.Contains("Title is required.", string.Join(";", result.Errors));
     }
 
     /// <summary>Verifies that given empty tenant ID, when task item created, then fails with tenant message.</summary>
@@ -70,7 +70,7 @@ public class TaskItemMutationSamples
         var result = TaskItem.Create(DomainId.From<TenantId>(Guid.Empty), "Mutation sample");
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(string.Join(";", result.Errors), "Tenant ID cannot be empty.");
+        Assert.Contains("Tenant ID cannot be empty.", string.Join(";", result.Errors));
     }
 
     /// <summary>Verifies that given allowed status transition, when rule evaluated, then passes.</summary>
@@ -109,7 +109,7 @@ public class TaskItemMutationSamples
         var result = rule.Evaluate((current, target));
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(string.Join(";", result.Errors), $"Cannot transition from {current} to {target}.");
+        Assert.Contains($"Cannot transition from {current} to {target}.", string.Join(";", result.Errors));
     }
 
     /// <summary>Verifies that given allowed aggregate transition, when task item transitioned, then status changes.</summary>
@@ -141,7 +141,7 @@ public class TaskItemMutationSamples
         var result = task.TransitionStatus(TaskItemStatus.Blocked);
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(string.Join(";", result.Errors), "Cannot transition from Open to Blocked.");
+        Assert.Contains("Cannot transition from Open to Blocked.", string.Join(";", result.Errors));
         Assert.AreEqual(TaskItemStatus.Open, task.Status);
     }
 
@@ -190,7 +190,7 @@ public class TaskItemMutationSamples
         Assert.IsTrue(first.IsSuccess);
         Assert.IsTrue(second.IsSuccess);
         Assert.AreSame(first.Value, second.Value);
-        Assert.AreEqual(1, task.TaskItemTags.Count);
+        Assert.HasCount(1, task.TaskItemTags);
     }
 
     /// <summary>Verifies that given all update values, when task updated, then fields and optional links change.</summary>
@@ -254,7 +254,7 @@ public class TaskItemMutationSamples
         var result = task.Update(title: "   ");
 
         Assert.IsTrue(result.IsFailure);
-        StringAssert.Contains(string.Join(";", result.Errors), "Title is required.");
+        Assert.Contains("Title is required.", string.Join(";", result.Errors));
     }
 
     /// <summary>Verifies that given valid and invalid comments, when mutated, then collection state is explicit.</summary>
@@ -268,15 +268,15 @@ public class TaskItemMutationSamples
 
         Assert.IsTrue(invalid.IsFailure);
         Assert.IsTrue(first.IsSuccess);
-        Assert.AreEqual(1, task.Comments.Count);
+        Assert.HasCount(1, task.Comments);
 
         Assert.IsTrue(task.RemoveComment(first.Value!).IsSuccess);
-        Assert.AreEqual(0, task.Comments.Count);
+        Assert.IsEmpty(task.Comments);
 
         var second = task.AddComment("Second comment").Value!;
 
         Assert.IsTrue(task.RemoveComment(second.Id).IsSuccess);
-        Assert.AreEqual(0, task.Comments.Count);
+        Assert.IsEmpty(task.Comments);
         Assert.IsTrue(task.RemoveComment(DomainId.From<CommentId>(Guid.Parse("34ddf67b-b0ac-4337-92f8-206372c58b33"))).IsSuccess);
     }
 
@@ -291,16 +291,16 @@ public class TaskItemMutationSamples
 
         Assert.IsTrue(invalid.IsFailure);
         Assert.IsTrue(first.IsSuccess);
-        Assert.AreEqual(1, task.ChecklistItems.Count);
+        Assert.HasCount(1, task.ChecklistItems);
         Assert.AreEqual(10, first.Value!.SortOrder);
 
         Assert.IsTrue(task.RemoveChecklistItem(first.Value).IsSuccess);
-        Assert.AreEqual(0, task.ChecklistItems.Count);
+        Assert.IsEmpty(task.ChecklistItems);
 
         var second = task.AddChecklistItem("Second checklist item").Value!;
 
         Assert.IsTrue(task.RemoveChecklistItem(second.Id).IsSuccess);
-        Assert.AreEqual(0, task.ChecklistItems.Count);
+        Assert.IsEmpty(task.ChecklistItems);
         Assert.IsTrue(task.RemoveChecklistItem(DomainId.From<ChecklistItemId>(Guid.Parse("d6f2f7ca-f98a-48c4-ab13-d735fe67004a"))).IsSuccess);
     }
 
@@ -313,14 +313,14 @@ public class TaskItemMutationSamples
         var secondTagId = DomainId.From<TagId>(Guid.Parse("80875aa9-e0af-4712-842f-136445c5e759"));
 
         var first = task.AssociateTag(firstTagId).Value!;
-        Assert.AreEqual(1, task.TaskItemTags.Count);
+        Assert.HasCount(1, task.TaskItemTags);
 
         Assert.IsTrue(task.RemoveTag(first).IsSuccess);
-        Assert.AreEqual(0, task.TaskItemTags.Count);
+        Assert.IsEmpty(task.TaskItemTags);
 
         Assert.IsTrue(task.AssociateTag(secondTagId).IsSuccess);
         Assert.IsTrue(task.RemoveTag(secondTagId).IsSuccess);
-        Assert.AreEqual(0, task.TaskItemTags.Count);
+        Assert.IsEmpty(task.TaskItemTags);
         Assert.IsTrue(task.RemoveTag(DomainId.From<TagId>(Guid.Parse("db295052-ae8a-417c-befe-b5cb92334589"))).IsSuccess);
     }
 

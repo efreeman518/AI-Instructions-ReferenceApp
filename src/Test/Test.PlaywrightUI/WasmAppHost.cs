@@ -219,8 +219,8 @@ internal static class WasmAppHost
         startInfo.Environment["DOTNET_NOLOGO"] = "1";
 
         using var process = StartProcess(startInfo, stepName);
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync(ct);
+        var stderr = process.StandardError.ReadToEndAsync(ct);
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(timeout);

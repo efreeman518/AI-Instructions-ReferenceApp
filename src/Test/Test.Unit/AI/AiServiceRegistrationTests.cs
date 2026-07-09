@@ -49,7 +49,7 @@ public class AiServiceRegistrationTests
         builder.Services.AddAiServices(builder.Configuration);
 
         var provider = builder.Services.BuildServiceProvider();
-        Assert.IsInstanceOfType(provider.GetRequiredService<IChatClient>(), typeof(NoOpChatClient));
+        Assert.IsInstanceOfType<NoOpChatClient>(provider.GetRequiredService<IChatClient>());
         Assert.AreEqual("none", provider.GetRequiredService<AiProviderInfo>().Name);
     }
 
@@ -67,7 +67,7 @@ public class AiServiceRegistrationTests
         builder.Services.AddAiServices(builder.Configuration);
 
         var provider = builder.Services.BuildServiceProvider();
-        Assert.IsInstanceOfType(provider.GetRequiredService<IChatClient>(), typeof(NoOpChatClient));
+        Assert.IsInstanceOfType<NoOpChatClient>(provider.GetRequiredService<IChatClient>());
         Assert.AreEqual("none", provider.GetRequiredService<AiProviderInfo>().Name);
     }
 
@@ -110,9 +110,9 @@ public class AiServiceRegistrationTests
         var chatClient = provider.GetRequiredService<IChatClient>();
         var providerInfo = provider.GetRequiredService<AiProviderInfo>();
 
-        Assert.IsInstanceOfType(searchService, typeof(NoOpSearchService));
-        Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
-        Assert.IsInstanceOfType(chatClient, typeof(NoOpChatClient));
+        Assert.IsInstanceOfType<NoOpSearchService>(searchService);
+        Assert.IsInstanceOfType<NoOpTaskAssistantAgent>(agentService);
+        Assert.IsInstanceOfType<NoOpChatClient>(chatClient);
         Assert.AreEqual("none", providerInfo.Name);
     }
 
@@ -141,7 +141,7 @@ public class AiServiceRegistrationTests
         Assert.AreEqual(typeof(TaskAssistantAgentService), descriptor.ImplementationType);
 
         // The real IChatClient must be left in place (no NoOpChatClient added on top).
-        Assert.IsFalse(services.Any(d => d.ImplementationType == typeof(NoOpChatClient)));
+        Assert.DoesNotContain(d => d.ImplementationType == typeof(NoOpChatClient), services);
 
         var provider = services.BuildServiceProvider();
         Assert.AreEqual("local", provider.GetRequiredService<AiProviderInfo>().Name);
@@ -166,7 +166,7 @@ public class AiServiceRegistrationTests
         var provider = services.BuildServiceProvider();
         var searchService = provider.GetRequiredService<ITaskFlowSearchService>();
 
-        Assert.IsInstanceOfType(searchService, typeof(NoOpSearchService));
+        Assert.IsInstanceOfType<NoOpSearchService>(searchService);
     }
 
     /// <summary>Verifies add AI services with agents enabled no endpoint registers no op agent behavior and protects the expected test contract.</summary>
@@ -188,7 +188,7 @@ public class AiServiceRegistrationTests
         var provider = services.BuildServiceProvider();
         var agentService = provider.GetRequiredService<ITaskAssistantAgent>();
 
-        Assert.IsInstanceOfType(agentService, typeof(NoOpTaskAssistantAgent));
+        Assert.IsInstanceOfType<NoOpTaskAssistantAgent>(agentService);
     }
 
     /// <summary>Verifies add AI services settings bind correctly behavior and protects the expected test contract.</summary>

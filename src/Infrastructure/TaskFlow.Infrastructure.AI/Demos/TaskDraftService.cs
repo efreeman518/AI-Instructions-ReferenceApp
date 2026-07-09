@@ -56,7 +56,7 @@ public sealed class TaskDraftService(
             : draft.Description;
 
         var dto = new TaskItemDto { Title = title, Description = description };
-        var create = await taskItemService.CreateAsync(new DefaultRequest<TaskItemDto> { Item = dto });
+        var create = await taskItemService.CreateAsync(new DefaultRequest<TaskItemDto> { Item = dto }, ct);
         if (create.IsFailure)
             return new DraftTaskResponse(null, title, draft.Description, draft.AcceptanceCriteria, false, true, create.ErrorMessage);
 

@@ -46,6 +46,7 @@
     <ProjectReference Include="..\..\Application\TaskFlow.Application.Cqrs\TaskFlow.Application.Cqrs.csproj" />
     <ProjectReference Include="..\..\Infrastructure\TaskFlow.Infrastructure.AI\TaskFlow.Infrastructure.AI.csproj" />
     <ProjectReference Include="..\Aspire\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Shared\TaskFlow.Observability\TaskFlow.Observability.csproj" />
   </ItemGroup>
 
 </Project>

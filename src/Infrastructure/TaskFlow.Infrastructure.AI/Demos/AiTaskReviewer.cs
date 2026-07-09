@@ -30,14 +30,14 @@ public sealed class AiTaskReviewer(
     {
         if (chatClient is NoOpChatClient)
         {
-            logger.LogDebug("AiTaskReviewer skipped for {TaskId} - no model configured.", taskId);
+            logger.AiReviewerSkipped(taskId);
             return;
         }
 
-        var getResult = await taskItemService.GetAsync(taskId);
+        var getResult = await taskItemService.GetAsync(taskId, ct);
         if (getResult.IsNone || getResult.IsFailure)
         {
-            logger.LogDebug("AiTaskReviewer could not load {TaskId}.", taskId);
+            logger.AiReviewerLoadFailed(taskId);
             return;
         }
 
@@ -57,7 +57,7 @@ public sealed class AiTaskReviewer(
 
         if (text.Length == 0 || text.Equals(ReadyMarker, StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogDebug("AiTaskReviewer found {TaskId} ready; no comment posted.", taskId);
+            logger.AiReviewerReady(taskId);
             return;
         }
 
@@ -72,6 +72,6 @@ public sealed class AiTaskReviewer(
         if (result.IsFailure)
             logger.LogWarning("AiTaskReviewer failed to post comment on {TaskId}: {Error}", taskId, result.ErrorMessage);
         else
-            logger.LogInformation("AiTaskReviewer posted a readiness comment on {TaskId}.", taskId);
+            logger.AiReviewerPosted(taskId);
     }
 }

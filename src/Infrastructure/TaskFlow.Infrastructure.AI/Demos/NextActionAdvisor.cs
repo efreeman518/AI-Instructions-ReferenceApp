@@ -52,7 +52,7 @@ public sealed class NextActionAdvisor(
                     "Get full details of a specific task by its ID")
             ]);
 
-        var session = await agent.CreateSessionAsync();
+        var session = await agent.CreateSessionAsync(ct);
         var response = await agent.RunAsync("What should I work on next, and why?", session, cancellationToken: ct);
 
         logger.LogDebug("NextActionAdvisor produced a recommendation.");

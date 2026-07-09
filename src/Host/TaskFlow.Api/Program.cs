@@ -13,7 +13,7 @@ var env = config.GetValue<string>("ASPNETCORE_ENVIRONMENT")
 var credential = CreateAzureCredential(config);
 
 ILogger<Program> startupLogger = CreateStartupLogger();
-startupLogger.LogInformation("{AppName} {Environment} - Startup.", appName, env);
+startupLogger.Startup(appName, env);
 
 try
 {
@@ -47,11 +47,11 @@ try
 }
 catch (Exception ex)
 {
-    startupLogger.LogCritical(ex, "{AppName} {Environment} - Host terminated unexpectedly.", appName, env);
+    startupLogger.HostTerminated(ex, appName, env);
 }
 finally
 {
-    startupLogger.LogInformation("{AppName} {Environment} - Ending application.", appName, env);
+    startupLogger.EndingApplication(appName, env);
 }
 
 ILogger<Program> CreateStartupLogger()
@@ -82,12 +82,16 @@ void ConfigureDataProtection()
     var encryptionKeyUrl = config.GetValue<string?>("DataProtectionEncryptionKeyUrl", null);
     if (!string.IsNullOrEmpty(keysFileUrl) && !string.IsNullOrEmpty(encryptionKeyUrl))
     {
-        startupLogger.LogInformation("{AppName} {Environment} - Configure Data Protection.", appName, env);
+        startupLogger.ConfigureDataProtection(appName, env);
         services.AddDataProtection()
             .PersistKeysToAzureBlobStorage(new Uri(keysFileUrl), credential)
             .ProtectKeysWithAzureKeyVault(new Uri(encryptionKeyUrl), credential);
     }
 }
 
-// Required for WebApplicationFactory in integration tests
+// Required so cross-assembly integration/smoke test projects (Test.Endpoints, Test.FoundryLocal,
+// Test.E2E, ...) can reference this host as WebApplicationFactory<Program>. The .NET 10 auto-generated
+// Program is internal, so the explicit public declaration is load-bearing here despite ASP0027.
+#pragma warning disable ASP0027 // Public partial Program is required for external WebApplicationFactory access.
 public partial class Program { }
+#pragma warning restore ASP0027
