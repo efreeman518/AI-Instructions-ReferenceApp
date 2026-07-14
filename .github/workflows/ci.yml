@@ -73,7 +73,7 @@ jobs:
           fi
 
           dotnet nuget update source efreeman518-github \
-            --configfile src/nuget.config \
+            --configfile nuget.config \
             --username github-actions \
             --password "$NUGET_PAT" \
             --store-password-in-clear-text
