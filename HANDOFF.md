@@ -53,7 +53,7 @@ hostGates:
 | `.scaffold/INSTRUCTION-GAPS.md` | - | Recorded gaps for the maintenance repo |
 | `.scaffold/REFERENCE-STATUS.md` | - | Current verified build/test/vuln snapshot |
 | `dotnet-tools.json` | 3 | Local tool manifest (`ilspycmd`, `dotnet-stryker`) |
-| `src/TaskFlow.slnx` | 4+ | Clean-architecture solution |
+| `TaskFlow.slnx` | 4+ | Clean-architecture solution |
 | `infra/` | 5d | Bicep IaC modules |
 | `.azure/deployment-plan.md` | 5d | Deployment plan |
 | `HANDOFF.md` | - | This file. Stays at project root as the session resume contract. |

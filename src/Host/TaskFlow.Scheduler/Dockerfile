@@ -4,7 +4,7 @@ ARG NUGET_TOKEN=""
 WORKDIR /source
 
 # Copy solution + package management files for restore-layer caching
-COPY src/TaskFlow.slnx src/Directory.Build.props src/Directory.Packages.props src/global.json src/nuget.config ./src/
+COPY TaskFlow.slnx Directory.Build.props Directory.Packages.props global.json nuget.config ./
 
 # Copy csproj files for restore
 COPY src/Host/TaskFlow.Scheduler/TaskFlow.Scheduler.csproj src/Host/TaskFlow.Scheduler/
@@ -23,7 +23,7 @@ COPY src/Host/Aspire/ServiceDefaults/ServiceDefaults.csproj src/Host/Aspire/Serv
 # Configure private NuGet feed auth (if token provided)
 RUN if [ -n "$NUGET_TOKEN" ]; then \
       dotnet nuget update source efreeman518-github \
-        --configfile src/nuget.config \
+        --configfile nuget.config \
         --username docker --password "$NUGET_TOKEN" --store-password-in-clear-text; \
     fi
 

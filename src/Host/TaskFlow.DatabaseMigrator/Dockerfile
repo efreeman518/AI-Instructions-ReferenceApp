@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG NUGET_TOKEN=""
 WORKDIR /source
 
-COPY src/TaskFlow.slnx src/Directory.Build.props src/Directory.Packages.props src/global.json src/nuget.config ./src/
+COPY TaskFlow.slnx Directory.Build.props Directory.Packages.props global.json nuget.config ./
 
 COPY src/Host/TaskFlow.DatabaseMigrator/TaskFlow.DatabaseMigrator.csproj src/Host/TaskFlow.DatabaseMigrator/
 COPY src/Host/Aspire/ServiceDefaults/ServiceDefaults.csproj src/Host/Aspire/ServiceDefaults/
@@ -14,7 +14,7 @@ COPY src/Domain/TaskFlow.Domain.Shared/TaskFlow.Domain.Shared.csproj src/Domain/
 
 RUN if [ -n "$NUGET_TOKEN" ]; then \
     dotnet nuget update source efreeman518-github \
-      --configfile src/nuget.config \
+        --configfile nuget.config \
       --username github-actions \
       --password "$NUGET_TOKEN" \
       --store-password-in-clear-text; \

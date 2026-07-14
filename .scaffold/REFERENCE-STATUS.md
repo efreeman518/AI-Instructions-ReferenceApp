@@ -9,7 +9,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 | Field | Value |
 |---|---|
 | Last verified | 2026-06-18 |
-| Solution | `src/TaskFlow.slnx` |
+| Solution | `TaskFlow.slnx` |
 | Target framework | .NET 10 |
 | Projects | 39 |
 | Errors | 0 |
@@ -34,7 +34,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 **Current automated verification:** Test.Unit re-verified 2026-07-08 (200 passing, incl. D-019 secure-property tests) plus the `has-pending-model-changes` drift check for `TaskFlowDbContextTrxn` (clean). Architecture/Endpoint/E2E/Integration/Integration.FlowEngine/Aspire counts carry forward from 2026-06-18 and were NOT re-run this session (need a container runtime); re-run the full suite to reconfirm the aggregate. Docker-compatible runtime verified through Podman context `podman-machine-default`; Aspire runtime verified with `ASPIRE_CONTAINER_RUNTIME=podman`.
 
-### Playwright (`src/Test/Test.PlaywrightUI/`)
+### Playwright (`tests/Test.PlaywrightUI/`)
 
 Node.js Playwright suite. Run `npm install` inside the folder before first use. Tests run against a real running stack (Aspire AppHost or docker-compose). Set `PLAYWRIGHT_BASE_URL` to the host URL printed by `dotnet run --project src/Host/Aspire/AppHost`.
 
@@ -46,7 +46,7 @@ Run `dotnet list package --vulnerable --include-transitive` and capture findings
 - **Moderate:** logged here, tracked but not blocking
 - **Low:** team discretion
 
-Last audited: 2026-06-18 with `dotnet list src\TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`. NOTE: 2026-07-08 added `Aspire.Hosting.Azure.KeyVault` 13.4.6 and `Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider` 7.0.2 (D-019); re-run the vulnerability audit to reconfirm.
+Last audited: 2026-06-18 with `dotnet list TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`. NOTE: 2026-07-08 added `Aspire.Hosting.Azure.KeyVault` 13.4.6 and `Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider` 7.0.2 (D-019); re-run the vulnerability audit to reconfirm.
 
 | Package | Version | Severity | Direct/Transitive | Advisory | Notes |
 |---|---|---|---|---|---|
@@ -95,7 +95,7 @@ Validate locally: `az bicep build --file infra/main.bicep`.
 
 ## Test Harness Architecture
 
-`Test.Endpoints` and `Test.E2E` derive from a shared `WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryContext>` in `Test.Support` (see `src/Test/Test.Support/WebApplicationFactoryBase.cs`). The base handles the standard EF.Packages plumbing swap (interceptor removal, pooled-factory removal, scoped-factory removal, reflection-based `DbContext` creation). Derived classes only specify the test-mode store:
+`Test.Endpoints` and `Test.E2E` derive from a shared `WebApplicationFactoryBase<TProgram, TTrxnContext, TQueryContext>` in `Test.Support` (see `tests/Test.Support/WebApplicationFactoryBase.cs`). The base handles the standard EF.Packages plumbing swap (interceptor removal, pooled-factory removal, scoped-factory removal, reflection-based `DbContext` creation). Derived classes only specify the test-mode store:
 
 - `Test.Endpoints/CustomApiFactory.cs` - InMemoryDatabase per factory instance
 - `Test.E2E/SqlApiFactory.cs` - Testcontainers SQL Server, container managed at the class level

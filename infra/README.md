@@ -81,7 +81,7 @@ After bootstrap completes, configure your GitHub repo at **Settings -> Secrets a
 
 ### Private NuGet Feed (`NUGET_PAT`)
 
-The solution references private packages (`EF.*`) from the `efreeman518-github` GitHub Packages feed (configured in `src/nuget.config`). The build agent needs a PAT to authenticate.
+The solution references private packages (`EF.*`) from the `efreeman518-github` GitHub Packages feed (configured in `nuget.config`). The build agent needs a PAT to authenticate.
 
 | Secret | Value |
 |--------|-------|

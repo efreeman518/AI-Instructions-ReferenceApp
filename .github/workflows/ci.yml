@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: src/global.json
+          global-json-file: global.json
 
       - name: Install required workloads
         run: dotnet workload install wasm-tools aspire
@@ -79,43 +79,43 @@ jobs:
             --store-password-in-clear-text
 
       - name: Restore
-        run: dotnet restore src/TaskFlow.slnx
+        run: dotnet restore TaskFlow.slnx
 
       - name: Build
         # Static web assets writes shared obj caches and can race when the same web project is in
         # the solution and referenced by AppHost.
-        run: dotnet build src/TaskFlow.slnx --no-restore --configuration Release -m:1
+        run: dotnet build TaskFlow.slnx --no-restore --configuration Release -m:1
 
       - name: Analyzer cleanliness
         # Gate at warn: errors and warnings must be clean. Info-level advisories (e.g. CA1873
         # logging guards) stay visible in the IDE without blocking CI. Raise to --severity info
         # once those advisories are remediated at source.
-        run: dotnet format analyzers src/TaskFlow.slnx --severity warn --verify-no-changes --no-restore
+        run: dotnet format analyzers TaskFlow.slnx --severity warn --verify-no-changes --no-restore
 
       - name: Unit Tests
         run: >
-          dotnet test src/Test/Test.Unit/Test.Unit.csproj
+          dotnet test tests/Test.Unit/Test.Unit.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=unit-results.trx"
           --results-directory ./TestResults
 
       - name: Architecture Tests
         run: >
-          dotnet test src/Test/Test.Architecture/Test.Architecture.csproj
+          dotnet test tests/Test.Architecture/Test.Architecture.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=arch-results.trx"
           --results-directory ./TestResults
 
       - name: Endpoint Tests
         run: >
-          dotnet test src/Test/Test.Endpoints/Test.Endpoints.csproj
+          dotnet test tests/Test.Endpoints/Test.Endpoints.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=endpoint-results.trx"
           --results-directory ./TestResults
 
       - name: FlowEngine Definition Tests
         run: >
-          dotnet test src/Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
+          dotnet test tests/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=flowengine-results.trx"
           --results-directory ./TestResults
@@ -124,7 +124,7 @@ jobs:
         if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeE2E == true) || github.event_name == 'schedule' }}
         timeout-minutes: 20
         run: >
-          dotnet test src/Test/Test.E2E/Test.E2E.csproj
+          dotnet test tests/Test.E2E/Test.E2E.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./TestResults
@@ -133,7 +133,7 @@ jobs:
         if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeIntegration == true) || github.event_name == 'schedule' }}
         timeout-minutes: 20
         run: >
-          dotnet test src/Test/Test.Integration/Test.Integration.csproj
+          dotnet test tests/Test.Integration/Test.Integration.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=integration-results.trx"
           --results-directory ./TestResults
@@ -142,7 +142,7 @@ jobs:
         if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeAspireMesh == true) || github.event_name == 'schedule' }}
         timeout-minutes: 30
         run: >
-          dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
+          dotnet test tests/Test.Aspire/Test.Aspire.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=aspire-results.trx"
           --results-directory ./TestResults
@@ -151,7 +151,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeFoundryLocal == true }}
         timeout-minutes: 70
         run: >
-          dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj
+          dotnet test tests/Test.FoundryLocal/Test.FoundryLocal.csproj
           --no-build --configuration Release
           --filter TestCategory=FoundryLocal
           --logger "trx;LogFileName=foundrylocal-results.trx"
@@ -163,27 +163,27 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            src/Test/Test.PlaywrightUI/package-lock.json
+            tests/Test.PlaywrightUI/package-lock.json
             src/UI/TaskFlow.React/package-lock.json
 
       - name: Restore Playwright packages
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
         run: |
-          npm ci --prefix src/Test/Test.PlaywrightUI
+          npm ci --prefix tests/Test.PlaywrightUI
           npm ci --prefix src/UI/TaskFlow.React
 
       - name: Install Playwright browser
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
         shell: pwsh
         run: |
-          ./src/Test/Test.PlaywrightUI/bin/Release/net10.0/playwright.ps1 install chromium
-          npx --prefix src/Test/Test.PlaywrightUI playwright install --with-deps chromium
+          ./tests/Test.PlaywrightUI/bin/Release/net10.0/playwright.ps1 install chromium
+          npx --prefix tests/Test.PlaywrightUI playwright install --with-deps chromium
 
       - name: Playwright UI Tests (manual, browser)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
         timeout-minutes: 70
         run: >
-          dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+          dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj
           --no-build --configuration Release
           --logger "trx;LogFileName=playwrightui-results.trx"
           --results-directory ./TestResults

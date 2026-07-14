@@ -29,16 +29,16 @@ Multi-tenant (row-level tenancy). Event-driven async via Service Bus. IaC via Bi
 
 ### Prerequisites
 
-- **.NET 10 SDK** - the exact version is pinned by [`src/global.json`](src/global.json).
+- **.NET 10 SDK** - the exact version is pinned by [`global.json`](global.json).
 - **Workloads:** `dotnet workload install wasm-tools aspire` (required for the Uno WASM host and the Aspire AppHost).
 - **Container runtime** (Docker or Podman) - the Aspire AppHost runs SQL Server, Azurite, Service Bus, Redis, and Cosmos DB emulators locally, and the Docker-backed test lanes need it.
-- **Private NuGet feed access:** the `EF.*` (FlowEngine) packages restore from GitHub Packages via the `efreeman518-github` source in [`src/nuget.config`](src/nuget.config). Supply a `NUGET_PAT` (a GitHub token with `read:packages`) before restoring.
+- **Private NuGet feed access:** the `EF.*` (FlowEngine) packages restore from GitHub Packages via the `efreeman518-github` source in [`nuget.config`](nuget.config). Supply a `NUGET_PAT` (a GitHub token with `read:packages`) before restoring.
 - **Local tools:** `dotnet tool restore` restores Stryker.NET and the other tools declared in the tool manifest.
 
 ### Run
 
 ```powershell
-dotnet restore src/TaskFlow.slnx
+dotnet restore TaskFlow.slnx
 dotnet run --project src/Host/Aspire/AppHost
 ```
 
@@ -80,8 +80,8 @@ The non-zero base avoids colliding with low-numbered EventIds from framework and
 
 The repository is kept clean at the **error and warning** severities, and CI enforces that gate:
 
-- **Build enforcement:** [`src/Directory.Build.props`](src/Directory.Build.props) sets `TreatWarningsAsErrors=true` with `Nullable=enable`, so any warning fails the build for every project in the solution.
-- **CI analyzer gate:** the `Analyzer cleanliness` step runs `dotnet format analyzers src/TaskFlow.slnx --severity warn --verify-no-changes --no-restore` on every push and pull request, failing the build if analyzer or code-style diagnostics at `warn` or higher remain.
+- **Build enforcement:** [`Directory.Build.props`](Directory.Build.props) sets `TreatWarningsAsErrors=true` with `Nullable=enable`, so any warning fails the build for every project in the solution.
+- **CI analyzer gate:** the `Analyzer cleanliness` step runs `dotnet format analyzers TaskFlow.slnx --severity warn --verify-no-changes --no-restore` on every push and pull request, failing the build if analyzer or code-style diagnostics at `warn` or higher remain.
 - **Info-level advisories:** info-severity advisories (for example the CA1873 logging guards) surface in the IDE but do not block CI. The `[LoggerMessage]` strategy above keeps them low; once the source is verified clean at `--severity info`, raise the CI gate to match.
 
 Keep the tree green: prefer fixing the root cause over suppressing a diagnostic, and add a scoped, commented `#pragma`/`.editorconfig` entry only when a suppression is genuinely warranted.
@@ -130,9 +130,9 @@ Set `AiServices:DisableFoundryLocal=true` to force no-op locally. When no provid
 
 ### Aspire-backed AI tests
 
-`dotnet test src/Test/Test.Aspire/Test.Aspire.csproj --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the Azure live Foundry smoke set only when Azure Foundry is configured. The Aspire mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`, so it never starts a local native model. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
+`dotnet test tests/Test.Aspire/Test.Aspire.csproj --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the Azure live Foundry smoke set only when Azure Foundry is configured. The Aspire mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`, so it never starts a local native model. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
 
-`dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, no-tool agent chat, and one safe write-adjacent AI demo. If the local runtime is missing or undiscoverable, the tests are inconclusive rather than green on no-op.
+`dotnet test tests/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, no-tool agent chat, and one safe write-adjacent AI demo. If the local runtime is missing or undiscoverable, the tests are inconclusive rather than green on no-op.
 
 | Test condition | Result |
 |----------------|--------|
@@ -168,7 +168,7 @@ The weekly run keeps the Docker-backed E2E, Integration, and Aspire lanes contin
 
 ### Aspire-backed UI tests
 
-`dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor, React, and Uno when their local prerequisites are present.
+`dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor, React, and Uno when their local prerequisites are present.
 
 The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React coverage remains DOM/ARIA based. Uno coverage is canvas-first: wait for painted canvas, click stable app chrome, compare visual fingerprints. Do not assert Uno Skia text through DOM selectors. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. Uno is selected by the .NET adapter unless `TASKFLOW_WASM_TESTS_ENABLED=false`; the C# `WasmAppHost` fixture restores/builds browserwasm with separate 10-minute restore and 20-minute build budgets, starts it through Aspire, and passes the dynamic endpoint to TypeScript Playwright. `TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS` bounds each TypeScript project process; `TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS` bounds each Playwright test.
 
@@ -213,7 +213,7 @@ D9 uses the same `IChatClient` as D1-D8. With AI disabled, the workflow still st
 
 ## Local Mobile UI Tests
 
-Use `src/Test/Test.Mobile/run-mobile-tests.ps1` for Android local runs. Test methods do not start Appium or emulators; the runner starts or verifies those dependencies, then enables the mobile lane.
+Use `tests/Test.Mobile/run-mobile-tests.ps1` for Android local runs. Test methods do not start Appium or emulators; the runner starts or verifies those dependencies, then enables the mobile lane.
 
 TaskFlow mobile smoke tests use MSTest + Appium for the Uno Android/iOS heads. Android runs locally on Windows; iOS requires macOS or a Mac host with Xcode.
 
@@ -226,18 +226,18 @@ dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj -p:TargetFrameworkOverride=
 
 The explicit `BuildAllUnoTargets=true` restore is required because the Uno project defaults to a fast Wasm-only restore for local web work. Android/Appium runs need the platform Skia runtime packages in the NuGet asset graph.
 
-Full Appium setup and run commands live in [src/Test/Test.Mobile/README.md](src/Test/Test.Mobile/README.md).
+Full Appium setup and run commands live in [tests/Test.Mobile/README.md](tests/Test.Mobile/README.md).
 
 ## Mutation Testing
 
-TaskFlow has a focused Stryker.NET sample project at [src/Test/Test.Mutation](src/Test/Test.Mutation/README.md). It mutates selected domain files and runs MSTest samples that show boundary, failure-message, status-transition, and idempotency checks.
+TaskFlow has a focused Stryker.NET sample project at [tests/Test.Mutation](tests/Test.Mutation/README.md). It mutates selected domain files and runs MSTest samples that show boundary, failure-message, status-transition, and idempotency checks.
 
 ```powershell
 dotnet tool restore
-dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+dotnet test tests/Test.Mutation/Test.Mutation.csproj
 ```
 
-Run Stryker from `src/Test/Test.Mutation`:
+Run Stryker from `tests/Test.Mutation`:
 
 ```powershell
 dotnet tool run dotnet-stryker

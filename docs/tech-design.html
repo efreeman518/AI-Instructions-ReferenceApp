@@ -1051,7 +1051,7 @@ API: Sets IRequestContext (tenant, user, roles)
 </tr>
 <tr>
 <td><strong>Test.Load</strong></td>
-<td>NBomber HTTP scenarios - task-search throughput and CRUD generation - with assertions on success rate (&gt;= 95 %) and P99 latency (&lt; 2 s). Manual reports write under <code>src/Test/Test.Load/load-reports</code>.</td>
+<td>NBomber HTTP scenarios - task-search throughput and CRUD generation - with assertions on success rate (&gt;= 95 %) and P99 latency (&lt; 2 s). Manual reports write under <code>tests/Test.Load/load-reports</code>.</td>
 <td>Catches pre-prod throughput regressions and gives a reproducible perf baseline. Tests are <code>[Ignore]</code>&#39;d by default (manual run) so they never gate CI on infra availability.</td>
 <td>MSTest, <strong>NBomber</strong>, NBomber.Http</td>
 </tr>
@@ -1094,9 +1094,9 @@ API: Sets IRequestContext (tenant, user, roles)
 <p><code>Test.Mutation</code> is intentionally narrow. Its <code>stryker-config.json</code> mutates <code>TaskFlow.Domain.Model</code> only for <code>TaskItem.cs</code> and <code>TaskItemStatusTransitionRule.cs</code>, filters tests to <code>TestCategory=Mutation</code>, and emits progress, cleartext, and HTML reports. This makes the sample fast enough for local learning while keeping the report focused on domain invariants rather than framework wiring.</p>
 <p>Run from repo root:</p>
 <pre><code class="language-powershell">dotnet tool restore
-dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
+dotnet test tests/Test.Mutation/Test.Mutation.csproj
 </code></pre>
-<p>Run Stryker from <code>src/Test/Test.Mutation</code>:</p>
+<p>Run Stryker from <code>tests/Test.Mutation</code>:</p>
 <pre><code class="language-powershell">dotnet tool run dotnet-stryker
 </code></pre>
 <h3 id="123-testing-tools">12.3 Testing Tools</h3>
@@ -1126,12 +1126,12 @@ dotnet test src/Test/Test.Mutation/Test.Mutation.csproj
 <tr>
 <td><strong>Stryker.NET</strong></td>
 <td>Mutation testing</td>
-<td>Mutates selected source files, reruns the matching MSTest cases, and reports killed, survived, no-coverage, and compile-error mutants. Configured through <code>src/Test/Test.Mutation/stryker-config.json</code>.</td>
+<td>Mutates selected source files, reruns the matching MSTest cases, and reports killed, survived, no-coverage, and compile-error mutants. Configured through <code>tests/Test.Mutation/stryker-config.json</code>.</td>
 </tr>
 <tr>
 <td><strong>BenchmarkDotNet</strong></td>
 <td>Micro-benchmark harness</td>
-<td>Warmup / iteration control, statistical noise rejection, <code>[MemoryDiagnoser]</code> for GC allocations, console summary tables. Run as <code>dotnet run -c Release --project src/Test/Test.Benchmarks</code>.</td>
+<td>Warmup / iteration control, statistical noise rejection, <code>[MemoryDiagnoser]</code> for GC allocations, console summary tables. Run as <code>dotnet run -c Release --project tests/Test.Benchmarks</code>.</td>
 </tr>
 <tr>
 <td><strong>NBomber + NBomber.Http</strong></td>
@@ -1302,7 +1302,7 @@ public sealed class SqlApiFactory
 </ul>
 <p><strong>Component vs mesh split</strong> - the three single-store classes (<code>MigrationAndRepositoryTests</code>, <code>DomainEventPipelineTests</code>, <code>AuditLogRepositoryAzuriteTests</code>) live in <code>Test.Integration</code> and run on standalone Testcontainers (SQL + Azurite) via <code>IntegrationTestSetup</code>, never booting the Aspire graph. Multi-resource HTTP pipelines, app-surface checks, and Aspire-backed AI smoke tests live in <code>Test.Aspire</code> and boot the full <code>AppHost</code> graph lazily via <code>AspireTestHost.EnsureStartedAsync</code>. Keeping them in separate assemblies means the fast component tier never pays the mesh startup, and the mesh tier boots once per run only when a mesh test executes.</p>
 <h3 id="126-testplaywrightui">12.6 Test.PlaywrightUI</h3>
-<p>A solution-included Playwright test project that drives the <strong>running</strong> UI and Gateway in a real browser. <code>dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj</code> starts the Aspire AppHost in test mode, exposes endpoint URLs through environment variables, runs the stable C# Gateway/Blazor smoke path, and then invokes the TypeScript Playwright projects for Blazor, React, and Uno when <code>npm install</code> has been run.</p>
+<p>A solution-included Playwright test project that drives the <strong>running</strong> UI and Gateway in a real browser. <code>dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj</code> starts the Aspire AppHost in test mode, exposes endpoint URLs through environment variables, runs the stable C# Gateway/Blazor smoke path, and then invokes the TypeScript Playwright projects for Blazor, React, and Uno when <code>npm install</code> has been run.</p>
 <p>Keep C# page objects focused on the stable smoke path:</p>
 <ul>
 <li>Gateway root and <code>/alive</code> marker checks.</li>
@@ -1360,11 +1360,11 @@ public sealed class SqlApiFactory
 <p>The C# Gateway smoke uses <code>PLAYWRIGHT_GATEWAY_URL</code> when set; otherwise the MSTest host fills it from the Aspire <code>taskflowgateway</code> endpoint. The adapter fills <code>PLAYWRIGHT_BLAZOR_URL</code> from Aspire, fills <code>PLAYWRIGHT_REACT_URL</code> when local Vite prerequisites are present, and fills <code>PLAYWRIGHT_UNO_URL</code> from the Aspire-hosted Uno WASM host unless a caller supplied an override. TypeScript projects run one process at a time with <code>TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS</code> and <code>TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS</code> escape hatches. All TypeScript projects use Desktop Chrome, ignore HTTPS errors where needed, capture screenshots on failure, and record traces on first retry. Use serial mode only for workflows that intentionally share browser state.</p>
 <p><strong>Prerequisites</strong></p>
 <p>For <code>dotnet test</code>, the test project starts AppHost itself. You still need browser binaries:</p>
-<pre><code class="language-powershell">dotnet build src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
-powershell -NoProfile -File src/Test/Test.PlaywrightUI/bin/Debug/net10.0/playwright.ps1 install chromium
+<pre><code class="language-powershell">dotnet build tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+powershell -NoProfile -File tests/Test.PlaywrightUI/bin/Debug/net10.0/playwright.ps1 install chromium
 </code></pre>
 <p>To run the TypeScript projects through the MSTest adapter or by <code>npm</code>, install Node dependencies once:</p>
-<pre><code class="language-powershell">cd src/Test/Test.PlaywrightUI
+<pre><code class="language-powershell">cd tests/Test.PlaywrightUI
 npm install
 npx playwright install --with-deps chromium
 </code></pre>
@@ -1378,9 +1378,9 @@ npx playwright install --with-deps chromium
 </li>
 </ol>
 <p><strong>Running</strong></p>
-<pre><code class="language-bash">dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+<pre><code class="language-bash">dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj
 
-cd src/Test/Test.PlaywrightUI
+cd tests/Test.PlaywrightUI
 npm install
 npm run test:blazor          # Blazor project only
 npm run test:react           # React project only
@@ -1400,35 +1400,35 @@ await expectTaskInTable(page, taskTitle);            // .mud-table-body
 <p><strong>What this catches.</strong> Server-side suites cannot observe binding errors, missing <code>@onclick</code> wiring, broken MudDialog renders, Uno XAML resource errors, or the dialog-confirm-then-API-call sequence. Playwright drives the entire stack the user touches - UI, Gateway, API, database - so any broken link in that chain surfaces as a failed step with a screenshot and trace.</p>
 <h3 id="127-running-tests">12.7 Running Tests</h3>
 <pre><code class="language-bash"># CI default gate (fast, no Docker)
-dotnet test src/Test/Test.Unit/Test.Unit.csproj
-dotnet test src/Test/Test.UI/Test.UI.csproj
-dotnet test src/Test/Test.Architecture/Test.Architecture.csproj
-dotnet test src/Test/Test.Endpoints/Test.Endpoints.csproj
-dotnet test src/Test/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
+dotnet test tests/Test.Unit/Test.Unit.csproj
+dotnet test tests/Test.UI/Test.UI.csproj
+dotnet test tests/Test.Architecture/Test.Architecture.csproj
+dotnet test tests/Test.Endpoints/Test.Endpoints.csproj
+dotnet test tests/Test.Integration.FlowEngine/Test.Integration.FlowEngine.csproj
 
 # E2E tests (Docker required - Testcontainers SQL)
-dotnet test src/Test/Test.E2E/Test.E2E.csproj
+dotnet test tests/Test.E2E/Test.E2E.csproj
 
 # Component integration tests (Docker required - Testcontainers SQL + Azurite)
-dotnet test src/Test/Test.Integration/Test.Integration.csproj
+dotnet test tests/Test.Integration/Test.Integration.csproj
 
 # Aspire mesh tests (Docker required - full AppHost graph)
-dotnet test src/Test/Test.Aspire/Test.Aspire.csproj
+dotnet test tests/Test.Aspire/Test.Aspire.csproj
 
 # Foundry Local live smoke (RID-bound local model path)
-dotnet test src/Test/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal
+dotnet test tests/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal
 
 # Load tests (manual - start Aspire AppHost first; set TASKFLOW_LOAD_BASE_URL if taskflowapi uses a non-default port)
-dotnet test src/Test/Test.Load/Test.Load.csproj --filter &quot;TestCategory=Load&quot;
+dotnet test tests/Test.Load/Test.Load.csproj --filter &quot;TestCategory=Load&quot;
 
 # Benchmarks (Release build, console runner)
-dotnet run -c Release --project src/Test/Test.Benchmarks
+dotnet run -c Release --project tests/Test.Benchmarks
 
 # UI E2E (starts Aspire AppHost, then runs C# smoke and installed TypeScript projects)
-dotnet test src/Test/Test.PlaywrightUI/Test.PlaywrightUI.csproj
+dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj
 
 # Direct TypeScript UI E2E (requires AppHost and requested browser UI running)
-cd src/Test/Test.PlaywrightUI &amp;&amp; npm run test
+cd tests/Test.PlaywrightUI &amp;&amp; npm run test
 </code></pre>
 <p>GitHub Actions mirrors this split. Push and pull request runs execute the CI default gate. Manual <code>workflow_dispatch</code> inputs opt into <code>Test.E2E</code>, <code>Test.Integration</code>, <code>Test.Aspire</code>, <code>Test.FoundryLocal</code>, and <code>Test.PlaywrightUI</code>.</p>
 <hr>
