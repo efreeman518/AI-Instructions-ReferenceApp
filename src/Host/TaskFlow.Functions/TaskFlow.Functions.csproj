@@ -42,4 +42,12 @@
     </None>
   </ItemGroup>
 
+  <!-- Worker.Sdk 2.0.x emits a relative OutDir, but Aspire may invoke this project from another directory. -->
+  <Target Name="UseAbsoluteFunctionsRunWorkingDirectory"
+          AfterTargets="_FunctionsComputeRunArguments">
+    <PropertyGroup>
+      <RunWorkingDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(OutDir)'))</RunWorkingDirectory>
+    </PropertyGroup>
+  </Target>
+
 </Project>

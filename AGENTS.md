@@ -28,6 +28,7 @@ dotnet build TaskFlow.slnx                                     # 0 warnings expe
 dotnet build src/UI/TaskFlow.Uno/TaskFlow.Uno.csproj           # Uno builds separately (Uno.Sdk)
 dotnet test TaskFlow.slnx --filter "TestCategory=Unit"         # fast lane
 dotnet test TaskFlow.slnx --filter "TestCategory=Architecture|TestCategory=Endpoint"
+dotnet test TaskFlow.slnx --no-build -m:1                     # unfiltered serial acceptance; full-stack projects are resource-heavy
 # E2E/Integration need a container runtime (Podman-backed Docker context verified)
 dotnet run --project src/Host/Aspire/AppHost                   # full local stack
 ```

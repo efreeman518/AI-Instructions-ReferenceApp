@@ -11,22 +11,23 @@ internal static class GatewayBlazorSmokeRunner
     /// <summary>
     /// Runs the smoke-test workflow against already-started Gateway and Blazor endpoints.
     /// </summary>
-    public static async Task RunAsync(string gatewayBaseUrl, string blazorBaseUrl)
+    public static async Task RunAsync(string gatewayBaseUrl, string blazorBaseUrl, CancellationToken cancellationToken)
     {
-        await EndpointProbe.EnsureReachableAsync($"{gatewayBaseUrl.TrimEnd('/')}/readyz", "Gateway");
-        await EndpointProbe.EnsureReachableAsync($"{blazorBaseUrl.TrimEnd('/')}/readyz", "Blazor");
+        await EndpointProbe.EnsureReachableAsync($"{gatewayBaseUrl.TrimEnd('/')}/readyz", "Gateway", cancellationToken);
+        await EndpointProbe.EnsureReachableAsync($"{blazorBaseUrl.TrimEnd('/')}/readyz", "Blazor", cancellationToken);
 
-        using var playwright = await Playwright.CreateAsync();
+        using var playwright = await Playwright.CreateAsync().WaitAsync(cancellationToken);
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = true
-        });
+            Headless = true,
+            Timeout = 120_000
+        }).WaitAsync(cancellationToken);
 
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             IgnoreHTTPSErrors = true
-        });
-        var page = await context.NewPageAsync();
+        }).WaitAsync(cancellationToken);
+        var page = await context.NewPageAsync().WaitAsync(cancellationToken);
 
         var gateway = new GatewayPageObject(page);
         await gateway.AssertRootRespondsAsync(gatewayBaseUrl);
@@ -42,7 +43,7 @@ internal static class GatewayBlazorSmokeRunner
 /// </summary>
 internal static class EndpointProbe
 {
-    internal static async Task EnsureReachableAsync(string url, string name)
+    internal static async Task EnsureReachableAsync(string url, string name, CancellationToken cancellationToken)
     {
         using var handler = new HttpClientHandler { AllowAutoRedirect = false };
         using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
@@ -52,18 +53,20 @@ internal static class EndpointProbe
         {
             try
             {
-                using var response = await http.GetAsync(url);
+                using var response = await http.GetAsync(url, cancellationToken);
                 if ((int)response.StatusCode < 500)
                 {
                     return;
                 }
             }
-            catch
+            catch (Exception ex) when (
+                ex is HttpRequestException
+                || ex is TaskCanceledException && !cancellationToken.IsCancellationRequested)
             {
                 // Aspire can bind the endpoint before the child app finishes booting.
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
         }
 
         throw new InvalidOperationException($"{name} endpoint not reachable at {url}.");

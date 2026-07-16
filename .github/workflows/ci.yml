@@ -33,6 +33,10 @@ on:
         type: boolean
         default: false
         description: "Run Test.PlaywrightUI browser smoke tests (requires browser install; starts Aspire AppHost)"
+      includeFullAcceptance:
+        type: boolean
+        default: false
+        description: "Run unfiltered serial solution acceptance, including Aspire, Playwright, and WASM"
 
 jobs:
   build-and-test:
@@ -46,7 +50,7 @@ jobs:
       # Reclaim ~20+ GB (Android SDK, Haskell, large apt packages) before the Docker-backed steps run.
       # Keep dotnet and the tool cache - the build depends on them.
       - name: Free disk space
-        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.includeE2E || inputs.includeIntegration || inputs.includeAspireMesh || inputs.includeFoundryLocal || inputs.includePlaywrightUI)) || github.event_name == 'schedule' }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.includeE2E || inputs.includeIntegration || inputs.includeAspireMesh || inputs.includeFoundryLocal || inputs.includePlaywrightUI || inputs.includeFullAcceptance)) || github.event_name == 'schedule' }}
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -141,9 +145,15 @@ jobs:
       - name: Aspire Mesh Tests (manual or scheduled, full graph)
         if: ${{ (github.event_name == 'workflow_dispatch' && inputs.includeAspireMesh == true) || github.event_name == 'schedule' }}
         timeout-minutes: 30
+        env:
+          TASKFLOW_RUN_AZURE_FOUNDRY_TESTS: "false"
+          TASKFLOW_RUN_FUNCTIONS_TESTS: "false"
+          TASKFLOW_REACT_TESTS_ENABLED: "false"
+          TASKFLOW_WASM_TESTS_ENABLED: "false"
         run: >
           dotnet test tests/Test.Aspire/Test.Aspire.csproj
           --no-build --configuration Release
+          -m:1
           --logger "trx;LogFileName=aspire-results.trx"
           --results-directory ./TestResults
 
@@ -158,7 +168,7 @@ jobs:
           --results-directory ./TestResults
 
       - uses: actions/setup-node@v4
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includePlaywrightUI == true || inputs.includeFullAcceptance == true) }}
         with:
           node-version: 24
           cache: npm
@@ -167,13 +177,13 @@ jobs:
             src/UI/TaskFlow.React/package-lock.json
 
       - name: Restore Playwright packages
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includePlaywrightUI == true || inputs.includeFullAcceptance == true) }}
         run: |
           npm ci --prefix tests/Test.PlaywrightUI
           npm ci --prefix src/UI/TaskFlow.React
 
       - name: Install Playwright browser
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includePlaywrightUI == true }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.includePlaywrightUI == true || inputs.includeFullAcceptance == true) }}
         shell: pwsh
         run: |
           ./tests/Test.PlaywrightUI/bin/Release/net10.0/playwright.ps1 install chromium
@@ -185,7 +195,23 @@ jobs:
         run: >
           dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj
           --no-build --configuration Release
+          -m:1
           --logger "trx;LogFileName=playwrightui-results.trx"
+          --results-directory ./TestResults
+
+      - name: Full serial solution acceptance (manual, unfiltered)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.includeFullAcceptance == true }}
+        timeout-minutes: 90
+        env:
+          TASKFLOW_MOBILE_TESTS_ENABLED: "false"
+          TASKFLOW_RUN_AZURE_FOUNDRY_TESTS: "false"
+          TASKFLOW_RUN_FOUNDRY_LOCAL_TESTS: "false"
+          TASKFLOW_RUN_FUNCTIONS_TESTS: "false"
+        run: >
+          dotnet test TaskFlow.slnx
+          --no-build --configuration Release
+          -m:1
+          --logger "trx;LogFileName=full-acceptance-results.trx"
           --results-directory ./TestResults
 
       - name: Upload Test Results

@@ -24,7 +24,7 @@ internal static class TypeScriptPlaywrightRunner
         if (!File.Exists(PlaywrightCliPath))
         {
             return new BrowserReadiness(false,
-                "TypeScript Playwright dependencies are missing. Run: rtk npm install in src\\Test\\Test.PlaywrightUI.");
+                "TypeScript Playwright dependencies are missing. Run: rtk npm install in tests\\Test.PlaywrightUI.");
         }
 
         var managedBrowser = GetManagedHeadlessShellPath();
@@ -45,7 +45,7 @@ internal static class TypeScriptPlaywrightRunner
         }
 
         return new BrowserReadiness(false,
-            "Playwright Chromium is missing and no system Chrome fallback is available. Run: rtk npx playwright install chromium in src\\Test\\Test.PlaywrightUI.");
+            "Playwright Chromium is missing and no system Chrome fallback is available. Run: rtk npx playwright install chromium in tests\\Test.PlaywrightUI.");
     }
 
     internal static async Task<CommandResult> RunAsync(
@@ -106,8 +106,10 @@ internal static class TypeScriptPlaywrightRunner
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Failed to start Playwright project {project}.");
 
-        var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
+        // Drain both pipes independently of the deadline so timeout diagnostics are not cancelled
+        // with the process wait and a noisy child cannot block on a full redirected stream.
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(ReadSeconds(ProjectTimeoutVariable, project == "uno" ? 360 : 180)));

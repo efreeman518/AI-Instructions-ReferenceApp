@@ -27,7 +27,7 @@ public class RepositorySearchTranslationTests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        if (SqlContainerFixture.StartupError != null)
+        if (IntegrationTestSetup.IsUnavailable(SqlContainerFixture.StartupError))
             return;
 
         await using var db = SqlContainerFixture.CreateTrxnContext();
@@ -38,8 +38,7 @@ public class RepositorySearchTranslationTests
     [TestInitialize]
     public void TestSetup()
     {
-        if (SqlContainerFixture.StartupError != null)
-            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     /// <summary>Verifies category search translates tenant, parent, bool, and string filters against SQL.</summary>

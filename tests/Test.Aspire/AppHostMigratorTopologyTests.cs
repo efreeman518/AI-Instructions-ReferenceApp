@@ -32,7 +32,7 @@ public sealed class AppHostMigratorTopologyTests
     public void TestAspire_UsesSingleSharedDistributedAppBuilder()
     {
         var repoRoot = FindRepoRoot();
-        var testAspireRoot = Path.Combine(repoRoot, "src", "Test", "Test.Aspire");
+        var testAspireRoot = Path.Combine(repoRoot, "tests", "Test.Aspire");
         var builderCall = "DistributedApplicationTestingBuilder." + "CreateAsync";
         var matches = Directory
             .EnumerateFiles(testAspireRoot, "*.cs", SearchOption.AllDirectories)
@@ -49,6 +49,23 @@ public sealed class AppHostMigratorTopologyTests
         Assert.IsTrue(matches[0].Path.EndsWith(Path.Combine("Test.Aspire", "AspireTestHost.cs"), StringComparison.Ordinal), matches[0].Path);
     }
 
+    [TestMethod]
+    public void AspireHosts_UseSharedLifecycleContext()
+    {
+        var repoRoot = FindRepoRoot();
+        var consumers = new[]
+        {
+            Path.Combine(repoRoot, "tests", "Test.Aspire", "AspireTestHost.cs"),
+            Path.Combine(repoRoot, "tests", "Test.PlaywrightUI", "PlaywrightAspireHost.cs"),
+            Path.Combine(repoRoot, "tests", "Test.PlaywrightUI", "WasmAppHost.cs")
+        };
+
+        foreach (var path in consumers)
+        {
+            Assert.Contains("AspireTestHostContext", File.ReadAllText(path), path);
+        }
+    }
+
     private static string ReadAppHostSource() =>
         File.ReadAllText(Path.Combine(
             FindRepoRoot(),
@@ -63,7 +80,7 @@ public sealed class AppHostMigratorTopologyTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "src", "TaskFlow.slnx")))
+            if (File.Exists(Path.Combine(directory.FullName, "TaskFlow.slnx")))
             {
                 return directory.FullName;
             }
@@ -71,7 +88,6 @@ public sealed class AppHostMigratorTopologyTests
             directory = directory.Parent;
         }
 
-        Assert.Inconclusive("Could not locate repository root.");
-        throw new InvalidOperationException("Unreachable.");
+        throw new DirectoryNotFoundException("Could not locate repository root containing TaskFlow.slnx.");
     }
 }

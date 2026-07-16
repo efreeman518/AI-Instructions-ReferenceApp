@@ -25,11 +25,15 @@ public sealed class FlowEngineFoundryWorkflowTests
 
     /// <summary>Boots the shared Aspire graph before workflow checks run.</summary>
     [ClassInitialize]
-    public static Task ClassInit(TestContext context) => AspireTestHost.EnsureStartedAsync(context);
+    public static Task ClassInit(TestContext context)
+    {
+        AspireTestHost.RequireAzureFoundryOrInconclusive();
+        return AspireTestHost.EnsureStartedAsync(context);
+    }
 
     /// <summary>Verifies the triage workflow reaches Foundry through its agent node.</summary>
     [TestMethod]
-    [Timeout(360000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_TriageWorkflowStarted_Then_AgentProducesTriageContext()
     {
         var ct = TestContext.CancellationToken;
@@ -66,7 +70,7 @@ public sealed class FlowEngineFoundryWorkflowTests
 
     /// <summary>Verifies the decomposer workflow reaches Foundry and produces a subtask proposal.</summary>
     [TestMethod]
-    [Timeout(360000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_DecomposerWorkflowStarted_Then_AgentProducesSubtaskProposal()
     {
         var ct = TestContext.CancellationToken;
@@ -304,37 +308,17 @@ public sealed class FlowEngineFoundryWorkflowTests
 
     private static async Task AssertFoundryProviderAvailableAsync(HttpClient client, CancellationToken ct)
     {
-        if (AspireTestHost.AiProvider == AspireAiProvider.None)
-        {
-            Assert.Inconclusive(
-                "Azure AI Foundry is not configured. Run Test.FoundryLocal for local live smoke coverage.");
-        }
+        AspireTestHost.RequireAzureFoundryOrInconclusive();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
 
-        string? unavailableReason = null;
-        try
-        {
-            using var response = await client.GetAsync("/api/v1/ai/status", timeout.Token);
-            if (!response.IsSuccessStatusCode)
-                Assert.Inconclusive($"AI status endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
+        using var response = await client.GetAsync("/api/v1/ai/status", timeout.Token);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, "AI status endpoint must succeed after AppHost startup.");
 
-            var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
-            if (status?.Provider != "azure" || status.IsConfigured != true)
-            {
-                Assert.Inconclusive(
-                    $"Azure AI Foundry is not active. AI status provider={status?.Provider ?? "unknown"} configured={status?.IsConfigured.ToString() ?? "unknown"}.");
-            }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            unavailableReason = $"AI status endpoint unavailable: {ex.Message}";
-        }
-
-        if (unavailableReason is not null)
-        {
-            Assert.Inconclusive(unavailableReason);
-        }
+        var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
+        Assert.IsNotNull(status);
+        Assert.AreEqual("azure", status.Provider);
+        Assert.IsTrue(status.IsConfigured);
     }
 }

@@ -1,12 +1,10 @@
 using AppHost;
 using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using EF.IntegrationTesting.Aspire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
-using System.Net.Sockets;
+using Test.Support.Aspire;
 using EnvironmentVariableScope = EF.IntegrationTesting.Environment.EnvironmentVariableScope;
 using FunctionsCoreToolsDiscovery = EF.IntegrationTesting.Environment.FunctionsCoreToolsDiscovery;
 
@@ -17,30 +15,29 @@ namespace Test.Aspire;
 /// Storage) the first time a mesh test class calls <see cref="EnsureStartedAsync"/> from
 /// <c>[ClassInitialize]</c>. Mesh tier (Aspire.Hosting.Testing) - the only tier that exercises the full
 /// service mesh (HTTP -> API -> Service Bus -> Function -> projection -> audit row), which no lighter tier
-/// reproduces. Teardown runs once via <c>AspireMeshLifecycle.[AssemblyCleanup]</c>. Per-call
-/// <c>.WaitAsync(DefaultTimeout, ct)</c> bounds every async Aspire step; <c>WaitForResourceHealthyAsync</c>
-/// avoids races where containers report Running before they accept connections.
+/// reproduces. Teardown runs once via <c>AspireMeshLifecycle.[AssemblyCleanup]</c>. The shared
+/// <see cref="AspireTestHostContext"/> owns Docker preflight, one cumulative startup deadline,
+/// named resource waits, failure diagnostics, and bounded cleanup.
 /// </summary>
 internal static class AspireTestHost
 {
-    /// <summary>
-    /// Per-call deadline applied via <c>.WaitAsync(DefaultTimeout, ct)</c>. Bounds every async Aspire call
-    /// (build, start, GetConnectionStringAsync, WaitForResource*) so a single hung step fails fast instead
-    /// of hanging the whole test run. Sized for slow CI cold-starts (image pull + Functions warm-up).
-    /// </summary>
-    internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
-
-    /// <summary>Cleanup deadline. StopAsync should return promptly; the bound prevents a stuck shutdown.</summary>
-    private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
-
     internal const string ResourceLoggingEnvironmentVariable = "TASKFLOW_ASPIRE_RESOURCE_LOGGING";
     internal const string FoundryLocalOptInEnvironmentVariable = "TASKFLOW_ASPIRE_ENABLE_FOUNDRY_LOCAL";
+    internal const string RunAspireTestsEnvironmentVariable = "TASKFLOW_RUN_ASPIRE_TESTS";
+    internal const string RunAzureFoundryTestsEnvironmentVariable = "TASKFLOW_RUN_AZURE_FOUNDRY_TESTS";
+    internal const string RunFunctionsTestsEnvironmentVariable = "TASKFLOW_RUN_FUNCTIONS_TESTS";
+    private const string StartupTimeoutEnvironmentVariable = "TASKFLOW_ASPIRE_STARTUP_TIMEOUT_SECONDS";
 
     /// <summary>Guards the lazy single-start so concurrent <c>[ClassInitialize]</c> calls boot the graph once.</summary>
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
     private static EnvironmentVariableScope? _environment;
+    private static AspireTestHostContext? _hostContext;
     internal static string ConnectionString = null!;
+
+    internal static TimeSpan DefaultTimeout =>
+        _hostContext?.RemainingStartupBudget
+        ?? AspireTestHostContext.ReadPositiveSeconds(StartupTimeoutEnvironmentVariable, 900);
 
     /// <summary>Shared Aspire app started once for all Aspire-based mesh tests.</summary>
     internal static DistributedApplication? AspireApp { get; private set; }
@@ -66,25 +63,60 @@ internal static class AspireTestHost
         if (AspireApp is not null)
             return;
 
+        if (string.Equals(
+                Environment.GetEnvironmentVariable(RunAspireTestsEnvironmentVariable),
+                "false",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Inconclusive($"{RunAspireTestsEnvironmentVariable}=false - Aspire mesh tier opted out.");
+            return;
+        }
+
         await Gate.WaitAsync(context.CancellationToken);
-        string? unavailableReason = null;
         try
         {
             if (AspireApp is not null)
                 return;
 
+            _hostContext = new AspireTestHostContext(
+                AspireTestHostContext.ReadPositiveSeconds(StartupTimeoutEnvironmentVariable, 900),
+                ResourceLoggingEnvironmentVariable);
+            var dockerUnavailableReason = await _hostContext.GetDockerUnavailableReasonAsync(context.CancellationToken);
+            if (dockerUnavailableReason is not null)
+            {
+                _hostContext = null;
+                Assert.Inconclusive(dockerUnavailableReason);
+                return;
+            }
+
             try
             {
                 await StartAsync(context.CancellationToken);
             }
-            catch (Exception ex) when (ShouldTreatAsUnavailableResource(ex))
-            {
-                await StopAsync(CancellationToken.None);
-                unavailableReason = $"Aspire app host could not start because a required resource or dependency is unavailable. {ex.Message}";
-            }
             catch
             {
-                await StopAsync(CancellationToken.None);
+                foreach (var resourceName in new[]
+                {
+                    "taskflowdb",
+                    "taskflowmigrator",
+                    "taskflowapi",
+                    "taskflowgateway",
+                    "taskflowfunctions",
+                    "TableStorage1"
+                })
+                {
+                    await _hostContext.DumpResourceDiagnosticsAsync(resourceName, CancellationToken.None);
+                }
+
+                try
+                {
+                    await StopAsync(CancellationToken.None);
+                }
+                catch (Exception cleanupException)
+                {
+                    Console.Error.WriteLine($"Aspire cleanup after startup failure also failed: {cleanupException.Message}");
+                }
+
                 throw;
             }
         }
@@ -93,49 +125,44 @@ internal static class AspireTestHost
             Gate.Release();
         }
 
-        if (unavailableReason is not null)
-        {
-            Assert.Inconclusive(unavailableReason);
-        }
     }
 
     private static async Task StartAsync(CancellationToken ct)
     {
+        var hostContext = _hostContext ?? throw new InvalidOperationException("Aspire host context is not initialized.");
         // AppHost.cs reads these via Environment.GetEnvironmentVariable, so they must be process env vars.
         _environment = new EnvironmentVariableScope()
             .Set("TASKFLOW_ASPIRE_TESTING", "true")
             .Set(FoundryLocalOptInEnvironmentVariable, "false");
 
-        if (EnsureFuncToolAvailable())
+        if (!IsExplicitlyDisabled(RunFunctionsTestsEnvironmentVariable) && EnsureFuncToolAvailable())
             _environment.Set("TASKFLOW_ASPIRE_FUNCTIONS_AVAILABLE", "true");
 
-        ReactAvailable = IsReactRunnable();
+        ReactAvailable = !IsExplicitlyDisabled("TASKFLOW_REACT_TESTS_ENABLED") && IsReactRunnable();
         if (ReactAvailable)
             _environment.Set("TASKFLOW_ASPIRE_REACT_AVAILABLE", "true");
 
-        UnoWasmAvailable = IsUnoWasmRunnable();
+        UnoWasmAvailable = !IsExplicitlyDisabled("TASKFLOW_WASM_TESTS_ENABLED") && IsUnoWasmRunnable();
         if (UnoWasmAvailable)
             _environment.Set("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE", "true");
 
-        ResourceLoggingEnabled = IsEnabled(ResourceLoggingEnvironmentVariable);
+        ResourceLoggingEnabled = hostContext.ResourceLoggingEnabled;
         var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
 
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync(
-            appHostProgramType,
-            args: [],
-            configureBuilder: (appOptions, hostSettings) =>
-            {
-                appOptions.DisableDashboard = true;
-                // Keep normal Aspire test output quiet. Set TASKFLOW_ASPIRE_RESOURCE_LOGGING=true
-                // only while diagnosing resource startup or routing failures.
-                appOptions.EnableResourceLogging = ResourceLoggingEnabled;
-
-                // Pass the SQL parameter through host config instead of mutating Parameters__sql-password env var.
-                // The AppHost's `builder.AddParameter("sql-password", ...)` resolves from IConfiguration first.
-                hostSettings.Configuration ??= new();
-                hostSettings.Configuration["Parameters:sql-password"] = LocalSqlSettings.SharedSaPassword;
-            },
-            cancellationToken: ct).WaitAsync(DefaultTimeout, ct);
+        var builder = await hostContext.RunStartupStepAsync(
+            "create Aspire mesh test host",
+            token => DistributedApplicationTestingBuilder.CreateAsync(
+                appHostProgramType,
+                args: [],
+                configureBuilder: (appOptions, hostSettings) =>
+                {
+                    appOptions.DisableDashboard = true;
+                    appOptions.EnableResourceLogging = ResourceLoggingEnabled;
+                    hostSettings.Configuration ??= new();
+                    hostSettings.Configuration["Parameters:sql-password"] = LocalSqlSettings.SharedSaPassword;
+                },
+                cancellationToken: token),
+            ct);
 
         // Surface app-level diagnostics at Information while filtering out the noisy framework categories
         // (AspNetCore request logs, Aspire DCP/orchestration chatter). Drop the filters when debugging startup.
@@ -148,14 +175,26 @@ internal static class AspireTestHost
             logging.AddFilter("Aspire.", LogLevel.Warning);
         });
 
-        AspireApp = await builder.BuildAsync(ct).WaitAsync(DefaultTimeout, ct);
-        await AspireApp.StartAsync(ct).WaitAsync(DefaultTimeout, ct);
+        AspireApp = await hostContext.RunStartupStepAsync(
+            "build Aspire mesh test host",
+            token => builder.BuildAsync(token),
+            ct);
+        hostContext.Attach(AspireApp);
+        await hostContext.RunStartupStepAsync(
+            "start Aspire mesh test host",
+            token => AspireApp.StartAsync(token),
+            ct);
         AiProvider = SelectRequestedAiProviderForTesting();
 
-        // Container reaching the Running state does not mean SQL is accepting connections - wait for the health check.
-        await AspireApp.WaitForResourceHealthyAsync("taskflowdb", DefaultTimeout, ct);
+        await hostContext.WaitForResourceHealthyAsync("taskflowdb", ct);
 
-        ConnectionString = await AspireApp.GetRequiredConnectionStringAsync("taskflowdb", DefaultTimeout, ct);
+        ConnectionString = await hostContext.RunStartupStepAsync(
+            "resolve taskflowdb connection string",
+            token => AspireApp.GetRequiredConnectionStringAsync(
+                "taskflowdb",
+                hostContext.RemainingStartupBudget,
+                token),
+            ct);
     }
 
     /// <summary>
@@ -164,199 +203,48 @@ internal static class AspireTestHost
     /// </summary>
     internal static async Task StopAsync(CancellationToken ct)
     {
-        if (AspireApp is not null)
+        var hostContext = _hostContext;
+        try
         {
-            try
-            {
-                await AspireApp.StopAsync(ct).WaitAsync(CleanupTimeout, ct);
-            }
-            catch (TimeoutException)
-            {
-                // Bounded shutdown - DisposeAsync below still cleans up underlying processes/containers.
-            }
-
-            await AspireApp.DisposeAsync();
-            AspireApp = null;
+            if (hostContext is not null)
+                await hostContext.StopAndDisposeAsync(ct);
         }
-
-        _environment?.Dispose();
-        _environment = null;
-        AiProvider = AspireAiProvider.None;
-        ReactAvailable = false;
-        UnoWasmAvailable = false;
-        ResourceLoggingEnabled = false;
+        finally
+        {
+            AspireApp = null;
+            _hostContext = null;
+            _environment?.Dispose();
+            _environment = null;
+            AiProvider = AspireAiProvider.None;
+            ReactAvailable = false;
+            UnoWasmAvailable = false;
+            ResourceLoggingEnabled = false;
+        }
     }
 
-    /// <summary>
-    /// Waits for a named Aspire resource to reach the Healthy state, bounded by <see cref="DefaultTimeout"/>.
-    /// Tests should call this for any non-SQL resource (taskflowapi, taskflowfunctions, TableStorage1) before
-    /// talking to it - Aspire reports Running before warm-up completes.
-    /// </summary>
+    /// <summary>Waits for a named resource within the one cumulative startup budget.</summary>
     internal static async Task WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken = default)
     {
-        if (AspireApp is null)
-            throw new InvalidOperationException("AspireApp is not initialized.");
-
-        string? unhealthyReason = null;
-        try
-        {
-            await AspireApp.WaitForResourceHealthyAsync(resourceName, DefaultTimeout, cancellationToken);
-        }
-        catch (Exception ex) when (ShouldTreatAsUnavailableResource(ex))
-        {
-            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
-            await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
-
-            var state = AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent)
-                ? resourceEvent.Snapshot.State?.Text
-                : "unavailable";
-
-            unhealthyReason =
-                $"Aspire resource '{resourceName}' did not become healthy. Current state: {state}. This usually indicates that a required local resource or dependency is unavailable in this environment. {ex.Message}";
-        }
-        catch
-        {
-            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
-            await DumpResourceDiagnosticsAsync("taskflowmigrator", cancellationToken);
-            throw;
-        }
-
-        if (unhealthyReason is not null)
-        {
-            Assert.Inconclusive(unhealthyReason);
-        }
+        var hostContext = _hostContext ?? throw new InvalidOperationException("Aspire host context is not initialized.");
+        await hostContext.WaitForResourceHealthyAsync(resourceName, cancellationToken);
     }
 
-    internal static async Task<bool> TryAssertInconclusiveForUnavailableResourcesAsync(
-        Exception ex,
-        CancellationToken cancellationToken = default,
-        params string[] resourceNames)
+    internal static Task RunStartupStepAsync(
+        string stepName,
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken)
     {
-        if (AspireApp is null)
-            return false;
-
-        var affectedResources = GetUnavailableResourceSummaries(resourceNames);
-        if (affectedResources.Count == 0)
-        {
-            if (!LooksLikeUnavailableEndpointException(ex))
-                return false;
-
-            affectedResources.Add($"{string.Join(", ", resourceNames)}: endpoint unavailable");
-        }
-
-        foreach (var resourceName in resourceNames.Distinct(StringComparer.OrdinalIgnoreCase))
-            await DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
-
-        Assert.Inconclusive(
-            $"Required local resources appear unavailable for this test. {string.Join("; ", affectedResources)}. Exception: {ex.GetType().Name}: {ex.Message}");
-
-        return true;
+        var hostContext = _hostContext ?? throw new InvalidOperationException("Aspire host context is not initialized.");
+        return hostContext.RunStartupStepAsync(stepName, operation, cancellationToken);
     }
 
-    private static bool ShouldTreatAsUnavailableResource(Exception ex) =>
-        ex is DistributedApplicationException
-        || ex is TimeoutException
-        || ex is OperationCanceledException
-        || string.Equals(ex.GetType().Name, "TimeoutRejectedException", StringComparison.Ordinal);
-
-    private static List<string> GetUnavailableResourceSummaries(IEnumerable<string> resourceNames)
+    internal static async Task DumpResourceDiagnosticsAsync(
+        string resourceName,
+        CancellationToken cancellationToken = default)
     {
-        if (AspireApp is null)
-            return [];
-
-        List<string> affectedResources = [];
-
-        foreach (var resourceName in resourceNames.Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            if (!AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
-            {
-                affectedResources.Add($"{resourceName}: state unavailable");
-                continue;
-            }
-
-            var snapshot = resourceEvent.Snapshot;
-            var state = snapshot.State?.Text ?? "unknown";
-            var health = snapshot.HealthStatus?.ToString() ?? "unknown";
-
-            if (string.Equals(state, "Finished", StringComparison.OrdinalIgnoreCase)
-                && snapshot.ExitCode is null or 0)
-            {
-                continue;
-            }
-
-            if (snapshot.ExitCode is int exitCode && exitCode != 0)
-            {
-                affectedResources.Add($"{resourceName}: state={state}, health={health}, exit={exitCode}");
-                continue;
-            }
-
-            if (!string.Equals(health, "Healthy", StringComparison.OrdinalIgnoreCase))
-            {
-                affectedResources.Add($"{resourceName}: state={state}, health={health}");
-                continue;
-            }
-
-            if (state is "Failed" or "Exited" or "Stopped")
-                affectedResources.Add($"{resourceName}: state={state}, health={health}");
-        }
-
-        return affectedResources;
-    }
-
-    private static bool LooksLikeUnavailableEndpointException(Exception ex)
-    {
-        for (var current = ex; current is not null; current = current.InnerException)
-        {
-            if (current is HttpRequestException or IOException or SocketException or TimeoutException)
-                return true;
-
-            var message = current.Message;
-            if (message.Contains("forcibly closed by the remote host", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("response ended prematurely", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("while sending the request", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static async Task DumpResourceDiagnosticsAsync(string resourceName, CancellationToken cancellationToken)
-    {
-        if (AspireApp is null)
-            return;
-
-        if (AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
-        {
-            Console.WriteLine(
-                $"{resourceName}: state={resourceEvent.Snapshot.State?.Text}, health={resourceEvent.Snapshot.HealthStatus}");
-        }
-        else
-        {
-            Console.WriteLine($"{resourceName}: no resource state available.");
-        }
-
-        var logs = AspireApp.Services.GetService<ResourceLoggerService>();
-        if (logs is null)
-        {
-            Console.WriteLine(
-                $"{resourceName}: resource logging disabled; set {ResourceLoggingEnvironmentVariable}=true to capture Aspire resource logs.");
-            return;
-        }
-
-        try
-        {
-            await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(cancellationToken))
-            {
-                foreach (var line in batch)
-                    Console.WriteLine($"{resourceName}: {line}");
-            }
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"{resourceName}: resource logs unavailable: {ex.Message}");
-        }
+        var hostContext = _hostContext;
+        if (hostContext is not null)
+            await hostContext.DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
     }
 
     /// <summary>
@@ -364,6 +252,22 @@ internal static class AspireTestHost
     /// Mutates PATH to include the discovery location on Windows if found via LocalAppData fallback.
     /// </summary>
     internal static bool EnsureFuncToolAvailable() => FunctionsCoreToolsDiscovery.EnsureFuncToolAvailable();
+
+    internal static void RequireAzureFoundryOrInconclusive()
+    {
+        if (IsExplicitlyDisabled(RunAzureFoundryTestsEnvironmentVariable))
+        {
+            Assert.Inconclusive(
+                $"{RunAzureFoundryTestsEnvironmentVariable}=false - Azure Foundry live tests opted out.");
+        }
+
+        var provider = AspireApp is null ? SelectRequestedAiProviderForTesting() : AiProvider;
+        if (provider != AspireAiProvider.AzureFoundry)
+        {
+            Assert.Inconclusive(
+                "Azure AI Foundry is not configured. Run Test.FoundryLocal for local live smoke coverage.");
+        }
+    }
 
     internal static AspireAiProvider SelectRequestedAiProviderForTesting()
     {
@@ -386,44 +290,16 @@ internal static class AspireTestHost
     private static bool IsEnabled(string variableName) =>
         string.Equals(Environment.GetEnvironmentVariable(variableName), "true", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsExplicitlyDisabled(string variableName)
+    {
+        var value = Environment.GetEnvironmentVariable(variableName);
+        return string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "no", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool HasValue(string variableName) =>
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variableName));
-
-    private static bool CommandSucceeds(string fileName, string arguments)
-    {
-        try
-        {
-            using var process = Process.Start(new ProcessStartInfo(fileName, arguments)
-            {
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            });
-
-            if (process is null)
-                return false;
-
-            if (!process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch (InvalidOperationException)
-                {
-                }
-
-                return false;
-            }
-
-            return process.ExitCode == 0;
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
-    }
 
     private static bool IsReactRunnable()
     {
@@ -437,8 +313,7 @@ internal static class AspireTestHost
             : Path.Combine(reactRoot, "node_modules", ".bin", "vite");
 
         return File.Exists(Path.Combine(reactRoot, "package.json"))
-            && File.Exists(viteShim)
-            && CommandSucceeds("node", "--version");
+            && File.Exists(viteShim);
     }
 
     private static bool IsUnoWasmRunnable()
@@ -463,7 +338,7 @@ internal static class AspireTestHost
             var directory = new DirectoryInfo(start);
             while (directory is not null)
             {
-                if (File.Exists(Path.Combine(directory.FullName, "src", "TaskFlow.slnx")))
+                if (File.Exists(Path.Combine(directory.FullName, "TaskFlow.slnx")))
                     return directory.FullName;
 
                 directory = directory.Parent;

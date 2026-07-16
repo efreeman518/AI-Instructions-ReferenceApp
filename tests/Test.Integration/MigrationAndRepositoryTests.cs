@@ -30,8 +30,7 @@ public class MigrationAndRepositoryTests
     [TestInitialize]
     public void TestSetup()
     {
-        if (SqlContainerFixture.StartupError != null)
-            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     /// <summary>Verifies migrations apply cleanly to SQL container behavior and protects the expected test contract.</summary>

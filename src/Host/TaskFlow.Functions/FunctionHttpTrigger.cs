@@ -9,12 +9,12 @@ public class FunctionHttpTrigger(ILogger<FunctionHttpTrigger> logger)
 {
     /// <summary>Provides the health check operation for function HTTP trigger.</summary>
     [Function("HealthCheck")]
-    public HttpResponseData HealthCheck(
+    public async Task<HttpResponseData> HealthCheck(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req)
     {
         logger.HealthCheckRequested(DateTime.UtcNow);
         var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-        response.WriteString("Healthy");
+        await response.WriteStringAsync("Healthy");
         return response;
     }
 

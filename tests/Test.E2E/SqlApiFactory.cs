@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using TaskFlow.Application.Contracts;
 using TaskFlow.Infrastructure.Data;
 using Test.Support;
+using Test.Support.Hosting;
 
 namespace Test.E2E;
 
@@ -15,8 +16,13 @@ namespace Test.E2E;
 public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowDbContextTrxn, TaskFlowDbContextQuery>
 {
     private static readonly MsSqlContainerFixture Sql = new();
+    private static bool _started;
 
     private readonly string _applicationStyle;
+
+    public static string? DockerUnavailableReason { get; private set; }
+
+    public static Exception? StartupError { get; private set; }
 
     /// <summary>Initializes SQL API factory with required dependencies and default state.</summary>
     public SqlApiFactory(string? applicationStyle = null)
@@ -27,15 +33,36 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
     }
 
     /// <summary>Verifies start container behavior and protects the expected test contract.</summary>
-    public static async Task StartContainerAsync()
+    public static async Task StartContainerAsync(CancellationToken cancellationToken)
     {
-        await Sql.StartAsync();
+        if (_started || DockerUnavailableReason is not null || StartupError is not null)
+            return;
+
+        DockerUnavailableReason = await DockerRuntimePreflight.GetUnavailableReasonAsync(
+            TimeSpan.FromSeconds(10),
+            cancellationToken);
+        if (DockerUnavailableReason is not null)
+            return;
+
+        try
+        {
+            await Sql.StartAsync();
+            _started = true;
+        }
+        catch (Exception ex)
+        {
+            StartupError = ex;
+        }
     }
 
     /// <summary>Verifies stop container behavior and protects the expected test contract.</summary>
     public static async Task StopContainerAsync()
     {
+        if (!_started)
+            return;
+
         await Sql.DisposeAsync();
+        _started = false;
     }
 
     /// <summary>Verifies configure test configuration behavior and protects the expected test contract.</summary>

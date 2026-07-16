@@ -93,8 +93,7 @@ public sealed class AiWorkflowIntegrationTests
 
     private static void SkipIfNoSql()
     {
-        if (SqlContainerFixture.StartupError != null)
-            Assert.Inconclusive($"SQL container unavailable: {SqlContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     // Runtime hosts do not migrate. Component test owns schema prep before API factory starts.

@@ -19,12 +19,11 @@ namespace Test.Integration;
 [DoNotParallelize]
 public class AuditLogRepositoryAzuriteTests
 {
-    /// <summary>Marks the test Inconclusive when the Azurite container failed to start (assembly-init safety).</summary>
+    /// <summary>Classifies Docker unavailability separately from an Azurite startup failure.</summary>
     [TestInitialize]
     public void TestSetup()
     {
-        if (AzuriteContainerFixture.StartupError != null)
-            Assert.Inconclusive($"Azurite container startup failed: {AzuriteContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("Azurite", AzuriteContainerFixture.StartupError);
     }
 
     /// <summary>Verifies that given audit entry, when append to azurite, then table entity persisted with expected keys.</summary>

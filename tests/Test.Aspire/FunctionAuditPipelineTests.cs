@@ -15,8 +15,8 @@ namespace Test.Aspire;
 /// <c>taskflowfunctions</c> resource -> Function request handling -> audit middleware -> Azurite Table
 /// Storage row, with a polling read-back.
 /// Aspire tier (Aspire.Hosting.Testing) - required because the Functions host has the longest cold-start
-/// of any resource and the test depends on both <c>taskflowfunctions</c> and <c>TableStorage1</c>. Skips
-/// inconclusive when Azure Functions Core Tools (<c>func</c>) is not installed.
+/// of any resource and the test depends on both <c>taskflowfunctions</c> and <c>TableStorage1</c>. Missing
+/// Core Tools fails unless <c>TASKFLOW_RUN_FUNCTIONS_TESTS=false</c> explicitly opts out.
 /// </summary>
 [TestClass]
 [TestCategory("Aspire")]
@@ -31,12 +31,22 @@ public class FunctionAuditPipelineTests
 
     /// <summary>Verifies that given function category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
-    [Timeout(600000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FunctionCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
+        if (string.Equals(
+                Environment.GetEnvironmentVariable(AspireTestHost.RunFunctionsTestsEnvironmentVariable),
+                "false",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Inconclusive($"{AspireTestHost.RunFunctionsTestsEnvironmentVariable}=false - Functions full-stack test opted out.");
+            return;
+        }
+
         if (!AspireTestHost.EnsureFuncToolAvailable())
         {
-            Assert.Inconclusive("Azure Functions Core Tools ('func') is required to run the end-to-end Functions audit pipeline test.");
+            Assert.Fail("Azure Functions Core Tools ('func') is required. Install it or set TASKFLOW_RUN_FUNCTIONS_TESTS=false to opt out explicitly.");
+            return;
         }
 
         var ct = CancellationToken.None;
@@ -49,7 +59,10 @@ public class FunctionAuditPipelineTests
         {
             using var client = AspireTestHost.AspireApp!.CreateHttpClient("taskflowfunctions", "http");
             client.Timeout = TimeSpan.FromMinutes(10);
-            await WaitForFunctionReadyAsync(client, ct);
+            await AspireTestHost.RunStartupStepAsync(
+                "Functions HTTP readiness",
+                token => WaitForFunctionReadyAsync(client, token),
+                ct);
 
             var auditWindowStartUtc = DateTimeOffset.UtcNow;
             var request = new
@@ -87,17 +100,11 @@ public class FunctionAuditPipelineTests
             Assert.AreEqual(AuditStatus.Success.ToString(), auditEntity.Status);
             Assert.IsGreaterThanOrEqualTo(auditWindowStartUtc, auditEntity.RecordedUtc);
         }
-        catch (Exception ex)
+        catch
         {
-            if (await AspireTestHost.TryAssertInconclusiveForUnavailableResourcesAsync(
-                ex,
-                ct,
-                "taskflowfunctions",
-                "taskflowdb",
-                "TableStorage1",
-                "ServiceBus1"))
+            foreach (var resourceName in new[] { "taskflowfunctions", "taskflowdb", "TableStorage1", "ServiceBus1" })
             {
-                return;
+                await AspireTestHost.DumpResourceDiagnosticsAsync(resourceName, ct);
             }
 
             throw;
@@ -107,33 +114,41 @@ public class FunctionAuditPipelineTests
     /// <summary>Verifies the Functions host health endpoint becomes reachable before issuing the integration request.</summary>
     private static async Task WaitForFunctionReadyAsync(HttpClient client, CancellationToken ct)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(180);
         Exception? lastException = null;
 
-        while (DateTimeOffset.UtcNow < deadline)
+        try
         {
-            try
+            while (true)
             {
-                using var response = await client.GetAsync("/api/health", ct);
-                if (response.IsSuccessStatusCode)
-                    return;
+                try
+                {
+                    using var response = await client.GetAsync("/api/health", ct);
+                    if (response.IsSuccessStatusCode)
+                        return;
 
-                lastException = new InvalidOperationException($"Function health endpoint returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
-            }
-            catch (HttpRequestException ex)
-            {
-                lastException = ex;
-            }
-            catch (TaskCanceledException ex)
-            {
-                lastException = ex;
-            }
+                    var responseBody = await response.Content.ReadAsStringAsync(ct);
+                    lastException = new InvalidOperationException(
+                        $"Function health endpoint returned {(int)response.StatusCode} ({response.ReasonPhrase}). "
+                        + $"Body: {Truncate(responseBody)}");
+                }
+                catch (HttpRequestException ex)
+                {
+                    lastException = ex;
+                }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+            }
         }
-
-        throw new TimeoutException($"Function host did not become ready within 180 seconds. Last error: {lastException?.Message ?? "unknown"}");
+        catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(
+                $"Function host did not become ready before the shared startup deadline. Last error: {lastException?.Message ?? "unknown"}",
+                lastException ?? ex,
+                ct);
+        }
     }
+
+    private static string Truncate(string value) => value.Length <= 2_000 ? value : value[..2_000] + "...";
 
     /// <summary>Verifies post create category with retry behavior and protects the expected test contract.</summary>
     private static async Task<HttpResponseMessage> PostCreateCategoryWithRetryAsync(HttpClient client, object request, CancellationToken ct)

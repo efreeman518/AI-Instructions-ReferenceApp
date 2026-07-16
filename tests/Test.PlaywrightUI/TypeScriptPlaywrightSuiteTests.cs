@@ -38,32 +38,67 @@ public sealed class TypeScriptPlaywrightSuiteTests
     [Timeout(3_600_000, CooperativeCancellation = true)]
     public Task UnoWasmCanvasSmoke_Passes() => RunTypeScriptProjectsAsync("uno");
 
+    /// <summary>Runs the C# Gateway and Blazor browser happy-path through the same Aspire host policy.</summary>
+    [TestMethod]
+    [TestCategory("PlaywrightUI")]
+    [Timeout(3_600_000, CooperativeCancellation = true)]
+    public async Task GatewayBlazorBrowserSmoke_Passes()
+    {
+        if (IsExplicitlyDisabled("TASKFLOW_PLAYWRIGHT_TESTS_ENABLED"))
+        {
+            Assert.Inconclusive("TASKFLOW_PLAYWRIGHT_TESTS_ENABLED=false - Playwright full-stack tier opted out.");
+            return;
+        }
+
+        PlaywrightAspireHost host;
+        try
+        {
+            host = await PlaywrightAspireHost.StartAsync(["blazor"], TestContext.CancellationToken);
+        }
+        catch (PlaywrightAspireHost.DockerUnavailableException ex)
+        {
+            Assert.Inconclusive(ex.Message);
+            return;
+        }
+
+        await using var hostScope = host;
+        await host.RunWithinStartupBudgetAsync(
+            "Gateway/Blazor browser launch and smoke",
+            token => GatewayBlazorSmokeRunner.RunAsync(host.GatewayBaseUrl, host.BlazorBaseUrl, token),
+            TestContext.CancellationToken);
+    }
+
     private async Task RunTypeScriptProjectsAsync(params string[] requestedProjects)
     {
+        if (IsExplicitlyDisabled("TASKFLOW_PLAYWRIGHT_TESTS_ENABLED"))
+        {
+            Assert.Inconclusive("TASKFLOW_PLAYWRIGHT_TESTS_ENABLED=false - Playwright full-stack tier opted out.");
+            return;
+        }
+
+        if (requestedProjects.Contains("uno", StringComparer.OrdinalIgnoreCase)
+            && IsExplicitlyDisabled("TASKFLOW_WASM_TESTS_ENABLED"))
+        {
+            Assert.Inconclusive("TASKFLOW_WASM_TESTS_ENABLED=false - Uno WASM full-stack tier opted out.");
+            return;
+        }
+
         var readiness = TypeScriptPlaywrightRunner.CheckReadiness();
         TestContext.WriteLine(readiness.Message);
         if (!readiness.CanRun)
         {
-            Assert.Inconclusive(readiness.Message);
+            Assert.Fail(readiness.Message);
             return;
         }
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(55));
         PlaywrightAspireHost host;
-        string? prerequisiteFailure = null;
         try
         {
-            host = await PlaywrightAspireHost.StartAsync(requestedProjects, cts.Token);
+            host = await PlaywrightAspireHost.StartAsync(requestedProjects, TestContext.CancellationToken);
         }
-        catch (WasmPrerequisiteException ex)
+        catch (PlaywrightAspireHost.DockerUnavailableException ex)
         {
-            prerequisiteFailure = ex.Message;
-            host = null!;
-        }
-
-        if (prerequisiteFailure is not null)
-        {
-            Assert.Inconclusive(prerequisiteFailure);
+            Assert.Inconclusive(ex.Message);
             return;
         }
 
@@ -77,20 +112,27 @@ public sealed class TypeScriptPlaywrightSuiteTests
         var selectedProjects = requestedProjects.Where(availableProjects.Contains).ToArray();
         if (selectedProjects.Length == 0)
         {
-            Assert.Inconclusive(
+            Assert.Fail(
                 $"Requested TypeScript Playwright project(s) unavailable: {string.Join(", ", requestedProjects)}. "
                 + $"Available: {string.Join(", ", host.TypeScriptProjects)}.");
             return;
         }
 
-        await GatewayHttpSmokeRunner.RunAsync(host.GatewayBaseUrl, cts.Token);
+        await host.RunWithinStartupBudgetAsync(
+            "Gateway readiness smoke",
+            token => GatewayHttpSmokeRunner.RunAsync(host.GatewayBaseUrl, token),
+            TestContext.CancellationToken);
 
-        var result = await TypeScriptPlaywrightRunner.RunAsync(selectedProjects, cts.Token);
+        var result = await host.RunWithinStartupBudgetAsync(
+            "Playwright browser launch and smoke",
+            token => TypeScriptPlaywrightRunner.RunAsync(selectedProjects, token),
+            TestContext.CancellationToken);
         TestContext.WriteLine(result.StandardOutput);
         TestContext.WriteLine(result.StandardError);
 
         if (result.ExitCode != 0)
         {
+            await host.DumpDiagnosticsAsync(CancellationToken.None);
             Assert.Fail(
                 $"TypeScript Playwright failed with exit code {result.ExitCode} project(s): {string.Join(", ", selectedProjects)}."
                 + Environment.NewLine
@@ -106,4 +148,12 @@ public sealed class TypeScriptPlaywrightSuiteTests
 
     private static string Truncate(string value)
         => value.Length <= 12_000 ? value : value[..12_000] + "...";
+
+    private static bool IsExplicitlyDisabled(string variableName)
+    {
+        var value = Environment.GetEnvironmentVariable(variableName);
+        return string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "no", StringComparison.OrdinalIgnoreCase);
+    }
 }

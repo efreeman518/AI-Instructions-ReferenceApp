@@ -9,8 +9,8 @@ namespace Test.Integration.Infrastructure;
 /// Standalone SQL Server Testcontainer for the component tier. Wraps the shared EF.IntegrationTesting
 /// <c>MsSqlContainerFixture</c> so SQL-only repository/migration/projection tests run against a real
 /// database without booting the Aspire AppHost graph. Started once by <see cref="IntegrationTestSetup"/>;
-/// <see cref="StartupError"/> is captured (not thrown) so a container failure marks only the dependent
-/// tests Inconclusive instead of aborting the whole assembly.
+/// <see cref="StartupError"/> is captured so dependent tests fail with its diagnostics without aborting
+/// assembly discovery.
 /// </summary>
 internal static class SqlContainerFixture
 {
@@ -22,7 +22,7 @@ internal static class SqlContainerFixture
     /// <summary>Connection string for the running SQL container. Only valid once startup succeeded.</summary>
     internal static string ConnectionString => Sql.ConnectionString;
 
-    /// <summary>Starts the SQL container, capturing any failure for the Inconclusive-on-failure pattern.</summary>
+    /// <summary>Starts the SQL container, capturing any post-preflight failure for dependent tests.</summary>
     internal static async Task StartAsync()
     {
         try

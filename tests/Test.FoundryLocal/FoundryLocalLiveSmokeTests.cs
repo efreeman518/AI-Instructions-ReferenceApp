@@ -17,6 +17,7 @@ namespace Test.FoundryLocal;
 [DoNotParallelize]
 public sealed class FoundryLocalLiveSmokeTests
 {
+    private const string RunTestsEnvironmentVariable = "TASKFLOW_RUN_FOUNDRY_LOCAL_TESTS";
     private static readonly Lock ClientLock = new();
     private static FoundryLocalApiFactory? _factory;
     private static HttpClient? _client;
@@ -38,7 +39,7 @@ public sealed class FoundryLocalLiveSmokeTests
     [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
-        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+        var client = await CreateFoundryLocalClientAsync();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
@@ -77,7 +78,7 @@ public sealed class FoundryLocalLiveSmokeTests
     [Timeout(600000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
-        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+        var client = await CreateFoundryLocalClientAsync();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
@@ -122,7 +123,7 @@ public sealed class FoundryLocalLiveSmokeTests
     [Timeout(360000, CooperativeCancellation = true)]
     public async Task Given_FoundryLocalApiHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
-        var client = await CreateFoundryLocalClientOrInconclusiveAsync();
+        var client = await CreateFoundryLocalClientAsync();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(300));
         var taskId = await CreateTaskAsync(client, "Foundry Local triage smoke " + Guid.NewGuid().ToString("N"), timeout.Token);
@@ -163,9 +164,17 @@ public sealed class FoundryLocalLiveSmokeTests
         AssertHasText(triage.GetProperty("suggestedPriority"), "suggestedPriority");
     }
 
-    private static async Task<HttpClient> CreateFoundryLocalClientOrInconclusiveAsync()
+    private static async Task<HttpClient> CreateFoundryLocalClientAsync()
     {
-        var client = CreateClientOrInconclusive();
+        if (string.Equals(
+                Environment.GetEnvironmentVariable(RunTestsEnvironmentVariable),
+                "false",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Assert.Inconclusive($"{RunTestsEnvironmentVariable}=false - Foundry Local live tests opted out.");
+        }
+
+        var client = CreateClient();
         using var response = await client.GetAsync("/api/v1/ai/status");
         using var payload = await ReadJsonAsync(response, CancellationToken.None);
 
@@ -180,7 +189,7 @@ public sealed class FoundryLocalLiveSmokeTests
         return client;
     }
 
-    private static HttpClient CreateClientOrInconclusive()
+    private static HttpClient CreateClient()
     {
         if (_client is not null)
         {

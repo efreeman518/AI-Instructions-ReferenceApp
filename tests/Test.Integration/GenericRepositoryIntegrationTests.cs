@@ -27,8 +27,8 @@ public class GenericRepositoryIntegrationTests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        if (SqlContainerFixture.StartupError != null)
-            return; // tests mark themselves Inconclusive in TestSetup
+        if (IntegrationTestSetup.IsUnavailable(SqlContainerFixture.StartupError))
+            return;
         await using var db = SqlContainerFixture.CreateTrxnContext();
         await db.Database.MigrateAsync(_.CancellationToken);
     }
@@ -37,8 +37,7 @@ public class GenericRepositoryIntegrationTests
     [TestInitialize]
     public void TestSetup()
     {
-        if (SqlContainerFixture.StartupError != null)
-            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     /// <summary>Verifies that a tag persisted via the generic Trxn repo is readable by tracked and no-tracking GetAsync.</summary>

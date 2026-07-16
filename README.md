@@ -130,16 +130,16 @@ Set `AiServices:DisableFoundryLocal=true` to force no-op locally. When no provid
 
 ### Aspire-backed AI tests
 
-`dotnet test tests/Test.Aspire/Test.Aspire.csproj --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the Azure live Foundry smoke set only when Azure Foundry is configured. The Aspire mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`, so it never starts a local native model. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
+`dotnet test tests/Test.Aspire/Test.Aspire.csproj -m:1 --filter TestCategory=Foundry` boots the AppHost through `Aspire.Hosting.Testing` and runs the Azure live Foundry smoke set. Missing Azure configuration is inconclusive. Once Azure is configured and active, HTTP/provider contract failures remain red. `TASKFLOW_RUN_AZURE_FOUNDRY_TESTS=false` can opt out explicitly. The Aspire mesh is RID-free and forces `AiServices:DisableFoundryLocal=true`, so it never starts a local native model. App-level AI HTTP contract coverage lives in `Test.Endpoints` with a fake `IChatClient`.
 
-`dotnet test tests/Test.FoundryLocal/Test.FoundryLocal.csproj --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, no-tool agent chat, and one safe write-adjacent AI demo. If the local runtime is missing or undiscoverable, the tests are inconclusive rather than green on no-op.
+`dotnet test tests/Test.FoundryLocal/Test.FoundryLocal.csproj -m:1 --filter TestCategory=FoundryLocal` runs the RID-bound local smoke lane. It boots `TaskFlow.Api` directly, checks `GET /api/v1/ai/status` for `provider: local`, then covers chat, no-tool agent chat, and one safe write-adjacent AI demo. Missing or undiscoverable runtime and post-bootstrap model timeouts are inconclusive. Startup failures after runtime discovery, provider mismatch, and HTTP/JSON contract failures remain red. `TASKFLOW_RUN_FOUNDRY_LOCAL_TESTS=false` can opt out explicitly.
 
 | Test condition | Result |
 |----------------|--------|
 | Azure Foundry config exists (`AiServices:FoundryEndpoint` or `TASKFLOW_USE_AZURE_FOUNDRY=true`) | `Test.Aspire` `TestCategory=Foundry` runs against Azure Foundry |
-| No Azure Foundry config exists | `Test.Aspire` live Foundry tests return inconclusive |
+| No Azure Foundry config exists | `Test.Aspire` live Foundry tests are inconclusive |
 | Foundry Local SDK bootstraps in the RID-bound API host | `Test.FoundryLocal` `TestCategory=FoundryLocal` runs against the local model |
-| Foundry Local runtime missing or undiscoverable | `Test.FoundryLocal` returns inconclusive |
+| Foundry Local runtime missing or undiscoverable | `Test.FoundryLocal` is inconclusive |
 
 `TestCategory=AzureFoundry` is reserved for Azure-specific provider-selection or provisioning checks. The no-op AI fallback path is covered by unit and endpoint tests. Load, benchmark, and mobile suites stay explicit because they require a running target, BenchmarkDotNet process control, or Appium/emulator setup.
 
@@ -149,7 +149,7 @@ Scaffold agents should preserve these AI test contracts:
 
 - Provider order is Azure Foundry first, then Foundry Local, then no-op. Azure is active only when Aspire injects `ConnectionStrings:chat` or Azure Foundry config is set. Foundry Local is active when Azure is absent and `AiServices:DisableFoundryLocal=false`.
 - RID-free suites (`Test.Unit`, `Test.Endpoints`, `Test.Aspire`) do not start native Foundry Local. They use fake clients or `AiServices:DisableFoundryLocal=true`.
-- `Test.FoundryLocal` is the only RID-bound local model lane. Missing or undiscoverable Foundry Local runtime is inconclusive. Installed-but-broken runtime, provider mismatch, no-op fallback, or live endpoint timeout is failure.
+- `Test.FoundryLocal` is the only RID-bound local model lane. Missing runtime and bootstrapped-but-slow model calls are inconclusive. Runtime startup failures after discovery, provider mismatch, no-op fallback, and HTTP/JSON contract failures are red.
 - Code-hosted agent smoke that does not need tools sends `AgentChatRequest.UseTools=false`; the service maps it to `ChatToolMode.None`. Tool-calling tests must request tools explicitly and carry their own timeout budget.
 
 ### CI test lanes
@@ -160,17 +160,20 @@ GitHub Actions runs the fast, no-Docker gate on every push and pull request: Uni
 |-------|--------------|---------|-------|
 | `includeE2E` | `Test.E2E` | Weekly + manual | SQL-backed HTTP workflows; requires Docker |
 | `includeIntegration` | `Test.Integration` | Weekly + manual | SQL + Azurite component tests; requires Docker |
-| `includeAspireMesh` | `Test.Aspire` | Weekly + manual | Full Aspire AppHost graph; Azure Foundry smoke returns inconclusive unless configured |
+| `includeAspireMesh` | `Test.Aspire` | Weekly + manual | Full Aspire AppHost graph; CI explicitly opts out Azure Foundry smoke unless configured |
 | `includeFoundryLocal` | `Test.FoundryLocal` | Manual only | RID-bound Foundry Local live smoke; may download local model assets |
 | `includePlaywrightUI` | `Test.PlaywrightUI` | Manual only | Browser smoke path; restores Playwright and React npm packages |
+| `includeFullAcceptance` | Entire solution | Manual only | Unfiltered `dotnet test TaskFlow.slnx --no-build -m:1`; provisions browser/React prerequisites, while the WASM fixture owns restore/build inside its startup deadline |
 
 The weekly run keeps the Docker-backed E2E, Integration, and Aspire lanes continuously green; Foundry Local and Playwright UI stay dispatch-only for cost and flakiness reasons.
 
+Unfiltered CI acceptance uses explicit false opt-outs for unavailable Functions, Azure Foundry, Foundry Local, or mobile lanes. Local acceptance does not require AI opt-out flags: absent Azure/Foundry Local resources and bootstrapped-but-slow local generation are inconclusive. Enabled-provider contract failures remain red.
+
 ### Aspire-backed UI tests
 
-`dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor, React, and Uno when their local prerequisites are present.
+`dotnet test tests/Test.PlaywrightUI/Test.PlaywrightUI.csproj -m:1` boots the AppHost through `Aspire.Hosting.Testing`, runs the C# Gateway/Blazor happy-path smoke with `Microsoft.Playwright`, and invokes the installed TypeScript Playwright projects for Blazor, React, and Uno.
 
-The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React coverage remains DOM/ARIA based. Uno coverage is canvas-first: wait for painted canvas, click stable app chrome, compare visual fingerprints. Do not assert Uno Skia text through DOM selectors. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. Uno is selected by the .NET adapter unless `TASKFLOW_WASM_TESTS_ENABLED=false`; the C# `WasmAppHost` fixture restores/builds browserwasm with separate 10-minute restore and 20-minute build budgets, starts it through Aspire, and passes the dynamic endpoint to TypeScript Playwright. `TASKFLOW_PLAYWRIGHT_PROJECT_TIMEOUT_SECONDS` bounds each TypeScript project process; `TASKFLOW_PLAYWRIGHT_TEST_TIMEOUT_SECONDS` bounds each Playwright test.
+The C# page objects stay intentionally narrow: Gateway root/`/alive` plus Blazor `/tasks`. React coverage remains DOM/ARIA based. Uno coverage is canvas-first: wait for painted canvas, click stable app chrome, compare visual fingerprints. Do not assert Uno Skia text through DOM selectors. `PLAYWRIGHT_GATEWAY_URL`, `PLAYWRIGHT_BLAZOR_URL`, `PLAYWRIGHT_REACT_URL`, and `PLAYWRIGHT_UNO_URL` are target overrides, not test opt-ins. `AspireTestHostContext` is shared by mesh and Playwright/WASM fixtures and owns Docker preflight, one cumulative startup deadline, named waits, default state/health/exit/timestamp diagnostics, and bounded stop/dispose. `TASKFLOW_ASPIRE_STARTUP_TIMEOUT_SECONDS` or `TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS` sets the one wall-clock budget; project/test timeouts are shorter caps only. Explicit `TASKFLOW_PLAYWRIGHT_TESTS_ENABLED=false` / `TASKFLOW_WASM_TESTS_ENABLED=false` and failed Docker preflight are inconclusive. Once Docker succeeds, missing selected-lane tooling and AppHost/resource/browser failures are red.
 
 ### Projects and agents (opt-in, Azure-only)
 

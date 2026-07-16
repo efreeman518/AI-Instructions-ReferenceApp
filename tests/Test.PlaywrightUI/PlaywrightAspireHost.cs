@@ -2,6 +2,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Test.Support.Aspire;
 
 namespace Test.PlaywrightUI.Hosting;
 
@@ -14,20 +15,20 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
     private const string BlazorResourceName = "taskflowblazor";
     private const string ReactResourceName = "taskflowreact";
     private const string HttpEndpointName = "http";
-    private static readonly TimeSpan CleanupTimeout = TimeSpan.FromMinutes(1);
+    private const string ResourceLoggingEnvironmentVariable = "TASKFLOW_ASPIRE_RESOURCE_LOGGING";
 
-    private readonly DistributedApplication _app;
+    private readonly AspireTestHostContext _hostContext;
     private readonly Dictionary<string, string?> _originalEnvironment;
 
     private PlaywrightAspireHost(
-        DistributedApplication app,
+        AspireTestHostContext hostContext,
         string gatewayBaseUrl,
         string blazorBaseUrl,
         IReadOnlyList<string> typeScriptProjects,
         IReadOnlyList<string> diagnosticMessages,
         Dictionary<string, string?> originalEnvironment)
     {
-        _app = app;
+        _hostContext = hostContext;
         GatewayBaseUrl = gatewayBaseUrl.TrimEnd('/');
         BlazorBaseUrl = blazorBaseUrl.TrimEnd('/');
         TypeScriptProjects = typeScriptProjects;
@@ -43,10 +44,10 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
     internal IReadOnlyList<string> DiagnosticMessages { get; }
 
-    internal static readonly string[] stringArray = new[] { "blazor", "react", "uno" };
+    private static readonly string[] DefaultProjects = ["blazor", "react", "uno"];
 
     internal static Task<PlaywrightAspireHost> StartAsync(CancellationToken ct)
-        => StartAsync(stringArray, ct);
+        => StartAsync(DefaultProjects, ct);
 
     internal static async Task<PlaywrightAspireHost> StartAsync(IReadOnlyCollection<string> requestedProjects, CancellationToken ct)
     {
@@ -54,6 +55,12 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         var wantsBlazor = requestedProjectSet.Contains("blazor");
         var wantsReact = requestedProjectSet.Contains("react");
         var wantsUno = requestedProjectSet.Contains("uno");
+        var startupTimeoutVariable = wantsUno
+            ? "TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS"
+            : "TASKFLOW_ASPIRE_STARTUP_TIMEOUT_SECONDS";
+        var hostContext = new AspireTestHostContext(
+            AspireTestHostContext.ReadPositiveSeconds(startupTimeoutVariable, wantsUno ? 1_800 : 900),
+            ResourceLoggingEnvironmentVariable);
 
         var originalEnvironment = CaptureEnvironment(
             "TASKFLOW_ASPIRE_TESTING",
@@ -67,9 +74,13 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         DistributedApplication? app = null;
         try
         {
+            var dockerUnavailableReason = await hostContext.GetDockerUnavailableReasonAsync(ct);
+            if (dockerUnavailableReason is not null)
+                throw new DockerUnavailableException(dockerUnavailableReason);
+
             var reactRunnable = wantsReact && IsReactRunnable();
             var unoTarget = wantsUno
-                ? await WasmAppHost.PrepareAsync(ct)
+                ? await WasmAppHost.PrepareAsync(hostContext, ct)
                 : new WasmHostTarget(false, false, "Uno WASM project not requested.");
             var diagnostics = new List<string> { unoTarget.Message };
 
@@ -78,15 +89,18 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             SetOrClear("TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE", unoTarget.HostWithAspire);
 
             var appHostProgramType = Type.GetType("Program, AppHost", throwOnError: true)!;
-            var builder = await DistributedApplicationTestingBuilder.CreateAsync(
-                appHostProgramType,
-                args: [],
-                configureBuilder: (appOptions, _) =>
-                {
-                    appOptions.DisableDashboard = true;
-                    appOptions.EnableResourceLogging = false;
-                },
-                cancellationToken: ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
+            var builder = await hostContext.RunStartupStepAsync(
+                "create Playwright Aspire test host",
+                token => DistributedApplicationTestingBuilder.CreateAsync(
+                    appHostProgramType,
+                    args: [],
+                    configureBuilder: (appOptions, _) =>
+                    {
+                        appOptions.DisableDashboard = true;
+                        appOptions.EnableResourceLogging = hostContext.ResourceLoggingEnabled;
+                    },
+                    cancellationToken: token),
+                ct);
 
             builder.Services.AddLogging(logging =>
             {
@@ -95,11 +109,19 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                 logging.AddFilter("Aspire.", LogLevel.Warning);
             });
 
-            app = await builder.BuildAsync(ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
-            await app.StartAsync(ct).WaitAsync(WasmAppHost.StartupTimeout, ct);
+            app = await hostContext.RunStartupStepAsync(
+                "build Playwright Aspire test host",
+                token => builder.BuildAsync(token),
+                ct);
+            hostContext.Attach(app);
+            await hostContext.RunStartupStepAsync(
+                "start Playwright Aspire test host",
+                token => app.StartAsync(token),
+                ct);
 
             var gatewayBaseUrl = await ResolveEndpointAsync(
                 app,
+                hostContext,
                 GatewayResourceName,
                 "PLAYWRIGHT_GATEWAY_URL",
                 ct);
@@ -109,6 +131,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             {
                 blazorBaseUrl = await ResolveEndpointAsync(
                     app,
+                    hostContext,
                     BlazorResourceName,
                     "PLAYWRIGHT_BLAZOR_URL",
                     ct);
@@ -129,7 +152,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             }
             else if (reactRunnable)
             {
-                await ResolveEndpointAsync(app, ReactResourceName, "PLAYWRIGHT_REACT_URL", ct);
+                await ResolveEndpointAsync(app, hostContext, ReactResourceName, "PLAYWRIGHT_REACT_URL", ct);
                 typeScriptProjects.Add("react");
             }
 
@@ -137,7 +160,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             {
                 if (unoTarget.HostWithAspire)
                 {
-                    var unoBaseUrl = await WasmAppHost.ResolveEndpointAsync(app, ct);
+                    var unoBaseUrl = await WasmAppHost.ResolveEndpointAsync(hostContext, app, ct);
                     diagnostics.Add($"Uno WASM hosted by Aspire at {unoBaseUrl}.");
                 }
 
@@ -145,18 +168,44 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             }
 
             return new PlaywrightAspireHost(
-                app,
+                hostContext,
                 gatewayBaseUrl,
                 blazorBaseUrl,
                 typeScriptProjects,
                 diagnostics,
                 originalEnvironment);
         }
+        catch (DockerUnavailableException)
+        {
+            RestoreEnvironment(originalEnvironment);
+            throw;
+        }
         catch
         {
             if (app is not null)
             {
-                await app.DisposeAsync();
+                foreach (var resourceName in new[]
+                {
+                    GatewayResourceName,
+                    BlazorResourceName,
+                    ReactResourceName,
+                    "taskflowuno",
+                    "taskflowapi",
+                    "taskflowdb",
+                    "taskflowmigrator"
+                })
+                {
+                    await hostContext.DumpResourceDiagnosticsAsync(resourceName, CancellationToken.None);
+                }
+
+                try
+                {
+                    await hostContext.StopAndDisposeAsync(CancellationToken.None);
+                }
+                catch (Exception cleanupException)
+                {
+                    Console.Error.WriteLine($"Aspire cleanup after startup failure also failed: {cleanupException.Message}");
+                }
             }
 
             RestoreEnvironment(originalEnvironment);
@@ -168,25 +217,66 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
     {
         try
         {
-            await _app.StopAsync().WaitAsync(CleanupTimeout);
-        }
-        catch (TimeoutException)
-        {
-            // Bounded cleanup: DisposeAsync still releases Aspire-owned resources.
-        }
-        catch
-        {
-            // Test process already failing; still dispose restore environment below.
+            await _hostContext.StopAndDisposeAsync(CancellationToken.None);
         }
         finally
         {
-            await _app.DisposeAsync();
             RestoreEnvironment(_originalEnvironment);
+        }
+    }
+
+    internal async Task<T> RunWithinStartupBudgetAsync<T>(
+        string stepName,
+        Func<CancellationToken, Task<T>> operation,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _hostContext.RunStartupStepAsync(stepName, operation, cancellationToken);
+        }
+        catch
+        {
+            await DumpDiagnosticsAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    internal async Task RunWithinStartupBudgetAsync(
+        string stepName,
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _hostContext.RunStartupStepAsync(stepName, operation, cancellationToken);
+        }
+        catch
+        {
+            await DumpDiagnosticsAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    internal async Task DumpDiagnosticsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var resourceName in new[]
+        {
+            GatewayResourceName,
+            BlazorResourceName,
+            ReactResourceName,
+            "taskflowuno",
+            "taskflowapi",
+            "taskflowdb",
+            "taskflowmigrator"
+        })
+        {
+            await _hostContext.DumpResourceDiagnosticsAsync(resourceName, cancellationToken);
         }
     }
 
     private static async Task<string> ResolveEndpointAsync(
         DistributedApplication app,
+        AspireTestHostContext hostContext,
         string resourceName,
         string environmentVariableName,
         CancellationToken ct)
@@ -197,8 +287,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             return configured.TrimEnd('/');
         }
 
-        await app.ResourceNotifications.WaitForResourceHealthyAsync(resourceName, ct)
-            .WaitAsync(WasmAppHost.StartupTimeout, ct);
+        await hostContext.WaitForResourceHealthyAsync(resourceName, ct);
 
         var endpoint = app.GetEndpoint(resourceName, HttpEndpointName).ToString().TrimEnd('/');
         Environment.SetEnvironmentVariable(environmentVariableName, endpoint);
@@ -227,6 +316,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         var reactRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
             "..", "..", "..", "..", "..",
+            "src",
             "UI",
             "TaskFlow.React"));
         var viteShim = OperatingSystem.IsWindows()
@@ -234,45 +324,8 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             : Path.Combine(reactRoot, "node_modules", ".bin", "vite");
 
         return File.Exists(Path.Combine(reactRoot, "package.json"))
-            && File.Exists(viteShim)
-            && CommandSucceeds(OperatingSystem.IsWindows() ? "node.exe" : "node", "--version");
+            && File.Exists(viteShim);
     }
 
-    private static bool CommandSucceeds(string fileName, string arguments)
-    {
-        try
-        {
-            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fileName, arguments)
-            {
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            });
-
-            if (process is null)
-            {
-                return false;
-            }
-
-            if (!process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch (InvalidOperationException)
-                {
-                }
-
-                return false;
-            }
-
-            return process.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    internal sealed class DockerUnavailableException(string message) : Exception(message);
 }

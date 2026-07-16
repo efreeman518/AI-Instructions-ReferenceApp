@@ -30,7 +30,10 @@ public class TaskItemCrudE2ETests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        await SqlApiFactory.StartContainerAsync();
+        await SqlApiFactory.StartContainerAsync(_.CancellationToken);
+        if (SqlApiFactory.DockerUnavailableReason is not null || SqlApiFactory.StartupError is not null)
+            return;
+
         _factory = new SqlApiFactory();
 
         // Apply EF migrations against the real SQL container
@@ -318,6 +321,19 @@ public class TaskItemCrudE2ETests
         // Remove through the aggregate root
         var delResp = await client.DeleteAsync($"/api/v1/task-items/{taskId}/checklist-items/{created.Id}", TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.NoContent, delResp.StatusCode);
+    }
+
+    [TestInitialize]
+    public void TestSetup()
+    {
+        if (SqlApiFactory.DockerUnavailableReason is not null)
+        {
+            Assert.Inconclusive(SqlApiFactory.DockerUnavailableReason);
+            return;
+        }
+
+        if (SqlApiFactory.StartupError is not null)
+            Assert.Fail($"SQL container startup failed after Docker preflight succeeded:{Environment.NewLine}{SqlApiFactory.StartupError}");
     }
 
     public TestContext TestContext { get; set; } = null!;

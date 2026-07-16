@@ -33,7 +33,7 @@ public class ApiAuditPipelineTests
 
     /// <summary>Verifies that given API category create, when request handled, then audit entry persisted to table storage.</summary>
     [TestMethod]
-    [Timeout(300000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_ApiCategoryCreate_When_RequestHandled_Then_AuditEntryPersistedToTableStorage()
     {
         var ct = CancellationToken.None;
@@ -117,60 +117,12 @@ public class ApiAuditPipelineTests
 
         if (lastException != null)
         {
-            DumpResourceState("taskflowapi");
-            await DumpResourceLogsAsync("taskflowapi", ct);
+            await AspireTestHost.DumpResourceDiagnosticsAsync("taskflowapi", ct);
             throw lastException;
         }
 
         Assert.Fail($"Category create API did not return 201. Last status: {lastStatusCode}; body: {lastBody}");
         throw new InvalidOperationException("Unreachable");
-    }
-
-    /// <summary>Verifies dump resource state behavior and protects the expected test contract.</summary>
-    private static void DumpResourceState(string resourceName)
-    {
-        if (AspireTestHost.AspireApp is null)
-            return;
-
-        if (!AspireTestHost.AspireApp.ResourceNotifications.TryGetCurrentState(resourceName, out var resourceEvent))
-        {
-            Console.WriteLine($"{resourceName} state: not found");
-            return;
-        }
-
-        var snapshot = resourceEvent.Snapshot;
-        Console.WriteLine(
-            $"{resourceName} state: {snapshot.State}; health: {snapshot.HealthStatus}; exit: {snapshot.ExitCode}; started: {snapshot.StartTimeStamp:O}; stopped: {snapshot.StopTimeStamp:O}");
-    }
-
-    /// <summary>Verifies dump resource logs behavior and protects the expected test contract.</summary>
-    private static async Task DumpResourceLogsAsync(string resourceName, CancellationToken ct)
-    {
-        if (AspireTestHost.AspireApp is null)
-            return;
-
-        var logs = AspireTestHost.AspireApp.Services.GetService<ResourceLoggerService>();
-        if (logs is null)
-        {
-            Console.WriteLine(
-                $"{resourceName}: resource logging disabled; set {AspireTestHost.ResourceLoggingEnvironmentVariable}=true to capture Aspire resource logs.");
-            return;
-        }
-
-        try
-        {
-            await foreach (var batch in logs.GetAllAsync(resourceName).WithCancellation(ct))
-            {
-                foreach (var line in batch)
-                {
-                    Console.WriteLine($"{resourceName}: {line}");
-                }
-            }
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"{resourceName}: resource logs unavailable: {ex.Message}");
-        }
     }
 
     /// <summary>Verifies wait for audit entity behavior and protects the expected test contract.</summary>

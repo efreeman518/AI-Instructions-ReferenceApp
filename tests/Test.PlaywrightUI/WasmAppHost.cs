@@ -3,6 +3,7 @@ using Aspire.Hosting.Testing;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using Test.Support.Aspire;
 
 namespace Test.PlaywrightUI.Hosting;
 
@@ -12,9 +13,6 @@ namespace Test.PlaywrightUI.Hosting;
 internal static class WasmAppHost
 {
     private const string TestsEnabledVariable = "TASKFLOW_WASM_TESTS_ENABLED";
-    private const string StartupTimeoutVariable = "TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS";
-    private const string RestoreTimeoutVariable = "TASKFLOW_WASM_RESTORE_TIMEOUT_SECONDS";
-    private const string BuildTimeoutVariable = "TASKFLOW_WASM_BUILD_TIMEOUT_SECONDS";
     private const string UnoResourceName = "taskflowuno";
     private const string HttpEndpointName = "http";
     private const string TargetFramework = "net10.0-browserwasm";
@@ -34,9 +32,7 @@ internal static class WasmAppHost
         "CORECLR_PROFILER_PATH_64"
     ];
 
-    internal static TimeSpan StartupTimeout => ReadTimeout(StartupTimeoutVariable, 900);
-
-    internal static async Task<WasmHostTarget> PrepareAsync(CancellationToken ct)
+    internal static async Task<WasmHostTarget> PrepareAsync(AspireTestHostContext host, CancellationToken ct)
     {
         if (IsExplicitlyDisabled(Environment.GetEnvironmentVariable(TestsEnabledVariable)))
         {
@@ -65,11 +61,12 @@ internal static class WasmAppHost
         }
 
         var configuration = GetCurrentConfiguration();
+        CleanTargetOutput(repoRoot, configuration);
 
         await RunDotnetAsync(
+            host,
             "Uno WASM restore",
             repoRoot,
-            ReadTimeout(RestoreTimeoutVariable, 600),
             [
                 "restore",
                 unoProject,
@@ -80,9 +77,9 @@ internal static class WasmAppHost
             ct);
 
         await RunDotnetAsync(
+            host,
             "Uno WASM build",
             repoRoot,
-            ReadTimeout(BuildTimeoutVariable, 1_200),
             [
                 "build",
                 unoProject,
@@ -106,10 +103,12 @@ internal static class WasmAppHost
             Message: $"Uno WASM assets restored and built for {configuration}/{TargetFramework}.");
     }
 
-    internal static async Task<string> ResolveEndpointAsync(DistributedApplication app, CancellationToken ct)
+    internal static async Task<string> ResolveEndpointAsync(
+        AspireTestHostContext host,
+        DistributedApplication app,
+        CancellationToken ct)
     {
-        await app.ResourceNotifications.WaitForResourceHealthyAsync(UnoResourceName, ct)
-            .WaitAsync(StartupTimeout, ct);
+        await host.WaitForResourceHealthyAsync(UnoResourceName, ct);
 
         var endpoint = app.GetEndpoint(UnoResourceName, HttpEndpointName).ToString().TrimEnd('/');
         Environment.SetEnvironmentVariable("PLAYWRIGHT_UNO_URL", endpoint);
@@ -120,22 +119,6 @@ internal static class WasmAppHost
         string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "0", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "no", StringComparison.OrdinalIgnoreCase);
-
-    private static TimeSpan ReadTimeout(string variableName, int defaultSeconds)
-    {
-        var configured = Environment.GetEnvironmentVariable(variableName);
-        if (string.IsNullOrWhiteSpace(configured))
-        {
-            return TimeSpan.FromSeconds(defaultSeconds);
-        }
-
-        if (!int.TryParse(configured, out var seconds) || seconds <= 0)
-        {
-            throw new InvalidOperationException($"{variableName} must be a positive integer number of seconds.");
-        }
-
-        return TimeSpan.FromSeconds(seconds);
-    }
 
     private static string? FindRepoRoot()
     {
@@ -159,7 +142,7 @@ internal static class WasmAppHost
         var outputDirectory = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar));
-        var configuration = outputDirectory.Parent?.Parent?.Name;
+        var configuration = outputDirectory.Parent?.Name;
         return string.IsNullOrWhiteSpace(configuration) ? "Debug" : configuration;
     }
 
@@ -186,77 +169,78 @@ internal static class WasmAppHost
     }
 
     private static async Task RunDotnetAsync(
+        AspireTestHostContext host,
         string stepName,
         string workingDirectory,
-        TimeSpan timeout,
         IReadOnlyList<string> arguments,
         CancellationToken ct)
     {
-        var fileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
-        var startInfo = new ProcessStartInfo(fileName)
+        await host.RunStartupStepAsync(stepName, RunAsync, ct);
+        return;
+
+        async Task RunAsync(CancellationToken stepToken)
         {
-            CreateNoWindow = true,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            WorkingDirectory = workingDirectory
-        };
+            var fileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+            var startInfo = new ProcessStartInfo(fileName)
+            {
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                WorkingDirectory = workingDirectory
+            };
 
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
+            foreach (var argument in arguments)
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
 
-        foreach (var variable in ProfilerVariables)
-        {
-            startInfo.Environment.Remove(variable);
-        }
+            foreach (var variable in ProfilerVariables)
+            {
+                startInfo.Environment.Remove(variable);
+            }
 
-        startInfo.Environment["CORECLR_ENABLE_PROFILING"] = "0";
-        startInfo.Environment["COR_ENABLE_PROFILING"] = "0";
-        startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
-        startInfo.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
-        startInfo.Environment["DOTNET_NOLOGO"] = "1";
+            startInfo.Environment["CORECLR_ENABLE_PROFILING"] = "0";
+            startInfo.Environment["COR_ENABLE_PROFILING"] = "0";
+            startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+            startInfo.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
+            startInfo.Environment["DOTNET_NOLOGO"] = "1";
 
-        using var process = StartProcess(startInfo, stepName);
-        var stdout = process.StandardOutput.ReadToEndAsync(ct);
-        var stderr = process.StandardError.ReadToEndAsync(ct);
+            using var process = StartProcess(startInfo, stepName);
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
 
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeout);
+            try
+            {
+                await process.WaitForExitAsync(stepToken);
+            }
+            catch (OperationCanceledException)
+            {
+                TryKill(process);
+                await process.WaitForExitAsync(CancellationToken.None);
+                var timedOutOutput = await ReadOutputAsync(stdout, stderr);
+                Console.Error.WriteLine($"{stepName} cancelled by the global startup deadline.{Environment.NewLine}{timedOutOutput}");
+                throw;
+            }
 
-        try
-        {
-            await process.WaitForExitAsync(timeoutCts.Token);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            TryKill(process);
-            var timedOutOutput = await ReadOutputAsync(stdout, stderr);
-            throw new TimeoutException(
-                $"{stepName} exceeded {timeout.TotalSeconds:0} seconds. "
-                + $"Increase the matching {TimeoutVariableFor(stepName)} value if the machine is legitimately slower."
+            var output = await ReadOutputAsync(stdout, stderr);
+            if (process.ExitCode == 0)
+            {
+                return;
+            }
+
+            if (LooksLikeMissingWasmWorkload(output))
+            {
+                throw new WasmPrerequisiteException(
+                    "Uno WASM workload missing. Run: dotnet workload install wasm-tools",
+                    output);
+            }
+
+            throw new InvalidOperationException(
+                $"{stepName} failed with exit code {process.ExitCode}. Command: dotnet {FormatArguments(arguments)}"
                 + Environment.NewLine
-                + timedOutOutput);
+                + output);
         }
-
-        var output = await ReadOutputAsync(stdout, stderr);
-        if (process.ExitCode == 0)
-        {
-            return;
-        }
-
-        if (LooksLikeMissingWasmWorkload(output))
-        {
-            throw new WasmPrerequisiteException(
-                "Uno WASM workload missing. Run: dotnet workload install wasm-tools",
-                output);
-        }
-
-        throw new InvalidOperationException(
-            $"{stepName} failed with exit code {process.ExitCode}. Command: dotnet {FormatArguments(arguments)}"
-            + Environment.NewLine
-            + output);
     }
 
     private static Process StartProcess(ProcessStartInfo startInfo, string stepName)
@@ -281,11 +265,6 @@ internal static class WasmAppHost
     private static bool LooksLikeMissingWasmWorkload(string output) =>
         output.Contains("UNOWA0001", StringComparison.OrdinalIgnoreCase)
         || output.Contains("wasm-tools workload could not be located", StringComparison.OrdinalIgnoreCase);
-
-    private static string TimeoutVariableFor(string stepName) =>
-        stepName.Contains("restore", StringComparison.OrdinalIgnoreCase)
-            ? RestoreTimeoutVariable
-            : BuildTimeoutVariable;
 
     private static string FormatArguments(IEnumerable<string> arguments) =>
         string.Join(" ", arguments.Select(argument =>

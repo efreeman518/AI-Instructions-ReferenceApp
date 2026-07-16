@@ -31,8 +31,8 @@ public class DomainEventPipelineTests
     [ClassInitialize]
     public static async Task ClassInit(TestContext _)
     {
-        if (SqlContainerFixture.StartupError != null)
-            return; // tests mark themselves Inconclusive in TestSetup
+        if (IntegrationTestSetup.IsUnavailable(SqlContainerFixture.StartupError))
+            return;
         await using var db = SqlContainerFixture.CreateTrxnContext();
         await db.Database.MigrateAsync(_.CancellationToken);
     }
@@ -41,8 +41,7 @@ public class DomainEventPipelineTests
     [TestInitialize]
     public void TestSetup()
     {
-        if (SqlContainerFixture.StartupError != null)
-            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     /// <summary>Verifies that given task item created, when projection runs, then task view produced.</summary>

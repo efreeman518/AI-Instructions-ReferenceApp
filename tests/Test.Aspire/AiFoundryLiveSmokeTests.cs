@@ -10,7 +10,7 @@ namespace Test.Aspire;
 ///
 /// Selection:
 /// 1. Azure Foundry runs when explicit Azure config is present.
-/// 2. With no Azure provider, these tests are inconclusive instead of silently passing.
+/// 2. With no Azure provider, these tests are inconclusive instead of failing the suite.
 ///
 /// <c>TASKFLOW_LIVE_AI_BASE_URL</c> can override the request target for manual runs, but it is not an opt-in.
 /// </summary>
@@ -28,24 +28,28 @@ public partial class AiFoundryLiveSmokeTests
 
     /// <summary>Boots the shared Aspire graph before model-backed endpoint checks run.</summary>
     [ClassInitialize]
-    public static Task ClassInit(TestContext context) => AspireTestHost.EnsureStartedAsync(context);
+    public static Task ClassInit(TestContext context)
+    {
+        AspireTestHost.RequireAzureFoundryOrInconclusive();
+        return AspireTestHost.EnsureStartedAsync(context);
+    }
 
     /// <summary>Verifies D1 reaches the active configured model and returns non-empty assistant text.</summary>
     [TestMethod]
-    [Timeout(360000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_ChatEndpointCalled_Then_ConfiguredModelResponds()
     {
-        using var client = await CreateFoundryClientOrInconclusiveAsync();
+        using var client = await CreateFoundryClientAsync();
 
         await AssertConfiguredChatAsync(client, "Answer in one short sentence: what does TaskFlow track?");
     }
 
     /// <summary>Verifies D3 reaches the code-hosted task assistant agent over the active model.</summary>
     [TestMethod]
-    [Timeout(360000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_AgentChatEndpointCalled_Then_ConfiguredAgentResponds()
     {
-        using var client = await CreateFoundryClientOrInconclusiveAsync();
+        using var client = await CreateFoundryClientAsync();
 
         var ct = TestContext.CancellationToken;
         using var response = await client.PostAsJsonAsync(
@@ -66,10 +70,10 @@ public partial class AiFoundryLiveSmokeTests
 
     /// <summary>Verifies D4 can classify a real task through the active model without applying writes.</summary>
     [TestMethod]
-    [Timeout(360000, CooperativeCancellation = true)]
+    [Timeout(1_200_000, CooperativeCancellation = true)]
     public async Task Given_FoundryBackedAppHost_When_TaskTriageCalled_Then_TriageContractReturnedWithoutApplyingWrites()
     {
-        using var client = await CreateFoundryClientOrInconclusiveAsync();
+        using var client = await CreateFoundryClientAsync();
 
         var ct = TestContext.CancellationToken;
         var taskId = await CreateTaskAsync(client, "Live AI triage smoke " + Guid.NewGuid().ToString("N"), ct);
@@ -104,14 +108,9 @@ public partial class AiFoundryLiveSmokeTests
         Assert.DoesNotMatchRegex(MyRegex(), assistantMessage);
     }
 
-    internal async Task<HttpClient> CreateFoundryClientOrInconclusiveAsync()
+    internal async Task<HttpClient> CreateFoundryClientAsync()
     {
-        if (AspireTestHost.AiProvider == AspireAiProvider.None)
-        {
-            Assert.Inconclusive(
-                "Azure AI Foundry is not configured. Run Test.FoundryLocal for local live smoke coverage.");
-            throw new InvalidOperationException("Unreachable");
-        }
+        AspireTestHost.RequireAzureFoundryOrInconclusive();
 
         var baseUrl = Environment.GetEnvironmentVariable(LiveBaseUrlVariable);
         HttpClient client;
@@ -137,7 +136,7 @@ public partial class AiFoundryLiveSmokeTests
 
         try
         {
-            await AssertFoundryConfiguredOrInconclusiveAsync(client);
+            await AssertFoundryConfiguredAsync(client);
             return client;
         }
         catch
@@ -214,37 +213,19 @@ public partial class AiFoundryLiveSmokeTests
     private static string Truncate(string value) =>
         value.Length <= 1000 ? value : value[..1000] + "...";
 
-    private async Task AssertFoundryConfiguredOrInconclusiveAsync(HttpClient client)
+    private async Task AssertFoundryConfiguredAsync(HttpClient client)
     {
         var ct = TestContext.CancellationToken;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
 
-        string? unavailableReason = null;
-        try
-        {
-            using var response = await client.GetAsync(ApiPath(client, "api/v1/ai/status"), timeout.Token);
-            if (!response.IsSuccessStatusCode)
-            {
-                Assert.Inconclusive($"AI status endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
-            }
+        using var response = await client.GetAsync(ApiPath(client, "api/v1/ai/status"), timeout.Token);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, "AI status endpoint must succeed after AppHost startup.");
 
-            var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
-            if (status?.Provider != "azure" || status.IsConfigured != true)
-            {
-                Assert.Inconclusive(
-                    $"Azure AI Foundry is not active. AI status provider={status?.Provider ?? "unknown"} configured={status?.IsConfigured.ToString() ?? "unknown"}.");
-            }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            unavailableReason = $"AI status endpoint unavailable: {ex.Message}";
-        }
-
-        if (unavailableReason is not null)
-        {
-            Assert.Inconclusive(unavailableReason);
-        }
+        var status = await response.Content.ReadFromJsonAsync<AspireTestHost.AiStatus>(cancellationToken: timeout.Token);
+        Assert.IsNotNull(status);
+        Assert.AreEqual("azure", status.Provider);
+        Assert.IsTrue(status.IsConfigured);
     }
 
     private static void AssertHasText(JsonElement element, string propertyName)

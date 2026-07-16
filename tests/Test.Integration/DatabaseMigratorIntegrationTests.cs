@@ -14,10 +14,7 @@ public sealed class DatabaseMigratorIntegrationTests
     [TestInitialize]
     public void TestSetup()
     {
-        if (SqlContainerFixture.StartupError != null)
-        {
-            Assert.Inconclusive($"SQL container startup failed: {SqlContainerFixture.StartupError.Message}");
-        }
+        IntegrationTestSetup.AssertAvailable("SQL", SqlContainerFixture.StartupError);
     }
 
     [TestMethod]

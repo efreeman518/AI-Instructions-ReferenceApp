@@ -8,10 +8,10 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Field | Value |
 |---|---|
-| Last verified | 2026-06-18 |
+| Last verified | 2026-07-16 |
 | Solution | `TaskFlow.slnx` |
 | Target framework | .NET 10 |
-| Projects | 39 |
+| Projects | 41 |
 | Errors | 0 |
 | Warnings | 0 |
 
@@ -21,22 +21,26 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Project | Category filter | Verified count | Notes |
 |---|---|---:|---|
-| Test.Unit | `TestCategory=Unit` | 200 | mocked unit tests; re-verified 2026-07-08 (added 3 TaskItem secure-property tests for D-019; count reconciled - prior 243 was stale from earlier unrelated test churn) |
-| Test.Architecture | `TestCategory=Architecture` | 22 | NetArchTest layering rules; verified 2026-06-18 |
-| Test.Endpoints | `TestCategory=Endpoint` | 34 | WebApplicationFactory in-memory contract tests; verified 2026-06-18 |
-| Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-06-18 through Podman-backed Docker context |
-| Test.Integration | `TestCategory=Integration` | 15 | service-level vs real SQL via Testcontainers; verified 2026-06-18 through Podman-backed Docker context |
-| Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; verified 2026-06-18 |
-| Test.Aspire | multiple (`Aspire`, `Foundry`, `Integration`, `LiveAI`) | 13 | Single shared RID-free Aspire mesh graph for API, Gateway, Blazor, React, Uno, Functions, audit, and Azure Foundry capability probes; Foundry Local live coverage belongs to `Test.FoundryLocal`; verified 2026-07-08 through Podman-backed Docker context |
-| Test.PlaywrightUI | n/a (Node.js) | - | hosted-stack required (see below) |
-| Test.Load | `TestCategory=Load` | - | NBomber; `[Ignore]` by default; manual run |
+| Test.Unit | `TestCategory=Unit` | 207 | includes 3 shared Aspire deadline-policy tests; verified 2026-07-16 |
+| Test.Architecture | `TestCategory=Architecture` | 22 | NetArchTest layering rules; verified 2026-07-16 |
+| Test.Endpoints | `TestCategory=Endpoint` | 43 | WebApplicationFactory in-memory contract tests; verified 2026-07-16 |
+| Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-07-16 |
+| Test.Integration | `TestCategory=Integration` | 25 | service-level tests against real SQL and Azurite Testcontainers; verified 2026-07-16 |
+| Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; verified 2026-07-16 |
+| Test.Aspire | multiple (`Aspire`, `Foundry`, `Integration`, `LiveAI`) | 20 | 15 passed; 5 inconclusive because Azure Foundry was not configured. Shared RID-free Aspire mesh covered API, Gateway, Blazor, React, Uno, Functions, audit, and provider topology; verified 2026-07-16 |
+| Test.FoundryLocal | `FoundryLocal`, `LiveAI` | 3 | live run: 2 passed, 1 slow generation inconclusive; serial acceptance explicitly opted out this dedicated external-resource lane |
+| Test.PlaywrightUI | `PlaywrightUI`, `WasmUI` | 4 | C# Aspire adapter ran Blazor, React, Uno WASM, and Gateway/Blazor browser smokes; all passed 2026-07-16 |
+| Test.UI | `UI`, `Presentation` | 55 | headless presentation and client-contract tests; verified 2026-07-16 |
+| Test.Mobile | `MobileUI` | 3 | explicitly disabled for serial acceptance; dedicated runner remains the enabled-lane gate |
+| Test.Load | `TestCategory=Load` | 2 | NBomber; `[Ignore]` by default; manual run |
+| Test.Mutation | n/a | 33 | mutation-target contract tests; verified 2026-07-16 |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
-**Current automated verification:** Test.Unit re-verified 2026-07-08 (200 passing, incl. D-019 secure-property tests) plus the `has-pending-model-changes` drift check for `TaskFlowDbContextTrxn` (clean). Architecture/Endpoint/E2E/Integration/Integration.FlowEngine/Aspire counts carry forward from 2026-06-18 and were NOT re-run this session (need a container runtime); re-run the full suite to reconfirm the aggregate. Docker-compatible runtime verified through Podman context `podman-machine-default`; Aspire runtime verified with `ASPIRE_CONTAINER_RUNTIME=podman`.
+**Current automated verification:** `dotnet build TaskFlow.slnx --no-restore -m:1` and the separate Uno build passed with 0 warnings/errors. Unfiltered serial `dotnet test TaskFlow.slnx --no-build -m:1` passed in 729.1 s with 427 passed and 13 skipped: Azure Foundry, Foundry Local, and mobile were explicitly opted out; 2 existing load tests stayed ignored by default. Aspire, Functions, E2E, Integration, Playwright, React, and Uno WASM all ran. A separate no-opt-out `Test.Aspire` run passed 15 with 5 unavailable-Azure tests inconclusive; a real `Test.FoundryLocal` run passed 2 with 1 slow generation test inconclusive. Docker-compatible runtime and Aspire startup were verified on 2026-07-16.
 
 ### Playwright (`tests/Test.PlaywrightUI/`)
 
-Node.js Playwright suite. Run `npm install` inside the folder before first use. Tests run against a real running stack (Aspire AppHost or docker-compose). Set `PLAYWRIGHT_BASE_URL` to the host URL printed by `dotnet run --project src/Host/Aspire/AppHost`.
+C# MSTest adapter owns the Aspire graph through `AspireTestHostContext`, resolves named endpoints, and runs C# plus installed TypeScript Playwright projects. It uses one cumulative startup deadline across Docker preflight, Uno restore/build, AppHost startup/readiness, and browser launch. Run `npm ci` inside the folder before first use; endpoint override variables are optional targets, not enable flags.
 
 ## Vulnerability Status
 

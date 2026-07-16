@@ -5,8 +5,8 @@ namespace Test.Integration.Infrastructure;
 /// <summary>
 /// Standalone Azurite Testcontainer for the component tier. Provides a real Table Storage endpoint for
 /// the audit-repository test without booting the Aspire AppHost graph. Started once by
-/// <see cref="IntegrationTestSetup"/>; <see cref="StartupError"/> is captured (not thrown) so a container
-/// failure marks only the dependent tests Inconclusive instead of aborting the whole assembly.
+/// <see cref="IntegrationTestSetup"/>; <see cref="StartupError"/> is captured so dependent tests fail with
+/// its diagnostics without aborting assembly discovery.
 /// </summary>
 internal static class AzuriteContainerFixture
 {
@@ -21,7 +21,7 @@ internal static class AzuriteContainerFixture
     /// <summary>Azurite connection string (blob/queue/table). Only valid once startup succeeded.</summary>
     internal static string ConnectionString => Azurite.GetConnectionString();
 
-    /// <summary>Starts the Azurite container, capturing any failure for the Inconclusive-on-failure pattern.</summary>
+    /// <summary>Starts the Azurite container, capturing any post-preflight failure for dependent tests.</summary>
     internal static async Task StartAsync()
     {
         try
