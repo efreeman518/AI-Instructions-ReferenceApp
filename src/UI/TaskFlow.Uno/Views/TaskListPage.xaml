@@ -399,9 +399,9 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Command="{Binding DataContext.GoToPage, ElementName=TaskListRoot}"
-                                                    CommandParameter="{Binding}"
+                                                    CommandParameter="{Binding Value}"
                                                     Style="{StaticResource PagerNumberButtonStyle}">
-                                                <TextBlock Text="{Binding}" />
+                                                <TextBlock Text="{Binding Value}" />
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -453,9 +453,9 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Button Command="{Binding DataContext.GoToPage, ElementName=TaskListRoot}"
-                                                        CommandParameter="{Binding}"
+                                                        CommandParameter="{Binding Value}"
                                                         Style="{StaticResource PagerNumberButtonStyle}">
-                                                    <TextBlock Text="{Binding}" />
+                                                    <TextBlock Text="{Binding Value}" />
                                                 </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

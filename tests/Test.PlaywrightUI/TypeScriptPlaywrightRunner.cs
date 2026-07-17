@@ -101,7 +101,8 @@ internal static class TypeScriptPlaywrightRunner
         startInfo.ArgumentList.Add($"--project={project}");
         startInfo.ArgumentList.Add("--retries=0");
         startInfo.ArgumentList.Add("--max-failures=1");
-        startInfo.ArgumentList.Add($"--timeout={ReadSeconds(TestTimeoutVariable, project == "uno" ? 180 : 90) * 1000}");
+        var isUno = project.StartsWith("uno", StringComparison.OrdinalIgnoreCase);
+        startInfo.ArgumentList.Add($"--timeout={ReadSeconds(TestTimeoutVariable, isUno ? 180 : 90) * 1000}");
 
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Failed to start Playwright project {project}.");
@@ -112,7 +113,7 @@ internal static class TypeScriptPlaywrightRunner
         var stderr = process.StandardError.ReadToEndAsync();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(ReadSeconds(ProjectTimeoutVariable, project == "uno" ? 360 : 180)));
+        timeout.CancelAfter(TimeSpan.FromSeconds(ReadSeconds(ProjectTimeoutVariable, isUno ? 360 : 180)));
 
         try
         {

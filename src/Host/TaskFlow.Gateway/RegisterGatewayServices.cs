@@ -1,12 +1,12 @@
 using Azure.Core;
 using Azure.Identity;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using TaskFlow.Gateway.HealthChecks;
+using TaskFlow.Application.Contracts;
 using Yarp.ReverseProxy.Transforms;
 
 namespace TaskFlow.Gateway;
@@ -17,6 +17,8 @@ namespace TaskFlow.Gateway;
 /// </summary>
 public static class RegisterGatewayServices
 {
+    private const string OriginalUserClaimsHeaderName = "X-Orig-Request";
+
     /// <summary>
     /// Registers gateway-only services. The API remains the authorization and business boundary;
     /// the gateway handles edge auth and downstream token exchange.
@@ -38,46 +40,11 @@ public static class RegisterGatewayServices
     /// <summary>Registers authentication dependencies in the service container.</summary>
     private static void AddAuthentication(IServiceCollection services, IConfiguration config)
     {
-        var entraSection = config.GetSection("EntraExternal");
-        if (!entraSection.Exists() || string.IsNullOrWhiteSpace(entraSection["ClientId"]))
-        {
-            // Dev mode: register no-op auth so middleware doesn't reject requests
-            services.AddAuthentication().AddJwtBearer(options =>
-            {
-                // No validation - scaffold passthrough
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = false,
-                    ValidateIssuerSigningKey = false,
-                    RequireSignedTokens = false,
-                    RequireExpirationTime = false,
-                    SignatureValidator = (token, _) => new Microsoft.IdentityModel.JsonWebTokens.JsonWebToken(token)
-                };
-            });
-            return;
-        }
+        _ = AuthModeResolver.Resolve(config[AuthModeResolver.ConfigKey]);
 
-        // Production: Entra External ID JWT Bearer
-        var instance = GetRequiredValue(entraSection, "Instance");
-        var tenantId = GetRequiredValue(entraSection, "TenantId");
-
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.Authority = $"{instance.TrimEnd('/')}/{tenantId}/v2.0";
-                options.Audience = GetRequiredValue(entraSection, "ClientId");
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = $"{instance.TrimEnd('/')}/{tenantId}/v2.0",
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    RoleClaimType = "roles",
-                    NameClaimType = "name"
-                };
-            });
+        services.AddAuthentication(ScaffoldAuthHandler.SchemeName)
+            .AddScheme<AuthenticationSchemeOptions, ScaffoldAuthHandler>(
+                ScaffoldAuthHandler.SchemeName, _ => { });
     }
 
     /// <summary>Registers reverse proxy dependencies in the service container.</summary>
@@ -107,7 +74,15 @@ public static class RegisterGatewayServices
     /// <summary>Registers original user claims header dependencies in the service container.</summary>
     private static void AddOriginalUserClaimsHeader(RequestTransformContext ctx)
     {
-        var user = ctx.HttpContext.User;
+        ReplaceOriginalUserClaimsHeader(ctx.ProxyRequest!, ctx.HttpContext.User);
+    }
+
+    /// <summary>Removes untrusted inbound claim data before writing the authenticated gateway identity.</summary>
+    internal static void ReplaceOriginalUserClaimsHeader(
+        HttpRequestMessage proxyRequest,
+        ClaimsPrincipal user)
+    {
+        proxyRequest.Headers.Remove(OriginalUserClaimsHeaderName);
         if (user.Identity?.IsAuthenticated != true) return;
 
         var claimsPayload = new
@@ -122,7 +97,7 @@ public static class RegisterGatewayServices
 
         var json = JsonSerializer.Serialize(claimsPayload);
         var encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
-        ctx.ProxyRequest!.Headers.TryAddWithoutValidation("X-Orig-Request", encoded);
+        proxyRequest.Headers.TryAddWithoutValidation(OriginalUserClaimsHeaderName, encoded);
     }
 
     /// <summary>Registers cors dependencies in the service container.</summary>
@@ -192,9 +167,4 @@ public static class RegisterGatewayServices
         });
     }
 
-    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    private static string GetRequiredValue(IConfigurationSection section, string key) =>
-        section[key] is { Length: > 0 } value
-            ? value
-            : throw new InvalidOperationException($"Missing configuration value '{section.Path}:{key}'.");
 }

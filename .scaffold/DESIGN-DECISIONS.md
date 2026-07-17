@@ -46,7 +46,7 @@ flowchart TD
 | ID | Branch | Decision | Selected Option | Depends On | Status | Rationale | Affects |
 |---|---|---|---|---|---|---|---|
 | D-001 | Tenancy | Tenant isolation model | Row-level tenancy | none | confirmed | Demonstrates tenant filters, tenant boundary validation, and global-admin bypass without multiplying schemas/databases. | Phase 1, Phase 2, Phase 5a, Phase 5b, Phase 5e |
-| D-002 | Auth | Auth scenario | `EntraID` API auth, `EntraExternal` gateway auth, scaffold mode locally | D-001 | confirmed | Shows production auth shape while allowing local boot without cloud identity. | Phase 5e |
+| D-002 | Auth | Auth scenario | Automatic scaffold principal for the reference proof; live `EntraID`/`EntraExternal` remains deployment-only | D-001 | confirmed | The reference app must boot and exercise every protected surface without a login or cloud identity. `AuthMode: Scaffold` is the supported proof path; interactive provider registration, client login UI, and live-token acceptance are production deployment work, not reference-app test prerequisites. | Phase 5e |
 | D-003 | Data | Authoritative entity store | SQL Server for all authoritative entities | D-001 | confirmed | Relational joins are needed for hierarchy, task/category references, and many-to-many tags. | Phase 2, Phase 5a |
 | D-004 | Data | Read model projection | Cosmos DB `TaskView` projection | D-003, D-006 | confirmed | Demonstrates denormalized query model and reconciliation pattern. | Phase 5b, post-phase hardening |
 | D-005 | Storage | Attachment content store | Blob Storage | D-003 | confirmed | Binary content belongs in object storage; domain keeps metadata and URI. | Phase 2, Phase 5b |
@@ -67,7 +67,7 @@ flowchart TD
 
 | ID | Revisit In | Blocking? | Needed Before | Notes |
 |---|---|---|---|---|
-| D-013 | Deployment | no | Production deployment | Live Entra, Foundry, and AI Search provisioning remain deployment-only. |
+| D-013 | Deployment | no | Production deployment | Live Entra registration, roles, consent, per-head interactive sign-in, Foundry, and AI Search provisioning remain deployment-only. |
 
 ## Superseded Decisions
 

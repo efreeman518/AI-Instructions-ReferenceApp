@@ -1,4 +1,7 @@
-<Project Sdk="Uno.Sdk/6.5.36">
+<Project Sdk="Uno.Sdk/6.6.0-dev.166">
+
+  <!-- shortcut: this prerelease contains the upstream WASM RootElement startup-race fix;
+       move to the first stable Uno.Sdk 6.6+ release when available. -->
   <PropertyGroup>
     <!-- Clear singular TargetFramework inherited from Directory.Build.props -->
     <TargetFramework />
@@ -34,11 +37,19 @@
       Skia;
       SkiaRenderer;
       ThemeService;
-      Authentication;
     </UnoFeatures>
 
     <!-- Default to the real gateway. Enable mock mode explicitly with /p:UseMocks=true when needed. -->
     <UseMocks Condition="'$(UseMocks)'==''">false</UseMocks>
+
+    <!-- Release artifacts must not carry interactive design/MCP tooling. -->
+    <UnoDisableHotDesign Condition="'$(Configuration)'=='Release'">true</UnoDisableHotDesign>
+    <UnoDisableMCPSupport Condition="'$(Configuration)'=='Release'">true</UnoDisableMCPSupport>
+
+    <!-- shortcut: current stable Uno Navigation/Toolkit/WinUI packages emit upstream IL2104
+         analysis failures under repository-wide TreatWarningsAsErrors. Re-enable trimming when
+         those dependencies publish trim-clean annotations; keep Release publishing unblocked meanwhile. -->
+    <PublishTrimmed Condition="'$(Configuration)'=='Release' AND '$(TargetFramework)'!='' AND $(TargetFramework.Contains('-browserwasm'))">false</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>

@@ -12,7 +12,13 @@ public class DesignTimeDbContextFactoryTrxn : IDesignTimeDbContextFactory<TaskFl
     {
         var connString = DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextTrxn>();
-        optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
+        optionsBuilder.UseSqlServer(connString, sql =>
+        {
+            sql.UseLatestCompatibilityLevel();
+            sql.MigrationsHistoryTable(
+                TaskFlowDbContextBase.MigrationHistoryTable,
+                TaskFlowDbContextBase.SchemaName);
+        });
         return new TaskFlowDbContextTrxn(optionsBuilder.Options)
         {
             AuditId = "DesignTimeAuditId",
@@ -29,7 +35,13 @@ public class DesignTimeDbContextFactoryQuery : IDesignTimeDbContextFactory<TaskF
     {
         var connString = DesignTimeConnectionStrings.Require("EFCORETOOLSDB");
         var optionsBuilder = new DbContextOptionsBuilder<TaskFlowDbContextQuery>();
-        optionsBuilder.UseSqlServer(connString, sql => sql.UseLatestCompatibilityLevel());
+        optionsBuilder.UseSqlServer(connString, sql =>
+        {
+            sql.UseLatestCompatibilityLevel();
+            sql.MigrationsHistoryTable(
+                TaskFlowDbContextBase.MigrationHistoryTable,
+                TaskFlowDbContextBase.SchemaName);
+        });
         return new TaskFlowDbContextQuery(optionsBuilder.Options)
         {
             AuditId = "DesignTimeAuditId",

@@ -266,10 +266,16 @@ if (!isTesting || reactAvailableInTesting)
 
 if (!isTesting || unoWasmAvailableInTesting)
 {
-    builder.AddProject<Projects.TaskFlow_Uno_WasmHost>("taskflowuno")
+    var unoWasm = builder.AddProject<Projects.TaskFlow_Uno_WasmHost>("taskflowuno")
         .WithReference(gateway)
         .WaitFor(gateway)
         .WithExternalHttpEndpoints();
+
+    var publishedDistPath = Environment.GetEnvironmentVariable("TASKFLOW_UNO_WASM_DIST_PATH");
+    if (isTesting && !string.IsNullOrWhiteSpace(publishedDistPath))
+    {
+        unoWasm.WithEnvironment("UnoWasm__DistPath", publishedDistPath);
+    }
 }
 
 if (!isTesting || functionsAvailableInTesting)

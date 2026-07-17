@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,9 @@ if (!File.Exists(indexPath))
 }
 
 Directory.CreateDirectory(distPath);
+var webRootPath = Path.Combine(distPath, "wwwroot");
+Directory.CreateDirectory(webRootPath);
+var fileProvider = new PhysicalFileProvider(webRootPath);
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings[".dat"] = "application/octet-stream";
@@ -61,14 +65,19 @@ var cacheHeaders = new Action<StaticFileResponseContext>(context =>
 });
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", distPath }));
-app.UseDefaultFiles();
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    FileProvider = fileProvider
+});
 app.UseStaticFiles(new StaticFileOptions
 {
+    FileProvider = fileProvider,
     ContentTypeProvider = contentTypeProvider,
     OnPrepareResponse = cacheHeaders
 });
 app.MapFallbackToFile("index.html", new StaticFileOptions
 {
+    FileProvider = fileProvider,
     ContentTypeProvider = contentTypeProvider,
     OnPrepareResponse = cacheHeaders
 });

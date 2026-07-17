@@ -1,60 +1,24 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using TaskFlow.Application.Contracts;
 
 namespace TaskFlow.Api.Auth;
 
 /// <summary>
-/// Config-driven API authentication. Scaffold mode supplies a predictable local identity;
-/// EntraID mode validates bearer tokens for deployed environments.
+/// Config-driven API authentication. TaskFlow supports scaffold mode so the reference app runs
+/// with a predictable identity and no interactive or external identity-provider dependency.
 /// </summary>
 public static class AuthConfiguration
 {
     /// <summary>
-    /// Registers authentication based on AuthMode config.
-    /// "Scaffold" -> ScaffoldAuthHandler (no external provider needed).
-    /// "EntraID" -> JWT Bearer with Entra ID validation.
+    /// Registers the scaffold authentication handler after validating AuthMode.
     /// </summary>
     public static IServiceCollection AddTaskFlowAuth(this IServiceCollection services, IConfiguration config)
     {
-        var mode = config["AuthMode"] ?? "Scaffold";
+        _ = AuthModeResolver.Resolve(config[AuthModeResolver.ConfigKey]);
 
-        if (mode.Equals("Scaffold", StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddAuthentication(ScaffoldAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, ScaffoldAuthHandler>(
-                    ScaffoldAuthHandler.SchemeName, _ => { });
-            return services;
-        }
-
-        // Production: Entra ID JWT Bearer
-        var section = config.GetSection("EntraID");
-
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                var tenantId = GetRequiredValue(section, "TenantId");
-                var instance = GetRequiredValue(section, "Instance");
-
-                options.Authority = $"{instance.TrimEnd('/')}/{tenantId}/v2.0";
-                options.Audience = GetRequiredValue(section, "ClientId");
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = $"{instance.TrimEnd('/')}/{tenantId}/v2.0",
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    RoleClaimType = "roles",
-                    NameClaimType = "name"
-                };
-            });
-
+        services.AddAuthentication(ScaffoldAuthHandler.SchemeName)
+            .AddScheme<AuthenticationSchemeOptions, ScaffoldAuthHandler>(
+                ScaffoldAuthHandler.SchemeName, _ => { });
         return services;
     }
-
-    /// <summary>Loads requested data and maps missing records to the expected response.</summary>
-    private static string GetRequiredValue(IConfigurationSection section, string key) =>
-        section[key] is { Length: > 0 } value
-            ? value
-            : throw new InvalidOperationException($"Missing configuration value '{section.Path}:{key}'.");
 }

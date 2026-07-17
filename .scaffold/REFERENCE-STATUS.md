@@ -8,7 +8,7 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Field | Value |
 |---|---|
-| Last verified | 2026-07-16 |
+| Last verified | 2026-07-17 |
 | Solution | `TaskFlow.slnx` |
 | Target framework | .NET 10 |
 | Projects | 41 |
@@ -21,22 +21,24 @@ Current verified status of the TaskFlow reference application. Used by the proof
 
 | Project | Category filter | Verified count | Notes |
 |---|---|---:|---|
-| Test.Unit | `TestCategory=Unit` | 207 | includes 3 shared Aspire deadline-policy tests; verified 2026-07-16 |
+| Test.Unit | `TestCategory=Unit` | 221 | includes scaffold-auth, proxy-forwarding, migration-history registration, and shared Aspire deadline-policy tests; verified 2026-07-17 |
 | Test.Architecture | `TestCategory=Architecture` | 22 | NetArchTest layering rules; verified 2026-07-16 |
-| Test.Endpoints | `TestCategory=Endpoint` | 43 | WebApplicationFactory in-memory contract tests; verified 2026-07-16 |
+| Test.Endpoints | `TestCategory=Endpoint` | 43 | WebApplicationFactory in-memory contract tests; verified 2026-07-17 |
 | Test.E2E | `TestCategory=E2E` | 7 | WebApplicationFactory + Testcontainers SQL workflow chains; verified 2026-07-16 |
-| Test.Integration | `TestCategory=Integration` | 25 | service-level tests against real SQL and Azurite Testcontainers; verified 2026-07-16 |
+| Test.Integration | `TestCategory=Integration` | 26 | service-level tests against real SQL and Azurite Testcontainers, including schema-pinned EF history and legacy `dbo` relocation; verified 2026-07-17 |
 | Test.Integration.FlowEngine | `TestCategory=Integration` | 16 | workflow JSON validity (deserialize, validator, in-memory registry round-trip, builder, file-presence guard); no Aspire/Docker; verified 2026-07-16 |
 | Test.Aspire | multiple (`Aspire`, `Foundry`, `Integration`, `LiveAI`) | 20 | 15 passed; 5 inconclusive because Azure Foundry was not configured. Shared RID-free Aspire mesh covered API, Gateway, Blazor, React, Uno, Functions, audit, and provider topology; verified 2026-07-16 |
 | Test.FoundryLocal | `FoundryLocal`, `LiveAI` | 3 | live run: 2 passed, 1 slow generation inconclusive; serial acceptance explicitly opted out this dedicated external-resource lane |
-| Test.PlaywrightUI | `PlaywrightUI`, `WasmUI` | 4 | C# Aspire adapter ran Blazor, React, Uno WASM, and Gateway/Blazor browser smokes; all passed 2026-07-16 |
-| Test.UI | `UI`, `Presentation` | 55 | headless presentation and client-contract tests; verified 2026-07-16 |
+| Test.PlaywrightUI | `PlaywrightUI`, `WasmUI` | 4 | prior serial acceptance passed 3 with Uno opted out; dedicated enabled Uno run passed its published-`Release` first-visit and normal canvas projects on 2026-07-17 |
+| Test.UI | `UI`, `Presentation` | 56 | headless presentation and client-contract tests, including the no-login Uno surface; verified 2026-07-17 |
 | Test.Mobile | `MobileUI` | 3 | explicitly disabled for serial acceptance; dedicated runner remains the enabled-lane gate |
 | Test.Load | `TestCategory=Load` | 2 | NBomber; `[Ignore]` by default; manual run |
 | Test.Mutation | n/a | 33 | mutation-target contract tests; verified 2026-07-16 |
 | Test.Benchmarks | n/a | - | BenchmarkDotNet console runner; `dotnet run -c Release` |
 
-**Current automated verification:** `dotnet build TaskFlow.slnx --no-restore -m:1` and the separate Uno build passed with 0 warnings/errors. Unfiltered serial `dotnet test TaskFlow.slnx --no-build -m:1` passed in 729.1 s with 427 passed and 13 skipped: Azure Foundry, Foundry Local, and mobile were explicitly opted out; 2 existing load tests stayed ignored by default. Aspire, Functions, E2E, Integration, Playwright, React, and Uno WASM all ran. A separate no-opt-out `Test.Aspire` run passed 15 with 5 unavailable-Azure tests inconclusive; a real `Test.FoundryLocal` run passed 2 with 1 slow generation test inconclusive. Docker-compatible runtime and Aspire startup were verified on 2026-07-16.
+**Current automated verification:** `dotnet build TaskFlow.slnx --no-restore -m:1` and the separate Uno build passed with 0 warnings/errors. Unfiltered serial `dotnet test TaskFlow.slnx --no-build -m:1` passed in 665.6 s with 444 passed and 14 skipped/inconclusive: `TASKFLOW_WASM_TESTS_ENABLED=false` opted out the then-red Uno WASM deployment lane; optional Azure Foundry, Foundry Local, and mobile gates remained unavailable/inconclusive; 2 load tests stayed ignored by default. Aspire, Functions, E2E, Integration, and non-Uno Playwright projects ran. After the Uno SDK fix below, the dedicated enabled `UnoWasmCanvasSmoke_Passes` run passed in 304.8 s with zero retries and warnings. Docker-compatible runtime and Aspire startup were verified on 2026-07-17.
+
+**Uno published-Release proof:** Uno.Sdk 6.5.36 reproduced `Arg_NullReferenceException` in `IXamlRootHost.get_RootElement` -> `BrowserRenderer.RenderFrame` -> `BrowserRenderer.requestRender`. Upstream confirms the fix beginning in Uno.Sdk 6.6.0-dev.166; that exact temporary pin passed the published `Release` first-visit and normal Uno Playwright projects from empty browser state without refresh, retry, sleep, or exception suppression. Replace it with the first stable Uno.Sdk 6.6+ release when available. Browser-WASM `Release` temporarily uses `PublishTrimmed=false` because the current Navigation/Toolkit/WinUI package set emits upstream `IL2104` trim-analysis failures under warnings-as-errors.
 
 ### Playwright (`tests/Test.PlaywrightUI/`)
 
@@ -50,7 +52,7 @@ Run `dotnet list package --vulnerable --include-transitive` and capture findings
 - **Moderate:** logged here, tracked but not blocking
 - **Low:** team discretion
 
-Last audited: 2026-06-18 with `dotnet list TaskFlow.slnx package --vulnerable --include-transitive`; no vulnerable packages reported for any project. `MessagePack` was pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`. NOTE: 2026-07-08 added `Aspire.Hosting.Azure.KeyVault` 13.4.6 and `Microsoft.Data.SqlClient.AlwaysEncrypted.AzureKeyVaultProvider` 7.0.2 (D-019); re-run the vulnerability audit to reconfirm.
+Last audited: 2026-07-17 with `dotnet list TaskFlow.slnx package --vulnerable --include-transitive --no-restore`; no vulnerable packages reported for any project. `MessagePack` remains pinned to `3.1.7` for `Test.Load` to clear the previous NBomber transitive `NU1903`.
 
 | Package | Version | Severity | Direct/Transitive | Advisory | Notes |
 |---|---|---|---|---|---|
@@ -109,3 +111,4 @@ Validate locally: `az bicep build --file infra/main.bicep`.
 Tracked here so the next instruction-set or reference-app PR knows what's pending:
 
 1. **Authenticated AI side effects.** D4/D5/D6/D9 persistence/enqueue side effects still require normal tenant/auth context before they can be verified end-to-end.
+2. **Uno dependency stabilization.** Replace temporary Uno.Sdk 6.6.0-dev.166 with the first stable 6.6+ release, rerun the first-visit gate from empty browser state, and re-enable trimming when the dependency graph is trim-clean under warnings-as-errors.

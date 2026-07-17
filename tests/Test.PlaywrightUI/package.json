@@ -9,6 +9,7 @@
     "test:full:fast": "npx playwright test --retries=0 --max-failures=4 --timeout=900000",
     "test:blazor": "npx playwright test --project=blazor",
     "test:react": "npx playwright test --project=react",
-    "test:uno": "npx playwright test --project=uno"
+    "test:uno": "npx playwright test --project=uno",
+    "test:uno:release-cold-start": "npx playwright test --project=uno-release-cold-start --retries=0"
   }
 }

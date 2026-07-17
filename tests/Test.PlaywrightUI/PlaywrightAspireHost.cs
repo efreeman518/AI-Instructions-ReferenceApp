@@ -16,6 +16,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
     private const string ReactResourceName = "taskflowreact";
     private const string HttpEndpointName = "http";
     private const string ResourceLoggingEnvironmentVariable = "TASKFLOW_ASPIRE_RESOURCE_LOGGING";
+    private const string UnoColdStartProject = "uno-release-cold-start";
 
     private readonly AspireTestHostContext _hostContext;
     private readonly Dictionary<string, string?> _originalEnvironment;
@@ -54,7 +55,9 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
         var requestedProjectSet = requestedProjects.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var wantsBlazor = requestedProjectSet.Contains("blazor");
         var wantsReact = requestedProjectSet.Contains("react");
-        var wantsUno = requestedProjectSet.Contains("uno");
+        var wantsUnoSmoke = requestedProjectSet.Contains("uno");
+        var wantsUnoColdStart = requestedProjectSet.Contains(UnoColdStartProject);
+        var wantsUno = wantsUnoSmoke || wantsUnoColdStart;
         var startupTimeoutVariable = wantsUno
             ? "TASKFLOW_WASM_STARTUP_TIMEOUT_SECONDS"
             : "TASKFLOW_ASPIRE_STARTUP_TIMEOUT_SECONDS";
@@ -66,6 +69,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
             "TASKFLOW_ASPIRE_TESTING",
             "TASKFLOW_ASPIRE_REACT_AVAILABLE",
             "TASKFLOW_ASPIRE_UNO_WASM_AVAILABLE",
+            "TASKFLOW_UNO_WASM_DIST_PATH",
             "PLAYWRIGHT_GATEWAY_URL",
             "PLAYWRIGHT_BLAZOR_URL",
             "PLAYWRIGHT_REACT_URL",
@@ -80,7 +84,7 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
 
             var reactRunnable = wantsReact && IsReactRunnable();
             var unoTarget = wantsUno
-                ? await WasmAppHost.PrepareAsync(hostContext, ct)
+                ? await WasmAppHost.PrepareAsync(hostContext, wantsUnoColdStart, ct)
                 : new WasmHostTarget(false, false, "Uno WASM project not requested.");
             var diagnostics = new List<string> { unoTarget.Message };
 
@@ -164,7 +168,15 @@ internal sealed class PlaywrightAspireHost : IAsyncDisposable
                     diagnostics.Add($"Uno WASM hosted by Aspire at {unoBaseUrl}.");
                 }
 
-                typeScriptProjects.Add("uno");
+                if (wantsUnoSmoke)
+                {
+                    typeScriptProjects.Add("uno");
+                }
+
+                if (wantsUnoColdStart)
+                {
+                    typeScriptProjects.Add(UnoColdStartProject);
+                }
             }
 
             return new PlaywrightAspireHost(

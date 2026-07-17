@@ -26,26 +26,29 @@ public static class WebApplicationBuilderExtensions
     {
         _problemDetailsIncludeStackTrace = app.Environment.IsDevelopment() || app.Environment.IsStaging();
 
-        // 1. Security headers
+        // 1. Public scheme/host/path base from the explicitly trusted deployment proxy.
+        app.UseProxyForwarding();
+
+        // 2. Security headers
         app.UseBasicSecurityHeaders();
 
-        // 2. Correlation tracking
+        // 3. Correlation tracking
         app.UseCorrelationId();
         app.UseHeaderPropagation();
 
-        // 3. Exception handler (before routing)
+        // 4. Exception handler (before routing)
         app.UseExceptionHandler();
 
-        // 4. Rate limiter
+        // 5. Rate limiter
         app.UseRateLimiter();
 
-        // 5. CORS
+        // 6. CORS
         app.UseCors("TaskFlowUi");
 
-        // 6. Authentication
+        // 7. Authentication
         app.UseAuthentication();
 
-        // 7. Authorization
+        // 8. Authorization
         app.UseAuthorization();
 
         // OpenAPI / Scalar

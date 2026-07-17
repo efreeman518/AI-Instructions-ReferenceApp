@@ -1,11 +1,17 @@
 @inject IHostEnvironment Env
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    var pathBase = HttpContextAccessor.HttpContext?.Request.PathBase.Value;
+    var baseHref = string.IsNullOrEmpty(pathBase) ? "/" : $"{pathBase.TrimEnd('/')}/";
+}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
+    <base href="@baseHref" />
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
     <link rel="stylesheet" href="app.css" />
     <HeadOutlet @rendermode="InteractiveServer" />

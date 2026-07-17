@@ -30,6 +30,14 @@ public sealed class DatabaseMigratorIntegrationTests
         await using var trxn = SqlContainerFixture.CreateTrxnContext(connectionString);
         var taskFlowTableCount = await CountTablesAsync(trxn, "taskflow");
         Assert.IsGreaterThanOrEqualTo(7, taskFlowTableCount, $"Expected at least 7 taskflow tables, found {taskFlowTableCount}.");
+        Assert.IsTrue(await TableExistsAsync(
+            trxn,
+            TaskFlowDbContextBase.SchemaName,
+            TaskFlowDbContextBase.MigrationHistoryTable));
+        Assert.IsFalse(await TableExistsAsync(
+            trxn,
+            "dbo",
+            TaskFlowDbContextBase.MigrationHistoryTable));
 
         await using var flowEngine = SqlContainerFixture.CreateFlowEngineContext(connectionString);
         var flowEngineTableCount = await CountTablesAsync(flowEngine, TaskFlowFlowEngineDbContext.SchemaName);
@@ -48,6 +56,41 @@ public sealed class DatabaseMigratorIntegrationTests
         Assert.AreEqual(42, await ExecuteScalarIntAsync(
             tickerQ,
             "SELECT [Value] FROM [Scheduler].[MigrationStepProof] WHERE [Id] = 1"));
+    }
+
+    [TestMethod]
+    [Timeout(180000, CooperativeCancellation = true)]
+    public async Task DatabaseMigrator_RelocatesLegacyDboHistoryBeforePinnedMigrate()
+    {
+        var connectionString = await SqlContainerFixture.CreateEmptyDatabaseConnectionStringAsync("TaskFlowLegacyHistory");
+        await using (var legacy = SqlContainerFixture.CreateLegacyTrxnContext(connectionString))
+        {
+            await legacy.Database.MigrateAsync(TestContext.CancellationToken);
+            Assert.IsTrue(await TableExistsAsync(
+                legacy,
+                "dbo",
+                TaskFlowDbContextBase.MigrationHistoryTable));
+        }
+
+        var factory = new TestDbContextFactory<TaskFlowDbContextTrxn>(
+            () => SqlContainerFixture.CreateTrxnContext(connectionString));
+        await TaskFlowMigrationHistoryCompatibility.RelocateLegacyHistoryTableAsync(
+            factory,
+            TestContext.CancellationToken);
+
+        var runner = CreateRunner(connectionString);
+        await runner.RunAsync(TestContext.CancellationToken);
+        await runner.RunAsync(TestContext.CancellationToken);
+
+        await using var trxn = SqlContainerFixture.CreateTrxnContext(connectionString);
+        Assert.IsTrue(await TableExistsAsync(
+            trxn,
+            TaskFlowDbContextBase.SchemaName,
+            TaskFlowDbContextBase.MigrationHistoryTable));
+        Assert.IsFalse(await TableExistsAsync(
+            trxn,
+            "dbo",
+            TaskFlowDbContextBase.MigrationHistoryTable));
     }
 
     [TestMethod]

@@ -91,6 +91,9 @@ public sealed class SqlApiFactory : WebApplicationFactoryBase<Program, TaskFlowD
             {
                 sql.UseLatestCompatibilityLevel();
                 sql.EnableRetryOnFailure();
+                sql.MigrationsHistoryTable(
+                    TaskFlowDbContextBase.MigrationHistoryTable,
+                    TaskFlowDbContextBase.SchemaName);
             })
             .Options;
 }

@@ -17,6 +17,7 @@ internal static class WasmAppHost
     private const string HttpEndpointName = "http";
     private const string TargetFramework = "net10.0-browserwasm";
     private const string StampFileName = ".taskflow-wasm-test-build.stamp";
+    private const string PublishedDistPathVariable = "TASKFLOW_UNO_WASM_DIST_PATH";
 
     private static readonly string[] ProfilerVariables =
     [
@@ -32,7 +33,10 @@ internal static class WasmAppHost
         "CORECLR_PROFILER_PATH_64"
     ];
 
-    internal static async Task<WasmHostTarget> PrepareAsync(AspireTestHostContext host, CancellationToken ct)
+    internal static async Task<WasmHostTarget> PrepareAsync(
+        AspireTestHostContext host,
+        bool publishRelease,
+        CancellationToken ct)
     {
         if (IsExplicitlyDisabled(Environment.GetEnvironmentVariable(TestsEnabledVariable)))
         {
@@ -43,7 +47,7 @@ internal static class WasmAppHost
         }
 
         var configuredUrl = Environment.GetEnvironmentVariable("PLAYWRIGHT_UNO_URL");
-        if (!string.IsNullOrWhiteSpace(configuredUrl))
+        if (!publishRelease && !string.IsNullOrWhiteSpace(configuredUrl))
         {
             Environment.SetEnvironmentVariable("PLAYWRIGHT_UNO_URL", configuredUrl.TrimEnd('/'));
             return new WasmHostTarget(
@@ -60,7 +64,7 @@ internal static class WasmAppHost
             throw new InvalidOperationException($"Uno project not found: {unoProject}");
         }
 
-        var configuration = GetCurrentConfiguration();
+        var configuration = publishRelease ? "Release" : GetCurrentConfiguration();
         CleanTargetOutput(repoRoot, configuration);
 
         await RunDotnetAsync(
@@ -76,22 +80,56 @@ internal static class WasmAppHost
             ],
             ct);
 
-        await RunDotnetAsync(
-            host,
-            "Uno WASM build",
-            repoRoot,
-            [
-                "build",
-                unoProject,
-                $"-p:TargetFrameworkOverride={TargetFramework}",
-                "-p:EnableUnoWasm=true",
-                $"-p:Configuration={configuration}",
-                "--no-restore",
-                "-m:1"
-            ],
-            ct);
-
         var outputPath = Path.Combine(repoRoot, "src", "UI", "TaskFlow.Uno", "bin", configuration, TargetFramework);
+        if (publishRelease)
+        {
+            outputPath = Path.Combine(outputPath, "publish");
+            await RunDotnetAsync(
+                host,
+                "Uno WASM Release publish",
+                repoRoot,
+                [
+                    "publish",
+                    unoProject,
+                    "-f",
+                    TargetFramework,
+                    $"-p:TargetFrameworkOverride={TargetFramework}",
+                    "-p:EnableUnoWasm=true",
+                    "-p:Configuration=Release",
+                    $"-p:PublishDir={outputPath}",
+                    "--no-restore",
+                    "-m:1"
+                ],
+                ct);
+
+            Environment.SetEnvironmentVariable(PublishedDistPathVariable, outputPath);
+        }
+        else
+        {
+            await RunDotnetAsync(
+                host,
+                "Uno WASM build",
+                repoRoot,
+                [
+                    "build",
+                    unoProject,
+                    $"-p:TargetFrameworkOverride={TargetFramework}",
+                    "-p:EnableUnoWasm=true",
+                    $"-p:Configuration={configuration}",
+                    "--no-restore",
+                    "-m:1"
+                ],
+                ct);
+
+            Environment.SetEnvironmentVariable(PublishedDistPathVariable, null);
+        }
+
+        var publishedIndex = Path.Combine(outputPath, "wwwroot", "index.html");
+        if (!File.Exists(publishedIndex))
+        {
+            throw new InvalidOperationException($"Uno WASM output is missing {publishedIndex}.");
+        }
+
         File.WriteAllText(
             Path.Combine(outputPath, StampFileName),
             DateTimeOffset.UtcNow.ToString("O"),
@@ -100,7 +138,9 @@ internal static class WasmAppHost
         return new WasmHostTarget(
             RunTypeScriptProject: true,
             HostWithAspire: true,
-            Message: $"Uno WASM assets restored and built for {configuration}/{TargetFramework}.");
+            Message: publishRelease
+                ? $"Uno WASM assets restored and published for Release/{TargetFramework} at {outputPath}."
+                : $"Uno WASM assets restored and built for {configuration}/{TargetFramework}.");
     }
 
     internal static async Task<string> ResolveEndpointAsync(

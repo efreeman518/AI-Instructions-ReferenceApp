@@ -55,7 +55,7 @@ public partial record TaskListModel
     public IState<bool> ShowPager => State<bool>.Value(this, () => false);
     public IState<bool> HasItems => State<bool>.Value(this, () => false);
     public IState<bool> IsEmpty => State<bool>.Value(this, () => true);
-    public IListState<int> VisiblePageNumbers => ListState<int>.Empty(this);
+    public IListState<PageNumberOption> VisiblePageNumbers => ListState<PageNumberOption>.Empty(this);
 
     // -- User-input state --
     public IState<int> CurrentPage => State<int>.Value(this, () => 1);
@@ -117,7 +117,9 @@ public partial record TaskListModel
         await ShowPager.UpdateAsync(_ => result.ShowPager, noCt);
         await HasItems.UpdateAsync(_ => result.HasItems, noCt);
         await IsEmpty.UpdateAsync(_ => result.IsEmpty, noCt);
-        await VisiblePageNumbers.UpdateAsync(_ => result.VisiblePageNumbers.ToImmutableList(), noCt);
+        await VisiblePageNumbers.UpdateAsync(
+            _ => result.VisiblePageNumbers.Select(static value => new PageNumberOption(value)).ToImmutableList(),
+            noCt);
     }
 
     /// <summary>Handles search requests and returns a paged application response.</summary>
@@ -189,3 +191,6 @@ public partial record TaskListModel
     /// <summary>Normalizes page size so callers and persistence use consistent values.</summary>
     private static int NormalizePageSize(int pageSize) => pageSize is 10 or 20 or 50 ? pageSize : DefaultPageSize;
 }
+
+/// <summary>Exposes a page number as an object so trimmed MVUX list bindings retain a real property.</summary>
+public sealed record PageNumberOption(int Value);

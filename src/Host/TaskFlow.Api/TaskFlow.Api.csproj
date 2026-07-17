@@ -16,7 +16,6 @@
          Only AdminApi is referenced here for the pipeline mapping. -->
     <PackageReference Include="EF.FlowEngine.AdminApi" />
     <PackageReference Include="Microsoft.AI.Foundry.Local" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <!-- Temporary direct reference lifting a vulnerable Microsoft.AspNetCore.OpenApi transitive - see Directory.Packages.props. -->

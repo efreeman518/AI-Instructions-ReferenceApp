@@ -148,6 +148,9 @@ public static partial class RegisterServices
                     maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay,
                     errorNumbersToAdd: null);
+                sqlOptions.MigrationsHistoryTable(
+                    TaskFlowDbContextBase.MigrationHistoryTable,
+                    TaskFlowDbContextBase.SchemaName);
             });
         }
         else
@@ -159,6 +162,9 @@ public static partial class RegisterServices
                     maxRetryCount: maxRetryCount,
                     maxRetryDelay: maxRetryDelay,
                     errorNumbersToAdd: null);
+                sqlOptions.MigrationsHistoryTable(
+                    TaskFlowDbContextBase.MigrationHistoryTable,
+                    TaskFlowDbContextBase.SchemaName);
             });
         }
     }

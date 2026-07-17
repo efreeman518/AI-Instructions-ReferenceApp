@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using TaskFlow.Application.Contracts;
 using TaskFlow.Gateway;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.AddProxyForwarding();
 builder.Services.AddGatewayServices(builder.Configuration);
+var authMode = AuthModeResolver.Resolve(builder.Configuration[AuthModeResolver.ConfigKey]);
 
 // Authorization (auth registered in AddGatewayServices)
 builder.Services.AddAuthorization();
@@ -12,6 +15,9 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Pipeline order: security -> CORS -> middleware -> endpoints -> reverse proxy
+// Adopt the edge proxy's public scheme/host before auth and before YARP re-stamps
+// X-Forwarded-* for the downstream app.
+app.UseProxyForwarding();
 app.UseExceptionHandler(appBuilder =>
     appBuilder.Run(async ctx =>
     {
@@ -40,6 +46,7 @@ app.MapGet("/alive", () => Results.Ok("Alive"))
 app.MapGet("/", () => "TaskFlow Gateway")
     .AllowAnonymous();
 
-app.MapReverseProxy();
+app.MapAuthModeEndpoint(authMode);
+app.MapReverseProxy().RequireAuthorization();
 
 app.Run();

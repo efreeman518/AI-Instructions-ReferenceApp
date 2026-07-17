@@ -49,7 +49,7 @@ public class MigrationAndRepositoryTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'taskflow'";
         var tableCount = (int)(await cmd.ExecuteScalarAsync(TestContext.CancellationToken))!;
-        Assert.IsGreaterThanOrEqualTo(tableCount, 7, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
+        Assert.IsGreaterThanOrEqualTo(7, tableCount, $"Expected >= 7 tables in taskflow schema, found {tableCount}");
     }
 
     /// <summary>Verifies category CRUD operations work against real SQL behavior and protects the expected test contract.</summary>

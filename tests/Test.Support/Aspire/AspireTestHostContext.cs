@@ -81,15 +81,11 @@ public sealed class AspireTestHostContext
 
         try
         {
-            return await operation(timeoutCts.Token).WaitAsync(remaining, cancellationToken);
+            return await operation(timeoutCts.Token).WaitAsync(timeoutCts.Token);
         }
         catch (OperationCanceledException ex) when (
             !cancellationToken.IsCancellationRequested
             && timeoutCts.IsCancellationRequested)
-        {
-            throw CreateStartupTimeout(stepName, ex);
-        }
-        catch (TimeoutException ex) when (_startupClock.Elapsed >= _startupBudget)
         {
             throw CreateStartupTimeout(stepName, ex);
         }

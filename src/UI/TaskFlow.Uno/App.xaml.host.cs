@@ -24,13 +24,6 @@ public partial class App : Application
         builder
             .UseToolkitNavigation()
             .Configure(host => host
-                .UseAuthentication(auth =>
-                    auth.AddCustom(custom =>
-                    {
-                        custom.Login(async (sp, dispatcher, credentials, cancellationToken) =>
-                            await ProcessCredentials(credentials));
-                    }, name: "CustomAuth")
-                )
                 .UseHttp((context, services) =>
                 {
                     var gatewayUrl = ResolveGatewayUrl(context.Configuration);
@@ -116,33 +109,6 @@ public partial class App : Application
         }
 
         return gatewayUrl;
-    }
-
-    /// <summary>
-    /// Dev/sample login stub: issues a local token for any non-empty username so the UI gets
-    /// past the login gate without an interactive IdP flow. This is NOT a security bypass - the
-    /// real boundary is the backend, which is config-gated: the API's <c>AuthMode</c> (default
-    /// "Scaffold" = dev passthrough; else real Entra JWT) and the Gateway's <c>EntraExternal</c>
-    /// section (absent = dev passthrough; present = real Entra validation). In a configured
-    /// (production) backend, the token minted here is rejected. A real app replaces this stub with
-    /// an interactive MSAL/Entra login. Intentionally left ungated so the normal non-mocked dev
-    /// loop (UI + Aspire dev gateway) can log in; do not gate it behind USE_MOCKS.
-    /// </summary>
-    private static async ValueTask<IDictionary<string, string>?> ProcessCredentials(
-        IDictionary<string, string> credentials)
-    {
-        if (!(credentials?.TryGetValue("Username", out var username) ?? false)
-            || string.IsNullOrEmpty(username))
-        {
-            return null;
-        }
-
-        return new Dictionary<string, string>
-        {
-            { TokenCacheExtensions.AccessTokenKey, "SampleToken" },
-            { TokenCacheExtensions.RefreshTokenKey, "RefreshToken" },
-            { "Expiry", DateTime.Now.AddMinutes(30).ToString("g") }
-        };
     }
 
     /// <summary>Configures serialization behavior for this component.</summary>

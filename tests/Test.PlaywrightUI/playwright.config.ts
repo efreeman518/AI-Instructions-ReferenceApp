@@ -63,6 +63,19 @@ export default defineConfig({
       },
     },
     {
+      name: "uno-release-cold-start",
+      testDir: "./tests/uno-release-cold-start",
+      retries: 0,
+      use: {
+        baseURL: process.env.PLAYWRIGHT_UNO_URL,
+        ignoreHTTPSErrors: true,
+        screenshot: "only-on-failure",
+        trace: "retain-on-failure",
+        ...devices["Desktop Chrome"],
+        ...chromeFallback,
+      },
+    },
+    {
       name: "react",
       testDir: "./tests/react",
       use: {

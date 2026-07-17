@@ -12,6 +12,9 @@ namespace TaskFlow.Infrastructure.Data;
 /// </summary>
 public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContextBase<string, Guid?>(options)
 {
+    public const string SchemaName = "taskflow";
+    public const string MigrationHistoryTable = "__EFMigrationsHistory";
+
     /// <summary>
     /// Registers typed ID conversions before EF discovers the model so all mapped IDs,
     /// tenant IDs, and nullable FK IDs share the package converter.
@@ -29,7 +32,7 @@ public abstract class TaskFlowDbContextBase(DbContextOptions options) : DbContex
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema("taskflow");
+        modelBuilder.HasDefaultSchema(SchemaName);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TaskFlowDbContextBase).Assembly);
         ConfigureDefaultDataTypes(modelBuilder);
         SetTableNames(modelBuilder);

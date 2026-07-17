@@ -13,11 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 // checks, service discovery, and HTTP resilience. Keeps this server-hosted UI participating in
 // the same telemetry pipeline as the backend hosts while still running with no Azure config.
 builder.AddServiceDefaults();
+builder.AddProxyForwarding();
 
 // Blazor Server host for CRUD pages and FlowEngine dashboard pages. API calls go through
 // the gateway so auth, claim forwarding, and routing match the other front ends.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMudServices(config =>
 {
@@ -77,6 +79,7 @@ builder.Services.AddFlowEngineDashboard(adminApiBaseUrl: flowEngineAdminBaseUrl)
 
 var app = builder.Build();
 
+app.UseProxyForwarding();
 app.MapDefaultEndpoints();
 
 if (!app.Environment.IsDevelopment())

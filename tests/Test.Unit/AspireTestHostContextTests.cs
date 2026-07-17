@@ -8,6 +8,7 @@ namespace Test.Unit;
 /// </summary>
 [TestClass]
 [TestCategory("Unit")]
+[DoNotParallelize]
 public sealed class AspireTestHostContextTests
 {
     public TestContext TestContext { get; set; } = null!;

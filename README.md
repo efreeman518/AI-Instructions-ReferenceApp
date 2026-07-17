@@ -44,6 +44,12 @@ dotnet run --project src/Host/Aspire/AppHost
 
 Use the Aspire dashboard to discover the Gateway, API, and Blazor URLs; ports are allocated per run. See [AI Demos](#ai-demos-azure-ai-foundry-and-foundry-local) for AI-specific run modes.
 
+### Authentication
+
+The reference app runs with `AuthMode: Scaffold`. The API supplies a fixed authenticated scaffold principal, UI heads do not require or show a login, and anonymous `GET /auth/mode` reports the public mode without exposing provider configuration. This is the executable scaffold proof, not a production security boundary.
+
+Live Entra ID or Entra External ID remains deployment-only. Before public use, implement the chosen client flow, disable scaffold auth, provision registrations/roles/consent, and complete the published-`Release` acceptance steps in [`infra/README.md`](infra/README.md#optional-live-interactive-identity).
+
 ## AI Coding Instructions
 
 This repo is the compiled proof for the [AI-Instructions-Scaffold](https://github.com/efreeman518/AI-Instructions-Scaffold) instruction payload, so its agent-facing conventions are part of the reference surface:

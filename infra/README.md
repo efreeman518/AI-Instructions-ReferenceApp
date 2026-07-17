@@ -19,7 +19,7 @@ Azure infrastructure for the TaskFlow dev environment. All resources deploy to a
 | Log Analytics | PerGB2018 (30d) | Logging + Application Insights |
 | User-Assigned Identity | - | GitHub Actions OIDC deploy identity |
 
-All services use **managed identities** and **Entra-only auth** (no connection strings or shared keys except Functions storage, which requires it).
+Azure resource access uses **managed identities and Entra authentication** where supported (no shared application keys except Functions storage, which requires one). End-user application auth is separate: this reference deployment defaults to `AuthMode: Scaffold`, supplies an automatic principal, and does not require a login.
 
 ## Prerequisites
 
@@ -28,6 +28,25 @@ All services use **managed identities** and **Entra-only auth** (no connection s
 - **Azure subscription** with Owner or Contributor + User Access Administrator
 - **GitHub repo** with Actions enabled
 - Signed in to Azure CLI: `az login`
+
+## Authentication Posture
+
+TaskFlow is a compiled scaffold proof, not a provisioned identity sample. Its supported default is `AuthMode: Scaffold`; API and UI flows run with the fixed scaffold principal and no login screen. Do not expose that mode as a production security boundary.
+
+### Optional Live Interactive Identity
+
+Live Entra ID or Entra External ID is deployment-only. Before switching any deployed client away from scaffold auth:
+
+1. Create separate app registrations when the API, public client, and admin portal have different redirect URIs, roles, or operators. Store client IDs in deployment configuration, not source placeholders.
+2. Register exact public HTTPS redirect and post-logout URIs, including any path base and callback path. Never register an internal container host as the production callback.
+3. Define required app roles, create the enterprise application/service principal, require assignment where appropriate, and assign the operator user or group.
+4. Add delegated `openid` and `profile` permissions and grant tenant admin consent before testing. CIAM tenants commonly disable user consent.
+5. For Entra External ID user flows, use `https://<tenant-subdomain>.ciamlogin.com/`. Do not use `login.microsoftonline.com` as the interactive CIAM authority.
+6. Create a local CIAM user for acceptance and assign its role. Guest or personal Microsoft account administrators generally cannot sign in through CIAM local-user flows.
+7. If automation creates the service principal, add the `WindowsAzureActiveDirectoryIntegratedApp` tag when operators need it visible under the portal's default Enterprise Applications filter.
+8. Implement the selected client flow, disable scaffold auth in that deployment, then complete one real role-bearing sign-in per enabled UI head from its published `Release` output. Verify the resulting token reaches the Gateway. Automated scaffold tests are not equivalent evidence.
+
+Secrets belong in Key Vault or the deployment secret store. Never commit client secrets.
 
 ## Step 1: Run Bootstrap
 

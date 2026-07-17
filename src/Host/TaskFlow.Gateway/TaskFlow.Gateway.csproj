@@ -5,11 +5,11 @@
     <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" />
     <PackageReference Include="Yarp.ReverseProxy" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Application\TaskFlow.Application.Contracts\TaskFlow.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\TaskFlow.Observability\TaskFlow.Observability.csproj" />
   </ItemGroup>
 

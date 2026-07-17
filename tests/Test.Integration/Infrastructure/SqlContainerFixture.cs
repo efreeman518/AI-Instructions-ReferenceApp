@@ -62,6 +62,20 @@ internal static class SqlContainerFixture
     internal static TaskFlowDbContextTrxn CreateTrxnContext(string? connString = null) =>
         new(BuildSqlServerOptions<TaskFlowDbContextTrxn>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
 
+    /// <summary>Builds a trxn context using the pre-schema-pinning dbo migration history location.</summary>
+    internal static TaskFlowDbContextTrxn CreateLegacyTrxnContext(string connectionString)
+    {
+        var options = new DbContextOptionsBuilder<TaskFlowDbContextTrxn>()
+            .UseSqlServer(connectionString, sql =>
+            {
+                sql.UseLatestCompatibilityLevel();
+                sql.EnableRetryOnFailure();
+            })
+            .Options;
+
+        return new TaskFlowDbContextTrxn(options) { AuditId = "integration-test" };
+    }
+
     /// <summary>Builds a query context against the standalone SQL container.</summary>
     internal static TaskFlowDbContextQuery CreateQueryContext(string? connString = null) =>
         new(BuildSqlServerOptions<TaskFlowDbContextQuery>(connString ?? Sql.ConnectionString)) { AuditId = "integration-test" };
@@ -109,6 +123,9 @@ internal static class SqlContainerFixture
             {
                 sql.UseLatestCompatibilityLevel();
                 sql.EnableRetryOnFailure();
+                sql.MigrationsHistoryTable(
+                    TaskFlowDbContextBase.MigrationHistoryTable,
+                    TaskFlowDbContextBase.SchemaName);
             })
             .Options;
 }

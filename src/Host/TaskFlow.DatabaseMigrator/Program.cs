@@ -20,6 +20,8 @@ builder.Services
 
 using var host = builder.Build();
 using var scope = host.Services.CreateScope();
+var trxnFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TaskFlowDbContextTrxn>>();
+await TaskFlowMigrationHistoryCompatibility.RelocateLegacyHistoryTableAsync(trxnFactory);
 var runner = scope.ServiceProvider.GetRequiredService<DatabaseMigrationRunner>();
 await runner.RunAsync();
 
@@ -40,7 +42,14 @@ static class DatabaseMigratorRegistration
         var commandTimeoutSeconds = config.GetValue<int?>("Database:MigrationCommandTimeoutSeconds") ?? 1800;
 
         services.AddDbContextFactory<TaskFlowDbContextTrxn>(options =>
-            ConfigureSqlServer(options, trxn, retryCount, retryDelaySeconds, commandTimeoutSeconds));
+            ConfigureSqlServer(
+                options,
+                trxn,
+                retryCount,
+                retryDelaySeconds,
+                commandTimeoutSeconds,
+                TaskFlowDbContextBase.MigrationHistoryTable,
+                TaskFlowDbContextBase.SchemaName));
 
         services.AddDbContextFactory<TaskFlowFlowEngineDbContext>(options =>
             ConfigureSqlServer(

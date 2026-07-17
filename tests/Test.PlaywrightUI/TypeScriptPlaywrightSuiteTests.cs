@@ -36,7 +36,8 @@ public sealed class TypeScriptPlaywrightSuiteTests
     [TestMethod]
     [TestCategory("WasmUI")]
     [Timeout(3_600_000, CooperativeCancellation = true)]
-    public Task UnoWasmCanvasSmoke_Passes() => RunTypeScriptProjectsAsync("uno");
+    public Task UnoWasmCanvasSmoke_Passes() =>
+        RunTypeScriptProjectsAsync("uno-release-cold-start", "uno");
 
     /// <summary>Runs the C# Gateway and Blazor browser happy-path through the same Aspire host policy.</summary>
     [TestMethod]
@@ -76,7 +77,7 @@ public sealed class TypeScriptPlaywrightSuiteTests
             return;
         }
 
-        if (requestedProjects.Contains("uno", StringComparer.OrdinalIgnoreCase)
+        if (requestedProjects.Any(project => project.StartsWith("uno", StringComparison.OrdinalIgnoreCase))
             && IsExplicitlyDisabled("TASKFLOW_WASM_TESTS_ENABLED"))
         {
             Assert.Inconclusive("TASKFLOW_WASM_TESTS_ENABLED=false - Uno WASM full-stack tier opted out.");

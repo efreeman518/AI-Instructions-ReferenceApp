@@ -16,6 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\src\UI\TaskFlow.Uno\Views\MainPage.xaml"
+             Link="Presentation\MainPage.xaml"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\UI\TaskFlow.Uno.Core\TaskFlow.Uno.Core.csproj" />
     <ProjectReference Include="..\..\src\UI\TaskFlow.Uno.Presentation\TaskFlow.Uno.Presentation.csproj" />
   </ItemGroup>

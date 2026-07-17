@@ -19,6 +19,7 @@ try
 {
     // 1. Service defaults (OpenTelemetry, health, resilience)
     builder.AddServiceDefaults();
+    builder.AddProxyForwarding();
 
     // 2. Data Protection (Azure Blob key storage + Key Vault key encryption)
     ConfigureDataProtection();

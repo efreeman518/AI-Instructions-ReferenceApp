@@ -92,6 +92,8 @@ Generated: 2026-04-23
 
 ### Identity & Access (Managed Identities + RBAC)
 
+The baseline deployment keeps end-user `AuthMode: Scaffold` so the reference app remains runnable without a login or tenant provisioning. Managed identities below secure Azure resource access; they do not convert the scaffold principal into production user authentication. Live interactive Entra/CIAM setup is an explicit deployment hardening step documented in `infra/README.md` and must disable scaffold auth before public use.
+
 | Identity | Assigned To | Roles |
 |----------|------------|-------|
 | System MI (Gateway) | Gateway Container App | App Configuration Data Reader, Key Vault Secrets User |
